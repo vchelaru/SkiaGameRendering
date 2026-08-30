@@ -92,10 +92,6 @@ public static class WebGLTexture2DExtensions
 //     upstream PR mirroring #2669's shape is the long-term fix; until then this is genuinely
 //     internals-only, not a case of avoidable reflection. Tracked in repo issue #13.
 //
-// eng/Versions.props pins KniVersion to 4.2.9001, not 4.3.9001: 4.3.9001's BlazorGL platform crashes
-// the WASM runtime on startup, independent of anything in this file (see repo issue #14). None of the
-// above depends on 4.3.9001 specifically, so this pin costs nothing.
-//
 // If KNI renames/restructures these members, the MissingFieldException/MissingMemberException below
 // will fail loudly at first use rather than silently misbehaving.
 [SupportedOSPlatform("browser")]
