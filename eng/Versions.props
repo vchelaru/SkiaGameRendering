@@ -1,6 +1,10 @@
 <Project>
   <PropertyGroup>
-    <KniVersion>4.3.9001</KniVersion>
+    <!-- Pinned to 4.2.9001, not the latest 4.3.9001: 4.3.9001's BlazorGL platform crashes the WASM
+         runtime during startup (reproduced independent of anything in this repo - see repo issue #14).
+         GetSharedHandle() from kniEngine/kni#2669 first ships in 4.3.9001, but WebGlCanvasUpload.cs
+         doesn't use it (reflects into KNI internals directly instead), so this pin loses nothing. -->
+    <KniVersion>4.2.9001</KniVersion>
     <WebGlPackageVersion>1.0.0</WebGlPackageVersion>
     <NkastWasmCanvasVersion>8.0.11</NkastWasmCanvasVersion>
     <SkiaSharpVersion>3.119.4</SkiaSharpVersion>

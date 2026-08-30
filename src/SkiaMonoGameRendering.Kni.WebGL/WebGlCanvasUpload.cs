@@ -92,6 +92,10 @@ public static class WebGLTexture2DExtensions
 //     upstream PR mirroring #2669's shape is the long-term fix; until then this is genuinely
 //     internals-only, not a case of avoidable reflection. Tracked in repo issue #13.
 //
+// eng/Versions.props pins KniVersion to 4.2.9001, not 4.3.9001: 4.3.9001's BlazorGL platform crashes
+// the WASM runtime on startup, independent of anything in this file (see repo issue #14). None of the
+// above depends on 4.3.9001 specifically, so this pin costs nothing.
+//
 // If KNI renames/restructures these members, the MissingFieldException/MissingMemberException below
 // will fail loudly at first use rather than silently misbehaving.
 [SupportedOSPlatform("browser")]
@@ -99,10 +103,11 @@ internal static class KniWebGlInternals
 {
     private const BindingFlags NonPublicInstance = BindingFlags.NonPublic | BindingFlags.Instance;
 
-    private static readonly FieldInfo StrategyTexture2DField =
-        typeof(Texture2D).GetField("_strategyTexture2D", NonPublicInstance)
-        ?? throw new MissingFieldException("Texture2D._strategyTexture2D was not found; KNI's internal layout changed.");
-
+    // Resolved lazily, not via static field initializers: a throwing static cctor can run at an
+    // unpredictable point relative to first actual use under "beforefieldinit" semantics, so a lookup
+    // failure here should surface exactly when UploadFromCanvas is first called, not at some earlier,
+    // harder-to-diagnose point during assembly/type loading.
+    private static FieldInfo? _strategyTexture2DField;
     private static FieldInfo? _glTextureField;
     private static PropertyInfo? _glContextProperty;
 
@@ -127,7 +132,10 @@ internal static class KniWebGlInternals
 
     private static int GetGlTextureUid(Texture2D texture)
     {
-        var strategy = StrategyTexture2DField.GetValue(texture)
+        _strategyTexture2DField ??= typeof(Texture2D).GetField("_strategyTexture2D", NonPublicInstance)
+            ?? throw new MissingFieldException("Texture2D._strategyTexture2D was not found; KNI's internal layout changed.");
+
+        var strategy = _strategyTexture2DField.GetValue(texture)
             ?? throw new InvalidOperationException("Texture2D has no backing strategy.");
 
         _glTextureField ??= strategy.GetType().GetField("_glTexture", NonPublicInstance)
