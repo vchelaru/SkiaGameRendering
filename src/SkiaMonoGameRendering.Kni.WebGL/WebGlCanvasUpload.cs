@@ -79,8 +79,8 @@ public static class WebGLTexture2DExtensions
 
 // KNI's BlazorGL backend has no public API for "give me the native WebGLTexture/WebGL-context handle
 // behind this Texture2D" - the pieces below are reached via reflection into KNI internals instead of
-// forking/patching KNI's source (see eng/Versions.props history and repo issue #2 for the prior patch
-// this replaced).
+// forking/patching KNI's source (see eng/Versions.props history and repo issue #2, closed, for the
+// prior patch this replaced).
 //
 // Status as of KNI v4.3.9001 (kniEngine/kni#2669, authored upstream from this repo):
 //   - Texture2D._strategyTexture2D -> ConcreteTexture2D._glTexture is now ALSO reachable publicly via
@@ -90,7 +90,7 @@ public static class WebGLTexture2DExtensions
 //   - The current WebGL rendering context (needed so the JS side can bind/upload into KNI's texture)
 //     is still fully internal (ConcreteGraphicsContext.GL) - #2669 did not cover this. A follow-up
 //     upstream PR mirroring #2669's shape is the long-term fix; until then this is genuinely
-//     internals-only, not a case of avoidable reflection.
+//     internals-only, not a case of avoidable reflection. Tracked in repo issue #13.
 //
 // If KNI renames/restructures these members, the MissingFieldException/MissingMemberException below
 // will fail loudly at first use rather than silently misbehaving.
