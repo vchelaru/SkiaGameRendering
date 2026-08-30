@@ -5,20 +5,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <KniPlatform>BlazorGL</KniPlatform>
-    <KniSourceRoot Condition="'$(KniSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\..\.artifacts\kni</KniSourceRoot>
-    <UseKniPackages Condition="'$(UseKniPackages)' == ''">false</UseKniPackages>
     <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
     <WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(UseKniPackages)' != 'true'">
-    <ProjectReference Include="$(KniSourceRoot)\Platforms\Kni.Platform.Blazor.GL.csproj" />
+  <ItemGroup>
+    <PackageReference Include="nkast.Kni.Platform.Blazor.GL" Version="$(KniVersion)" />
     <ProjectReference Include="..\..\src\SkiaMonoGameRendering.Kni.WebGL\SkiaMonoGameRendering.Kni.WebGL.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(UseKniPackages)' == 'true'">
-    <PackageReference Include="nkast.Kni.Platform.Blazor.GL" Version="$(KniPatchedPackageVersion)" />
-    <PackageReference Include="SkiaMonoGameRendering.Kni.WebGL" Version="$(WebGlPackageVersion)" />
   </ItemGroup>
 
   <ItemGroup>

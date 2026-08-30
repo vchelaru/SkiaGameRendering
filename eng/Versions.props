@@ -1,9 +1,7 @@
 <Project>
   <PropertyGroup>
-    <KniCommit>f4f3c5ac99a3f43d6975f8d6aafc42b907c1f6ae</KniCommit>
-    <KniVersion>4.2.9001</KniVersion>
-    <KniPatchedPackageVersion>4.2.9001-skia-interop.1</KniPatchedPackageVersion>
-    <WebGlPackageVersion>1.0.0-skia-interop.1</WebGlPackageVersion>
+    <KniVersion>4.3.9001</KniVersion>
+    <WebGlPackageVersion>1.0.0</WebGlPackageVersion>
     <NkastWasmCanvasVersion>8.0.11</NkastWasmCanvasVersion>
     <SkiaSharpVersion>3.119.4</SkiaSharpVersion>
   </PropertyGroup>

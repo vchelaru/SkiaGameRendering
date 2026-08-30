@@ -99,18 +99,40 @@ export function dispose(elementId) {
 }
 
 globalThis.skiaMonoGameWebGl = globalThis.skiaMonoGameWebGl || {};
-globalThis.skiaMonoGameWebGl.uploadFromCanvas = function (contextUid, textureUid, sourceElementId, useTexImage) {
+// gl/texture are resolved from KNI's own nkast.Wasm.Canvas JS object registry by Uid (the same
+// registry nkast.Wasm.Canvas.WebGL uses for all of its JS interop) - see
+// SkiaMonoGameRendering.Kni.WebGL's KniWebGlInternals.cs for how those Uids are obtained via
+// reflection into KNI internals, since KNI has no public accessor for its current WebGL context.
+globalThis.skiaMonoGameWebGl.uploadFromCanvas = function (
+    contextUid, textureUid, sourceElementId, flipY, premultiplyAlpha, disableColorSpaceConversion, useTexImage) {
     const gl = globalThis.nkJSObject.GetObject(contextUid);
     const texture = globalThis.nkJSObject.GetObject(textureUid);
     const source = document.getElementById(sourceElementId);
+    if (!gl)
+        throw new Error("The KNI WebGL context is unavailable.");
+    if (gl.isContextLost())
+        throw new Error("The KNI WebGL context is lost.");
     if (!texture)
         throw new Error("The KNI destination texture is unavailable.");
     if (!(source instanceof HTMLCanvasElement))
         throw new Error(`Source canvas '${sourceElementId}' is unavailable.`);
 
+    gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    if (useTexImage)
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    else
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flipY ? 1 : 0);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiplyAlpha ? 1 : 0);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, disableColorSpaceConversion ? gl.NONE : gl.BROWSER_DEFAULT_WEBGL);
+
+    try {
+        if (useTexImage)
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        else
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    } finally {
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+        gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+    }
 };

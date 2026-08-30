@@ -4,13 +4,11 @@
 
 - .NET 8 SDK and the `wasm-tools-net8` workload
 - WebGL2-capable browser
-- PowerShell and Git for the pinned KNI bootstrap
 
 ## Build and run
 
 ```powershell
 dotnet workload install wasm-tools-net8
-.\eng\bootstrap-kni-webgl.ps1
 dotnet build samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
 dotnet run --project samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
 ```
@@ -25,6 +23,6 @@ A `SkiaRenderTarget2D`'s `Begin()`/`Canvas`/`End()` must run after any SpriteBat
 
 Dispose in this order: stop the game loop, dispose your `SkiaRenderTarget2D` instances, call `SkiaRenderer.Dispose()` to release the backend, then dispose the host.
 
-## Patched packages
+## Packages
 
-`eng/pack-kni-webgl.ps1` creates the pinned KNI fork packages and `SkiaMonoGameRendering.Kni.WebGL` package in `.artifacts/packages`. KNI uses `4.2.9001-skia-interop.1` and the WebGL library uses `1.0.0-skia-interop.1`, so neither can be confused with binaries lacking `UploadFromCanvas`.
+`Sample.Kni.WebGL` consumes stock KNI from NuGet (`nkast.Kni.Platform.Blazor.GL`, pinned via `eng/Versions.props`'s `KniVersion`) — no fork or source patch. Getting the destination `WebGLTexture`/rendering-context handles KNI doesn't expose publicly (see `WebGlCanvasUpload.cs`'s `KniWebGlInternals`) is done via reflection into KNI internals instead. `dotnet pack src/SkiaMonoGameRendering.Kni.WebGL/SkiaMonoGameRendering.Kni.WebGL.csproj -c Release -o .artifacts/packages` builds just this repo's own package.

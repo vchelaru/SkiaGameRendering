@@ -96,10 +96,10 @@ See `SkiaMonoGame-Rendering-Notes.md` for detailed technical documentation on ho
 
 The WebGL backend is implemented in `SkiaMonoGameRendering.Kni.WebGL`. It creates a synchronous SkiaSharp WebGL2 source host, flushes the current Skia frame, and uploads that canvas directly into a preallocated KNI `Texture2D` with `texSubImage2D`. Production code has no `readPixels`, managed pixel buffer, or `Texture2D.SetData(byte[])` path.
 
-KNI does not yet expose canvas upload upstream, so the repository pins a KNI commit and carries a small public-API patch. Bootstrap it before building the browser projects:
+The browser backend consumes stock KNI from NuGet (no fork or patch); the one internal (the current WebGL rendering context) that KNI doesn't expose publicly is reached via reflection instead — see `src/SkiaMonoGameRendering.Kni.WebGL/WebGlCanvasUpload.cs`.
 
 ```powershell
-.\eng\bootstrap-kni-webgl.ps1
+dotnet workload install wasm-tools-net8
 dotnet build samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
 dotnet run --project samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
 ```

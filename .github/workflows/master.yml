@@ -34,9 +34,6 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: tests/Tests.Kni.WebGL/package-lock.json
-      - name: Bootstrap patched KNI
-        shell: pwsh
-        run: ./eng/bootstrap-kni-webgl.ps1
       - name: Install WASM toolchain
         run: dotnet workload install wasm-tools-net8
       - name: Build native WASM Release
@@ -51,9 +48,8 @@ jobs:
         run: npm test
       - name: Publish trimmed WASM AOT
         run: dotnet publish samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
-      - name: Pack patched KNI and WebGL library
-        shell: pwsh
-        run: ./eng/pack-kni-webgl.ps1
+      - name: Pack WebGL library
+        run: dotnet pack src/SkiaMonoGameRendering.Kni.WebGL/SkiaMonoGameRendering.Kni.WebGL.csproj -c Release -o .artifacts/packages
       - uses: actions/upload-artifact@v4
         if: always()
         with:

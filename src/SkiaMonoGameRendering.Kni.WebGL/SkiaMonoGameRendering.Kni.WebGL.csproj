@@ -12,21 +12,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/vchelaru/SkiaMonoGameRendering</RepositoryUrl>
-    <KniSourceRoot Condition="'$(KniSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\..\.artifacts\kni</KniSourceRoot>
-    <UseKniPackages Condition="'$(UseKniPackages)' == ''">false</UseKniPackages>
   </PropertyGroup>
 
-  <Target Name="RequirePatchedKni" BeforeTargets="ResolveProjectReferences"
-          Condition="'$(UseKniPackages)' != 'true' and !Exists('$(KniSourceRoot)\src\Xna.Framework.Graphics\Xna.Framework.Graphics.csproj')">
-    <Error Text="Patched KNI sources are missing. Run eng\bootstrap-kni-webgl.ps1 first or set KniSourceRoot." />
-  </Target>
-
-  <ItemGroup Condition="'$(UseKniPackages)' != 'true'">
-    <ProjectReference Include="$(KniSourceRoot)\src\Xna.Framework.Graphics\Xna.Framework.Graphics.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(UseKniPackages)' == 'true'">
-    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="[$(KniPatchedPackageVersion)]" />
+  <ItemGroup>
+    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="[$(KniVersion)]" />
   </ItemGroup>
 
   <ItemGroup>
