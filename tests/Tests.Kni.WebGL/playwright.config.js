@@ -15,7 +15,16 @@ module.exports = defineConfig({
     { name: "chromium-dpr-1.25", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.25 } },
     { name: "chromium-dpr-1.5", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.5 } },
     { name: "chromium-dpr-2", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 2 } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    {
+      name: "firefox",
+      use: {
+        ...devices["Desktop Firefox"],
+        // Firefox's headless default disables WebGL2 via gfx config ("AllowWebgl2:false restricts
+        // context creation on this system") on GPU-less CI runners unless explicitly forced on.
+        // See repo issue #12 - this was the root cause of "Initializing WebGL..." hanging forever.
+        launchOptions: { firefoxUserPrefs: { "webgl.force-enabled": true } },
+      },
+    },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
