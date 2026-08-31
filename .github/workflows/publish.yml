@@ -1,0 +1,45 @@
+name: publish
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    permissions:
+      id-token: write # required for NuGet Trusted Publishing (OIDC -> short-lived API key)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Install WASM toolchain
+        run: dotnet workload install wasm-tools-net8
+
+      - name: Pack SkiaGameRendering.Core.OGL
+        run: dotnet pack src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj -c Release -o .artifacts/packages
+      - name: Pack SkiaGameRendering
+        run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c Release -o .artifacts/packages
+      - name: Pack SkiaGameRendering.WindowsDX
+        run: dotnet pack src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c Release -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Kni.WebGL
+        run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -o .artifacts/packages
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: .artifacts/packages/*.nupkg
+
+      # Get a short-lived NuGet API key via Trusted Publishing (no long-lived secret stored)
+      - name: NuGet login (OIDC -> temp API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: NuGet push
+        shell: pwsh
+        run: |
+          Get-ChildItem .artifacts/packages/*.nupkg | ForEach-Object {
+            dotnet nuget push $_.FullName --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          }

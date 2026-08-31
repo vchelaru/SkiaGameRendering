@@ -1,11 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+  <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>SkiaGameRendering</RootNamespace>
+    <PackageId>SkiaGameRendering.WindowsDX</PackageId>
+    <Version>$(LibraryVersion)</Version>
+    <Description>GPU SkiaSharp rendering into MonoGame WindowsDX Texture2D targets via ANGLE, with zero-copy GPU texture sharing.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +26,11 @@
     <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="SkiaRenderTarget2D.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaSpriteBatchExtensions.cs" Link="SkiaSpriteBatchExtensions.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaTarget.cs" Link="SkiaTarget.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

@@ -7,7 +7,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SupportedOSPlatformVersion>browser</SupportedOSPlatformVersion>
     <PackageId>SkiaGameRendering.Kni.WebGL</PackageId>
-    <Version>$(WebGlPackageVersion)</Version>
+    <Version>$(LibraryVersion)</Version>
     <Description>GPU SkiaSharp to KNI Texture2D rendering for Blazor WebGL.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>

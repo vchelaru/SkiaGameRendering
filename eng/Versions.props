@@ -1,7 +1,9 @@
 <Project>
   <PropertyGroup>
     <KniVersion>4.3.9001</KniVersion>
-    <WebGlPackageVersion>1.0.0</WebGlPackageVersion>
+    <!-- Shared version for all published SkiaGameRendering.* NuGet packages. Bump here to bump all
+         of them together; split per-package only if they ever need to version independently. -->
+    <LibraryVersion>0.1.0</LibraryVersion>
     <!-- Must match whatever nkast.Wasm.* version the pinned KniVersion actually depends on (check
          that KNI package's own nuspec - it changes between KNI releases, e.g. 4.2.9001 -> 8.0.11,
          4.3.9001 -> 10.0.3). samples/Sample.Kni.WebGL/wwwroot/index.html hardcodes this same
