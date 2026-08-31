@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -9,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Raylib-cs" Version="8.0.0" />
-    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
     <!--
       The main SkiaSharp package only carries Windows/macOS native assets implicitly; Linux's
       libSkiaSharp.so requires this separate package (confirmed empirically: without it,
@@ -17,7 +18,7 @@
       itself succeeds). Declared here rather than in each consuming app (e.g. Sample.Raylib) so the
       adapter is self-sufficient on Linux without every consumer needing to remember it.
     -->
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="[$(SkiaSharpVersion)]" />
   </ItemGroup>
 
   <ItemGroup>

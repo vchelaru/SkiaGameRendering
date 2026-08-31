@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.4.1" />
-    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
   </ItemGroup>
 
   <ItemGroup>
