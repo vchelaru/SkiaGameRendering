@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <TieredCompilation>false</TieredCompilation>
+    <KniPlatform>DesktopGL</KniPlatform>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Icon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Icon.ico" />
+    <None Remove="Icon.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Icon.ico" />
+    <EmbeddedResource Include="Icon.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="nkast.Xna.Framework" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Content" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Audio" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Media" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Input" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Game" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Devices" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Storage" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Kni.Platform.SDL2.GL" Version="[$(KniVersion)]" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Kni.DesktopGL\SkiaGameRendering.Kni.DesktopGL.csproj" />
+  </ItemGroup>
+</Project>

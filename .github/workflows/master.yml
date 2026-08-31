@@ -20,6 +20,8 @@ jobs:
       - run: dotnet test tests/Tests.Core/Tests.Core.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Kni.DesktopGL/SkiaGameRendering.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.Kni.DesktopGL/Sample.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
 
   webgl-functional:
