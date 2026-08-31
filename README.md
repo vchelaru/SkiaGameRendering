@@ -1,6 +1,6 @@
-# Skia-MonoGame Rendering
+# Skia Game Rendering
 
-A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering to produce `Texture2D`s — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into MonoGame textures without any CPU readback.
+A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering to produce `Texture2D`s — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into game-engine textures without any CPU readback.
 
 ## Platform Support
 
@@ -13,20 +13,21 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 | KNI DesktopGL | OpenGL | Not started | |
 | KNI DirectX | D3D11 | Not started | |
 | KNI Android | GL ES | Not started | |
-| KNI WebGL (Blazor) | WebGL2 | Production candidate | Cross-context `texSubImage2D(canvas)` through a patched public KNI API |
+| KNI WebGL (Blazor) | WebGL2 | Production candidate | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
 
 ## Requirements
 
 - .NET 8
 - Visual Studio 2022
-- MonoGame 3.8.4.1 (DesktopGL or WindowsDX)
+- MonoGame 3.8.4.1 (DesktopGL or WindowsDX) or KNI (WebGL/Blazor)
 - SkiaSharp 3.119.4 for WebGL; 3.119.2 for the existing desktop projects
 
 ## Quick Start
 
-Reference the appropriate library project for your platform:
-- **DesktopGL**: Reference `src/SkiaGameRendering/SkiaGameRendering.csproj`
-- **WindowsDX**: Reference `src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj`
+Install the NuGet package for your platform into an existing MonoGame/KNI project:
+- **MonoGame DesktopGL**: `dotnet add package SkiaGameRendering`
+- **MonoGame WindowsDX**: `dotnet add package SkiaGameRendering.WindowsDX`
+- **KNI WebGL (Blazor)**: `dotnet add package SkiaGameRendering.Kni.WebGL` — needs a couple of extra setup steps beyond the package install; see `docs/webgl/quickstart.md`.
 
 No explicit setup call is required for the common case — constructing a `SkiaRenderTarget2D`
 auto-detects and initializes the right backend for the `GraphicsDevice` you pass it the first time
