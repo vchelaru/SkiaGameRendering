@@ -34,6 +34,8 @@ auto-detects and initializes the right backend for the `GraphicsDevice` you pass
 it's needed. To force a specific backend instead of auto-detection (e.g. in tests), call this once
 before constructing any `SkiaRenderTarget2D`:
 ```cs
+using SkiaGameRendering; // SkiaRenderer, SkiaGlBackend, SkiaAngleBackend
+
 SkiaRenderer.Initialize(new SkiaGlBackend(), GraphicsDevice);     // DesktopGL
 SkiaRenderer.Initialize(new SkiaAngleBackend(), GraphicsDevice);  // WindowsDX
 ```
@@ -45,6 +47,9 @@ once, `Begin()`/draw/`End()` per frame (mirroring `SpriteBatch`'s own shape), th
 `SpriteBatch` like any other texture:
 
 ```cs
+using SkiaGameRendering; // SkiaRenderTarget2D, and the SpriteBatch.Draw(canvas, ...) extension overload
+using SkiaSharp;          // SKPaint and the rest of the drawing API
+
 var canvas = new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
 
 // per frame:
