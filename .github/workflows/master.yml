@@ -45,7 +45,11 @@ jobs:
           npx playwright install --with-deps chromium firefox webkit
       - name: Functional browser tests
         working-directory: tests/Tests.Kni.WebGL
-        run: npm test
+        # Firefox's WebGL implementation needs a real (even virtual) X display to get a GLX-backed
+        # GL context - unlike Chromium, which bundles its own software renderer and works headless
+        # with no X server at all. Without this, Firefox exhausts every GL driver route and WebGL2
+        # never initializes ("Exhausted GL driver options" - see repo issue #12).
+        run: xvfb-run --auto-servernum -- npm test
       - name: Publish trimmed WASM AOT
         run: dotnet publish samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
       - name: Pack WebGL library
