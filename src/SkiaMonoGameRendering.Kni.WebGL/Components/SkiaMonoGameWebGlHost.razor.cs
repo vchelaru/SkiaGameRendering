@@ -15,10 +15,18 @@ public partial class SkiaMonoGameWebGlHost : ComponentBase, IAsyncDisposable
     private readonly string _canvasElementId = $"skia-monogame-source-{Guid.NewGuid():N}";
     private IJSInProcessObjectReference? _module;
     private DotNetObjectReference<SkiaMonoGameWebGlHost>? _selfReference;
+    // A SkiaRenderTarget2D's Skia-side surface is bound to this host's single physical <canvas>
+    // element/framebuffer (KNI's texSubImage2D(canvas) upload reads the whole canvas, so its size
+    // must exactly match whatever's being uploaded - see repo issue #12 item 6). Consumers commonly
+    // alternate between a small, stable set of distinct target sizes every frame (e.g. a main canvas
+    // plus a UI panel); caching by size instead of disposing on every mismatch turns that into a
+    // handful of one-time allocations instead of full GRBackendRenderTarget/SKSurface recreation on
+    // every single draw.
+    private const int MaxCachedSurfaces = 4;
+    private readonly List<CachedSurface> _surfaceCache = new(); // LRU order: index 0 = least recent
     private HostGlInfo? _glInfo;
     private GRGlInterface? _glInterface;
     private GRContext? _context;
-    private GRBackendRenderTarget? _renderTarget;
     private SKSurface? _surface;
     private int _surfaceWidth;
     private int _surfaceHeight;
@@ -85,14 +93,6 @@ public partial class SkiaMonoGameWebGlHost : ComponentBase, IAsyncDisposable
         EnsureUsable();
         ValidateSize(physicalWidth, physicalHeight);
         _module!.InvokeVoid("makeCurrent", CanvasElementId, physicalWidth, physicalHeight);
-
-        if (_surfaceWidth != physicalWidth || _surfaceHeight != physicalHeight)
-        {
-            DisposeSurface();
-            _surfaceWidth = physicalWidth;
-            _surfaceHeight = physicalHeight;
-        }
-
         return new BrowserCanvasSource(CanvasElementId, physicalWidth, physicalHeight);
     }
 
@@ -202,15 +202,32 @@ public partial class SkiaMonoGameWebGlHost : ComponentBase, IAsyncDisposable
             _context.SetResourceCacheLimit(ResourceCacheBytes);
         }
 
-        if (_renderTarget == null)
+        var index = _surfaceCache.FindIndex(cached => cached.Width == width && cached.Height == height);
+        CachedSurface entry;
+        if (index >= 0)
         {
+            entry = _surfaceCache[index];
+            _surfaceCache.RemoveAt(index);
+        }
+        else
+        {
+            if (_surfaceCache.Count >= MaxCachedSurfaces)
+            {
+                _surfaceCache[0].Dispose();
+                _surfaceCache.RemoveAt(0);
+            }
+
             var framebufferInfo = new GRGlFramebufferInfo(_glInfo!.FboId, SKColorType.Rgba8888.ToGlSizedFormat());
-            _renderTarget = new GRBackendRenderTarget(width, height, _glInfo.Samples, _glInfo.Stencils, framebufferInfo);
+            var renderTarget = new GRBackendRenderTarget(width, height, _glInfo.Samples, _glInfo.Stencils, framebufferInfo);
+            var surface = SKSurface.Create(_context, renderTarget, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888)
+                ?? throw new InvalidOperationException("SKSurface.Create failed for the browser framebuffer.");
+            entry = new CachedSurface(width, height, renderTarget, surface);
         }
 
-        _surface ??= SKSurface.Create(
-            _context, _renderTarget, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888)
-            ?? throw new InvalidOperationException("SKSurface.Create failed for the browser framebuffer.");
+        _surfaceCache.Add(entry); // move to the most-recently-used position
+        _surface = entry.Surface;
+        _surfaceWidth = width;
+        _surfaceHeight = height;
     }
 
     private void EnsureUsable()
@@ -235,10 +252,10 @@ public partial class SkiaMonoGameWebGlHost : ComponentBase, IAsyncDisposable
 
     private void DisposeSurface()
     {
-        _surface?.Dispose();
+        foreach (var cached in _surfaceCache)
+            cached.Dispose();
+        _surfaceCache.Clear();
         _surface = null;
-        _renderTarget?.Dispose();
-        _renderTarget = null;
     }
 
     private void DisposeGpuResources()
@@ -282,5 +299,18 @@ public partial class SkiaMonoGameWebGlHost : ComponentBase, IAsyncDisposable
         public double DevicePixelRatio { get; set; }
         public string Version { get; set; } = string.Empty;
         public string Renderer { get; set; } = string.Empty;
+    }
+
+    private sealed class CachedSurface(int width, int height, GRBackendRenderTarget renderTarget, SKSurface surface) : IDisposable
+    {
+        public int Width { get; } = width;
+        public int Height { get; } = height;
+        public SKSurface Surface { get; } = surface;
+
+        public void Dispose()
+        {
+            Surface.Dispose();
+            renderTarget.Dispose();
+        }
     }
 }
