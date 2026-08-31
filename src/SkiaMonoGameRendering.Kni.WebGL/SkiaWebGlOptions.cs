@@ -2,14 +2,13 @@ namespace SkiaMonoGameRendering.Kni.WebGL;
 
 public enum WebGlUploadMode
 {
-    Auto,
     DirectCanvasTexSubImage2D,
     DiagnosticTexImage2D,
 }
 
 public sealed class SkiaWebGlOptions
 {
-    public WebGlUploadMode UploadMode { get; set; } = WebGlUploadMode.Auto;
+    public WebGlUploadMode UploadMode { get; set; } = WebGlUploadMode.DirectCanvasTexSubImage2D;
     public bool RequireWebGl2 { get; set; } = true;
     public bool EnableDiagnostics { get; set; }
     public bool FlipY { get; set; }

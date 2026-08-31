@@ -44,8 +44,21 @@ namespace SkiaMonoGameRendering
                 ?? throw new InvalidOperationException(
                     "Could not auto-detect a SkiaBackend. Reference the platform package or initialize an explicit backend.");
 
-            var backend = (SkiaBackend?)Activator.CreateInstance(backendType)
-                ?? throw new InvalidOperationException($"Could not create backend '{backendType.FullName}'.");
+            SkiaBackend backend;
+            try
+            {
+                backend = (SkiaBackend?)Activator.CreateInstance(backendType)
+                    ?? throw new InvalidOperationException($"Could not create backend '{backendType.FullName}'.");
+            }
+            catch (MissingMethodException exception)
+            {
+                throw new InvalidOperationException(
+                    $"'{backendType.FullName}' has no public parameterless constructor, so it can't be " +
+                    "auto-detected. This backend requires extra setup (e.g. a host object) - construct it " +
+                    $"explicitly and pass it to SkiaRenderer.Initialize(SkiaBackend, GraphicsDevice) instead.",
+                    exception);
+            }
+
             Initialize(backend, graphicsDevice);
         }
 
