@@ -19,6 +19,10 @@
     <PackageReference Include="SkiaSharp" Version="3.119.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SkiaGameRendering.Core.ANGLE\SkiaGameRendering.Core.ANGLE.csproj" />
+  </ItemGroup>
+
   <!-- Shared core files from the DesktopGL project -->
   <ItemGroup>
     <Compile Include="..\SkiaGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />

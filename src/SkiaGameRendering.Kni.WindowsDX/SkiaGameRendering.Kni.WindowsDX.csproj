@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageId>SkiaGameRendering.Kni.WindowsDX</PackageId>
+    <Version>$(LibraryVersion)</Version>
+    <Description>GPU SkiaSharp rendering into KNI WindowsDX (D3D11) Texture2D targets via ANGLE, with zero-copy GPU texture sharing.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Kni.Platform.WinForms.DX11" Version="[$(KniVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SkiaGameRendering.Core.ANGLE\SkiaGameRendering.Core.ANGLE.csproj" />
+  </ItemGroup>
+
+  <!-- Shared core files from the MonoGame DesktopGL project -->
+  <ItemGroup>
+    <Compile Include="..\SkiaGameRendering\SkiaBackend.cs" Link="Core\SkiaBackend.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaRenderer.cs" Link="Core\SkiaRenderer.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaTarget.cs" Link="Core\SkiaTarget.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="Core\SkiaRenderTarget2D.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaSpriteBatchExtensions.cs" Link="Core\SkiaSpriteBatchExtensions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
