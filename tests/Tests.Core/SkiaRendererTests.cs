@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework.Graphics;
-using SkiaMonoGameRendering;
+using SkiaGameRendering;
 using SkiaSharp;
 using Xunit;
 

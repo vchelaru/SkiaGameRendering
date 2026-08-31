@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SkiaMonoGameRendering.Raylib\SkiaMonoGameRendering.Raylib.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Raylib\SkiaGameRendering.Raylib.csproj" />
   </ItemGroup>
 
 </Project>

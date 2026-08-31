@@ -17,10 +17,10 @@
     <PackageReference Include="Apos.Shapes" Version="0.6.8" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SkiaMonoGameRendering.WindowsDX\SkiaMonoGameRendering.WindowsDX.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering.WindowsDX\SkiaGameRendering.WindowsDX.csproj" />
   </ItemGroup>
   <!-- Shared benchmark logic from the DesktopGL project - identical on both backends since
-       SkiaMonoGameRendering auto-detects the backend from which assembly is referenced. -->
+       SkiaGameRendering auto-detects the backend from which assembly is referenced. -->
   <ItemGroup>
     <Compile Include="..\Benchmarks.ShapeRendering.DesktopGL\Game1.cs" Link="Game1.cs" />
     <Compile Include="..\Benchmarks.ShapeRendering.DesktopGL\Scenes.cs" Link="Scenes.cs" />

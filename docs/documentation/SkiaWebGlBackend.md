@@ -3,12 +3,12 @@
 ## Definition
 
 `SkiaWebGlBackend` is the browser-specific `SkiaBackend` that drives a `SkiaRenderTarget2D`'s
-render pass into the hidden GPU canvas owned by `SkiaMonoGameWebGlHost`, flushes Skia, and uploads
+render pass into the hidden GPU canvas owned by `SkiaGameWebGlHost`, flushes Skia, and uploads
 that canvas into the target's KNI `Texture2D`.
 
-Namespace: `SkiaMonoGameRendering.Kni.WebGL`
+Namespace: `SkiaGameRendering.Kni.WebGL`
 
-Assembly/package: `SkiaMonoGameRendering.Kni.WebGL`
+Assembly/package: `SkiaGameRendering.Kni.WebGL`
 
 ```csharp
 [SupportedOSPlatform("browser")]
@@ -19,7 +19,7 @@ public sealed class SkiaWebGlBackend : SkiaBackend
 
 | Signature | Description |
 | --- | --- |
-| `SkiaWebGlBackend(SkiaMonoGameWebGlHost host, SkiaWebGlOptions? options = null)` | Creates a backend for a ready host. The backend subscribes to the host's context lifecycle until disposed. |
+| `SkiaWebGlBackend(SkiaGameWebGlHost host, SkiaWebGlOptions? options = null)` | Creates a backend for a ready host. The backend subscribes to the host's context lifecycle until disposed. |
 
 ## Members
 
@@ -37,10 +37,10 @@ public sealed class SkiaWebGlBackend : SkiaBackend
 ## Example
 
 ```razor
-<SkiaMonoGameWebGlHost @ref="host" RequireWebGl2="true" />
+<SkiaGameWebGlHost @ref="host" RequireWebGl2="true" />
 
 @code {
-    private SkiaMonoGameWebGlHost? host;
+    private SkiaGameWebGlHost? host;
     private SkiaRenderTarget2D? canvas;
 
     private async Task StartAsync(GraphicsDevice graphicsDevice)

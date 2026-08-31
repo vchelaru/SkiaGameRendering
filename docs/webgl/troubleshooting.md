@@ -2,7 +2,7 @@
 
 ## Host is not ready
 
-Render `SkiaMonoGameWebGlHost` first and await `Ready` before constructing the backend. Initialization fails deliberately instead of racing the first Blazor render.
+Render `SkiaGameWebGlHost` first and await `Ready` before constructing the backend. Initialization fails deliberately instead of racing the first Blazor render.
 
 ## WebGL2 unavailable
 

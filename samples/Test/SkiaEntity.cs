@@ -1,5 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
-using SkiaMonoGameRendering;
+using SkiaGameRendering;
 using SkiaSharp;
 
 namespace Test

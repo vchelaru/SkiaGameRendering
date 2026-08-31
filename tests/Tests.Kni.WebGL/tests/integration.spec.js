@@ -27,7 +27,7 @@ test("survives source context loss and page remount", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("#diagnostics")).toContainText("WebGL 2");
   await page.waitForTimeout(1500);
-  await page.locator('canvas[id^="skia-monogame-source-"]').evaluate(async canvas => {
+  await page.locator('canvas[id^="skia-game-source-"]').evaluate(async canvas => {
     const gl = canvas.getContext("webgl2");
     const extension = gl.getExtension("WEBGL_lose_context");
     if (!extension) throw new Error("WEBGL_lose_context is unavailable");

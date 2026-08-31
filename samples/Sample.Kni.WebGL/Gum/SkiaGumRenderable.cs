@@ -5,7 +5,7 @@ using Gum.Wireframe;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using RenderingLibrary;
-using SkiaMonoGameRendering;
+using SkiaGameRendering;
 using SkiaSharp;
 using Topten.RichTextKit;
 

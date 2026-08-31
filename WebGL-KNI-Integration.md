@@ -1,12 +1,12 @@
 # Skia + MonoGame Interop on WebGL (KNI / Blazor WebAssembly)
 
-Comprehensive notes on how to extend SkiaMonoGameRendering's zero-copy Skia-to-MG-texture interop pattern to Blazor WebAssembly via KNI (the MonoGame fork that runs in the browser).
+Comprehensive notes on how to extend SkiaGameRendering's zero-copy Skia-to-MG-texture interop pattern to Blazor WebAssembly via KNI (the MonoGame fork that runs in the browser).
 
-This is a sibling document to `SkiaMonoGame-Rendering-Notes.md`, focused entirely on the WebGL/KNI target. The general background on the SkiaMonoGameRendering library (mechanism, current OpenGL implementation, WindowsDX/ANGLE port) lives in that document; read sections 1–7 there before reading this.
+This is a sibling document to `SkiaGameRendering-Notes.md`, focused entirely on the WebGL/KNI target. The general background on the SkiaGameRendering library (mechanism, current OpenGL implementation, WindowsDX/ANGLE port) lives in that document; read sections 1–7 there before reading this.
 
 ## Implementation status (2026-07-10)
 
-Option D is implemented in `SkiaMonoGameRendering.Kni.WebGL` with a synchronous Skia host and a pinned public KNI canvas-upload patch. The integrated sample covers interleaving, render targets, shader sampling, Gum rendering, pointer/touch/wheel/text input, fractional DPR, upload-path diagnostics, context loss, and backend recreation. See `docs/webgl/validated-baseline.md` for the exact pins and the remaining browser/hardware acceptance gates.
+Option D is implemented in `SkiaGameRendering.Kni.WebGL` with a synchronous Skia host and a pinned public KNI canvas-upload patch. The integrated sample covers interleaving, render targets, shader sampling, Gum rendering, pointer/touch/wheel/text input, fractional DPR, upload-path diagnostics, context loss, and backend recreation. See `docs/webgl/validated-baseline.md` for the exact pins and the remaining browser/hardware acceptance gates.
 
 ---
 
@@ -25,7 +25,7 @@ Browser-side overlay composition (two canvases stacked in the DOM) is therefore 
 
 ## 2. Why the desktop trick doesn't transfer
 
-The desktop OpenGL implementation (`SkiaMonoGameRendering` original) depends on `SDL_GL_SHARE_WITH_CURRENT_CONTEXT` — two GL contexts that **share object IDs but isolate state**. Each context has its own bound textures, programs, blend modes, viewport, etc.; switching via `MakeCurrent` save/restores state atomically as a driver primitive. State collision between MG and Skia is impossible because state lives in two different bags.
+The desktop OpenGL implementation (`SkiaGameRendering` original) depends on `SDL_GL_SHARE_WITH_CURRENT_CONTEXT` — two GL contexts that **share object IDs but isolate state**. Each context has its own bound textures, programs, blend modes, viewport, etc.; switching via `MakeCurrent` save/restores state atomically as a driver primitive. State collision between MG and Skia is impossible because state lives in two different bags.
 
 **WebGL has no equivalent.** WebGL 1 and WebGL 2 both forbid cross-context object sharing — spec-mandated, two reasons:
 1. **Security.** Cross-origin resource sharing across GL contexts is a fingerprinting/information-leak surface the spec deliberately closed.
@@ -59,7 +59,7 @@ This is a standard perf optimization — state changes are expensive, redundant 
 4. SpriteBatch.Draw queues sprites against the wrong blend mode.
 5. Output is wrong or blank. **SpriteBatch ran correctly. The cache was the trap.**
 
-This is exactly what bit the WindowsDX/ANGLE port (`SkiaMonoGame-Rendering-Notes.md` §7). The "dirty flags" approach they tried first failed because invalidating MG's cache from outside required reflecting into a half-dozen private fields with no clean public API. `SwapDeviceContextState` won because it doesn't touch MG — it fixes the GPU side, leaving MG's cache accurate.
+This is exactly what bit the WindowsDX/ANGLE port (`SkiaGameRendering-Notes.md` §7). The "dirty flags" approach they tried first failed because invalidating MG's cache from outside required reflecting into a half-dozen private fields with no clean public API. `SwapDeviceContextState` won because it doesn't touch MG — it fixes the GPU side, leaving MG's cache accurate.
 
 ---
 
@@ -304,4 +304,4 @@ Maintainers usually have stronger opinions about *API shape* than about *whether
 
 ## 12. Related documents
 
-- `SkiaMonoGame-Rendering-Notes.md` — broader context on SkiaMonoGameRendering's architecture, desktop OpenGL implementation, WindowsDX/ANGLE port, and future D3D12 / Vulkan plans.
+- `SkiaGameRendering-Notes.md` — broader context on SkiaGameRendering's architecture, desktop OpenGL implementation, WindowsDX/ANGLE port, and future D3D12 / Vulkan plans.

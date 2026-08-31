@@ -1,14 +1,14 @@
 using Microsoft.JSInterop;
 using Microsoft.Xna.Framework;
 using System.Runtime.Versioning;
-using SkiaMonoGameRendering.Kni.WebGL.Components;
+using SkiaGameRendering.Kni.WebGL.Components;
 
 namespace Sample.Kni.WebGL.Pages;
 
 [SupportedOSPlatform("browser")]
 public partial class Index
 {
-    private SkiaMonoGameWebGlHost? _skiaHost;
+    private SkiaGameWebGlHost? _skiaHost;
     private DotNetObjectReference<Index>? _selfReference;
     private Game1? _game;
     private string _status = "Initializing WebGL...";

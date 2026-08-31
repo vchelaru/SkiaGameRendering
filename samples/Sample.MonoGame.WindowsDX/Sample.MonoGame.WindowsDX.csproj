@@ -23,7 +23,7 @@
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.4.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SkiaMonoGameRendering.WindowsDX\SkiaMonoGameRendering.WindowsDX.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering.WindowsDX\SkiaGameRendering.WindowsDX.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
