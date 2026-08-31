@@ -2,9 +2,9 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Runtime.Versioning;
 using Sample.Kni.WebGL.Gum;
-using SkiaMonoGameRendering;
-using SkiaMonoGameRendering.Kni.WebGL;
-using SkiaMonoGameRendering.Kni.WebGL.Components;
+using SkiaGameRendering;
+using SkiaGameRendering.Kni.WebGL;
+using SkiaGameRendering.Kni.WebGL.Components;
 
 namespace Sample.Kni.WebGL;
 
@@ -12,7 +12,7 @@ namespace Sample.Kni.WebGL;
 internal sealed class Game1 : Game
 {
     private readonly GraphicsDeviceManager _graphics;
-    private readonly SkiaMonoGameWebGlHost _host;
+    private readonly SkiaGameWebGlHost _host;
     private SpriteBatch? _batch;
     private Texture2D? _pixel;
     private RenderTarget2D? _uiTarget;
@@ -36,7 +36,7 @@ internal sealed class Game1 : Game
         new(new Vector3(1230, 228, 0), Color.White, new Vector2(1, 1)),
     };
 
-    public Game1(SkiaMonoGameWebGlHost host)
+    public Game1(SkiaGameWebGlHost host)
     {
         _host = host;
         _graphics = new GraphicsDeviceManager(this)

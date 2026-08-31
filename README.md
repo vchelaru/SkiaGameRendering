@@ -25,8 +25,8 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 ## Quick Start
 
 Reference the appropriate library project for your platform:
-- **DesktopGL**: Reference `src/SkiaMonoGameRendering/SkiaMonoGameRendering.csproj`
-- **WindowsDX**: Reference `src/SkiaMonoGameRendering.WindowsDX/SkiaMonoGameRendering.WindowsDX.csproj`
+- **DesktopGL**: Reference `src/SkiaGameRendering/SkiaGameRendering.csproj`
+- **WindowsDX**: Reference `src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj`
 
 No explicit setup call is required for the common case — constructing a `SkiaRenderTarget2D`
 auto-detects and initializes the right backend for the `GraphicsDevice` you pass it the first time
@@ -85,18 +85,18 @@ DesktopGL and WindowsDX share the same `Game1.cs` via a linked file include.
 
 The library uses a backend abstraction (`SkiaBackend` base class) so each graphics API gets its own implementation. Core source files are shared across platform-specific library projects via linked includes:
 
-- `src/SkiaMonoGameRendering/` — DesktopGL library (core + `SkiaGlBackend`)
-- `src/SkiaMonoGameRendering.Core.OGL/` — engine-agnostic raw-GL/Skia FBO interop shared by GL-based backends
-- `src/SkiaMonoGameRendering.WindowsDX/` — WindowsDX library (shared core + `SkiaAngleBackend`)
-- `src/SkiaMonoGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
+- `src/SkiaGameRendering/` — DesktopGL library (core + `SkiaGlBackend`)
+- `src/SkiaGameRendering.Core.OGL/` — engine-agnostic raw-GL/Skia FBO interop shared by GL-based backends
+- `src/SkiaGameRendering.WindowsDX/` — WindowsDX library (shared core + `SkiaAngleBackend`)
+- `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
 
-See `SkiaMonoGame-Rendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
+See `SkiaGameRendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
 
 ## WebGL / WASM Status
 
-The WebGL backend is implemented in `SkiaMonoGameRendering.Kni.WebGL`. It creates a synchronous SkiaSharp WebGL2 source host, flushes the current Skia frame, and uploads that canvas directly into a preallocated KNI `Texture2D` with `texSubImage2D`. Production code has no `readPixels`, managed pixel buffer, or `Texture2D.SetData(byte[])` path.
+The WebGL backend is implemented in `SkiaGameRendering.Kni.WebGL`. It creates a synchronous SkiaSharp WebGL2 source host, flushes the current Skia frame, and uploads that canvas directly into a preallocated KNI `Texture2D` with `texSubImage2D`. Production code has no `readPixels`, managed pixel buffer, or `Texture2D.SetData(byte[])` path.
 
-The browser backend consumes stock KNI from NuGet (no fork or patch); the one internal (the current WebGL rendering context) that KNI doesn't expose publicly is reached via reflection instead — see `src/SkiaMonoGameRendering.Kni.WebGL/WebGlCanvasUpload.cs`.
+The browser backend consumes stock KNI from NuGet (no fork or patch); the one internal (the current WebGL rendering context) that KNI doesn't expose publicly is reached via reflection instead — see `src/SkiaGameRendering.Kni.WebGL/WebGlCanvasUpload.cs`.
 
 ```powershell
 dotnet workload install wasm-tools-net8

@@ -16,6 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SkiaMonoGameRendering\SkiaMonoGameRendering.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering\SkiaGameRendering.csproj" />
   </ItemGroup>
 </Project>

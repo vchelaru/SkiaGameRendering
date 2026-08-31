@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="nkast.Kni.Platform.Blazor.GL" Version="$(KniVersion)" />
-    <ProjectReference Include="..\..\src\SkiaMonoGameRendering.Kni.WebGL\SkiaMonoGameRendering.Kni.WebGL.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Kni.WebGL\SkiaGameRendering.Kni.WebGL.csproj" />
   </ItemGroup>
 
   <ItemGroup>

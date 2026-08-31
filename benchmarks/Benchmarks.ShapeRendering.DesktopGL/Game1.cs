@@ -3,7 +3,7 @@ using Apos.Shapes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using SkiaMonoGameRendering;
+using SkiaGameRendering;
 using SkiaSharp;
 
 namespace Benchmarks.ShapeRendering
@@ -16,7 +16,7 @@ namespace Benchmarks.ShapeRendering
 
     /// <summary>
     /// Side-by-side, uncapped-FPS comparison of drawing many animated shapes per frame with
-    /// <see cref="SkiaMonoGameRendering"/> (SkiaSharp canvas rendered into a screen-sized
+    /// <see cref="SkiaGameRendering"/> (SkiaSharp canvas rendered into a screen-sized
     /// <see cref="SkiaRenderTarget2D"/>, then blitted with <see cref="SpriteBatch"/>) versus
     /// <see cref="Apos.Shapes"/>' <see cref="ShapeBatch"/> (drawn straight to the back buffer).
     ///
@@ -189,7 +189,7 @@ namespace Benchmarks.ShapeRendering
 
         private void DrawHud(Scene scene)
         {
-            string rendererName = _renderer == RendererKind.Skia ? "Skia (SkiaMonoGameRendering)" : "Apos.Shapes";
+            string rendererName = _renderer == RendererKind.Skia ? "Skia (SkiaGameRendering)" : "Apos.Shapes";
             string blitLine = _renderer == RendererKind.Skia ? $"Blit (CPU submit):   {_lastBlitMs:0.000} ms\n" : "";
 
             string text =

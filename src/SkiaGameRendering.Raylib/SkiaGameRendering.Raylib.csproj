@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Raylib-cs" Version="8.0.0" />
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <!--
+      The main SkiaSharp package only carries Windows/macOS native assets implicitly; Linux's
+      libSkiaSharp.so requires this separate package (confirmed empirically: without it,
+      GRContext.CreateGl() throws DllNotFoundException at runtime on Linux, even though the build
+      itself succeeds). Declared here rather than in each consuming app (e.g. Sample.Raylib) so the
+      adapter is self-sufficient on Linux without every consumer needing to remember it.
+    -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SkiaGameRendering.Core.OGL\SkiaGameRendering.Core.OGL.csproj" />
+  </ItemGroup>
+
+</Project>
