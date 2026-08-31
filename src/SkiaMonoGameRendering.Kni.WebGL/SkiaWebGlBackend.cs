@@ -174,14 +174,6 @@ public sealed class SkiaWebGlBackend : SkiaBackend
         _sourceHeight = 0;
     }
 
-    internal override object CaptureTextureHandle(Texture2D texture) => throw new NotSupportedException();
-    internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-        object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState) =>
-        throw new NotSupportedException();
-    internal override void BindForDrawing(object renderState) => throw new NotSupportedException();
-    internal override void UnbindAfterDrawing() => throw new NotSupportedException();
-    internal override void DisposeRenderState(object renderState) => throw new NotSupportedException();
-
     public override void Dispose()
     {
         if (_isDisposed)

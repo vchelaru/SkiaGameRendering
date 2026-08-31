@@ -22,7 +22,6 @@ public sealed class SkiaWebGlDiagnostics
     public string UploadPath { get; internal set; } = "texSubImage2D(canvas)";
     public double LastRenderCpuMilliseconds { get; internal set; }
     public double LastUploadCpuMilliseconds { get; internal set; }
-    public double? LastUploadGpuMilliseconds { get; internal set; }
     public long UploadCount { get; internal set; }
     public long ResizeCount { get; internal set; }
     public long TargetCreationCount { get; internal set; }

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework.Graphics;
 using SkiaSharp;
 
@@ -84,12 +85,23 @@ namespace SkiaMonoGameRendering
             return new Texture2D(GraphicsDevice, width, height, false, format);
         }
 
-        internal abstract object CaptureTextureHandle(Texture2D texture);
-        internal abstract (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState);
-        internal abstract void BindForDrawing(object renderState);
-        internal abstract void UnbindAfterDrawing();
-        internal abstract void DisposeRenderState(object renderState);
+        // Only called by the default CreateTarget/BeginRender/EndRender above, for backends that
+        // draw directly into a captured native GPU texture handle (SkiaGlBackend, SkiaAngleBackend).
+        // A backend that overrides all three of those (e.g. SkiaWebGlBackend, which composites via
+        // canvas upload instead) never calls these and doesn't need to implement them - the shared
+        // NotSupportedException default here means it doesn't have to remember five boilerplate
+        // overrides just to satisfy the compiler.
+        internal virtual object CaptureTextureHandle(Texture2D texture) => throw NativeTextureHandlePathNotSupported();
+        internal virtual (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
+            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState) =>
+            throw NativeTextureHandlePathNotSupported();
+        internal virtual void BindForDrawing(object renderState) => throw NativeTextureHandlePathNotSupported();
+        internal virtual void UnbindAfterDrawing() => throw NativeTextureHandlePathNotSupported();
+        internal virtual void DisposeRenderState(object renderState) => throw NativeTextureHandlePathNotSupported();
+
+        private NotSupportedException NativeTextureHandlePathNotSupported([CallerMemberName] string? memberName = null) =>
+            new($"{GetType().Name} does not support the native-texture-handle interop path ({memberName}). " +
+                "It overrides CreateTarget/BeginRender/EndRender directly instead.");
 
         public abstract void Dispose();
 
