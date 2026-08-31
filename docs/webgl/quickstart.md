@@ -26,12 +26,31 @@ This is a Razor class library — `skia-game-webgl.js` and the other static web 
 
 ## Application contract
 
-Render `<SkiaGameWebGlHost @ref="host" />` on the page, await `host.Ready`, then construct `SkiaWebGlBackend` explicitly and initialize `SkiaRenderer`:
+Add these usings — to `_Imports.razor` for the `.razor` markup, and separately to your page's `.razor.cs` code-behind, since `_Imports.razor` only reaches Razor-compiled markup, not the plain C# code-behind file:
+
+```cs
+using SkiaGameRendering;
+using SkiaGameRendering.Kni.WebGL;
+using SkiaGameRendering.Kni.WebGL.Components;
+```
+
+Render `<SkiaGameWebGlHost @ref="host" />` on the page. In your page's code-behind, await `host.Ready`, then construct your `Game` (passing `host` to it) and run it — the KNI project template's own `TickDotNet()`/`_game.Run()` pattern already does the "construct and run" part; just await `host.Ready` first and pass `host` into your `Game`'s constructor:
 
 ```cs
 await host.Ready;
-var backend = new SkiaWebGlBackend(host);
-SkiaRenderer.Initialize(backend, GraphicsDevice);
+_game = new MyGame(host); // your Game subclass, constructor takes the host
+_game.Run();
+```
+
+`GraphicsDevice` isn't available on the Blazor page itself — it belongs to your `Game` instance. So `SkiaWebGlBackend`/`SkiaRenderer.Initialize` go in your `Game`'s own `Initialize()` override, where `GraphicsDevice` is in scope:
+
+```cs
+protected override void Initialize()
+{
+    var backend = new SkiaWebGlBackend(_host); // _host: the SkiaGameWebGlHost passed into your constructor
+    SkiaRenderer.Initialize(backend, GraphicsDevice);
+    base.Initialize();
+}
 ```
 
 Construct one `SkiaRenderTarget2D` per Skia surface you need. All graphics calls must stay on the browser graphics thread.
