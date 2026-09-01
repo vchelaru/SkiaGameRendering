@@ -2,6 +2,11 @@ name: publish
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Package version to publish (e.g. 0.1.1) - overrides eng/Versions.props's LibraryVersion for this run only"
+        required: true
+        type: string
 
 jobs:
   publish:
@@ -17,15 +22,15 @@ jobs:
         run: dotnet workload install wasm-tools-net8
 
       - name: Pack SkiaGameRendering.Core.OGL
-        run: dotnet pack src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj -c Release -o .artifacts/packages
+        run: dotnet pack src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering
-        run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c Release -o .artifacts/packages
+        run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.WindowsDX
-        run: dotnet pack src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c Release -o .artifacts/packages
+        run: dotnet pack src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Kni.WebGL
-        run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -o .artifacts/packages
+        run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Raylib
-        run: dotnet pack src/SkiaGameRendering.Raylib/SkiaGameRendering.Raylib.csproj -c Release -o .artifacts/packages
+        run: dotnet pack src/SkiaGameRendering.Raylib/SkiaGameRendering.Raylib.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
 
       - uses: actions/upload-artifact@v4
         with:
