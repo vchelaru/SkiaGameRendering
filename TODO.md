@@ -10,7 +10,7 @@ This document tracks which framework/platform/backend combinations have been pro
 | MonoGame        | 3.8.4   | WindowsDX | Desktop  | samples/Sample.MonoGame.WindowsDX/  | Working     | SkiaAngleBackend. Windows only. Uses ANGLE + D3D11.1 SwapDeviceContextState. |
 | MonoGame        | 3.8.5   | DirectX   | Desktop  | —                           | Not started | |
 | MonoGame        | 3.8.5   | Vulkan    | Desktop  | —                           | Not started | |
-| KNI             | —       | DesktopGL | Desktop  | —                           | Not started | |
+| KNI             | 4.3.9001 (stock) | DesktopGL | Desktop  | samples/Sample.Kni.DesktopGL/ | Working | SkiaKniGlBackend. Window handle and native GL texture handle (via a `shared: true` RenderTarget2D) are plain public KNI API — only the SDL GL-context-sharing hop still needs reflection, into public members of KNI's internal `Sdl`/`Sdl.GL` types. Cross-platform (Windows, Linux, macOS). |
 | KNI             | 4.3.9001 (stock) | WindowsDX | Desktop  | samples/Sample.Kni.WindowsDX/ | Working | SkiaKniAngleBackend on Core.ANGLE (shared with MonoGame WindowsDX). Reflects only the last hop into KNI's ConcreteGraphicsDevice/Context/Texture Strategy internals for the D3D11 device/context/texture. Windows only. |
 | KNI             | —       | —         | Android  | —                           | Not started | |
 | KNI             | 4.3.9001 (stock) | WebGL2 | Web | samples/Sample.Kni.WebGL/ | Production candidate | Option D implemented; Chrome/Edge/Firefox hardware acceptance measurements remain release gates. |
@@ -20,7 +20,8 @@ This document tracks which framework/platform/backend combinations have been pro
 
 The library uses a backend abstraction (`SkiaBackend` base class) so each graphics API gets its own implementation. `SkiaRenderer.Initialize(GraphicsDevice)` auto-detects the correct backend at runtime.
 
-- **`SkiaGlBackend`** — OpenGL via SDL context sharing (DesktopGL)
+- **`SkiaGlBackend`** — OpenGL via SDL context sharing (MonoGame DesktopGL)
+- **`SkiaKniGlBackend`** — OpenGL via SDL context sharing (KNI DesktopGL)
 - **`SkiaAngleBackend`** — D3D11 via ANGLE's GL ES translation (MonoGame WindowsDX, Windows only)
 - **`SkiaKniAngleBackend`** — D3D11 via ANGLE's GL ES translation (KNI WindowsDX, Windows only)
 - **`SkiaWebGlBackend`** — separate WebGL2 canvas/context, composited via canvas-to-texture upload (KNI/Blazor)
@@ -31,6 +32,7 @@ Because MonoGame.Framework.DesktopGL and MonoGame.Framework.WindowsDX are separa
 - `src/SkiaGameRendering.Core.OGL/` — engine-agnostic raw-GL/Skia FBO interop shared by GL-based backends
 - `src/SkiaGameRendering.Core.ANGLE/` — engine-agnostic D3D11/ANGLE interop shared by ANGLE-based backends
 - `src/SkiaGameRendering.WindowsDX/` — MonoGame WindowsDX library (shares core files + ANGLE backend, on `Core.ANGLE`)
+- `src/SkiaGameRendering.Kni.DesktopGL/` — KNI DesktopGL library (shares core files + GL backend)
 - `src/SkiaGameRendering.Kni.WindowsDX/` — KNI WindowsDX library (shares core files + ANGLE backend, on `Core.ANGLE`)
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shares core files + WebGL backend)
 
