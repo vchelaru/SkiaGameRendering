@@ -50,7 +50,11 @@ internal sealed class SkiaGumRenderable : IDisposable
 
         _canvas!.Begin();
         DrawToSurface(_canvas.Canvas);
-        _canvas.End();
+        // EndWithoutDrawing, not End: Game1.Draw composites this canvas's Texture four different
+        // ways (screen blit at a non-native size/position, a nested RenderTarget2D pass, a rotated
+        // re-draw, and shader sampling) - End()'s single native-size/origin blit can't express any
+        // of those, so the caller owns compositing here instead.
+        _canvas.EndWithoutDrawing();
     }
 
     // SkiaRenderTarget2D is fixed-size for its lifetime - a DPI change means a new render target,

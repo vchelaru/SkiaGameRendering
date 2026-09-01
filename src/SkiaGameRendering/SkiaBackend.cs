@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework.Graphics;
 using SkiaSharp;
 
@@ -8,6 +9,13 @@ namespace SkiaGameRendering
     {
         public GraphicsDevice GraphicsDevice { get; protected set; } = null!;
         public abstract GRContext GRContext { get; }
+
+        /// <summary>
+        /// Resolves once this backend's underlying graphics context is ready to be initialized.
+        /// Desktop backends complete immediately - their context already exists by construction.
+        /// <see cref="Initialize"/> must not be called until this completes.
+        /// </summary>
+        public virtual Task Ready => Task.CompletedTask;
 
         public abstract void Initialize(GraphicsDevice graphicsDevice);
 

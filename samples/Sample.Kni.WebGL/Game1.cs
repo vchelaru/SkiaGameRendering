@@ -18,8 +18,8 @@ internal sealed class Game1 : Game
     private RenderTarget2D? _uiTarget;
     private BasicEffect? _shader;
     private SkiaGumRenderable? _gum;
-    private SkiaWebGlBackend? _backend;
-    private SkiaWebGlOptions? _webGlOptions;
+    private SkiaWebGlBackend _backend;
+    private SkiaWebGlOptions _webGlOptions;
     private Matrix _screenTransform = Matrix.Identity;
     private float _pointerX;
     private float _pointerY;
@@ -36,9 +36,11 @@ internal sealed class Game1 : Game
         new(new Vector3(1230, 228, 0), Color.White, new Vector2(1, 1)),
     };
 
-    public Game1(SkiaGameWebGlHost host)
+    public Game1(SkiaGameWebGlHost host, SkiaWebGlBackend backend)
     {
         _host = host;
+        _backend = backend;
+        _webGlOptions = backend.Options;
         _graphics = new GraphicsDeviceManager(this)
         {
             GraphicsProfile = GraphicsProfile.HiDef,
@@ -52,15 +54,6 @@ internal sealed class Game1 : Game
 
     protected override void Initialize()
     {
-        _webGlOptions = new SkiaWebGlOptions
-        {
-            RequireWebGl2 = true,
-            EnableDiagnostics = true,
-            FlipY = false,
-            PremultiplyAlpha = true,
-            DisableColorSpaceConversion = true,
-        };
-        _backend = new SkiaWebGlBackend(_host, _webGlOptions);
         SkiaRenderer.Initialize(_backend, GraphicsDevice);
         _gum = new SkiaGumRenderable(GraphicsDevice, 480, 300);
         base.Initialize();
@@ -168,7 +161,7 @@ internal sealed class Game1 : Game
 
     public string GetDiagnostics()
     {
-        var diagnostics = _backend?.Diagnostics;
+        var diagnostics = _backend.Diagnostics;
         return $"{_host.WebGlVersion} | DPR {DevicePixelRatio:0.##} | {_pointerType} | " +
             $"{diagnostics?.UploadPath ?? "starting"} | upload {diagnostics?.LastUploadCpuMilliseconds ?? 0:0.00} ms | " +
             $"frames {diagnostics?.UploadCount ?? 0} | loss {diagnostics?.ContextLossCount ?? 0} | recreate {_backendRecreateCount}";

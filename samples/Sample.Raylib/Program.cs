@@ -25,6 +25,12 @@ while (!Raylib.WindowShouldClose())
 {
     angle += Raylib.GetFrameTime() * 90f;
 
+    Raylib.BeginDrawing();
+    Raylib.ClearBackground(Color.Black);
+
+    // canvas.End() composites the whole surface itself via Raylib.DrawTexture - no manual flip or
+    // draw call needed here. SkiaRaylibRenderTarget2D bakes the bottom-left-origin flip into the
+    // Skia surface itself (see SkiaRaylibContext.CreateSurface), so it samples correctly.
     canvas.Begin();
     canvas.Canvas.Clear(SKColors.CornflowerBlue);
     canvas.Canvas.Save();
@@ -33,12 +39,6 @@ while (!Raylib.WindowShouldClose())
     canvas.Canvas.Restore();
     canvas.End();
 
-    Raylib.BeginDrawing();
-    Raylib.ClearBackground(Color.Black);
-    // No manual flip needed here - SkiaRaylibRenderTarget2D bakes the bottom-left-origin flip
-    // into the Skia surface itself (see SkiaRaylibContext.CreateSurface), so the texture samples
-    // correctly with a plain DrawTexture call.
-    Raylib.DrawTexture(canvas.Texture, 0, 0, Color.White);
     Raylib.DrawText("Skia-rendered square (raylib backend)", 10, 10, 20, Color.White);
     Raylib.DrawFPS(10, Height - 30);
     Raylib.EndDrawing();
