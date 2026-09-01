@@ -14,6 +14,7 @@ namespace Test
         SpriteBatch _spriteBatch;
         SpriteFont _font;
         Texture2D _regularTexture;
+        SkiaRenderTarget2D _skiaCanvas;
         List<SkiaEntity> _skiaEntities = new List<SkiaEntity>();
         SKColor _skiaEntityColor = SKColors.Red;
         int _skiaEntityRadius = 300;
@@ -46,6 +47,8 @@ namespace Test
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             _font = Content.Load<SpriteFont>("DefaultFont");
             _regularTexture = Content.Load<Texture2D>("Doge");
+            _skiaCanvas = new SkiaRenderTarget2D(GraphicsDevice,
+                GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
         }
 
         protected override void Update(GameTime gameTime)
@@ -79,29 +82,18 @@ namespace Test
 
             if (InputManager.KeyPushed(Keys.Add))
             {
-                var newEntity = new SkiaEntity(GraphicsDevice, _skiaEntityRadius);
+                var newEntity = new SkiaEntity(_skiaEntityRadius);
                 _skiaEntities.Add(newEntity);
                 UpdateEntityProperties(newEntity);
             }
             else if (InputManager.KeyPushed(Keys.Subtract))
             {
                 if (_skiaEntities.Count > 0)
-                {
-                    var entityToRemove = _skiaEntities[_skiaEntities.Count - 1];
-                    entityToRemove.Destroy();
-                    _skiaEntities.Remove(entityToRemove);
-                }
+                    _skiaEntities.RemoveAt(_skiaEntities.Count - 1);
             }
 
             if (InputManager.KeyPushed(Keys.Back))
-            {
-                for (int i = _skiaEntities.Count - 1; i > -1; i--)
-                {
-                    var entityToRemove = _skiaEntities[i];
-                    entityToRemove.Destroy();
-                    _skiaEntities.Remove(entityToRemove);
-                }
-            }
+                _skiaEntities.Clear();
 
             if (InputManager.KeyPushed(Keys.Up))
             {
@@ -170,22 +162,15 @@ namespace Test
             int centerScreenX = _graphics.GraphicsDevice.Viewport.Width / 2;
             int centerScreenY = _graphics.GraphicsDevice.Viewport.Height / 2;
 
-            // Render each Skia entity's canvas before compositing any of them.
+            // One shared canvas for every Skia entity - each just draws its own circle at its own
+            // position, the same way SpriteBatch.Draw calls each place a sprite within one batch.
+            _skiaCanvas.Begin();
             for (int i = 0; i < _skiaEntities.Count; i++)
-                _skiaEntities[i].Draw();
+                _skiaEntities[i].Draw(_skiaCanvas.Canvas, centerScreenX, centerScreenY);
+            _skiaCanvas.End();
 
             _spriteBatch.Begin(SpriteSortMode.Deferred);
-
-            // Draw Skia entities
-            for (int i = 0; i < _skiaEntities.Count; i++)
-            {
-                var entity = _skiaEntities[i];
-                DrawEntity(entity, centerScreenX, centerScreenY, 1f);
-            }
-
-            // Draw regular entity
             DrawEntity(_regularEntity, centerScreenX, centerScreenY, 0.1f);
-
             _spriteBatch.End();
         }
 

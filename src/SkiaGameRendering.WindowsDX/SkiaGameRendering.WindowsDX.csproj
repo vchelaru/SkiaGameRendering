@@ -28,7 +28,6 @@
     <Compile Include="..\SkiaGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaRenderer.cs" Link="SkiaRenderer.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="SkiaRenderTarget2D.cs" />
-    <Compile Include="..\SkiaGameRendering\SkiaSpriteBatchExtensions.cs" Link="SkiaSpriteBatchExtensions.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaTarget.cs" Link="SkiaTarget.cs" />
   </ItemGroup>
 

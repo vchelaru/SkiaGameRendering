@@ -34,21 +34,19 @@ using SkiaGameRendering.Kni.WebGL;
 using SkiaGameRendering.Kni.WebGL.Components;
 ```
 
-Render `<SkiaGameWebGlHost @ref="host" />` on the page. In your page's code-behind, await `host.Ready`, then construct your `Game` (passing `host` to it) and run it — the KNI project template's own `TickDotNet()`/`_game.Run()` pattern already does the "construct and run" part; just await `host.Ready` first and pass `host` into your `Game`'s constructor:
+Render `<SkiaGameWebGlHost @ref="host" />` on the page. `GraphicsDevice` isn't available on the Blazor page itself — it belongs to your `Game` instance — so `SkiaWebGlBackend` gets constructed on the page, but `SkiaRenderer.Initialize` doesn't run until your `Game`'s own `Initialize()` override, where `GraphicsDevice` is in scope. That split is what every `SkiaBackend` needs: **construct the backend, await its `Ready`, then construct/run the `Game`** — identical on every platform this library supports. Desktop backends (`SkiaGlBackend`, `SkiaAngleBackend`, ...) complete `Ready` immediately since their GL/D3D11 context already exists by construction; `SkiaWebGlBackend.Ready` actually waits, because the host's WebGL2 context is created asynchronously by the browser (`host.Ready` under the hood — the backend forwards it).
 
 ```cs
-await host.Ready;
-_game = new MyGame(host); // your Game subclass, constructor takes the host
+var backend = new SkiaWebGlBackend(host);
+await backend.Ready;
+_game = new MyGame(host, backend); // your Game subclass; pass both through
 _game.Run();
 ```
-
-`GraphicsDevice` isn't available on the Blazor page itself — it belongs to your `Game` instance. So `SkiaWebGlBackend`/`SkiaRenderer.Initialize` go in your `Game`'s own `Initialize()` override, where `GraphicsDevice` is in scope:
 
 ```cs
 protected override void Initialize()
 {
-    var backend = new SkiaWebGlBackend(_host); // _host: the SkiaGameWebGlHost passed into your constructor
-    SkiaRenderer.Initialize(backend, GraphicsDevice);
+    SkiaRenderer.Initialize(_backend, GraphicsDevice); // _backend: passed into your constructor, already Ready
     base.Initialize();
 }
 ```

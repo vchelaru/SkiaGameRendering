@@ -59,7 +59,7 @@ public sealed class SkiaRendererTests : IDisposable
 
         target.Begin();
         Assert.NotNull(target.Canvas);
-        target.End();
+        target.EndWithoutDrawing();
 
         Assert.Throws<InvalidOperationException>(() => target.Canvas);
     }
@@ -75,7 +75,7 @@ public sealed class SkiaRendererTests : IDisposable
 
         Assert.Throws<InvalidOperationException>(() => target.Begin());
 
-        target.End();
+        target.EndWithoutDrawing();
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class SkiaRendererTests : IDisposable
 
         backend.BeginRenderException = null;
         target.Begin();
-        target.End();
+        target.EndWithoutDrawing();
 
         Assert.Equal(2, backend.BeginRenderCount);
         Assert.Equal(1, backend.EndRenderCount);
@@ -116,7 +116,7 @@ public sealed class SkiaRendererTests : IDisposable
         target.Begin();
         Assert.Throws<InvalidOperationException>(target.Dispose);
 
-        target.End();
+        target.EndWithoutDrawing();
         target.Dispose();
 
         Assert.Equal(1, backend.CreatedTargets[0].SkiaDisposeCount);

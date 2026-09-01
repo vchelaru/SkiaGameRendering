@@ -153,13 +153,16 @@ namespace Benchmarks.ShapeRendering
 
                 _skiaCanvas.Begin();
                 ShapeRenderers.DrawSceneSkia(_skiaCanvas.Canvas, scene, t, _fillPaint, _strokePaint, _trianglePath);
-                _skiaCanvas.End();
+                // EndWithoutDrawing, not End: this benchmark measures the blit under
+                // BlendState.Opaque/SpriteSortMode.Immediate specifically, not End()'s default
+                // AlphaBlend/Deferred composite, since blend state affects what's being measured.
+                _skiaCanvas.EndWithoutDrawing();
                 _lastRenderMs = sw.Elapsed.TotalMilliseconds;
 
                 sw.Restart();
                 // Opaque + full-screen coverage: no separate backbuffer clear needed.
                 _spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.Opaque);
-                _spriteBatch.Draw(_skiaCanvas, Vector2.Zero, Color.White);
+                _spriteBatch.Draw(_skiaCanvas.Texture, Vector2.Zero, Color.White);
                 _spriteBatch.End();
                 _lastBlitMs = sw.Elapsed.TotalMilliseconds;
             }

@@ -25,60 +25,76 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 
 ## Quick Start
 
-Install the NuGet package for your platform into an existing MonoGame/KNI project:
+Install the NuGet package for your platform into an existing MonoGame/KNI project (see
+`docs/desktop/quickstart.md` for a full walkthrough of the four backends below):
 - **MonoGame DesktopGL**: `dotnet add package SkiaGameRendering`
 - **MonoGame WindowsDX**: `dotnet add package SkiaGameRendering.WindowsDX`
 - **KNI DesktopGL**: `dotnet add package SkiaGameRendering.Kni.DesktopGL`
 - **KNI WindowsDX**: `dotnet add package SkiaGameRendering.Kni.WindowsDX`
 - **KNI WebGL (Blazor)**: `dotnet add package SkiaGameRendering.Kni.WebGL` — needs a couple of extra setup steps beyond the package install; see `docs/webgl/quickstart.md`.
-- **raylib**: `dotnet add package SkiaGameRendering.Raylib`
+- **raylib**: `dotnet add package SkiaGameRendering.Raylib` — see `docs/raylib/quickstart.md`.
 
-No explicit setup call is required for the common case — constructing a `SkiaRenderTarget2D`
-auto-detects and initializes the right backend for the `GraphicsDevice` you pass it the first time
-it's needed. To force a specific backend instead of auto-detection (e.g. in tests), call this once
-before constructing any `SkiaRenderTarget2D`:
+Construct the backend in `Program.cs`, `await` its `Ready` (a no-op on every desktop backend, but
+identical to the KNI WebGL sample's shape — see `docs/webgl/quickstart.md`), and pass it into your
+`Game`, whose `Initialize()` calls `SkiaRenderer.Initialize`:
 ```cs
-using SkiaGameRendering; // SkiaRenderer, SkiaGlBackend, SkiaAngleBackend
-using SkiaGameRendering.Kni.DesktopGL; // SkiaKniGlBackend
-using SkiaGameRendering.Kni.WindowsDX; // SkiaKniAngleBackend
+using SkiaGameRendering; // SkiaBackend, SkiaRenderer, SkiaGlBackend, SkiaAngleBackend
 
-SkiaRenderer.Initialize(new SkiaGlBackend(), GraphicsDevice);        // MonoGame DesktopGL
-SkiaRenderer.Initialize(new SkiaAngleBackend(), GraphicsDevice);     // MonoGame WindowsDX
-SkiaRenderer.Initialize(new SkiaKniGlBackend(), GraphicsDevice);     // KNI DesktopGL
-SkiaRenderer.Initialize(new SkiaKniAngleBackend(), GraphicsDevice);  // KNI WindowsDX
+var backend = new SkiaGlBackend();     // MonoGame DesktopGL - or SkiaAngleBackend (WindowsDX),
+                                        // SkiaKniGlBackend (KNI DesktopGL), SkiaKniAngleBackend (KNI WindowsDX)
+await backend.Ready;
+using var game = new Game1(backend);
+game.Run();
+
+// In Game1:
+public Game1(SkiaBackend backend) => _backend = backend;
+
+protected override void Initialize()
+{
+    SkiaRenderer.Initialize(_backend, GraphicsDevice);
+    base.Initialize();
+}
 ```
+
+Constructing a `SkiaRenderTarget2D` without ever calling `SkiaRenderer.Initialize` also
+auto-detects and initializes the right backend for you — useful for quick scripts — but the
+explicit form above is what every sample in this repo uses, so it's the one to reach for by
+default.
 
 ## SkiaRenderTarget2D
 
-`SkiaRenderTarget2D` is a fixed-size GPU texture that SkiaSharp renders directly into — construct it
-once, `Begin()`/draw/`End()` per frame (mirroring `SpriteBatch`'s own shape), then hand `.Texture` to
-`SpriteBatch` like any other texture:
+`SkiaRenderTarget2D` is a GPU surface that SkiaSharp renders directly into, sized to match whatever
+you intend to draw it onto (typically the back buffer, or a `RenderTarget2D` the same size as the
+viewport). Its Begin/End shape works like `SpriteBatch`'s own: place individual shapes with their
+own coordinates via Skia's drawing API — the same way a `SpriteBatch.Draw` call carries its own
+position — and `End()` composites the whole result onto whatever render target is currently bound,
+the same way `SpriteBatch.End()` needs no separate step to show its queued sprite draws:
 
 ```cs
-using SkiaGameRendering; // SkiaRenderTarget2D, and the SpriteBatch.Draw(canvas, ...) extension overload
+using SkiaGameRendering; // SkiaRenderTarget2D
 using SkiaSharp;          // SKPaint and the rest of the drawing API
 
-var canvas = new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
+var canvas = new SkiaRenderTarget2D(GraphicsDevice, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
 
 // per frame:
 canvas.Begin();
-canvas.Canvas.DrawCircle(100, 100, 100, paint);
+canvas.Canvas.DrawCircle(100, 100, 100, paint); // position is DrawCircle's job, not End's
 canvas.End();
-
-spriteBatch.Draw(canvas.Texture, position, Color.White);   // works directly
-spriteBatch.Draw(canvas, position, Color.White);           // or via the SpriteBatch extension methods
 ```
 
 | Member | Description |
 |--------|-------------|
-| `Texture` | The `Texture2D` to draw with `SpriteBatch` |
+| `Texture` | The underlying `Texture2D`, mainly useful with `EndWithoutDrawing` |
 | `Canvas` | The `SKCanvas` to draw on — only valid between `Begin()` and `End()`; throws otherwise |
 | `Begin(bool clear = true)` | Starts a render pass; throws if called again before `End()` |
-| `End()` | Ends the render pass; throws if `Begin()` wasn't called first |
+| `End()` | Ends the render pass and composites the whole surface, at native size and the origin, onto whatever's currently bound; throws if `Begin()` wasn't called first |
+| `EndWithoutDrawing()` | Same as `End()`, but skips the composite — use only when `End()`'s single whole-surface blit can't express what you need (drawing it more than once, at a different size/position, or sampling it in a shader). You then draw `Texture` yourself. |
 | `Dispose()` | Releases the underlying GPU resources; throws if called between `Begin()` and `End()` |
 
 Size is fixed for the object's lifetime, like `RenderTarget2D` — construct a new
-`SkiaRenderTarget2D` (and `Dispose()` the old one) if you need a different size.
+`SkiaRenderTarget2D` (and `Dispose()` the old one) if you need a different size. Set a render
+target before calling `Begin()` if you want `End()`'s composite to land somewhere other than the
+back buffer.
 
 Tear the shared backend down (e.g. on exit, or before switching backends) with:
 ```cs

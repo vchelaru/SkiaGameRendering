@@ -1,29 +1,20 @@
-using Microsoft.Xna.Framework.Graphics;
-using SkiaGameRendering;
+using Microsoft.Xna.Framework;
 using SkiaSharp;
 
 namespace Test
 {
-    internal class SkiaEntity : Entity
+    // Draws itself directly onto whatever shared SkiaRenderTarget2D canvas the caller passes to
+    // Draw, at its own screen position - it doesn't own a canvas of its own. Positioning within the
+    // canvas is this class's job (the DrawCircle call), the same way a sprite's position is the
+    // caller's job when using SpriteBatch, not something the canvas itself tracks.
+    internal class SkiaEntity
     {
-        private readonly GraphicsDevice _graphicsDevice;
-        private SkiaRenderTarget2D _canvas;
         private readonly SKPaint _paint;
         private bool _paintNeedsUpdate;
         private SKColor _color = SKColors.Red;
-        private float _radius;
 
-        public float Radius
-        {
-            get => _radius;
-            set
-            {
-                if (_radius == value)
-                    return;
-                _radius = value;
-                RecreateCanvas();
-            }
-        }
+        public Vector3 Position { get; set; }
+        public float Radius { get; set; }
 
         public SKColor Color
         {
@@ -31,25 +22,13 @@ namespace Test
             set { _color = value; _paintNeedsUpdate = true; }
         }
 
-        public SkiaEntity(GraphicsDevice graphicsDevice, float radius = 300)
+        public SkiaEntity(float radius = 300)
         {
-            _graphicsDevice = graphicsDevice;
-            _radius = radius;
+            Radius = radius;
             _paint = new SKPaint { Color = _color, Style = SKPaintStyle.Fill, IsAntialias = true };
-            RecreateCanvas();
         }
 
-        // SkiaRenderTarget2D is fixed-size for its lifetime (like RenderTarget2D) - a radius change
-        // means a new render target, not a resize. Explicit here since the library won't do it
-        // silently anymore.
-        private void RecreateCanvas()
-        {
-            _canvas?.Dispose();
-            _canvas = new SkiaRenderTarget2D(_graphicsDevice, (int)(_radius * 2), (int)(_radius * 2));
-            Texture = _canvas.Texture;
-        }
-
-        public void Draw()
+        public void Draw(SKCanvas canvas, int centerScreenX, int centerScreenY)
         {
             if (_paintNeedsUpdate)
             {
@@ -57,11 +36,7 @@ namespace Test
                 _paintNeedsUpdate = false;
             }
 
-            _canvas.Begin();
-            _canvas.Canvas.DrawCircle(Radius, Radius, Radius, _paint);
-            _canvas.End();
+            canvas.DrawCircle(centerScreenX + Position.X, centerScreenY + Position.Y, Radius, _paint);
         }
-
-        public void Destroy() => _canvas.Dispose();
     }
 }

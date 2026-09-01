@@ -1,18 +1,23 @@
 using SkiaSharp;
+using RaylibApi = Raylib_cs.Raylib;
+using RaylibColor = Raylib_cs.Color;
 using RaylibTexture2D = Raylib_cs.Texture2D;
 
 namespace SkiaGameRendering.Raylib
 {
     /// <summary>
-    /// A fixed-size GPU texture that SkiaSharp renders directly into, usable directly with
-    /// <c>Raylib.DrawTexture*</c>. Mirrors the MonoGame backend's <c>SkiaRenderTarget2D</c>
-    /// Begin/End render-pass shape:
+    /// A GPU surface that SkiaSharp renders directly into, sized to match whatever you intend to
+    /// draw it onto. Mirrors the MonoGame backend's <c>SkiaRenderTarget2D</c> Begin/End shape:
+    /// <see cref="End"/> composites the whole surface at native size and the origin via
+    /// <c>Raylib.DrawTexture</c> - call it between <c>Raylib.BeginDrawing()</c>/<c>EndDrawing()</c>,
+    /// same as any other raylib draw call.
     /// <code>
-    /// var canvas = new SkiaRaylibRenderTarget2D(200, 200);
+    /// var canvas = new SkiaRaylibRenderTarget2D(Width, Height);
+    /// Raylib.BeginDrawing();
     /// canvas.Begin();
     /// canvas.Canvas.DrawCircle(100, 100, 100, paint);
     /// canvas.End();
-    /// Raylib.DrawTexture(canvas.Texture, 0, 0, Color.White);
+    /// Raylib.EndDrawing();
     /// </code>
     /// The underlying Skia surface is created with a bottom-left origin (see
     /// <see cref="SkiaRaylibContext.CreateSurface"/>) so <see cref="Texture"/> already matches
@@ -78,10 +83,22 @@ namespace SkiaGameRendering.Raylib
 
         /// <summary>
         /// Ends the render pass started by <see cref="Begin"/>: flushes Skia's queued GPU work,
-        /// unbinds the target, and switches back to raylib's own GL context. Throws if
-        /// <see cref="Begin"/> wasn't called first.
+        /// unbinds the target, switches back to raylib's own GL context, and composites the whole
+        /// surface at native size and the origin via <c>Raylib.DrawTexture</c> - call between
+        /// <c>Raylib.BeginDrawing()</c>/<c>EndDrawing()</c>, same as any other raylib draw call.
+        /// Throws if <see cref="Begin"/> wasn't called first.
         /// </summary>
-        public void End()
+        public void End() => EndCore(composite: true);
+
+        /// <summary>
+        /// Same as <see cref="End"/>, but skips the composite - use this only when you need the raw
+        /// <see cref="Texture"/> for something <see cref="End"/>'s single whole-surface blit can't
+        /// express (e.g. drawing it more than once, or at a different size). You're then
+        /// responsible for drawing <see cref="Texture"/> yourself.
+        /// </summary>
+        public void EndWithoutDrawing() => EndCore(composite: false);
+
+        private void EndCore(bool composite)
         {
             if (!_hasBegun)
                 throw new InvalidOperationException("Begin must be called before calling End.");
@@ -102,6 +119,9 @@ namespace SkiaGameRendering.Raylib
                     _hasBegun = false;
                 }
             }
+
+            if (composite)
+                RaylibApi.DrawTexture(Texture, 0, 0, RaylibColor.White);
         }
 
         public void Dispose()

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework.Graphics;
 using SkiaGameRendering.Kni.WebGL.Components;
 using SkiaSharp;
@@ -27,7 +28,9 @@ public sealed class SkiaWebGlBackend : SkiaBackend
     }
 
     public SkiaWebGlDiagnostics Diagnostics { get; }
+    public SkiaWebGlOptions Options => _options;
     public override GRContext GRContext => _host.GRContext;
+    public override Task Ready => _host.Ready;
 
     public override void Initialize(GraphicsDevice graphicsDevice)
     {
