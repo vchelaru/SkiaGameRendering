@@ -6,15 +6,15 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 
 | Platform | Backend | Status | How it works |
 |----------|---------|--------|--------------|
-| MonoGame 3.8.4 DesktopGL | OpenGL | Working | Shared GL context via SDL |
-| MonoGame 3.8.4 WindowsDX | D3D11 | Working | ANGLE (GL ES → D3D11 translation) on shared device |
+| MonoGame 3.8.4 DesktopGL | OpenGL | ![Working](https://img.shields.io/badge/Working-brightgreen) | Shared GL context via SDL |
+| MonoGame 3.8.4 WindowsDX | D3D11 | ![Working](https://img.shields.io/badge/Working-brightgreen) | ANGLE (GL ES → D3D11 translation) on shared device |
 | MonoGame 3.8.5 DirectX | D3D11/D3D12 | Not started | |
 | MonoGame 3.8.5 Vulkan | Vulkan | Not started | |
-| KNI DesktopGL | OpenGL | Working | Shared GL context via SDL |
-| KNI WindowsDX | D3D11 | Working | ANGLE (GL ES → D3D11 translation) on shared device |
+| KNI DesktopGL | OpenGL | ![Working](https://img.shields.io/badge/Working-brightgreen) | Shared GL context via SDL |
+| KNI WindowsDX | D3D11 | ![Working](https://img.shields.io/badge/Working-brightgreen) | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |
 | KNI WebGL (Blazor) | WebGL2 | Production candidate | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
-| raylib | OpenGL | Working (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
+| raylib | OpenGL | ![Working](https://img.shields.io/badge/Working-brightgreen) (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
 
 ## Requirements
 
