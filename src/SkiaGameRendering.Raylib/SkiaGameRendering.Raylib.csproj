@@ -1,15 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageId>SkiaGameRendering.Raylib</PackageId>
+    <Version>$(LibraryVersion)</Version>
+    <Description>GPU SkiaSharp rendering into raylib Texture2D targets, with zero-copy GPU texture sharing.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Raylib-cs" Version="8.0.0" />
-    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
     <!--
       The main SkiaSharp package only carries Windows/macOS native assets implicitly; Linux's
       libSkiaSharp.so requires this separate package (confirmed empirically: without it,
@@ -17,11 +24,16 @@
       itself succeeds). Declared here rather than in each consuming app (e.g. Sample.Raylib) so the
       adapter is self-sufficient on Linux without every consumer needing to remember it.
     -->
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="[$(SkiaSharpVersion)]" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SkiaGameRendering.Core.OGL\SkiaGameRendering.Core.OGL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
