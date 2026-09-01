@@ -11,7 +11,7 @@ This document tracks which framework/platform/backend combinations have been pro
 | MonoGame        | 3.8.5   | DirectX   | Desktop  | —                           | Not started | |
 | MonoGame        | 3.8.5   | Vulkan    | Desktop  | —                           | Not started | |
 | KNI             | —       | DesktopGL | Desktop  | —                           | Not started | |
-| KNI             | —       | DirectX   | Desktop  | —                           | Not started | |
+| KNI             | 4.3.9001 (stock) | WindowsDX | Desktop  | samples/Sample.Kni.WindowsDX/ | Working | SkiaKniAngleBackend on Core.ANGLE (shared with MonoGame WindowsDX). Reflects only the last hop into KNI's ConcreteGraphicsDevice/Context/Texture Strategy internals for the D3D11 device/context/texture. Windows only. |
 | KNI             | —       | —         | Android  | —                           | Not started | |
 | KNI             | 4.3.9001 (stock) | WebGL2 | Web | samples/Sample.Kni.WebGL/ | Production candidate | Option D implemented; Chrome/Edge/Firefox hardware acceptance measurements remain release gates. |
 | raylib          | 8.0.0 (Raylib-cs) | rlgl (OGL) | Desktop | samples/Sample.Raylib/ | Working (Windows + Linux) | SkiaRaylibRenderTarget2D on Core.OGL, second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace. Linux verified under WSLg (X11/GLX, Mesa llvmpipe). macOS not implemented. |
@@ -21,15 +21,26 @@ This document tracks which framework/platform/backend combinations have been pro
 The library uses a backend abstraction (`SkiaBackend` base class) so each graphics API gets its own implementation. `SkiaRenderer.Initialize(GraphicsDevice)` auto-detects the correct backend at runtime.
 
 - **`SkiaGlBackend`** — OpenGL via SDL context sharing (DesktopGL)
-- **`SkiaAngleBackend`** — D3D11 via ANGLE's GL ES translation (WindowsDX, Windows only)
+- **`SkiaAngleBackend`** — D3D11 via ANGLE's GL ES translation (MonoGame WindowsDX, Windows only)
+- **`SkiaKniAngleBackend`** — D3D11 via ANGLE's GL ES translation (KNI WindowsDX, Windows only)
 - **`SkiaWebGlBackend`** — separate WebGL2 canvas/context, composited via canvas-to-texture upload (KNI/Blazor)
 
 Because MonoGame.Framework.DesktopGL and MonoGame.Framework.WindowsDX are separate NuGet packages that can't coexist, each backend has its own library project. Core source files are shared via linked includes:
 
 - `src/SkiaGameRendering/` — DesktopGL library (core + GL backend)
 - `src/SkiaGameRendering.Core.OGL/` — engine-agnostic raw-GL/Skia FBO interop shared by GL-based backends
-- `src/SkiaGameRendering.WindowsDX/` — WindowsDX library (shares core files + ANGLE backend)
+- `src/SkiaGameRendering.Core.ANGLE/` — engine-agnostic D3D11/ANGLE interop shared by ANGLE-based backends
+- `src/SkiaGameRendering.WindowsDX/` — MonoGame WindowsDX library (shares core files + ANGLE backend, on `Core.ANGLE`)
+- `src/SkiaGameRendering.Kni.WindowsDX/` — KNI WindowsDX library (shares core files + ANGLE backend, on `Core.ANGLE`)
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shares core files + WebGL backend)
+
+`SkiaGameRendering.Kni.WindowsDX` is the second consumer of `Core.ANGLE`, completing step 3 of
+[issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3)'s sequencing
+(`SkiaAngleBackend` → `Core.ANGLE`). It reuses the same D3D11/ANGLE interop as MonoGame WindowsDX;
+the only KNI-specific work is `SkiaKniAngleBackend` reaching KNI's own D3D11 device/context/texture
+through KNI's public Strategy-pattern bridge (`IPlatformGraphicsDevice`/`IPlatformGraphicsContext`/
+`IPlatformTexture`), reflecting only the last hop into each concrete strategy's SharpDX field —
+narrower than the MonoGame adapter, which reflects into MonoGame's private fields directly.
 
 **raylib is the first non-MonoGame engine**, and the first consumer of `Core.OGL` from outside the
 MonoGame family (tracked in [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3)).
@@ -48,7 +59,7 @@ This was de-risked first as a throwaway spike (`spikes/raylib-ogl-v0/`, since re
 
 - **ANGLE DLL packaging**: Currently falls back to Edge WebView's system ANGLE DLLs. The Silk.NET.OpenGLES.ANGLE.Native NuGet package ships 32-bit DLLs mislabeled as x64. Need a reliable x64 ANGLE source — either a correct NuGet package, a manual ANGLE build, or direct bundling.
 - **SetData workaround for lazy texture creation**: MonoGame WindowsDX doesn't allocate the D3D11 GPU resource in the Texture2D constructor. The ANGLE backend calls `SetData(new byte[w*h*4])` to force allocation, which is wasteful. Need a cheaper way to trigger D3D11 resource creation.
-- **Reflection fragility**: Desktop backends rely on MonoGame internal field names (`_d3dDevice`, `_d3dContext`, `_texture`, SDL internals). These may change between MonoGame versions. The WindowsDX backend additionally reflects into SharpDX types (`Device1`, `DeviceContext1`). If MonoGame moves away from SharpDX, the ANGLE backend needs updating. The KNI WebGL backend similarly reflects into KNI's `ConcreteTexture2D`/`ConcreteGraphicsContext` internals (`WebGlCanvasUpload.cs`'s `KniWebGlInternals`) to reach the native `WebGLTexture`/rendering-context handles KNI doesn't expose publicly — see issue #2.
+- **Reflection fragility**: Desktop backends rely on MonoGame internal field names (`_d3dDevice`, `_d3dContext`, `_texture`, SDL internals). These may change between MonoGame versions. The WindowsDX backend additionally reflects into SharpDX types (`Device1`, `DeviceContext1`). If MonoGame moves away from SharpDX, the ANGLE backend needs updating. The KNI WebGL backend similarly reflects into KNI's `ConcreteTexture2D`/`ConcreteGraphicsContext` internals (`WebGlCanvasUpload.cs`'s `KniWebGlInternals`) to reach the native `WebGLTexture`/rendering-context handles KNI doesn't expose publicly — see issue #2. The KNI WindowsDX backend reflects into KNI's `ConcreteGraphicsDevice`/`ConcreteGraphicsContext`/`ConcreteTexture` internals (`D3DDevice`, `D3dContext`, `GetTexture`) to reach the underlying SharpDX D3D11 objects — narrower than the MonoGame adapter's reflection since KNI's public Strategy types (`IPlatformGraphicsDevice`, `IPlatformGraphicsContext`, `IPlatformTexture`) expose everything except that last hop.
 - **glFinish performance**: The ANGLE backend calls `glFinish()` per renderable for GPU sync. Could potentially be relaxed to `glFlush()` if D3D11's internal synchronization is sufficient.
 
 ## Open Questions
@@ -60,6 +71,6 @@ This was de-risked first as a throwaway spike (`spikes/raylib-ogl-v0/`, since re
 
 1. Run and archive the hardware benchmark matrix in `benchmarks/Benchmarks.WebGL/` — tracked in [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5).
 2. Address the desktop ANGLE DLL and lazy-allocation issues above.
-3. Split per-graphics-API core libraries out of the per-engine adapters so a new engine (raylib) can reuse the GL/Skia interop instead of duplicating it — tracked in [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3). The OGL split (`src/SkiaGameRendering.Core.OGL/`) landed via [#4](https://github.com/vchelaru/SkiaGameRendering/pull/4), and `src/SkiaGameRendering.Raylib/` now proves it against a real second (non-MonoGame) engine on both Windows and Linux (`Glx.cs`, verified under WSLg — tracked in [issue #9](https://github.com/vchelaru/SkiaGameRendering/issues/9)). Issue #3 is not fully closed yet: macOS raylib support is unimplemented, and the ANGLE/WebGL backends are still intentionally unmigrated (step 3/4 of the issue's sequencing).
+3. Split per-graphics-API core libraries out of the per-engine adapters so a new engine (raylib) can reuse the GL/Skia interop instead of duplicating it — tracked in [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3). The OGL split (`src/SkiaGameRendering.Core.OGL/`) landed via [#4](https://github.com/vchelaru/SkiaGameRendering/pull/4), and `src/SkiaGameRendering.Raylib/` now proves it against a real second (non-MonoGame) engine on both Windows and Linux (`Glx.cs`, verified under WSLg — tracked in [issue #9](https://github.com/vchelaru/SkiaGameRendering/issues/9)). Issue #3 is not fully closed yet: macOS raylib support is unimplemented, and step 3 (`SkiaAngleBackend` → `Core.ANGLE`, now also reused by `src/SkiaGameRendering.Kni.WindowsDX/`) has landed, leaving step 4 (`SkiaWebGlBackend` → `Core.WebGL`) as the only remaining unmigrated backend.
 
 [Issue #2](https://github.com/vchelaru/SkiaGameRendering/issues/2) (closed) tracked the KNI upstream dependency: kniEngine/kni#2669 shipped in KNI v4.3.9001, so the KNI source patch/fork is gone (moved to stock NuGet). The one piece #2669 didn't cover — a public accessor for the current WebGL rendering context — is bridged with reflection (`WebGlCanvasUpload.cs`); pitching KNI a follow-up PR for it is tracked in [issue #13](https://github.com/vchelaru/SkiaGameRendering/issues/13). [Issue #14](https://github.com/vchelaru/SkiaGameRendering/issues/14) (closed) tracked an apparent 4.3.9001 startup crash that turned out not to be a KNI bug: `nkast.Wasm.*`'s dependency version bumped from 8.0.11 (under KNI 4.2.9001) to 10.0.3 (under 4.3.9001), and `wwwroot/index.html`'s hardcoded `<script>` version strings hadn't been updated to match — a silent 404, not a build failure. `eng/Versions.props`'s `NkastWasmCanvasVersion` must always match whatever the pinned `KniVersion` actually depends on.

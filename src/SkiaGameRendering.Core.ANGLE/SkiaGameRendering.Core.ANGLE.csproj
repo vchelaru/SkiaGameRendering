@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PackageId>SkiaGameRendering.Core.OGL</PackageId>
+    <PackageId>SkiaGameRendering.Core.ANGLE</PackageId>
     <Version>$(LibraryVersion)</Version>
-    <Description>Engine-agnostic raw-GL/Skia FBO interop shared by GL-based SkiaGameRendering backends (DesktopGL today; other GL-based engines in the future). Not meant to be referenced directly - installed automatically as a dependency of SkiaGameRendering.</Description>
+    <Description>Engine-agnostic ANGLE/D3D11-Skia interop shared by D3D11-based SkiaGameRendering backends (MonoGame WindowsDX, KNI WindowsDX). Not meant to be referenced directly - installed automatically as a dependency of those backends.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>

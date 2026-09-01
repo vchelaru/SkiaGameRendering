@@ -201,6 +201,10 @@ MonoGame WindowsDX doesn't create the D3D11 GPU resource in the `Texture2D` cons
 
 ANGLE requires `libEGL.dll` and `libGLESv2.dll` at runtime. The resolver in `AngleEgl.cs` looks for them in three places: app-local, NuGet runtimes folder, then Edge WebView's system copies at `C:\Windows\System32\Microsoft-Edge-WebView\`. Shipping your own ANGLE DLLs is recommended for production.
 
+### Later: extraction into Core.ANGLE
+
+Everything above (`AngleEgl`, the surface/texture-state factory, the `SwapDeviceContextState` fix) was later pulled out of `SkiaAngleBackend` into engine-agnostic `src/SkiaGameRendering.Core.ANGLE/` (`AngleEgl.cs`, `AngleSkiaSurfaceFactory.cs`), per [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3)'s step 3. `SkiaAngleBackend` (MonoGame WindowsDX) is now a thin adapter over that factory, and `SkiaKniAngleBackend` (`src/SkiaGameRendering.Kni.WindowsDX/`) is a second adapter reusing it for KNI's WinForms DX11 platform — see TODO.md's Architecture section for the split.
+
 ---
 
 ## 8. WebGL / KNI (Blazor WebAssembly)

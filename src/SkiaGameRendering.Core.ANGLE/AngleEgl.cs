@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace SkiaGameRendering
+namespace SkiaGameRendering.Core.ANGLE
 {
     internal static class AngleEgl
     {
