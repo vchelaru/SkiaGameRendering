@@ -37,11 +37,14 @@ public sealed class SkiaWebGlBackend : SkiaBackend
 ## Example
 
 ```razor
+@using SkiaSharp
+@using Microsoft.Xna.Framework.Graphics
 <SkiaGameWebGlHost @ref="host" RequireWebGl2="true" />
 
 @code {
     private SkiaGameWebGlHost? host;
     private SkiaRenderTarget2D? canvas;
+    private readonly SKPaint paint = new() { Color = SKColors.White, IsAntialias = true };
 
     private async Task StartAsync(GraphicsDevice graphicsDevice)
     {

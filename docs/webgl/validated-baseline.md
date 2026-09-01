@@ -17,4 +17,4 @@ Debug and Release native-WASM builds are validated on Windows. A package-consume
 
 No hardware performance result is asserted by this file yet. Chrome, Edge, and Firefox remain release candidates rather than declared Tier 1 until benchmark JSON reports are checked in from representative hardware. Safari remains Tier 2.
 
-Option A is intentionally not implemented: no measured mandatory-browser failure has triggered its gate.
+Option A (shared-context — see [WebGL-KNI-Integration.md](../../WebGL-KNI-Integration.md), section 3) is intentionally not implemented: no measured mandatory-browser failure has triggered its gate.

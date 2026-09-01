@@ -1,39 +1,41 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PackageId>SkiaGameRendering.Raylib</PackageId>
+    <PackageId>SkiaGameRendering.Kni.DesktopGL</PackageId>
     <Version>$(LibraryVersion)</Version>
-    <Description>GPU SkiaSharp rendering into raylib Texture2D targets, with zero-copy GPU texture sharing.</Description>
+    <Description>GPU SkiaSharp rendering into KNI DesktopGL Texture2D targets, with zero-copy GPU texture sharing.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Raylib-cs" Version="8.0.0" />
+    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="[$(KniVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
-    <!--
-      The main SkiaSharp package only carries Windows/macOS native assets implicitly; Linux's
-      libSkiaSharp.so requires this separate package (confirmed empirically: without it,
-      GRContext.CreateGl() throws DllNotFoundException at runtime on Linux, even though the build
-      itself succeeds). Declared here rather than in each consuming app (e.g. Sample.Raylib) so the
-      adapter is self-sufficient on Linux without every consumer needing to remember it.
-    -->
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="[$(SkiaSharpVersion)]" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SkiaGameRendering.Core.OGL\SkiaGameRendering.Core.OGL.csproj" />
   </ItemGroup>
 
+  <!-- Shared core files from the MonoGame DesktopGL project -->
+  <ItemGroup>
+    <Compile Include="..\SkiaGameRendering\SkiaBackend.cs" Link="Core\SkiaBackend.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaRenderer.cs" Link="Core\SkiaRenderer.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaTarget.cs" Link="Core\SkiaTarget.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="Core\SkiaRenderTarget2D.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaSpriteBatchExtensions.cs" Link="Core\SkiaSpriteBatchExtensions.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-
 </Project>

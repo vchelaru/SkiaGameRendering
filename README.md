@@ -14,6 +14,7 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 | KNI WindowsDX | D3D11 | Working | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |
 | KNI WebGL (Blazor) | WebGL2 | Production candidate | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
+| raylib | OpenGL | Working (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
 
 ## Requirements
 
@@ -28,6 +29,7 @@ Install the NuGet package for your platform into an existing MonoGame/KNI projec
 - **MonoGame DesktopGL**: `dotnet add package SkiaGameRendering`
 - **MonoGame WindowsDX**: `dotnet add package SkiaGameRendering.WindowsDX`
 - **KNI WebGL (Blazor)**: `dotnet add package SkiaGameRendering.Kni.WebGL` — needs a couple of extra setup steps beyond the package install; see `docs/webgl/quickstart.md`.
+- **raylib**: `dotnet add package SkiaGameRendering.Raylib`
 
 No explicit setup call is required for the common case — constructing a `SkiaRenderTarget2D`
 auto-detects and initializes the right backend for the `GraphicsDevice` you pass it the first time
@@ -86,6 +88,7 @@ Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or 
 - `samples/Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
 - `samples/Sample.Kni.WindowsDX/` — KNI WindowsDX sample (Windows only)
 - `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample using the patched canvas-upload API
+- `samples/Sample.Raylib/` — raylib sample (Windows + Linux)
 - `samples/Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
 DesktopGL, WindowsDX, and KNI WindowsDX share the same `Game1.cs` via a linked file include.
@@ -100,6 +103,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.WindowsDX/` — MonoGame WindowsDX library (shared core + `SkiaAngleBackend`, on `Core.ANGLE`)
 - `src/SkiaGameRendering.Kni.WindowsDX/` — KNI WindowsDX library (shared core + `SkiaKniAngleBackend`, on `Core.ANGLE`)
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
+- `src/SkiaGameRendering.Raylib/` — raylib library (shared `Core.OGL` + `SkiaRaylibRenderTarget2D`)
 
 See `SkiaGameRendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
 
