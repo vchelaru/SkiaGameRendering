@@ -29,6 +29,7 @@ public sealed class SkiaWebGlBackend : SkiaBackend
 
     public SkiaWebGlDiagnostics Diagnostics { get; }
     public SkiaWebGlOptions Options => _options;
+    public SkiaGameWebGlHost Host => _host;
     public override GRContext GRContext => _host.GRContext;
     public override Task Ready => _host.Ready;
 

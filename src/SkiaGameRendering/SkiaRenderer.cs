@@ -8,12 +8,40 @@ namespace SkiaGameRendering
     /// it. Call <see cref="Initialize(SkiaBackend, GraphicsDevice)"/> explicitly only to force a
     /// specific backend (e.g. in tests) instead of auto-detection.
     /// </summary>
-    public static class SkiaRenderer
+    public static partial class SkiaRenderer
     {
         private static SkiaBackend? _backend;
         private static GraphicsDevice? _graphicsDevice;
 
+        // Set by a platform package whose backend can't be auto-constructed via a parameterless
+        // constructor (e.g. SkiaWebGlBackend, which needs a host - see
+        // SkiaGameRendering.Kni.WebGL's SkiaRenderer.Web.cs partial). Null everywhere else.
+        private static Func<SkiaBackend>? _ambientBackendFactory = null;
+
+        // Same idea, for readiness: null everywhere except a platform whose backend needs an
+        // async-created context (WebGL). Defaulting to "always ready" is correct for every other
+        // platform's backend, whose context already exists by construction - see SkiaBackend.Ready.
+        private static Func<bool>? _ambientReadyCheck = null;
+
         public static bool IsInitialized => _backend != null;
+
+        /// <summary>
+        /// The currently initialized backend, or null if none. Downcast to a specific backend type
+        /// (e.g. <c>SkiaWebGlBackend</c>) to reach members beyond this platform-agnostic base -
+        /// useful for code (like a platform-specific sample) that wants diagnostics or other
+        /// backend-specific access without holding its own reference from construction time.
+        /// </summary>
+        public static SkiaBackend? CurrentBackend => _backend;
+
+        /// <summary>
+        /// True once <see cref="Initialize(GraphicsDevice)"/> is safe to call. Always true unless a
+        /// platform package that needs an async-created context (currently just
+        /// <c>SkiaGameRendering.Kni.WebGL</c>) has attached one that isn't ready yet - poll this
+        /// from <c>Update</c>/<c>Draw</c> instead of awaiting anything. Written this way, the same
+        /// <c>Game</c> code works unchanged on every platform this library supports: desktop
+        /// backends are ready on the very first check, so initialization just happens immediately.
+        /// </summary>
+        public static bool IsReady => _ambientReadyCheck?.Invoke() ?? true;
 
         public static void Initialize(SkiaBackend backend, GraphicsDevice graphicsDevice)
         {
@@ -40,6 +68,12 @@ namespace SkiaGameRendering
         /// </summary>
         public static void Initialize(GraphicsDevice graphicsDevice)
         {
+            if (_ambientBackendFactory != null)
+            {
+                Initialize(_ambientBackendFactory(), graphicsDevice);
+                return;
+            }
+
             var backendType = FindBackendType()
                 ?? throw new InvalidOperationException(
                     "Could not auto-detect a SkiaBackend. Reference the platform package or initialize an explicit backend.");

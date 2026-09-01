@@ -21,41 +21,45 @@ dotnet add package SkiaGameRendering.Kni.WindowsDX       # KNI WindowsDX
 
 ## Initialize
 
-Construct the backend in `Program.cs`, `await` its `Ready`, and pass it into your `Game`, whose
-`Initialize()` calls `SkiaRenderer.Initialize` — the exact same shape every sample in this repo
-uses, desktop and web alike:
+No setup outside `Game` needed — `Program.cs` stays whatever the stock MonoGame/KNI template gives
+you:
 
 ```cs
-using SkiaGameRendering; // SkiaBackend, SkiaRenderer, SkiaGlBackend, SkiaAngleBackend
-
-var backend = new SkiaGlBackend(); // or SkiaAngleBackend / SkiaKniGlBackend / SkiaKniAngleBackend
-await backend.Ready;
-using var game = new Game1(backend);
+using var game = new Game1();
 game.Run();
 ```
 
-```cs
-// In Game1 (Program.cs's `backend` is passed straight through the constructor):
-private readonly SkiaBackend _backend;
-public Game1(SkiaBackend backend) => _backend = backend;
+Inside `Game`, poll `SkiaRenderer.IsReady` before calling `SkiaRenderer.Initialize`, in `Draw()` (a
+rendering-setup concern, colocated with the rendering that follows it) — the exact same code every
+sample in this repo uses, desktop and web alike:
 
-protected override void Initialize()
+```cs
+using SkiaGameRendering; // SkiaRenderer
+
+protected override void Draw(GameTime gameTime)
 {
-    SkiaRenderer.Initialize(_backend, GraphicsDevice);
-    base.Initialize();
+    if (!SkiaRenderer.IsInitialized && SkiaRenderer.IsReady)
+        SkiaRenderer.Initialize(GraphicsDevice);
+
+    if (SkiaRenderer.IsInitialized)
+    {
+        // normal draw logic
+    }
+    base.Draw(gameTime);
 }
 ```
 
-All four desktop backends' `Ready` is already complete the instant you construct them — their
-GL/D3D11 context exists as soon as the engine has created its `GraphicsDevice` — so `await
-backend.Ready` is a genuine no-op on desktop, not just a fast path. It's written the same way as
-`SkiaWebGlBackend`'s real, browser-async wait (see [the WebGL quick start](../webgl/quickstart.md))
-purely so the init code looks identical everywhere; nobody has to remember which platforms need the
-`await` and which don't.
+All four desktop backends' `IsReady` is `true` the instant `Draw()` first runs — their GL/D3D11
+context exists as soon as the engine has created its `GraphicsDevice` — so `Initialize` fires on
+the very first check; there's nothing to actually wait for. It's written this way (a poll, not a
+direct call) so the *exact same* `Game` code also compiles and behaves correctly on KNI WebGL, where
+`IsReady` reflects a real async host-readiness check instead of always being `true` (see
+[the WebGL quick start](../webgl/quickstart.md)) — `Game` code never names a specific `SkiaBackend`
+type on any platform, and `Initialize(GraphicsDevice)` auto-detects the right one via reflection.
 
 Constructing a `SkiaRenderTarget2D` without ever calling `SkiaRenderer.Initialize` also
 auto-detects and initializes the right backend for you (useful for quick scripts), but the
-explicit form above is what every sample uses and is the one to reach for by default.
+polling form above is what every sample uses and is the one to reach for by default.
 
 ## Render with SkiaRenderTarget2D
 

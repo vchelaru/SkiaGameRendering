@@ -21,6 +21,11 @@ public sealed class SkiaWebGlBackend : SkiaBackend
 | --- | --- |
 | `SkiaWebGlBackend(SkiaGameWebGlHost host, SkiaWebGlOptions? options = null)` | Creates a backend for a ready host. The backend subscribes to the host's context lifecycle until disposed. |
 
+Most code never calls this constructor directly — `SkiaRenderer.AttachHost(host, options)` does it
+for you, once, from the page's code-behind (see [Example](#example) below). Construct it explicitly
+only if your `Game` can receive a pre-built backend through its own constructor and you have a
+specific reason to skip the ambient path.
+
 ## Members
 
 | Member | Description |
@@ -32,6 +37,19 @@ public sealed class SkiaWebGlBackend : SkiaBackend
 | `Initialize(GraphicsDevice)` | Attaches the backend to the KNI graphics device. `Ready` must already have completed. |
 | `Dispose()` | Unsubscribes context events. Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or dispose them for you. |
 
+## SkiaRenderer's web extension
+
+This package adds a web-only partial extension to `SkiaRenderer` (`SkiaRenderer.Web.cs`, compiled
+only into `SkiaGameRendering.Kni.WebGL`):
+
+| Member | Description |
+| --- | --- |
+| `SkiaRenderer.AttachHost(SkiaGameWebGlHost host, SkiaWebGlOptions? options = null)` | Attaches the page's host so `SkiaRenderer.Initialize(GraphicsDevice)` can build a `SkiaWebGlBackend` from it once ready. Call once, page-lifetime, right after the host mounts — never from `Game` code. |
+
+Once attached, `SkiaRenderer.IsReady` and `SkiaRenderer.Initialize(GraphicsDevice)` (both declared
+on `SkiaRenderer`'s shared, platform-agnostic part — see `docs/documentation/SkiaRenderTarget2D.md`
+and the desktop docs) do the rest. No other WebGL-specific member needs to appear in `Game` code.
+
 ## Options
 
 `SkiaWebGlOptions` controls WebGL2 validation, direct `texSubImage2D` versus diagnostic `texImage2D`, Y orientation, premultiplied alpha, and color-space conversion. The production default path is direct canvas `texSubImage2D`; `DiagnosticTexImage2D` reallocates storage and is intended only for comparison.
@@ -39,38 +57,51 @@ public sealed class SkiaWebGlBackend : SkiaBackend
 ## Example
 
 ```razor
-@using SkiaSharp
-@using Microsoft.Xna.Framework.Graphics
 <SkiaGameWebGlHost @ref="host" RequireWebGl2="true" />
 
 @code {
     private SkiaGameWebGlHost? host;
-    private SkiaRenderTarget2D? canvas;
-    private readonly SKPaint paint = new() { Color = SKColors.White, IsAntialias = true };
+    private MyGame? game;
 
-    private async Task StartAsync(GraphicsDevice graphicsDevice)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var backend = new SkiaWebGlBackend(host, new SkiaWebGlOptions
-        {
-            RequireWebGl2 = true,
-            FlipY = false,
-            PremultiplyAlpha = true,
-            DisableColorSpaceConversion = true,
-        });
-        await backend.Ready;
+        if (!firstRender)
+            return;
 
-        SkiaRenderer.Initialize(backend, graphicsDevice);
-        canvas = new SkiaRenderTarget2D(graphicsDevice, 480, 300);
-    }
-
-    private void DrawUi()
-    {
-        canvas!.Begin();
-        canvas.Canvas.DrawCircle(240, 150, 100, paint);
-        canvas.End();
+        SkiaRenderer.AttachHost(host!); // once, page-lifetime - the only place a WebGL type is named
+        await host!.Ready;              // optional - only if the page itself wants to know when ready
+        game = new MyGame();
+        game.Run();
     }
 }
 ```
+
+`MyGame` (a `Microsoft.Xna.Framework.Game` subclass) never references `SkiaGameWebGlHost` or
+`SkiaWebGlBackend` at all:
+
+```csharp
+protected override void Draw(GameTime gameTime)
+{
+    if (!SkiaRenderer.IsInitialized && SkiaRenderer.IsReady)
+        SkiaRenderer.Initialize(GraphicsDevice);
+
+    if (SkiaRenderer.IsInitialized)
+    {
+        canvas ??= new SkiaRenderTarget2D(GraphicsDevice, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+        canvas.Begin();
+        canvas.Canvas.DrawCircle(240, 150, 100, paint);
+        canvas.End();
+    }
+    base.Draw(gameTime);
+}
+```
+
+This is deliberate: `IsReady`/`Initialize(GraphicsDevice)` are declared on `SkiaRenderer`'s shared,
+platform-agnostic part, so the exact same `Game` code also compiles and behaves correctly on
+desktop (`IsReady` is always `true` there). It's also the only pattern that works for a host that
+constructs `Game` itself with no constructor hook (e.g. `Activator.CreateInstance` — an in-browser
+code fiddle). Need backend-specific access (diagnostics, live option mutation)?
+`SkiaRenderer.CurrentBackend as SkiaWebGlBackend` gets you there once `IsInitialized` is true.
 
 Call `canvas.Begin()`/`End()` only after ending any lower `SpriteBatch`. `canvas.Texture` is
 current as soon as `End()` returns and can immediately be sampled by another `SpriteBatch`, a

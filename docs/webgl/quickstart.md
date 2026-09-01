@@ -34,22 +34,55 @@ using SkiaGameRendering.Kni.WebGL;
 using SkiaGameRendering.Kni.WebGL.Components;
 ```
 
-Render `<SkiaGameWebGlHost @ref="host" />` on the page. `GraphicsDevice` isn't available on the Blazor page itself — it belongs to your `Game` instance — so `SkiaWebGlBackend` gets constructed on the page, but `SkiaRenderer.Initialize` doesn't run until your `Game`'s own `Initialize()` override, where `GraphicsDevice` is in scope. That split is what every `SkiaBackend` needs: **construct the backend, await its `Ready`, then construct/run the `Game`** — identical on every platform this library supports. Desktop backends (`SkiaGlBackend`, `SkiaAngleBackend`, ...) complete `Ready` immediately since their GL/D3D11 context already exists by construction; `SkiaWebGlBackend.Ready` actually waits, because the host's WebGL2 context is created asynchronously by the browser (`host.Ready` under the hood — the backend forwards it).
+Render `<SkiaGameWebGlHost @ref="host" />` on the page. Then, once, right after it mounts, attach it
+to `SkiaRenderer` — this is the *only* place a WebGL-specific type gets named anywhere in this
+pattern:
 
 ```cs
-var backend = new SkiaWebGlBackend(host);
-await backend.Ready;
-_game = new MyGame(host, backend); // your Game subclass; pass both through
-_game.Run();
-```
-
-```cs
-protected override void Initialize()
+protected override async Task OnAfterRenderAsync(bool firstRender)
 {
-    SkiaRenderer.Initialize(_backend, GraphicsDevice); // _backend: passed into your constructor, already Ready
-    base.Initialize();
+    if (!firstRender)
+        return;
+
+    SkiaRenderer.AttachHost(host);
+    await host.Ready; // optional - only needed if the page itself wants to know when ready
+    _game = new MyGame();
+    _game.Run();
 }
 ```
+
+Your `Game` subclass never touches `SkiaGameWebGlHost`/`SkiaWebGlBackend`, never takes constructor
+arguments, and never awaits anything. It just polls `SkiaRenderer.IsReady` from `Draw()` (a
+rendering-setup concern, colocated with the rendering that follows it) before calling
+`SkiaRenderer.Initialize(GraphicsDevice)`:
+
+```cs
+protected override void Draw(GameTime gameTime)
+{
+    if (!SkiaRenderer.IsInitialized && SkiaRenderer.IsReady)
+        SkiaRenderer.Initialize(GraphicsDevice);
+
+    if (SkiaRenderer.IsInitialized)
+    {
+        // normal draw logic
+    }
+    base.Draw(gameTime);
+}
+```
+
+`IsReady` and `Initialize(GraphicsDevice)` are declared on `SkiaRenderer`'s shared, platform-agnostic
+part — the same one every other backend uses — so this exact code also compiles and behaves
+correctly on desktop, where `IsReady` is always `true` (nothing to wait for) and `Initialize`
+auto-detects the right backend via reflection. That's deliberate: it means the same `Game` code
+works whether it's running on web or gets exported into a real desktop project unchanged. Need
+backend-specific access (diagnostics, options)? `SkiaRenderer.CurrentBackend as SkiaWebGlBackend`
+gets you there once `IsInitialized` is true — see `samples/Sample.Kni.WebGL/Game1.cs`.
+
+Only reach for explicit construction (`new SkiaWebGlBackend(host)` +
+`SkiaRenderer.Initialize(backend, graphicsDevice)`) if your host *can* pass a backend into `Game`'s
+constructor and you have a specific reason to bypass the ambient path — `AttachHost` covers the
+normal case, including hosts that construct `Game` themselves with no constructor hook (e.g. an
+in-browser code fiddle).
 
 Construct one `SkiaRenderTarget2D` per Skia surface you need. All graphics calls must stay on the browser graphics thread.
 

@@ -8,18 +8,20 @@ using SkiaGameRendering.Kni.WebGL.Components;
 
 namespace Sample.Kni.WebGL;
 
+// Parameterless on purpose: nothing here comes through the constructor. This proves the pattern a
+// host that constructs Game itself (e.g. via Activator.CreateInstance, with no constructor hook -
+// an in-browser fiddle) needs: the page's code-behind calls SkiaRenderer.AttachHost once, and this
+// class only ever touches SkiaRenderer's shared, platform-agnostic surface (IsReady,
+// Initialize(GraphicsDevice), CurrentBackend) - no WebGL-specific type appears anywhere below.
 [SupportedOSPlatform("browser")]
 internal sealed class Game1 : Game
 {
     private readonly GraphicsDeviceManager _graphics;
-    private readonly SkiaGameWebGlHost _host;
     private SpriteBatch? _batch;
     private Texture2D? _pixel;
     private RenderTarget2D? _uiTarget;
     private BasicEffect? _shader;
     private SkiaGumRenderable? _gum;
-    private SkiaWebGlBackend _backend;
-    private SkiaWebGlOptions _webGlOptions;
     private Matrix _screenTransform = Matrix.Identity;
     private float _pointerX;
     private float _pointerY;
@@ -36,11 +38,8 @@ internal sealed class Game1 : Game
         new(new Vector3(1230, 228, 0), Color.White, new Vector2(1, 1)),
     };
 
-    public Game1(SkiaGameWebGlHost host, SkiaWebGlBackend backend)
+    public Game1()
     {
-        _host = host;
-        _backend = backend;
-        _webGlOptions = backend.Options;
         _graphics = new GraphicsDeviceManager(this)
         {
             GraphicsProfile = GraphicsProfile.HiDef,
@@ -52,9 +51,12 @@ internal sealed class Game1 : Game
 
     public double DevicePixelRatio { get; set; } = 1;
 
+    // Only meaningful once SkiaRenderer.IsInitialized - null beforehand.
+    private SkiaWebGlBackend? Backend => SkiaRenderer.CurrentBackend as SkiaWebGlBackend;
+    private SkiaGameWebGlHost? Host => Backend?.Host;
+
     protected override void Initialize()
     {
-        SkiaRenderer.Initialize(_backend, GraphicsDevice);
         _gum = new SkiaGumRenderable(GraphicsDevice, 480, 300);
         base.Initialize();
     }
@@ -77,22 +79,29 @@ internal sealed class Game1 : Game
 
     protected override void Update(GameTime gameTime)
     {
-        _gum!.Dpi = Math.Clamp((float)DevicePixelRatio, 1, 3);
-        var directTransform = Matrix.CreateScale(0.82f) * Matrix.CreateTranslation(40, 100, 0);
-        _gum.SetPresentationTransform(directTransform);
-        _gum.HandlePointer(_pointerX, _pointerY, _pointerDown, (int)_wheelDelta);
-        if (_textInput.Length > 0)
-            _gum.HandleText(_textInput);
-        _wheelDelta = 0;
-        _textInput = string.Empty;
+        if (SkiaRenderer.IsInitialized)
+        {
+            _gum!.Dpi = Math.Clamp((float)DevicePixelRatio, 1, 3);
+            var directTransform = Matrix.CreateScale(0.82f) * Matrix.CreateTranslation(40, 100, 0);
+            _gum.SetPresentationTransform(directTransform);
+            _gum.HandlePointer(_pointerX, _pointerY, _pointerDown, (int)_wheelDelta);
+            if (_textInput.Length > 0)
+                _gum.HandleText(_textInput);
+            _wheelDelta = 0;
+            _textInput = string.Empty;
 
-        if (_gum.ConsumeBackendRecreateRequest())
-            RecreateBackend();
+            if (_gum.ConsumeBackendRecreateRequest())
+                RecreateBackend();
+        }
+
         base.Update(gameTime);
     }
 
     protected override void Draw(GameTime gameTime)
     {
+        if (!SkiaRenderer.IsInitialized && SkiaRenderer.IsReady)
+            SkiaRenderer.Initialize(GraphicsDevice);
+
         GraphicsDevice.SetRenderTarget(null);
         GraphicsDevice.Clear(new Color(19, 22, 27));
 
@@ -101,30 +110,34 @@ internal sealed class Game1 : Game
         _batch.Draw(_pixel!, new Rectangle(24, 84, 520, 10), new Color(54, 122, 178));
         _batch.End();
 
-        if (!_host.IsContextLost)
-            _gum!.Draw();
-
-        if (_gum!.Texture != null)
+        if (SkiaRenderer.IsInitialized)
         {
-            BeginScreenBatch(BlendState.AlphaBlend, SamplerState.LinearClamp);
-            _batch.Draw(_gum.Texture, new Rectangle(40, 100, 394, 246), Color.White);
-            _batch.End();
+            var host = Host;
+            if (host?.IsContextLost != true)
+                _gum!.Draw();
 
-            GraphicsDevice.SetRenderTarget(_uiTarget);
-            GraphicsDevice.Clear(Color.Transparent);
-            _batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
-            _batch.Draw(_gum.Texture, new Rectangle(0, 0, 480, 300), Color.White);
-            _batch.Draw(_pixel!, new Rectangle(350, 245, 120, 36), new Color(240, 190, 64, 210));
-            _batch.End();
-            GraphicsDevice.SetRenderTarget(null);
+            if (_gum!.Texture != null)
+            {
+                BeginScreenBatch(BlendState.AlphaBlend, SamplerState.LinearClamp);
+                _batch.Draw(_gum.Texture, new Rectangle(40, 100, 394, 246), Color.White);
+                _batch.End();
 
-            BeginScreenBatch(BlendState.AlphaBlend, SamplerState.LinearClamp);
-            _batch.Draw(_uiTarget!, new Vector2(770, 350), null, Color.White, -0.08f,
-                new Vector2(240, 150), 0.72f, SpriteEffects.None, 0);
-            _batch.Draw(_pixel!, new Rectangle(300, 210, 250, 12), new Color(238, 84, 74, 220));
-            _batch.End();
+                GraphicsDevice.SetRenderTarget(_uiTarget);
+                GraphicsDevice.Clear(Color.Transparent);
+                _batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
+                _batch.Draw(_gum.Texture, new Rectangle(0, 0, 480, 300), Color.White);
+                _batch.Draw(_pixel!, new Rectangle(350, 245, 120, 36), new Color(240, 190, 64, 210));
+                _batch.End();
+                GraphicsDevice.SetRenderTarget(null);
 
-            DrawWithShader(_gum.Texture);
+                BeginScreenBatch(BlendState.AlphaBlend, SamplerState.LinearClamp);
+                _batch.Draw(_uiTarget!, new Vector2(770, 350), null, Color.White, -0.08f,
+                    new Vector2(240, 150), 0.72f, SpriteEffects.None, 0);
+                _batch.Draw(_pixel!, new Rectangle(300, 210, 250, 12), new Color(238, 84, 74, 220));
+                _batch.End();
+
+                DrawWithShader(_gum.Texture);
+            }
         }
 
         base.Draw(gameTime);
@@ -153,16 +166,16 @@ internal sealed class Game1 : Game
         _wheelDelta += wheelDelta;
         _textInput += textInput;
         _pointerType = pointerType;
-        if (_webGlOptions != null)
-            _webGlOptions.UploadMode = diagnosticTexImage
+        if (Backend != null)
+            Backend.Options.UploadMode = diagnosticTexImage
                 ? WebGlUploadMode.DiagnosticTexImage2D
                 : WebGlUploadMode.DirectCanvasTexSubImage2D;
     }
 
     public string GetDiagnostics()
     {
-        var diagnostics = _backend.Diagnostics;
-        return $"{_host.WebGlVersion} | DPR {DevicePixelRatio:0.##} | {_pointerType} | " +
+        var diagnostics = Backend?.Diagnostics;
+        return $"{Host?.WebGlVersion ?? "starting"} | DPR {DevicePixelRatio:0.##} | {_pointerType} | " +
             $"{diagnostics?.UploadPath ?? "starting"} | upload {diagnostics?.LastUploadCpuMilliseconds ?? 0:0.00} ms | " +
             $"frames {diagnostics?.UploadCount ?? 0} | loss {diagnostics?.ContextLossCount ?? 0} | recreate {_backendRecreateCount}";
     }
@@ -183,8 +196,10 @@ internal sealed class Game1 : Game
     {
         SkiaRenderer.Dispose();
         _gum!.ResetTexture();
-        _backend = new SkiaWebGlBackend(_host, _webGlOptions);
-        SkiaRenderer.Initialize(_backend, GraphicsDevice);
+        // The page's SkiaRenderer.AttachHost call (Index.razor.cs) is still in effect - Dispose only
+        // clears the current backend/GraphicsDevice pairing, not the attached host - so this
+        // reconstructs a fresh SkiaWebGlBackend from that same host.
+        SkiaRenderer.Initialize(GraphicsDevice);
         _backendRecreateCount++;
     }
 

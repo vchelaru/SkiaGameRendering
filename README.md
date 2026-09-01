@@ -34,32 +34,31 @@ Install the NuGet package for your platform into an existing MonoGame/KNI projec
 - **KNI WebGL (Blazor)**: `dotnet add package SkiaGameRendering.Kni.WebGL` — needs a couple of extra setup steps beyond the package install; see `docs/webgl/quickstart.md`.
 - **raylib**: `dotnet add package SkiaGameRendering.Raylib` — see `docs/raylib/quickstart.md`.
 
-Construct the backend in `Program.cs`, `await` its `Ready` (a no-op on every desktop backend, but
-identical to the KNI WebGL sample's shape — see `docs/webgl/quickstart.md`), and pass it into your
-`Game`, whose `Initialize()` calls `SkiaRenderer.Initialize`:
+No setup outside `Game` needed — `Program.cs` stays whatever the stock MonoGame/KNI template gives
+you (`using var game = new Game1(); game.Run();`). Inside `Game`, poll `SkiaRenderer.IsReady`
+before calling `SkiaRenderer.Initialize`, in `Draw()` (a rendering-setup concern, colocated with the
+rendering that follows it):
 ```cs
-using SkiaGameRendering; // SkiaBackend, SkiaRenderer, SkiaGlBackend, SkiaAngleBackend
+using SkiaGameRendering; // SkiaRenderer
 
-var backend = new SkiaGlBackend();     // MonoGame DesktopGL - or SkiaAngleBackend (WindowsDX),
-                                        // SkiaKniGlBackend (KNI DesktopGL), SkiaKniAngleBackend (KNI WindowsDX)
-await backend.Ready;
-using var game = new Game1(backend);
-game.Run();
-
-// In Game1:
-public Game1(SkiaBackend backend) => _backend = backend;
-
-protected override void Initialize()
+protected override void Draw(GameTime gameTime)
 {
-    SkiaRenderer.Initialize(_backend, GraphicsDevice);
-    base.Initialize();
+    if (!SkiaRenderer.IsInitialized && SkiaRenderer.IsReady)
+        SkiaRenderer.Initialize(GraphicsDevice);
+
+    if (SkiaRenderer.IsInitialized)
+    {
+        // normal draw logic
+    }
+    base.Draw(gameTime);
 }
 ```
 
-Constructing a `SkiaRenderTarget2D` without ever calling `SkiaRenderer.Initialize` also
-auto-detects and initializes the right backend for you — useful for quick scripts — but the
-explicit form above is what every sample in this repo uses, so it's the one to reach for by
-default.
+This is deliberate, not just convenient: `IsReady`/`Initialize(GraphicsDevice)` are declared on
+`SkiaRenderer`'s shared, platform-agnostic part, so this exact code also compiles and behaves
+correctly on KNI WebGL, where `IsReady` reflects a real async host-readiness check instead of
+always being `true` — see `docs/webgl/quickstart.md`. `Game` code never names a specific
+`SkiaBackend` type on any platform.
 
 ## SkiaRenderTarget2D
 

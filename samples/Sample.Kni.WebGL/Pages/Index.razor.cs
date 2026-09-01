@@ -1,6 +1,7 @@
 using Microsoft.JSInterop;
 using Microsoft.Xna.Framework;
 using System.Runtime.Versioning;
+using SkiaGameRendering;
 using SkiaGameRendering.Kni.WebGL;
 using SkiaGameRendering.Kni.WebGL.Components;
 
@@ -10,7 +11,6 @@ namespace Sample.Kni.WebGL.Pages;
 public partial class Index
 {
     private SkiaGameWebGlHost? _skiaHost;
-    private SkiaWebGlBackend? _backend;
     private DotNetObjectReference<Index>? _selfReference;
     private Game1? _game;
     private string _status = "Initializing WebGL...";
@@ -21,11 +21,13 @@ public partial class Index
         if (!firstRender)
             return;
 
-        // Constructing the backend doesn't require the host to be ready - only calling
-        // SkiaRenderer.Initialize (inside Game1.Initialize) does. Awaiting backend.Ready here
-        // (rather than a WebGL-specific host.Ready) is the same step every backend needs before
-        // its Game can run - desktop backends just complete it immediately.
-        _backend = new SkiaWebGlBackend(_skiaHost!, new SkiaWebGlOptions
+        // Attach once, page-lifetime. Game1 itself never awaits anything or takes a constructor
+        // argument - it just polls SkiaRenderer.IsReady from Update() before calling
+        // SkiaRenderer.Initialize(GraphicsDevice). This is the one and only place a WebGL-specific
+        // type gets named; everything Game1 touches is on SkiaRenderer's shared, platform-agnostic
+        // surface, so the same Game1 code is what a host that constructs Game itself (with no
+        // constructor hook - e.g. an in-browser fiddle) would also write.
+        SkiaRenderer.AttachHost(_skiaHost!, new SkiaWebGlOptions
         {
             RequireWebGl2 = true,
             EnableDiagnostics = true,
@@ -33,8 +35,9 @@ public partial class Index
             PremultiplyAlpha = true,
             DisableColorSpaceConversion = true,
         });
-        await _backend.Ready;
-        _status = $"{_skiaHost!.WebGlVersion} | {_skiaHost.Renderer}";
+
+        await _skiaHost!.Ready;
+        _status = $"{_skiaHost.WebGlVersion} | {_skiaHost.Renderer}";
         StateHasChanged();
         _selfReference = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("skiaKniSample.start", _selfReference);
@@ -55,7 +58,7 @@ public partial class Index
     {
         if (_game == null)
         {
-            _game = new Game1(_skiaHost!, _backend!);
+            _game = new Game1();
             _game.Run();
         }
 

@@ -1,6 +1,2 @@
-using SkiaGameRendering;
-
-var backend = new SkiaAngleBackend();
-await backend.Ready;
-using var game = new Sample.Game1(backend);
+using var game = new Sample.Game1();
 game.Run();
