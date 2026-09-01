@@ -13,7 +13,7 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 | KNI DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.DesktopGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Shared GL context via SDL |
 | KNI WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |
-| KNI WebGL (Blazor) | WebGL2 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WebGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) (Production candidate) | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
+| KNI WebGL (Blazor) | WebGL2 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WebGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
 | raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib)](https://www.nuget.org/packages/SkiaGameRendering.Raylib) (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
 
 ## Requirements

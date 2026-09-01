@@ -23,10 +23,16 @@ jobs:
 
       - name: Pack SkiaGameRendering.Core.OGL
         run: dotnet pack src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Core.ANGLE
+        run: dotnet pack src/SkiaGameRendering.Core.ANGLE/SkiaGameRendering.Core.ANGLE.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering
         run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.WindowsDX
         run: dotnet pack src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Kni.DesktopGL
+        run: dotnet pack src/SkiaGameRendering.Kni.DesktopGL/SkiaGameRendering.Kni.DesktopGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Kni.WindowsDX
+        run: dotnet pack src/SkiaGameRendering.Kni.WindowsDX/SkiaGameRendering.Kni.WindowsDX.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Kni.WebGL
         run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Raylib
