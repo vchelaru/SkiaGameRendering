@@ -46,6 +46,8 @@ Anything that needs a window on screen is the user's manual test; give them numb
 - **A backend is only verifiable on its own platform and GPU stack.** A change to shared core source
   compiles for every backend but is exercised by none of them until each platform actually runs.
   Say which backends you verified and which you did not, rather than implying a clean build covers all.
-- **KNI internals are reached by reflection, not a fork** — see
-  `src/SkiaGameRendering.Kni.WebGL/WebGlCanvasUpload.cs`. A KNI version bump can break these silently
-  at runtime with no compile error.
+- **Engine internals are reached by reflection, not a fork.** See
+  `src/SkiaGameRendering.Kni.WebGL/WebGlCanvasUpload.cs`. A MonoGame or KNI version bump can break
+  these silently at runtime with no compile error. The four desktop backends have reflection pin
+  tests (`tests/Shared/EngineReflectionPin.cs` plus a `*ReflectionTests.cs` in each backend's test
+  project) that fail the build on a rename; WebGL has none, so bump it with a browser run.
