@@ -23,10 +23,28 @@ namespace SkiaGameRendering.Core.OGL
             GRContext grContext, GlFunctions gl, int glTextureId, int width, int height, SKColorType colorType,
             out GlFramebufferState framebufferState, GRSurfaceOrigin origin = GRSurfaceOrigin.TopLeft)
         {
-            gl.GetInteger(GL_SAMPLES, out var samples);
+            framebufferState = CreateFramebuffer(gl, glTextureId, width, height, out var samples);
+
             var maxSamples = grContext.GetMaxSurfaceSampleCount(colorType);
             if (samples > maxSamples)
                 samples = maxSamples;
+
+            var skiaFramebufferInfo = new GRGlFramebufferInfo((uint)framebufferState.FramebufferId, colorType.ToGlSizedFormat());
+            var backendRenderTarget = new GRBackendRenderTarget(width, height, samples, 8, skiaFramebufferInfo);
+            var surface = SKSurface.Create(grContext, backendRenderTarget, origin, colorType);
+
+            return (surface, backendRenderTarget);
+        }
+
+        /// <summary>
+        /// The pure-GL half of <see cref="CreateSurface"/>: everything up to and including a complete
+        /// FBO, with no Skia object involved. Split out so the GL call sequence can be driven by a
+        /// fake <see cref="IGlFunctionLoader"/> with no GL context and no GPU.
+        /// </summary>
+        internal static GlFramebufferState CreateFramebuffer(GlFunctions gl, int glTextureId, int width, int height,
+            out int samples)
+        {
+            gl.GetInteger(GL_SAMPLES, out samples);
 
             gl.GenRenderbuffers(1, out var renderbufferId);
             gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, renderbufferId);
@@ -50,13 +68,7 @@ namespace SkiaGameRendering.Core.OGL
 
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
 
-            framebufferState = new GlFramebufferState { FramebufferId = framebufferId, RenderbufferId = renderbufferId };
-
-            var skiaFramebufferInfo = new GRGlFramebufferInfo((uint)framebufferId, colorType.ToGlSizedFormat());
-            var backendRenderTarget = new GRBackendRenderTarget(width, height, samples, 8, skiaFramebufferInfo);
-            var surface = SKSurface.Create(grContext, backendRenderTarget, origin, colorType);
-
-            return (surface, backendRenderTarget);
+            return new GlFramebufferState { FramebufferId = framebufferId, RenderbufferId = renderbufferId };
         }
 
         public static void BindForDrawing(GlFunctions gl, GlFramebufferState state)
