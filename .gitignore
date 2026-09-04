@@ -13,3 +13,8 @@ packages/
 **/bin/
 **/obj/
 **/Content/obj/
+
+## Claude
+.claude/settings.local.json
+CLAUDE.local.md
+/.claude/worktrees
