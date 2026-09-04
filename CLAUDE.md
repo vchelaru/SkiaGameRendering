@@ -48,6 +48,6 @@ Anything that needs a window on screen is the user's manual test; give them numb
   Say which backends you verified and which you did not, rather than implying a clean build covers all.
 - **Engine internals are reached by reflection, not a fork.** See
   `src/SkiaGameRendering.Kni.WebGL/WebGlCanvasUpload.cs`. A MonoGame or KNI version bump can break
-  these silently at runtime with no compile error. The four desktop backends have reflection pin
-  tests (`tests/Shared/EngineReflectionPin.cs` plus a `*ReflectionTests.cs` in each backend's test
-  project) that fail the build on a rename; WebGL has none, so bump it with a browser run.
+  these silently at runtime with no compile error. Every backend has reflection pin tests
+  (`tests/Shared/EngineReflectionPin.cs` plus a `*ReflectionTests.cs` in each backend's test
+  project) that fail the build on a rename.

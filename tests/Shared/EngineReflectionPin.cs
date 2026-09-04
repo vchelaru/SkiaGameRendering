@@ -45,6 +45,22 @@ internal static class EngineReflectionPin
         type.GetProperty(name, flags)
             ?? throw new XunitException($"Property '{type.FullName}.{name}' not found.");
 
+    /// <summary>
+    /// Pins a property along with the type callers unbox its value to. A reflected read casts the
+    /// boxed result, so a widened property type is an InvalidCastException at runtime, not a
+    /// compile error.
+    /// </summary>
+    internal static PropertyInfo RequirePropertyOfType(Type type, string name, BindingFlags flags, Type propertyType)
+    {
+        var property = RequireProperty(type, name, flags);
+
+        if (property.PropertyType != propertyType)
+            throw new XunitException(
+                $"Property '{type.FullName}.{name}' is {property.PropertyType.Name}, expected {propertyType.Name}.");
+
+        return property;
+    }
+
     internal static MethodInfo RequireMethod(Type type, string name, BindingFlags flags) =>
         type.GetMethod(name, flags)
             ?? throw new XunitException($"Method '{type.FullName}.{name}' not found.");
