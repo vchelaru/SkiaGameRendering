@@ -17,30 +17,35 @@ namespace SkiaGameRendering.Core.ANGLE
 
                 var dllName = name + ".dll";
 
-                // 1. Try app-local (bundled ANGLE DLLs next to the executable)
+                // Assembly.Location is empty for a single-file or in-memory assembly, which leaves
+                // no directory to probe - skip straight to the machine-wide fallback.
                 var assemblyDir = Path.GetDirectoryName(assembly.Location);
-                var localPath = Path.Combine(assemblyDir, dllName);
-                if (NativeLibrary.TryLoad(localPath, out var handle))
-                    return handle;
-
-                // 2. Try runtimes folder (NuGet native assets)
-                var arch = RuntimeInformation.ProcessArchitecture switch
+                if (!string.IsNullOrEmpty(assemblyDir))
                 {
-                    Architecture.X64 => "win-x64",
-                    Architecture.X86 => "win-x86",
-                    Architecture.Arm64 => "win-arm64",
-                    _ => "win-x64"
-                };
-                var runtimesPath = Path.Combine(assemblyDir, "runtimes", arch, "native", dllName);
-                if (NativeLibrary.TryLoad(runtimesPath, out handle))
-                    return handle;
+                    // 1. Try app-local (bundled ANGLE DLLs next to the executable)
+                    var localPath = Path.Combine(assemblyDir, dllName);
+                    if (NativeLibrary.TryLoad(localPath, out var localHandle))
+                        return localHandle;
+
+                    // 2. Try runtimes folder (NuGet native assets)
+                    var arch = RuntimeInformation.ProcessArchitecture switch
+                    {
+                        Architecture.X64 => "win-x64",
+                        Architecture.X86 => "win-x86",
+                        Architecture.Arm64 => "win-arm64",
+                        _ => "win-x64"
+                    };
+                    var runtimesPath = Path.Combine(assemblyDir, "runtimes", arch, "native", dllName);
+                    if (NativeLibrary.TryLoad(runtimesPath, out var runtimesHandle))
+                        return runtimesHandle;
+                }
 
                 // 3. Fall back to Edge WebView's ANGLE (present on most Windows 10/11 machines)
                 var edgePath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.Windows),
                     "System32", "Microsoft-Edge-WebView", dllName);
-                if (NativeLibrary.TryLoad(edgePath, out handle))
-                    return handle;
+                if (NativeLibrary.TryLoad(edgePath, out var edgeHandle))
+                    return edgeHandle;
 
                 return IntPtr.Zero;
             });
@@ -137,7 +142,8 @@ namespace SkiaGameRendering.Core.ANGLE
 
         // ANGLE device extension
         [DllImport(LibEGL, CallingConvention = CallingConvention.Winapi)]
-        internal static extern IntPtr eglCreateDeviceANGLE(int deviceType, IntPtr nativeDevice, int[] attribs);
+        // attribs is optional - EGL treats null as an empty attribute list.
+        internal static extern IntPtr eglCreateDeviceANGLE(int deviceType, IntPtr nativeDevice, int[]? attribs);
 
         [DllImport(LibEGL, CallingConvention = CallingConvention.Winapi)]
         [return: MarshalAs(UnmanagedType.Bool)]

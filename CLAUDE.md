@@ -35,9 +35,11 @@ authoritative list of what CI builds and in what order; mirror it when deciding 
 - Unit tests: `dotnet test tests/Tests.proj`, which runs every test project under `tests/`.
 - WindowsDX and KNI WindowsDX need Windows; the WebGL sample needs `dotnet workload install wasm-tools-net8`.
 
-**Zero new warnings** after every change. **Never launch a sample `.exe`, `dotnet run`, or a GUI
-app** to verify — build and test only. Anything that needs a window on screen is the user's manual
-test; give them numbered steps.
+`Directory.Build.props` sets `TreatWarningsAsErrors`, so a new C# warning fails the build. MSBuild
+task warnings from third-party targets stay warnings; don't silence them there.
+
+**Never launch a sample `.exe`, `dotnet run`, or a GUI app** to verify — build and test only.
+Anything that needs a window on screen is the user's manual test; give them numbered steps.
 
 ## Gotchas
 

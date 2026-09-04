@@ -16,8 +16,8 @@ namespace SkiaGameRendering
         IntPtr _windowId;
         IntPtr _mgContextId;
         IntPtr _skContextId;
-        GRContext _grContext;
-        GlFunctions _gl;
+        GRContext _grContext = null!;
+        GlFunctions _gl = null!;
 
         public override GRContext GRContext => _grContext;
 

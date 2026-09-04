@@ -18,12 +18,20 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - run: dotnet test tests/Tests.proj -c ${{ matrix.configuration }}
+      # Every src/ project builds here so warnings-as-errors (Directory.Build.props) has something
+      # to fire on. Each package's sample builds too, since a sample is the only thing that compiles
+      # against the package's public API the way a consumer does. Sample.Kni.WebGL is the exception -
+      # it needs the wasm workload, and the webgl-functional job below builds it.
       - run: dotnet build src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.MonoGame.DesktopGL/Sample.MonoGame.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.MonoGame.WindowsDX/Sample.MonoGame.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Kni.DesktopGL/SkiaGameRendering.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Kni.DesktopGL/Sample.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Kni.WindowsDX/SkiaGameRendering.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Kni.WindowsDX/Sample.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Raylib/SkiaGameRendering.Raylib.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.Raylib/Sample.Raylib.csproj -c ${{ matrix.configuration }}
       - run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
 
   webgl-functional:
