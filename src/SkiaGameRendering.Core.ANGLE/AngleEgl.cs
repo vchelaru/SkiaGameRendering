@@ -59,9 +59,9 @@ namespace SkiaGameRendering.Core.ANGLE
 
         // EGL config attributes
         internal const int EGL_RED_SIZE = 0x3024;
-        internal const int EGL_GREEN_SIZE = 0x3025;
-        internal const int EGL_BLUE_SIZE = 0x3026;
-        internal const int EGL_ALPHA_SIZE = 0x3027;
+        internal const int EGL_GREEN_SIZE = 0x3023;
+        internal const int EGL_BLUE_SIZE = 0x3022;
+        internal const int EGL_ALPHA_SIZE = 0x3021;
         internal const int EGL_DEPTH_SIZE = 0x3025;
         internal const int EGL_STENCIL_SIZE = 0x3026;
         internal const int EGL_SURFACE_TYPE = 0x3033;
@@ -87,7 +87,7 @@ namespace SkiaGameRendering.Core.ANGLE
 
         // Pbuffer attributes
         internal const int EGL_WIDTH = 0x3057;
-        internal const int EGL_HEIGHT = 0x3058;
+        internal const int EGL_HEIGHT = 0x3056;
         internal const int EGL_TEXTURE_TARGET = 0x3081;
         internal const int EGL_TEXTURE_2D = 0x305F;
         internal const int EGL_TEXTURE_FORMAT = 0x3080;
