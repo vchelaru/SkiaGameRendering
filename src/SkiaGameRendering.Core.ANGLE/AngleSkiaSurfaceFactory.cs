@@ -133,8 +133,10 @@ namespace SkiaGameRendering.Core.ANGLE
         void InitD3D11StateSwap(object d3dDevice, object d3dContext)
         {
             var sharpDxAsm = d3dDevice.GetType().Assembly;
-            var device1Type = sharpDxAsm.GetType("SharpDX.Direct3D11.Device1");
-            var dc1Type = sharpDxAsm.GetType("SharpDX.Direct3D11.DeviceContext1");
+            var device1Type = sharpDxAsm.GetType("SharpDX.Direct3D11.Device1")
+                ?? throw new InvalidOperationException("SharpDX.Direct3D11.Device1 type not found.");
+            var dc1Type = sharpDxAsm.GetType("SharpDX.Direct3D11.DeviceContext1")
+                ?? throw new InvalidOperationException("SharpDX.Direct3D11.DeviceContext1 type not found.");
 
             // Wrap the existing COM pointers as D3D11.1 interfaces
             var devicePtr = GetNativePointer(d3dDevice);
@@ -146,20 +148,22 @@ namespace SkiaGameRendering.Core.ANGLE
             // CreateDeviceContextState creates a snapshot of "empty" D3D11 state.
             // When we swap to it, the engine's state is saved; when we swap back, it's restored.
             var featureLevelType = sharpDxAsm.GetType("SharpDX.Direct3D.FeatureLevel")
-                ?? Type.GetType("SharpDX.Direct3D.FeatureLevel, SharpDX");
-            var flagsType = sharpDxAsm.GetType("SharpDX.Direct3D11.CreateDeviceContextStateFlags");
+                ?? Type.GetType("SharpDX.Direct3D.FeatureLevel, SharpDX")
+                ?? throw new InvalidOperationException("SharpDX.Direct3D.FeatureLevel type not found.");
+            var flagsType = sharpDxAsm.GetType("SharpDX.Direct3D11.CreateDeviceContextStateFlags")
+                ?? throw new InvalidOperationException("SharpDX.Direct3D11.CreateDeviceContextStateFlags type not found.");
 
             var createMethod = device1Type.GetMethods()
                 .First(m => m.Name == "CreateDeviceContextState" && m.IsGenericMethod);
 
             var genericMethod = createMethod.MakeGenericMethod(device1Type);
 
-            var featureLevel11 = Enum.Parse(featureLevelType!, "Level_11_0");
+            var featureLevel11 = Enum.Parse(featureLevelType, "Level_11_0");
             var flagsNone = Enum.Parse(flagsType, "None");
-            var featureLevels = Array.CreateInstance(featureLevelType!, 1);
+            var featureLevels = Array.CreateInstance(featureLevelType, 1);
             featureLevels.SetValue(featureLevel11, 0);
 
-            var chosenLevel = Activator.CreateInstance(featureLevelType!);
+            var chosenLevel = Activator.CreateInstance(featureLevelType);
             var createParams = new object?[] { flagsNone, featureLevels, chosenLevel };
             _emptyState = genericMethod.Invoke(device1, createParams);
 
