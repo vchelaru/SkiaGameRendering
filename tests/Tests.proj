@@ -1,0 +1,15 @@
+<!--
+  Traversal project so CI does not have to name each test project by hand. `dotnet test tests/Tests.proj`
+  discovers every csproj under tests/ at evaluation time, so adding a test project is enough to get it
+  running in CI. Naming projects explicitly is how a new test project ends up silently never running.
+
+  tests/Tests.Kni.WebGL is a Playwright suite with no csproj, so the glob skips it. It runs in its own
+  workflow job.
+-->
+<Project Sdk="Microsoft.Build.Traversal/4.1.0">
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)**\*.csproj" />
+  </ItemGroup>
+
+</Project>

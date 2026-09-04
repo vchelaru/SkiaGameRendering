@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - run: dotnet test tests/Tests.Core/Tests.Core.csproj -c ${{ matrix.configuration }}
+      - run: dotnet test tests/Tests.proj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Kni.DesktopGL/SkiaGameRendering.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
