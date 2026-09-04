@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -13,10 +14,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- The backend package deliberately does not reference a KNI platform - the game project picks
+         one. Sdl lives in that platform assembly, so the pin has to name it here. -->
+    <PackageReference Include="nkast.Kni.Platform.SDL2.GL" Version="[$(KniVersion)]" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SkiaGameRendering\SkiaGameRendering.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Kni.DesktopGL\SkiaGameRendering.Kni.DesktopGL.csproj" />
   </ItemGroup>
 
   <ItemGroup>
