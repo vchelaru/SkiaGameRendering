@@ -37,6 +37,40 @@ jobs:
           New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
           & "C:\Program Files\7-Zip\7z.exe" e mesa.7z -o"$vendorDir" "x64/opengl32.dll" "x64/libgallium_wgl.dll" -y
           Remove-Item mesa.7z
+      # Same story for Core.VK, one Vulkan analog down: windows-latest has no GPU, so
+      # VkSkiaPixelReadbackTests needs a real Vulkan ICD to enumerate any device at all. This is
+      # Mesa lavapipe (llvmpipe's Vulkan ICD) from the SAME mesa-dist-win release already used above
+      # - confirmed by inspecting the archive directly that x64/lvp_icd.x86_64.json +
+      # x64/vulkan_lvp.dll are self-contained (no separate libgallium_wgl.dll dependency, unlike the
+      # OpenGL path). See the headless-gpu-testing skill's Vulkan section.
+      - name: Download Mesa lavapipe for headless Core.VK tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "26.2.0"
+          $url = "https://github.com/pal1000/mesa-dist-win/releases/download/$version/mesa3d-$version-release-msvc.7z"
+          Invoke-WebRequest -Uri $url -OutFile mesa.7z
+          $vendorDir = "tests/Tests.Core.VK/mesa-vendor"
+          New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
+          & "C:\Program Files\7-Zip\7z.exe" e mesa.7z -o"$vendorDir" "x64/lvp_icd.x86_64.json" "x64/vulkan_lvp.dll" -y
+          Remove-Item mesa.7z
+      # GitHub's windows-latest runner executes as an elevated (admin) process, and the Vulkan
+      # loader deliberately ignores VK_ICD_FILENAMES (and VK_DRIVER_FILES/VK_ADD_DRIVER_FILES) for
+      # elevated processes - a documented anti-privilege-escalation hardening in Vulkan-Loader, so
+      # an env-var-only approach silently falls back to "no drivers found" (VkResult
+      # VK_ERROR_INCOMPATIBLE_DRIVER) with no build-time warning. Confirmed directly against this
+      # runner via VK_LOADER_DEBUG=all: "Loader is running with elevated permissions. Environment
+      # variable VK_ICD_FILENAMES will be ignored". The registry-based driver path is exempt (it
+      # already requires admin to write, so the loader trusts it) - this is the same mechanism a
+      # real GPU driver installer uses to register itself, and is unaffected by the runner's
+      # elevation. See the headless-gpu-testing skill's Vulkan section for the full story.
+      - name: Register Mesa lavapipe as a Vulkan ICD (registry, not VK_ICD_FILENAMES)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $icdPath = "$PWD\tests\Tests.Core.VK\mesa-vendor\lvp_icd.x86_64.json"
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name $icdPath -PropertyType DWord -Value 0 -Force | Out-Null
       # Mesa's gallium WGL loader auto-selects a D3D12-backed driver when a D3D12 adapter is
       # enumerable (including WARP) and only falls back to llvmpipe otherwise - forcing the driver
       # here makes the software path deterministic instead of depending on what this runner exposes.

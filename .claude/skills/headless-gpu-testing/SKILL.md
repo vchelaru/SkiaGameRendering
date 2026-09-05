@@ -56,3 +56,72 @@ so their absence on a dev box is a silent no-op, not a build error.
   there is still the test assembly's own output directory (not some shared vstest install location),
   so app-local DLL probing works the same as any other .NET Core host - this was checked directly,
   not assumed.
+
+## Vulkan - lavapipe
+
+`tests/Tests.Core.VK/VulkanTestDevice.cs` creates a real, minimal `VkInstance`/`VkPhysicalDevice`/
+`VkDevice`/`VkQueue` via raw P/Invoke against the system Vulkan loader (`VulkanTestNative.cs`) - no
+validation layers, no extensions. `VkSkiaPixelReadbackTests.cs` allocates a host-owned `VkImage`,
+wraps it with `SkiaGameRendering.Core.VK`'s `VkSkiaSurfaceFactory`, draws, then reads it back via a
+staging-buffer copy. Same shape as the WARP/WGL tests above, one Vulkan analog down.
+
+Unlike WARP, Windows has no first-party software Vulkan implementation, and unlike WGL, there is no
+baseline driver to fall back to at all - a Vulkan-less machine enumerates zero physical devices and
+the test just fails (no graceful skip). Mesa lavapipe (`vulkan_lvp.dll` + `lvp_icd.x86_64.json`) plays
+the same role llvmpipe plays for GL, from the exact same
+[pal1000/mesa-dist-win](https://github.com/pal1000/mesa-dist-win) `release-msvc` archive already used
+above (`x64/lvp_icd.x86_64.json`, `x64/vulkan_lvp.dll`) - confirmed by downloading the archive and
+running the real test against it that, unlike the GL path, it's self-contained: no
+`libgallium_wgl.dll` dependency needed. `master.yml`'s "Download Mesa lavapipe for headless Core.VK
+tests" step vendors both files into `tests/Tests.Core.VK/mesa-vendor/`.
+
+**`VK_ICD_FILENAMES` does not work on `windows-latest` - use the registry instead.** The obvious
+approach (point `VK_ICD_FILENAMES` at the vendored json's absolute path, the Vulkan equivalent of
+`GALLIUM_DRIVER=llvmpipe`) fails silently: `windows-latest` runs its steps as an elevated
+(administrator) process, and the Vulkan loader deliberately ignores `VK_ICD_FILENAMES` - along with
+`VK_DRIVER_FILES`, `VK_ADD_DRIVER_FILES`, and the layer-path variables - for elevated processes. This
+is documented Vulkan-Loader anti-privilege-escalation hardening (an elevated process trusting an
+unprivileged env var to load an arbitrary DLL would be an escalation vector), not a bug, and it gives
+no build-time warning - `vkCreateInstance` just returns `VK_ERROR_INCOMPATIBLE_DRIVER` (-9) as if no
+driver existed at all. Confirmed directly against the runner (not assumed) via a temporary
+`VK_LOADER_DEBUG=all` diagnostic step, which logged `Loader is running with elevated permissions.
+Environment variable VK_ICD_FILENAMES will be ignored`, immediately followed by `Registry lookup
+failed to get ICD manifest files. Possibly missing Vulkan driver?` and `Found no drivers!`. The
+registry-based driver-registration path is exempt (writing `HKLM` already requires admin, so the
+loader trusts it - the same mechanism a real GPU driver installer uses), so `master.yml`'s "Register
+Mesa lavapipe as a Vulkan ICD" step writes the vendored json's absolute path as a `DWORD 0` value
+under `HKLM:\SOFTWARE\Khronos\Vulkan\Drivers` instead of setting an environment variable. No
+conditional MSBuild copy is needed the way `Tests.Core.OGL.csproj` needs one for its DLLs: the ICD
+json's `library_path` (`.\vulkan_lvp.dll`) resolves relative to the json itself, not to the test
+binary's output directory. Locally, with no registry entry added, the test just uses whatever real
+Vulkan driver is already on the machine.
+
+**Linux CI coverage does not exist for this or for Core.OGL.** The only job running
+`dotnet test tests/Tests.proj` is `desktop-and-core` on `windows-latest`; the `ubuntu-latest` job
+(`webgl-functional`) is a Playwright suite unrelated to either. `apt-get install mesa-vulkan-drivers`
+installing `lvp_icd.x86_64.json` under `/usr/share/vulkan/icd.d/` would be the Linux equivalent if a
+Linux test job is ever added, but this is unverified - no such job runs today.
+
+### Landmines
+
+- **Skia's Vulkan backend unconditionally requires BOTH `VK_IMAGE_USAGE_TRANSFER_SRC_BIT` and
+  `VK_IMAGE_USAGE_TRANSFER_DST_BIT` on any wrapped image, texture or render target, regardless of
+  whether the host ever uses them** (`check_image_info` in Skia's `GrVkGpu.cpp`) - omit either and
+  `SKSurface.Create` just returns `null`, with nothing indicating which check failed. `GRContext`
+  creation, `GetMaxSurfaceSampleCount`, and a fully Skia-managed (non-wrapped) Vulkan surface all
+  still work fine in this state, which rules out most other causes before this one. No Vulkan
+  validation layer was available on the dev box that found this, so tracing the actual Skia source
+  (`GrVkGpu.cpp`'s `check_image_info`/`check_rt_image_info`) was the only way to find it -
+  `VkSkiaSurfaceFactory.CreateTextureState` now checks for both bits itself and throws a specific
+  `ArgumentException` instead of letting a caller hit the opaque `SKSurface.Create` failure.
+- **SkiaSharp 3.119.4 has no way to query or steer the `VkImageLayout` Skia leaves a wrapped image in
+  after a draw.** No `gr_backendrendertarget_get_vk_imageinfo` native entry point (unlike the GL path)
+  and no `GrBackendSurfaceMutableState` binding either - verified by listing the actual `SkiaApi`
+  P/Invoke surface, not assumed. See `VkSkiaSurfaceFactory.EndDraw`'s doc comment for the resulting
+  design: the post-draw layout is a documented ASSUMPTION (`VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL`
+  for a color-attachment image), not a value this library can report back.
+- **A P/Invoke array-of-struct parameter (e.g. `VkQueueFamilyProperties[]`) needs an explicit
+  `[In, Out]` attribute to round-trip through `vkGetPhysicalDeviceQueueFamilyProperties`.** Without
+  it, the call appears to succeed (no exception, correct count) but every element comes back zeroed -
+  the native writes never make it back into the managed array. An `IntPtr[]` (as used for
+  `vkEnumeratePhysicalDevices`) round-trips fine without the attribute; a custom struct array does not.
