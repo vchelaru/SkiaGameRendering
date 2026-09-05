@@ -1,5 +1,7 @@
 # Skia Game Rendering
 
+[![Join the chat](https://img.shields.io/discord/586997072373481494)](https://discord.gg/tG5RBgw)
+
 A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering to produce `Texture2D`s — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into game-engine textures without any CPU readback.
 
 ## Platform Support
