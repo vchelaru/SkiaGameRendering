@@ -54,6 +54,35 @@ jobs:
           New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
           & "C:\Program Files\7-Zip\7z.exe" e mesa.7z -o"$vendorDir" "x64/lvp_icd.x86_64.json" "x64/vulkan_lvp.dll" -y
           Remove-Item mesa.7z
+      # TEMPORARY diagnostic - remove once the lavapipe VkResult -9 failure is root-caused. Checks
+      # whether the runner has a system vulkan-1.dll at all, and whether vulkan_lvp.dll itself loads
+      # (a LoadLibrary failure here, e.g. a missing VC++ runtime dependency, would surface upstream
+      # as the loader reporting "no compatible driver" - indistinguishable from a bad ICD path
+      # without this).
+      - name: DIAGNOSTIC - probe Vulkan loader and lavapipe DLL
+        shell: pwsh
+        run: |
+          $sysLoader = "C:\Windows\System32\vulkan-1.dll"
+          Write-Host "System vulkan-1.dll present: $(Test-Path $sysLoader)"
+          if (Test-Path $sysLoader) {
+            (Get-Item $sysLoader).VersionInfo | Format-List | Out-String | Write-Host
+          }
+          $lvpDll = "$PWD\tests\Tests.Core.VK\mesa-vendor\vulkan_lvp.dll"
+          Write-Host "vulkan_lvp.dll present: $(Test-Path $lvpDll)"
+          try {
+            $h = [System.Runtime.InteropServices.NativeLibrary]::Load($lvpDll)
+            Write-Host "LoadLibrary(vulkan_lvp.dll) OK, handle=$h"
+            [System.Runtime.InteropServices.NativeLibrary]::Free($h)
+          } catch {
+            Write-Host "LoadLibrary(vulkan_lvp.dll) FAILED: $_"
+          }
+          try {
+            $h2 = [System.Runtime.InteropServices.NativeLibrary]::Load("vulkan-1.dll")
+            Write-Host "LoadLibrary(vulkan-1.dll) OK, handle=$h2"
+            [System.Runtime.InteropServices.NativeLibrary]::Free($h2)
+          } catch {
+            Write-Host "LoadLibrary(vulkan-1.dll) FAILED: $_"
+          }
       # Mesa's gallium WGL loader auto-selects a D3D12-backed driver when a D3D12 adapter is
       # enumerable (including WARP) and only falls back to llvmpipe otherwise - forcing the driver
       # here makes the software path deterministic instead of depending on what this runner exposes.
