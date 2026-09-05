@@ -1,0 +1,962 @@
+[
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:32:36.095Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "texSubImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 35,
+        "p95": 39,
+        "p99": 42,
+        "max": 46
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 35,
+        "p95": 39,
+        "p99": 43,
+        "max": 48
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:32:49.368Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "texImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 35,
+        "p95": 40,
+        "p99": 41,
+        "max": 46
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 36,
+        "p95": 41,
+        "p99": 42,
+        "max": 47
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:33:02.046Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "imageBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 34,
+        "p95": 37,
+        "p99": 39,
+        "max": 43
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 35,
+        "p95": 39,
+        "p99": 41,
+        "max": 44
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:33:14.124Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "offscreenBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 32,
+        "p95": 36,
+        "p99": 38,
+        "max": 41
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 33,
+        "p95": 37,
+        "p99": 39,
+        "max": 41
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:33:28.753Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "readPixels",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 39,
+        "p95": 44,
+        "p99": 50,
+        "max": 59
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 40,
+        "p95": 45,
+        "p99": 51,
+        "max": 60
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:33:53.557Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "texSubImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 64,
+        "p95": 79,
+        "p99": 83,
+        "max": 87
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 66,
+        "p95": 80,
+        "p99": 84,
+        "max": 88
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:34:14.159Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "texImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 55,
+        "p95": 59,
+        "p99": 64,
+        "max": 66
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 56,
+        "p95": 60,
+        "p99": 65,
+        "max": 68
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:34:33.931Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "imageBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0,
+        "p99": 1,
+        "max": 3
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 53,
+        "p95": 56,
+        "p99": 61,
+        "max": 69
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 54,
+        "p95": 58,
+        "p99": 62,
+        "max": 71
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:34:52.324Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "offscreenBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 49,
+        "p95": 52,
+        "p99": 54,
+        "max": 56
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 50,
+        "p95": 53,
+        "p99": 54,
+        "max": 57
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:35:18.526Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "readPixels",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 70,
+        "p95": 85,
+        "p99": 88,
+        "max": 94
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 71,
+        "p95": 87,
+        "p99": 90,
+        "max": 95
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:36:04.238Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "texSubImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 122,
+        "p95": 128,
+        "p99": 132,
+        "max": 143
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 125,
+        "p95": 131,
+        "p99": 135,
+        "max": 147
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:36:49.942Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "texImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 122,
+        "p95": 134,
+        "p99": 147,
+        "max": 155
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 125,
+        "p95": 137,
+        "p99": 150,
+        "max": 159
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:37:37.044Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "imageBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 123,
+        "p95": 157,
+        "p99": 175,
+        "max": 198
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 127,
+        "p95": 162,
+        "p99": 179,
+        "max": 204
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:38:22.203Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "offscreenBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 113,
+        "p95": 142,
+        "p99": 155,
+        "max": 163
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 117,
+        "p95": 147,
+        "p99": 159,
+        "max": 168
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:39:26.110Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "platform": "Win32",
+    "webglVersion": "WebGL 2.0",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 980 Direct3D11 vs_5_0 ps_5_0), or similar",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false
+    },
+    "uploadPath": "readPixels",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 1,
+        "p99": 1,
+        "max": 1
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 171,
+        "p95": 200,
+        "p99": 207,
+        "max": 220
+      },
+      "uploadGpu": {
+        "samples": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 174,
+        "p95": 204,
+        "p99": 211,
+        "max": 224
+      }
+    }
+  }
+]

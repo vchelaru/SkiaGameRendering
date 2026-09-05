@@ -1,0 +1,992 @@
+[
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:24:44.902Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "texSubImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 161,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.20000004768371582,
+        "max": 0.2999999523162842
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.10000014305114746,
+        "p99": 0.20000004768371582,
+        "max": 0.5
+      },
+      "uploadGpu": {
+        "samples": 299,
+        "p50": 0.051968,
+        "p95": 0.226912,
+        "p99": 0.370048,
+        "max": 16.907872
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.19999980926513672,
+        "p95": 0.2999999523162842,
+        "p99": 0.39999985694885254,
+        "max": 0.6000001430511475
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:24:50.901Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "texImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 161,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.20000004768371582,
+        "max": 0.2999999523162842
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.20000004768371582,
+        "max": 0.5
+      },
+      "uploadGpu": {
+        "samples": 299,
+        "p50": 0.067424,
+        "p95": 0.147232,
+        "p99": 0.26304,
+        "max": 2.220448
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.10000014305114746,
+        "p95": 0.2999999523162842,
+        "p99": 0.5,
+        "max": 0.6999998092651367
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:24:56.901Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "imageBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 163,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.20000004768371582,
+        "p99": 0.5,
+        "max": 1.7000000476837158
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0.2999999523162842,
+        "p95": 0.7000000476837158,
+        "p99": 1,
+        "max": 1.2000000476837158
+      },
+      "uploadGpu": {
+        "samples": 297,
+        "p50": 0.043168,
+        "p95": 0.122368,
+        "p99": 0.217632,
+        "max": 0.539616
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.39999985694885254,
+        "p95": 0.8999998569488525,
+        "p99": 1.2000000476837158,
+        "max": 2.0999999046325684
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:25:02.902Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "offscreenBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 157,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.20000004768371582,
+        "p99": 0.5999999046325684,
+        "max": 1.2999999523162842
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.39999985694885254,
+        "max": 0.7000000476837158
+      },
+      "uploadGpu": {
+        "samples": 298,
+        "p50": 0.192512,
+        "p95": 0.37728,
+        "p99": 0.582528,
+        "max": 3.885056
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.10000014305114746,
+        "p95": 0.5,
+        "p99": 0.7000000476837158,
+        "max": 1.2999999523162842
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:25:10.155Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "readPixels",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 299,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.10000014305114746,
+        "p99": 0.20000004768371582,
+        "max": 1.7999999523162842
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 18.899999856948853,
+        "p95": 22.5,
+        "p99": 23.40000009536743,
+        "max": 24.200000047683716
+      },
+      "uploadGpu": {
+        "samples": 299,
+        "p50": 2.281664,
+        "p95": 2.303648,
+        "p99": 3.188672,
+        "max": 3.805792
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 18.90000009536743,
+        "p95": 22.59999990463257,
+        "p99": 23.5,
+        "max": 24.5
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:25:16.135Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "texSubImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 157,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.10000014305114746,
+        "p99": 0.6999998092651367,
+        "max": 1.3000001907348633
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.9000000953674316,
+        "max": 1.2999999523162842
+      },
+      "uploadGpu": {
+        "samples": 299,
+        "p50": 0.068224,
+        "p95": 0.108128,
+        "p99": 0.350816,
+        "max": 0.4288
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.10000014305114746,
+        "p95": 0.2999999523162842,
+        "p99": 1.1000001430511475,
+        "max": 1.6000001430511475
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:25:22.134Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "texImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 160,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.10000014305114746,
+        "p99": 0.20000004768371582,
+        "max": 0.40000009536743164
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.20000004768371582,
+        "p99": 0.20000004768371582,
+        "max": 0.2999999523162842
+      },
+      "uploadGpu": {
+        "samples": 298,
+        "p50": 0.073376,
+        "p95": 0.115328,
+        "p99": 0.37392,
+        "max": 0.413184
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.39999985694885254,
+        "max": 0.5
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:25:28.134Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "imageBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 163,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.10000014305114746,
+        "p99": 0.20000004768371582,
+        "max": 0.20000004768371582
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0.2999999523162842,
+        "p95": 0.5999999046325684,
+        "p99": 0.8999998569488525,
+        "max": 1.7999999523162842
+      },
+      "uploadGpu": {
+        "samples": 298,
+        "p50": 0.063712,
+        "p95": 0.110208,
+        "p99": 0.158976,
+        "max": 0.229152
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.2999999523162842,
+        "p95": 0.6999998092651367,
+        "p99": 1,
+        "max": 1.9000000953674316
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:25:34.134Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "offscreenBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 167,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.20000004768371582,
+        "p99": 0.39999985694885254,
+        "max": 2.3000001907348633
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.6000001430511475,
+        "max": 1
+      },
+      "uploadGpu": {
+        "samples": 298,
+        "p50": 0.420672,
+        "p95": 0.515232,
+        "p99": 0.550368,
+        "max": 0.911552
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.10000014305114746,
+        "p95": 0.2999999523162842,
+        "p99": 0.9000000953674316,
+        "max": 2.4000000953674316
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:25:46.129Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 2560,
+      "height": 1440
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "readPixels",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.10000014305114746,
+        "p99": 0.2999999523162842,
+        "max": 0.6000001430511475
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 31.90000009536743,
+        "p95": 36,
+        "p99": 37.5,
+        "max": 39
+      },
+      "uploadGpu": {
+        "samples": 299,
+        "p50": 4.039456,
+        "p95": 4.057312,
+        "p99": 4.35536,
+        "max": 5.83232
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 32,
+        "p95": 36.09999990463257,
+        "p99": 37.59999990463257,
+        "max": 39
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:25:52.117Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "texSubImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 161,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.20000004768371582,
+        "p99": 0.5,
+        "max": 0.8999998569488525
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.10000014305114746,
+        "p99": 0.2999999523162842,
+        "max": 0.6000001430511475
+      },
+      "uploadGpu": {
+        "samples": 296,
+        "p50": 0.07488,
+        "p95": 0.07888,
+        "p99": 0.113632,
+        "max": 0.119712
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.2999999523162842,
+        "p99": 0.5999999046325684,
+        "max": 0.8999998569488525
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:25:58.117Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "texImage2D",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 154,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.20000004768371582,
+        "p99": 0.7999999523162842,
+        "max": 1.0999999046325684
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.5,
+        "max": 0.7999999523162842
+      },
+      "uploadGpu": {
+        "samples": 296,
+        "p50": 0.07424,
+        "p95": 0.077664,
+        "p99": 0.078464,
+        "max": 0.078912
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.10000014305114746,
+        "p95": 0.5,
+        "p99": 1.0999999046325684,
+        "max": 1.1999998092651367
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:26:04.117Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "imageBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 163,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.39999985694885254,
+        "max": 0.5999999046325684
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0.2999999523162842,
+        "p95": 0.5,
+        "p99": 0.7999999523162842,
+        "max": 1.2000000476837158
+      },
+      "uploadGpu": {
+        "samples": 296,
+        "p50": 0.074016,
+        "p95": 0.078528,
+        "p99": 0.082976,
+        "max": 0.083744
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.3000001907348633,
+        "p95": 0.6999998092651367,
+        "p99": 1,
+        "max": 1.7999999523162842
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:26:10.118Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "offscreenBitmap",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 151,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.19999980926513672,
+        "p99": 0.5,
+        "max": 0.6000001430511475
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 0.09999990463256836,
+        "p95": 0.20000004768371582,
+        "p99": 0.39999985694885254,
+        "max": 0.9000000953674316
+      },
+      "uploadGpu": {
+        "samples": 296,
+        "p50": 0.109792,
+        "p95": 0.115104,
+        "p99": 0.125088,
+        "max": 0.400736
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 0.10000014305114746,
+        "p95": 0.39999985694885254,
+        "p99": 0.7000000476837158,
+        "max": 1.0999999046325684
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "timestampUtc": "2026-09-05T11:26:30.120Z",
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "platform": "Windows",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "resolution": {
+      "width": 3840,
+      "height": 2160
+    },
+    "devicePixelRatio": 1,
+    "contextAttributes": {
+      "alpha": true,
+      "antialias": false,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "uploadPath": "readPixels",
+    "sequentialRenderableCount": 1,
+    "pixelStore": {
+      "flipY": true,
+      "premultiplyAlpha": true,
+      "colorSpaceConversion": "none"
+    },
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "missedFrames": 300,
+    "contextLossCount": 0,
+    "timingsMilliseconds": {
+      "sourceCpu": {
+        "samples": 300,
+        "p50": 0,
+        "p95": 0.10000014305114746,
+        "p99": 0.2999999523162842,
+        "max": 0.39999985694885254
+      },
+      "uploadCpu": {
+        "samples": 300,
+        "p50": 53.60000014305115,
+        "p95": 60.700000047683716,
+        "p99": 64.5,
+        "max": 67.30000019073486
+      },
+      "uploadGpu": {
+        "samples": 299,
+        "p50": 2.643712,
+        "p95": 2.676224,
+        "p99": 3.894816,
+        "max": 6.91136
+      },
+      "frameCpu": {
+        "samples": 300,
+        "p50": 53.799999952316284,
+        "p95": 60.80000019073486,
+        "p99": 64.70000004768372,
+        "max": 67.40000009536743
+      }
+    }
+  }
+]

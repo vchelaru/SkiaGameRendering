@@ -149,6 +149,14 @@ dotnet run --project samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
 
 The sample proves SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum/Skia content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation. See `docs/webgl/quickstart.md`, `docs/webgl/validated-baseline.md`, and `docs/documentation/SkiaWebGlBackend.md` for the exact contract and support status.
 
+### Firefox is not usable yet
+
+Measured on real hardware (`docs/webgl/performance-results.md`), every upload path misses budget on
+Firefox by 60-300x (35-171ms per frame just for the upload, vs. a <1ms target), consistent with an
+internal CPU readback on cross-context canvas uploads. Chrome and Edge are unaffected (Tier 1).
+Fixing this needs a shared-GL-context redesign ("Option A" in `docs/webgl/validated-baseline.md`),
+which is unstarted.
+
 ## Using SkiaSharp
 
 Between `Begin()` and `End()`, `SkiaRenderTarget2D.Canvas` gives you a full GPU-accelerated

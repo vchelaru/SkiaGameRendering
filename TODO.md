@@ -13,7 +13,7 @@ This document tracks which framework/platform/backend combinations have been pro
 | KNI             | 4.3.9001 (stock) | DesktopGL | Desktop  | samples/Sample.Kni.DesktopGL/ | Working | See `docs/desktop/quickstart.md`. Cross-platform (Windows, Linux, macOS). |
 | KNI             | 4.3.9001 (stock) | WindowsDX | Desktop  | samples/Sample.Kni.WindowsDX/ | Working | See `docs/desktop/quickstart.md`. Windows only. |
 | KNI             | —       | —         | Android  | —                           | Not started | |
-| KNI             | 4.3.9001 (stock) | WebGL2 | Web | samples/Sample.Kni.WebGL/ | Production candidate | See `docs/webgl/quickstart.md`. Chrome/Edge/Firefox hardware acceptance measurements remain release gates. |
+| KNI             | 4.3.9001 (stock) | WebGL2 | Web | samples/Sample.Kni.WebGL/ | Working (Chrome, Edge); Firefox blocked | See `docs/webgl/quickstart.md`. Chrome/Edge measured Tier 1 on physical hardware; Firefox misses upload budget by 60-300x and needs the Option A (shared-context) fallback — see `docs/webgl/validated-baseline.md` and `docs/webgl/performance-results.md`. Safari (Tier 2) untested, no Mac available. |
 | raylib          | 8.0.0 (Raylib-cs) | rlgl (OGL) | Desktop | samples/Sample.Raylib/ | Working (Windows + Linux) | See `docs/raylib/quickstart.md`. macOS not implemented. |
 
 ## Architecture
@@ -50,7 +50,7 @@ finding is preserved in issue #3's spike comment and carried into `Wgl.cs`'s doc
 
 ## Next Steps
 
-1. Run and archive the hardware benchmark matrix in `benchmarks/Benchmarks.WebGL/` — tracked in [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5).
+1. ~~Run and archive the hardware benchmark matrix in `benchmarks/Benchmarks.WebGL/`~~ — done, closes [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5). Follow-up: Firefox needs the Option A (shared-context) fallback to reach Tier 1 (see `docs/webgl/validated-baseline.md`); not yet tracked in its own issue.
 2. Address the lazy-allocation issue above (ANGLE DLL packaging landed via issue #36).
 3. Split per-graphics-API core libraries out of the per-engine adapters so a new engine (raylib) can reuse the GL/Skia interop instead of duplicating it — tracked in [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3). The OGL split (`src/SkiaGameRendering.Core.OGL/`) landed via [#4](https://github.com/vchelaru/SkiaGameRendering/pull/4), and `src/SkiaGameRendering.Raylib/` now proves it against a real second (non-MonoGame) engine on both Windows and Linux (`Glx.cs`, verified under WSLg — tracked in [issue #9](https://github.com/vchelaru/SkiaGameRendering/issues/9)). Issue #3 is not fully closed yet: macOS raylib support is unimplemented, and step 3 (`SkiaAngleBackend` → `Core.ANGLE`, now also reused by `src/SkiaGameRendering.Kni.WindowsDX/`) has landed, leaving step 4 (`SkiaWebGlBackend` → `Core.WebGL`) as the only remaining unmigrated backend.
 
