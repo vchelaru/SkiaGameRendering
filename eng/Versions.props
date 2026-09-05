@@ -12,5 +12,17 @@
          interop globals those scripts were supposed to define. See repo issue #14. -->
     <NkastWasmCanvasVersion>10.0.3</NkastWasmCanvasVersion>
     <SkiaSharpVersion>3.119.4</SkiaSharpVersion>
+    <!-- 4.4.0-beta5 is a prerelease, pinned deliberately: it's the first Stride version whose D3D11
+         backend is Silk.NET rather than SharpDX, which is what makes GraphicsDevice.NativeDevice a
+         public ComPtr<ID3D11Device> - the current stable release (4.3.0.2507) still wraps D3D11 in
+         SharpDX and keeps NativeDevice non-public. See src/SkiaGameRendering.Stride's docs for the
+         full comparison. Must match whatever Stride.CommunityToolkit.* version samples/Sample.Stride
+         depends on, since the toolkit itself already targets 4.4.0-beta5. -->
+    <StrideVersion>4.4.0-beta5</StrideVersion>
+    <StrideCommunityToolkitVersion>1.0.0-preview.63</StrideCommunityToolkitVersion>
+    <!-- Must match the Silk.NET version Stride.Graphics 4.4.0-beta5 itself depends on (check that
+         package's own nuspec on a Stride version bump) - SkiaGameRendering.Stride names
+         Silk.NET.Direct3D11/Core types directly (ComPtr<ID3D11Device>, ID3D11Resource*). -->
+    <SilkNetVersion>2.23.0</SilkNetVersion>
   </PropertyGroup>
 </Project>

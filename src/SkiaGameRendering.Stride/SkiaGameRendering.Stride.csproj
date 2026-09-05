@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageId>SkiaGameRendering.Stride</PackageId>
+    <Version>$(LibraryVersion)</Version>
+    <Description>GPU SkiaSharp rendering into Stride Texture targets via D3D11/ANGLE, with zero-copy GPU texture sharing.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" />
+    <!--
+      Stride.Engine already depends on these transitively (Stride.Graphics 4.4.0-beta5's D3D11
+      backend is Silk.NET, not SharpDX), but this project names their types directly
+      (ComPtr<ID3D11Device>, ID3D11Resource*), so the versions are pinned explicitly here rather than
+      left to whatever Stride.Engine happens to pull in.
+    -->
+    <PackageReference Include="Silk.NET.Direct3D11" Version="$(SilkNetVersion)" />
+    <PackageReference Include="Silk.NET.Core" Version="$(SilkNetVersion)" />
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SkiaGameRendering.Core.ANGLE\SkiaGameRendering.Core.ANGLE.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

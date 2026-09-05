@@ -6,9 +6,12 @@
       particular are real signal here, since every backend reflects into engine internals that a
       version bump can rename out from under it.
 
-      This is the C# compiler's setting only. MSBuild task warnings stay warnings on purpose -
-      third-party targets we don't control emit them (MonoGame's content builder, the HLSL
-      compiler), and failing the build on those would be noise rather than signal.
+      This is the C# compiler's setting, plus (as of Sample.Stride) NuGet's own restore-time audit
+      warnings (NU1903 etc.), which the same property escalates. MSBuild task warnings stay warnings
+      on purpose - third-party targets we don't control emit them (MonoGame's content builder, the
+      HLSL compiler), and failing the build on those would be noise rather than signal. A vulnerable
+      transitive package several layers down in someone else's dependency tree (not this repo's own
+      code) is suppressed per-project with NoWarn instead of weakened here.
     -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>

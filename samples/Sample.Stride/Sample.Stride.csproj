@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!--
+      NU1903: a transitive dependency several layers under Stride.AssetCompiler pulls in a
+      vulnerable SSH.NET version (unrelated to anything this sample touches - it looks like build-
+      farm/remote-deploy plumbing inside Stride's own tooling). Directory.Build.props's
+      TreatWarningsAsErrors also escalates NuGet audit warnings, not just compiler ones, so this
+      would otherwise fail restore. Scoped to this project only, since it's Stride.CommunityToolkit's
+      dependency tree, not this repo's own code.
+    -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Stride's own authoring flow is GameStudio plus an asset-pipeline project, neither of which a
+      NuGet-only sample has. The Community Toolkit is Stride's own documented way to get a
+      GraphicsCompositor/camera/light for a pure-code Game without either - SetupBase3DScene lives in
+      the Bepu physics flavor (there's no non-physics equivalent), so that's pulled in even though
+      this sample doesn't otherwise use physics. Sample-only: src/SkiaGameRendering.Stride depends on
+      neither package.
+    -->
+    <PackageReference Include="Stride.CommunityToolkit.Bepu" Version="$(StrideCommunityToolkitVersion)" />
+    <PackageReference Include="Stride.CommunityToolkit.Windows" Version="$(StrideCommunityToolkitVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Stride\SkiaGameRendering.Stride.csproj" />
+  </ItemGroup>
+
+</Project>
