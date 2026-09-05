@@ -44,8 +44,10 @@ void Start(Scene rootScene)
         skCanvas.Clear(SKColors.Transparent);
         skCanvas.Save();
         skCanvas.RotateDegrees(angle, backBuffer.Width / 2f, backBuffer.Height / 2f);
-        skCanvas.DrawRect(
-            SKRect.Create(backBuffer.Width / 2f - 100, backBuffer.Height / 2f - 100, 200, 200), paint);
+        // Elongated on purpose - a rotating square looks like a diamond at 45 degrees, which reads
+        // as a bug at a glance. An oval's silhouette stays unambiguous at every angle.
+        skCanvas.DrawOval(
+            SKRect.Create(backBuffer.Width / 2f - 140, backBuffer.Height / 2f - 70, 280, 140), paint);
         skCanvas.Restore();
     };
     game.AddSceneRenderer(renderer);
