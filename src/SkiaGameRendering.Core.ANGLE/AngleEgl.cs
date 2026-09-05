@@ -16,6 +16,7 @@ namespace SkiaGameRendering.Core.ANGLE
                     return IntPtr.Zero;
 
                 var dllName = name + ".dll";
+                var tried = new List<string>();
 
                 // Assembly.Location is empty for a single-file or in-memory assembly, which leaves
                 // no directory to probe - skip straight to the machine-wide fallback.
@@ -24,32 +25,54 @@ namespace SkiaGameRendering.Core.ANGLE
                 {
                     // 1. Try app-local (bundled ANGLE DLLs next to the executable)
                     var localPath = Path.Combine(assemblyDir, dllName);
+                    tried.Add(localPath);
                     if (NativeLibrary.TryLoad(localPath, out var localHandle))
                         return localHandle;
 
-                    // 2. Try runtimes folder (NuGet native assets)
-                    var arch = RuntimeInformation.ProcessArchitecture switch
-                    {
-                        Architecture.X64 => "win-x64",
-                        Architecture.X86 => "win-x86",
-                        Architecture.Arm64 => "win-arm64",
-                        _ => "win-x64"
-                    };
-                    var runtimesPath = Path.Combine(assemblyDir, "runtimes", arch, "native", dllName);
+                    // 2. Try runtimes folder - this is where Core.ANGLE's own NuGet package vendors
+                    // ANGLE (see eng/vendor-angle.ps1), so this is the tier almost every consumer
+                    // should land on.
+                    var rid = GetRuntimeIdentifier(RuntimeInformation.ProcessArchitecture);
+                    var runtimesPath = Path.Combine(assemblyDir, "runtimes", rid, "native", dllName);
+                    tried.Add(runtimesPath);
                     if (NativeLibrary.TryLoad(runtimesPath, out var runtimesHandle))
                         return runtimesHandle;
                 }
 
-                // 3. Fall back to Edge WebView's ANGLE (present on most Windows 10/11 machines)
+                // 3. Last resort: Edge WebView's private ANGLE copy, if present. This is not a
+                // supported API - Microsoft can rename or relocate it with no warning, the ANGLE
+                // version varies per machine, and it's absent on Windows Server/LTSC/containers -
+                // so a properly packaged app should always resolve at tier 1 or 2 instead.
                 var edgePath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.Windows),
                     "System32", "Microsoft-Edge-WebView", dllName);
+                tried.Add(edgePath);
                 if (NativeLibrary.TryLoad(edgePath, out var edgeHandle))
                     return edgeHandle;
 
-                return IntPtr.Zero;
+                throw new DllNotFoundException(
+                    $"Could not locate ANGLE's {dllName}. SkiaGameRendering.Core.ANGLE needs ANGLE " +
+                    "(libEGL/libGLESv2) to back its D3D11 interop, and vendors it under " +
+                    "runtimes/<rid>/native in its own NuGet package, but none of the following " +
+                    "paths resolved: " + string.Join(", ", tried));
             });
         }
+
+        /// <summary>
+        /// Maps the current process architecture to the RID Core.ANGLE vendors ANGLE under
+        /// (runtimes/&lt;rid&gt;/native). Only win-x64 and win-arm64 are vendored - see
+        /// eng/angle-provenance.json - so any other architecture fails loudly here instead of
+        /// silently guessing a RID whose native assets don't exist.
+        /// </summary>
+        internal static string GetRuntimeIdentifier(Architecture architecture) => architecture switch
+        {
+            Architecture.X64 => "win-x64",
+            Architecture.Arm64 => "win-arm64",
+            _ => throw new PlatformNotSupportedException(
+                $"SkiaGameRendering.Core.ANGLE only vendors ANGLE for win-x64 and win-arm64, not " +
+                $"{architecture}. Ship ANGLE's libEGL.dll/libGLESv2.dll next to the executable " +
+                "for this architecture instead (tier 1 of AngleEgl's resolver).")
+        };
 
         // EGL constants
         internal const int EGL_NONE = 0x3038;
