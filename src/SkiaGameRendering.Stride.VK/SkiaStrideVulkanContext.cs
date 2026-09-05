@@ -182,8 +182,8 @@ namespace SkiaGameRendering.Stride.VK
         }
 
         internal (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            VkTextureState state, int width, int height, SKColorType colorType) =>
-            _factory.CreateSurface(state, width, height, colorType);
+            VkTextureState state, int width, int height, SKColorType colorType, SKColorSpace? colorSpace = null) =>
+            _factory.CreateSurface(state, width, height, colorType, colorSpace);
 
         public void Dispose() => _factory.Dispose();
     }

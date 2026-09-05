@@ -270,14 +270,29 @@ namespace SkiaGameRendering.Core.VK
         /// buffer distinct from the wrapped image's own sample count on this backend.
         /// </para>
         /// </summary>
+        /// <param name="colorSpace">
+        /// Optional Skia color-space tag for the surface - purely a Skia-side software conversion
+        /// applied when Skia writes into the wrapped image, independent of the image's own
+        /// <c>VkFormat</c> (still whatever <paramref name="state"/> was created with; this never
+        /// touches the underlying image). Pass <c>SKColorSpace.CreateSrgbLinear()</c> to have Skia
+        /// linearize every color it draws (paint colors are always given to Skia as standard sRGB
+        /// 8-bit) before writing raw bytes - the host is then responsible for treating what comes out
+        /// as linear-light data. Stride's adapter uses this to compensate for Stride's own hardware
+        /// sRGB encode-on-write when its default Linear <c>GraphicsDevice.ColorSpace</c> pipeline
+        /// composites this texture into an sRGB-formatted render target (see
+        /// <c>SkiaStrideVulkanTarget</c>'s doc comment for the full mechanism and the numbers that
+        /// confirm it). Pass <c>null</c> (the default) for the previous raw-passthrough behavior,
+        /// where whatever bytes Skia is told to draw land unmodified - correct for any consumer whose
+        /// destination is a plain (non-sRGB-formatted) render target.
+        /// </param>
         public (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            VkTextureState state, int width, int height, SKColorType colorType)
+            VkTextureState state, int width, int height, SKColorType colorType, SKColorSpace? colorSpace = null)
         {
             _grContext.ResetContext(GRBackendState.All);
 
             var backendRT = new GRBackendRenderTarget(width, height, state.ImageInfo);
 
-            var surface = SKSurface.Create(_grContext, backendRT, GRSurfaceOrigin.TopLeft, colorType)
+            var surface = SKSurface.Create(_grContext, backendRT, GRSurfaceOrigin.TopLeft, colorType, colorSpace)
                 ?? throw new InvalidOperationException("SKSurface.Create failed for Vulkan backend.");
 
             return (surface, backendRT);

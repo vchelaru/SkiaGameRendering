@@ -8,6 +8,17 @@ namespace SkiaGameRendering.Stride
     /// Owns the GPU resources backing one <see cref="SkiaStrideRenderTarget2D"/>: the Stride
     /// <see cref="Texture"/>, the ANGLE render state, and the <see cref="SKSurface"/>/
     /// <see cref="GRBackendRenderTarget"/> wrapping it.
+    /// <para>
+    /// <b>Linear-color-space compensation.</b> Shares the exact mechanism <c>SkiaStrideVulkanTarget</c>
+    /// (in <c>SkiaGameRendering.Stride.VK</c>) documents in full - the double-gamma-encode bug this
+    /// answers lives in graphics-API-agnostic Stride code (<c>Stride.Games.GraphicsDeviceManager</c>'s
+    /// default <c>PreferredColorSpace</c> and its back-buffer sRGB-format conversion, plus
+    /// <c>Stride.Graphics.SpriteBatch</c>'s shader, both shared by the D3D11 and Vulkan builds of
+    /// <c>Stride.Graphics.dll</c>), not anything ANGLE- or D3D11-specific, so it affects this adapter
+    /// identically. See that class's doc comment for the confirmed mechanism, the empirical
+    /// verification, and why the fix is keyed off <c>graphicsDevice.ColorSpace</c> rather than
+    /// hardcoded.
+    /// </para>
     /// </summary>
     internal sealed class SkiaStrideTarget : IDisposable
     {
@@ -36,7 +47,15 @@ namespace SkiaGameRendering.Stride
             try
             {
                 _renderState = _context.CreateTextureState(_texture);
-                var result = _context.CreateSurface(_renderState, width, height, colorType);
+
+                // See this class's doc comment / SkiaStrideVulkanTarget's fuller one: compensates for
+                // Stride's own hardware sRGB encode-on-write under its default Linear color-space
+                // pipeline. Only applies when that pipeline is actually active - a Gamma-pipeline
+                // consumer's render target has no such auto-encode to compensate for.
+                var skiaColorSpace = graphicsDevice.ColorSpace == ColorSpace.Linear
+                    ? SKColorSpace.CreateSrgbLinear()
+                    : null;
+                var result = _context.CreateSurface(_renderState, width, height, colorType, skiaColorSpace);
                 _surface = result.surface;
                 _renderTarget = result.renderTarget;
             }

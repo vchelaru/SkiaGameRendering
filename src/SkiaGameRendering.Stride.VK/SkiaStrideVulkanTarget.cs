@@ -11,6 +11,57 @@ namespace SkiaGameRendering.Stride.VK
     /// D3D11 <c>SkiaStrideTarget</c>, minus the ANGLE-specific bind/unbind step - Vulkan has no
     /// separate GL-style context to make current, so there is nothing to bind beyond the queue lock
     /// <see cref="SkiaStrideVulkanContext.BeginDraw"/>/<c>EndDraw</c> already handle.
+    /// <para>
+    /// <b>Linear-color-space compensation (repo issue: Sample.Stride.VK's crimson rectangle rendering
+    /// pink).</b> Stride's <c>GraphicsDeviceManager</c> defaults <c>PreferredColorSpace</c> to
+    /// <c>ColorSpace.Linear</c> (confirmed by decompiling Stride 4.4.0-beta5's actual
+    /// <c>Stride.Games.dll</c>/<c>Stride.Graphics.dll</c>, not assumed), and under that default it
+    /// converts the swapchain's back-buffer format to its sRGB variant at device-creation time
+    /// (<c>GraphicsDeviceManager.ChangeOrCreateDevice</c>: <c>PreferredBackBufferFormat =
+    /// PixelFormatExtensions.ToSRgb(...)</c> whenever <c>PreferredColorSpace == Linear</c>). An
+    /// sRGB-formatted render target auto-encodes (gamma-encodes) whatever a shader writes to it, on
+    /// the GPU, unconditionally - that is what makes it "sRGB". <see
+    /// cref="SkiaStrideVulkanRenderTarget2D.End"/> composites this class's <see cref="Texture"/> via
+    /// <c>SpriteBatch.Draw</c> straight onto whatever render target Stride's
+    /// <c>GraphicsCompositor</c> currently has bound - which, for a renderer appended via
+    /// <c>Game.AddSceneRenderer</c> (see <see cref="SkiaStrideVulkanSceneRenderer"/>), is the real,
+    /// already-tonemapped, presented back buffer (Stride Community Toolkit's
+    /// <c>AddSceneRenderer</c> appends as a sibling drawn after the existing top-level renderer, not
+    /// into some earlier intermediate stage - checked against that library's actual source, not
+    /// assumed). Stride's own <c>SpriteBatch</c>/<c>BatchBase</c> shader
+    /// (<c>SpriteBatchShader.sdsl</c> on Stride's GitHub) does NOT compensate for this - its
+    /// <c>ColorSpace</c>-keyed effect variant only linearizes the per-draw tint <c>Color4</c>
+    /// (via <c>ColorUtility.ToLinear</c>), never the sampled texture color, so a <c>Draw(Texture,
+    /// Vector2.Zero)</c> call with the default white tint gets zero compensation either way.
+    /// </para>
+    /// <para>
+    /// Net effect without compensation: this texture holds ordinary, already gamma-encoded sRGB
+    /// bytes (exactly what <see cref="SKPaint.Color"/> and friends always mean), Skia writes them
+    /// raw, and the sRGB-formatted destination then gamma-ENCODES them a second time on write - a
+    /// real double encode, not a Vulkan-specific corruption. Feeding <c>SKColors.Crimson</c>
+    /// (220,20,60) through a second sRGB encode lands at ~(239,79,133), matching the reported "bright
+    /// pink" almost exactly. The fix applied here: <see cref="SkiaStrideVulkanContext.CreateSurface"/>
+    /// is given <c>SKColorSpace.CreateSrgbLinear()</c> whenever <c>graphicsDevice.ColorSpace ==
+    /// ColorSpace.Linear</c>, so Skia itself linearizes (decodes) every color drawn into this
+    /// (still plain, non-sRGB-formatted - see <see cref="ToPixelFormat"/>) texture before storing
+    /// its bytes. The GPU's later auto-encode-on-write into the real sRGB back buffer then exactly
+    /// cancels that decode (encode and decode are inverse functions by construction), reproducing
+    /// the original byte values. Empirically verified end-to-end through the real
+    /// <c>VkSkiaSurfaceFactory</c>/lavapipe path in <c>tests/Tests.Core.VK</c> before landing here:
+    /// wrapping a plain (non-sRGB) <c>VkImage</c> with an <c>SKColorSpace.CreateSrgbLinear()</c>-
+    /// tagged surface and clearing it to crimson reads back (182,2,12) - exactly the sRGB decode of
+    /// (220,20,60) - proving Skia performs the linearization purely in software, with no change to
+    /// the underlying image format (also confirmed the other direction: actually creating the
+    /// VkImage itself with the <c>_SRGB</c> pixel-format variant makes
+    /// <c>SKSurface.Create</c> fail outright for Skia's Vulkan backend, even with a matching
+    /// <c>SKColorSpace</c> attached - not a viable alternative fix here).
+    /// </para>
+    /// <para>
+    /// Deliberately keyed off <c>graphicsDevice.ColorSpace</c> rather than hardcoded: a consumer that
+    /// sets <c>PreferredColorSpace = ColorSpace.Gamma</c> gets a plain, non-sRGB back buffer with no
+    /// hardware auto-encode, so compensating would introduce the exact same bug in the opposite
+    /// direction (an uncompensated decode, with nothing to cancel it back out).
+    /// </para>
     /// </summary>
     internal sealed class SkiaStrideVulkanTarget : IDisposable
     {
@@ -38,7 +89,15 @@ namespace SkiaGameRendering.Stride.VK
             try
             {
                 _renderState = _context.CreateTextureState(_texture);
-                var result = _context.CreateSurface(_renderState, width, height, colorType);
+
+                // See this class's doc comment: compensates for Stride's own hardware sRGB
+                // encode-on-write under its default Linear color-space pipeline. Only applies when
+                // that pipeline is actually active - a Gamma-pipeline consumer's render target has no
+                // such auto-encode to compensate for.
+                var skiaColorSpace = graphicsDevice.ColorSpace == ColorSpace.Linear
+                    ? SKColorSpace.CreateSrgbLinear()
+                    : null;
+                var result = _context.CreateSurface(_renderState, width, height, colorType, skiaColorSpace);
                 _surface = result.surface;
                 _renderTarget = result.renderTarget;
             }

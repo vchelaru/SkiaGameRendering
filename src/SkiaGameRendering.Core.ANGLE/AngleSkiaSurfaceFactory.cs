@@ -189,8 +189,17 @@ namespace SkiaGameRendering.Core.ANGLE
             return new AngleTextureState { D3DTexturePtr = d3dTexturePtr, EglSurface = eglSurface };
         }
 
+        /// <param name="colorSpace">
+        /// Optional Skia color-space tag for the surface - purely a Skia-side software conversion
+        /// applied when Skia writes into the wrapped D3D11 texture (via ANGLE), independent of the
+        /// texture's own DXGI format (never touched by this parameter). See the identical parameter
+        /// on <c>VkSkiaSurfaceFactory.CreateSurface</c> for the full mechanism this exists for:
+        /// Stride's adapter passes <c>SKColorSpace.CreateSrgbLinear()</c> to compensate for Stride's
+        /// own hardware sRGB encode-on-write under its default Linear color-space pipeline. Pass
+        /// <c>null</c> (the default) for the previous raw-passthrough behavior.
+        /// </param>
         public (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            AngleTextureState state, int width, int height, SKColorType colorType)
+            AngleTextureState state, int width, int height, SKColorType colorType, SKColorSpace? colorSpace = null)
         {
             if (!eglMakeCurrent(_eglDisplay, state.EglSurface, state.EglSurface, _eglContext))
                 throw new Exception($"eglMakeCurrent failed. EGL error: 0x{eglGetError():X}");
@@ -210,7 +219,7 @@ namespace SkiaGameRendering.Core.ANGLE
                     samples = maxSamples;
 
                 var backendRT = new GRBackendRenderTarget(width, height, samples, 0, fbInfo);
-                var surface = SKSurface.Create(_grContext, backendRT, GRSurfaceOrigin.TopLeft, colorType)
+                var surface = SKSurface.Create(_grContext, backendRT, GRSurfaceOrigin.TopLeft, colorType, colorSpace)
                     ?? throw new Exception("SKSurface.Create failed for ANGLE backend.");
 
                 return (surface, backendRT);

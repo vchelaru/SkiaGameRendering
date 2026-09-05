@@ -62,8 +62,8 @@ namespace SkiaGameRendering.Stride
             _factory.CreateTextureState(GetD3DResourcePtr(texture));
 
         internal (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            AngleTextureState state, int width, int height, SKColorType colorType) =>
-            _factory.CreateSurface(state, width, height, colorType);
+            AngleTextureState state, int width, int height, SKColorType colorType, SKColorSpace? colorSpace = null) =>
+            _factory.CreateSurface(state, width, height, colorType, colorSpace);
 
         internal void BindForDrawing(AngleTextureState state) => _factory.BindForDrawing(state);
 
