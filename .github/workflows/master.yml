@@ -32,6 +32,8 @@ jobs:
       - run: dotnet build samples/Sample.Kni.WindowsDX/Sample.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Raylib/SkiaGameRendering.Raylib.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Raylib/Sample.Raylib.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build benchmarks/Benchmarks.ShapeRendering.DesktopGL/Benchmarks.ShapeRendering.DesktopGL.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build benchmarks/Benchmarks.ShapeRendering.WindowsDX/Benchmarks.ShapeRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
 
   webgl-functional:
