@@ -43,6 +43,10 @@ Anything that needs a window on screen is the user's manual test; give them numb
 
 ## Gotchas
 
+- **`gh` defaults to the wrong repo.** This repo is a fork of `mfigueirido/SkiaMonoGameRendering`,
+  so `gh pr create`/`gh issue create` without an explicit target silently resolve to that upstream
+  parent instead of `vchelaru/SkiaGameRendering`. Always pass `--repo vchelaru/SkiaGameRendering`
+  (and `--base`/`--head` for PRs) rather than relying on the default.
 - **A backend is only verifiable on its own platform and GPU stack.** A change to shared core source
   compiles for every backend but is exercised by none of them until each platform actually runs.
   Say which backends you verified and which you did not, rather than implying a clean build covers all.
