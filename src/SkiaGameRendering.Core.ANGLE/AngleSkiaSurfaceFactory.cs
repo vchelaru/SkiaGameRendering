@@ -1,5 +1,4 @@
 using SkiaSharp;
-using System.Reflection;
 using static SkiaGameRendering.Core.ANGLE.AngleEgl;
 
 namespace SkiaGameRendering.Core.ANGLE
@@ -24,10 +23,15 @@ namespace SkiaGameRendering.Core.ANGLE
     /// enables zero-copy texture sharing.
     ///
     /// MAINTENANCE NOTES:
-    /// - <see cref="Initialize"/> takes the D3D11 device/context as loosely-typed <see cref="object"/>
-    ///   (boxed SharpDX instances) and resolves SharpDX types (Device1, DeviceContext1) by
-    ///   reflecting off the *live object's own assembly* - never add a direct SharpDX
-    ///   PackageReference here. Different host engines pin different SharpDX versions (MonoGame
+    /// - The real entry point is <see cref="InitializeFromNative"/>, which takes the D3D11
+    ///   device/context as raw <see cref="IntPtr"/>s and talks to them purely through the COM
+    ///   vtable (see <see cref="D3D11Com"/>) - no interop library on either side.
+    ///   <see cref="Initialize"/> is a SharpDX convenience wrapper over it: MonoGame WindowsDX and
+    ///   KNI WindowsDX both hand this class boxed SharpDX <c>Device</c>/<c>DeviceContext</c>
+    ///   instances, and <see cref="GetNativePointer"/> reflects out the underlying pointer so
+    ///   those adapters don't need to change. A host that isn't SharpDX-based (e.g. Stride 4.4+ on
+    ///   Silk.NET) calls <see cref="InitializeFromNative"/> directly. Never add a direct SharpDX
+    ///   PackageReference here - different host engines pin different SharpDX versions (MonoGame
     ///   WindowsDX 3.8.4.1 -> SharpDX 4.0.1, KNI's DX11 platform -> SharpDX 4.2.0); a hard
     ///   PackageReference would force NuGet's resolver to pick one version for every consumer.
     /// - ANGLE DLLs (libEGL.dll, libGLESv2.dll) are resolved at runtime. See AngleEgl.cs for the
@@ -48,10 +52,13 @@ namespace SkiaGameRendering.Core.ANGLE
         // stale and drawing silently produces nothing. SwapDeviceContextState is
         // the D3D11.1 mechanism designed exactly for this "multiple clients sharing
         // one device" scenario.
-        object _d3dContext1 = null!;
-        object? _emptyState;
-        object? _savedState;
-        MethodInfo _swapMethod = null!;
+        //
+        // _device1, _context1 and _emptyState are each a QueryInterface/CreateDeviceContextState
+        // result, so each owns a COM reference that Dispose must Release.
+        IntPtr _device1;
+        IntPtr _context1;
+        IntPtr _emptyState;
+        IntPtr _savedState;
 
         public GRContext GRContext => _grContext;
 
@@ -69,13 +76,19 @@ namespace SkiaGameRendering.Core.ANGLE
 
         /// <param name="d3dDevice">Boxed SharpDX.Direct3D11.Device (or Device1) from the host engine.</param>
         /// <param name="d3dContext">Boxed SharpDX.Direct3D11.DeviceContext (or DeviceContext1) from the host engine.</param>
-        public void Initialize(object d3dDevice, object d3dContext)
+        public void Initialize(object d3dDevice, object d3dContext) =>
+            InitializeFromNative(GetNativePointer(d3dDevice), GetNativePointer(d3dContext));
+
+        /// <param name="d3dDevicePtr">Native <c>ID3D11Device*</c> from the host engine.</param>
+        /// <param name="d3dContextPtr">Native <c>ID3D11DeviceContext*</c> (the immediate context) from the host engine.</param>
+        public void InitializeFromNative(IntPtr d3dDevicePtr, IntPtr d3dContextPtr)
         {
-            var d3dDevicePtr = GetNativePointer(d3dDevice);
             if (d3dDevicePtr == IntPtr.Zero)
                 throw new Exception("D3D11 device native pointer is null.");
+            if (d3dContextPtr == IntPtr.Zero)
+                throw new Exception("D3D11 context native pointer is null.");
 
-            InitD3D11StateSwap(d3dDevice, d3dContext);
+            InitD3D11StateSwap(d3dDevicePtr, d3dContextPtr);
 
             // Wrap the engine's D3D11 device as an ANGLE EGL device, then create an EGL
             // display from it. This is what makes zero-copy possible - ANGLE and the engine share
@@ -127,55 +140,23 @@ namespace SkiaGameRendering.Core.ANGLE
         }
 
         /// <summary>
-        /// Sets up D3D11.1 SwapDeviceContextState for save/restore around ANGLE calls.
-        /// All types are accessed via reflection because we don't directly reference SharpDX.
+        /// Sets up D3D11.1 SwapDeviceContextState for save/restore around ANGLE calls, via the raw
+        /// COM vtable calls in <see cref="D3D11Com"/>.
         /// </summary>
-        void InitD3D11StateSwap(object d3dDevice, object d3dContext)
+        void InitD3D11StateSwap(IntPtr d3dDevicePtr, IntPtr d3dContextPtr)
         {
-            var sharpDxAsm = d3dDevice.GetType().Assembly;
-            var device1Type = sharpDxAsm.GetType("SharpDX.Direct3D11.Device1")
-                ?? throw new InvalidOperationException("SharpDX.Direct3D11.Device1 type not found.");
-            var dc1Type = sharpDxAsm.GetType("SharpDX.Direct3D11.DeviceContext1")
-                ?? throw new InvalidOperationException("SharpDX.Direct3D11.DeviceContext1 type not found.");
-
-            // Wrap the existing COM pointers as D3D11.1 interfaces
-            var devicePtr = GetNativePointer(d3dDevice);
-            var device1 = Activator.CreateInstance(device1Type, new object[] { devicePtr });
-
-            var ctxPtr = GetNativePointer(d3dContext);
-            _d3dContext1 = Activator.CreateInstance(dc1Type, new object[] { ctxPtr })!;
+            _device1 = D3D11Com.QueryInterface(d3dDevicePtr, D3D11Com.IID_ID3D11Device1);
+            _context1 = D3D11Com.QueryInterface(d3dContextPtr, D3D11Com.IID_ID3D11DeviceContext1);
 
             // CreateDeviceContextState creates a snapshot of "empty" D3D11 state.
             // When we swap to it, the engine's state is saved; when we swap back, it's restored.
-            var featureLevelType = sharpDxAsm.GetType("SharpDX.Direct3D.FeatureLevel")
-                ?? Type.GetType("SharpDX.Direct3D.FeatureLevel, SharpDX")
-                ?? throw new InvalidOperationException("SharpDX.Direct3D.FeatureLevel type not found.");
-            var flagsType = sharpDxAsm.GetType("SharpDX.Direct3D11.CreateDeviceContextStateFlags")
-                ?? throw new InvalidOperationException("SharpDX.Direct3D11.CreateDeviceContextStateFlags type not found.");
-
-            var createMethod = device1Type.GetMethods()
-                .First(m => m.Name == "CreateDeviceContextState" && m.IsGenericMethod);
-
-            var genericMethod = createMethod.MakeGenericMethod(device1Type);
-
-            var featureLevel11 = Enum.Parse(featureLevelType, "Level_11_0");
-            var flagsNone = Enum.Parse(flagsType, "None");
-            var featureLevels = Array.CreateInstance(featureLevelType, 1);
-            featureLevels.SetValue(featureLevel11, 0);
-
-            var chosenLevel = Activator.CreateInstance(featureLevelType);
-            var createParams = new object?[] { flagsNone, featureLevels, chosenLevel };
-            _emptyState = genericMethod.Invoke(device1, createParams);
-
-            _swapMethod = dc1Type.GetMethod("SwapDeviceContextState")!;
+            _emptyState = D3D11Com.CreateDeviceContextState(_device1);
         }
 
         public void BeginDraw()
         {
             // Save the engine's current D3D11 state by swapping to the empty state
-            var swapParams = new object?[] { _emptyState, null };
-            _swapMethod.Invoke(_d3dContext1, swapParams);
-            _savedState = swapParams[1];
+            _savedState = D3D11Com.SwapDeviceContextState(_context1, _emptyState);
         }
 
         public void EndDraw()
@@ -183,12 +164,11 @@ namespace SkiaGameRendering.Core.ANGLE
             eglMakeCurrent(_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 
             // Restore the engine's D3D11 state
-            if (_savedState != null)
+            if (_savedState != IntPtr.Zero)
             {
-                var restoreParams = new object?[] { _savedState, null };
-                _swapMethod.Invoke(_d3dContext1, restoreParams);
-                ((IDisposable)_savedState).Dispose();
-                _savedState = null;
+                D3D11Com.SwapDeviceContextState(_context1, _savedState);
+                D3D11Com.Release(_savedState);
+                _savedState = IntPtr.Zero;
             }
         }
 
@@ -265,7 +245,27 @@ namespace SkiaGameRendering.Core.ANGLE
         public void Dispose()
         {
             _grContext?.Dispose();
-            (_emptyState as IDisposable)?.Dispose();
+
+            if (_savedState != IntPtr.Zero)
+            {
+                D3D11Com.Release(_savedState);
+                _savedState = IntPtr.Zero;
+            }
+            if (_emptyState != IntPtr.Zero)
+            {
+                D3D11Com.Release(_emptyState);
+                _emptyState = IntPtr.Zero;
+            }
+            if (_context1 != IntPtr.Zero)
+            {
+                D3D11Com.Release(_context1);
+                _context1 = IntPtr.Zero;
+            }
+            if (_device1 != IntPtr.Zero)
+            {
+                D3D11Com.Release(_device1);
+                _device1 = IntPtr.Zero;
+            }
 
             if (_eglDisplay != EGL_NO_DISPLAY)
             {
