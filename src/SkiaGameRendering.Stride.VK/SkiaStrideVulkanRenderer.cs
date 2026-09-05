@@ -4,7 +4,7 @@ namespace SkiaGameRendering.Stride.VK
 {
     /// <summary>
     /// Holds the shared <see cref="SkiaStrideVulkanContext"/> for a Stride <see cref="GraphicsDevice"/>.
-    /// Vulkan analog of <c>SkiaGameRendering.Stride</c>'s D3D11 <c>SkiaStrideRenderer</c>. Most code
+    /// Vulkan analog of <c>SkiaGameRendering.Stride.D3D11</c>'s D3D11 <c>SkiaStrideRenderer</c>. Most code
     /// never calls this directly - constructing a <see cref="SkiaStrideVulkanRenderTarget2D"/>
     /// auto-initializes it. Call <see cref="Initialize"/> explicitly only to make initialization
     /// (and any failure) happen at a known point rather than lazily on first render target

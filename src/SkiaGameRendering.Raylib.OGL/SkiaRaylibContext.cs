@@ -25,7 +25,7 @@ namespace SkiaGameRendering.Raylib
                 return new Glx();
 
             throw new PlatformNotSupportedException(
-                "SkiaGameRendering.Raylib requires Windows (WGL) or Linux (GLX). macOS is not implemented (see issue #10).");
+                "SkiaGameRendering.Raylib.OGL requires Windows (WGL) or Linux (GLX). macOS is not implemented (see issue #10).");
         }
 
         public void Initialize()

@@ -7,7 +7,7 @@ namespace Tests.Stride;
 
 /// <summary>
 /// Pins the one private Stride field <c>SkiaStrideContext</c> reaches by string
-/// (src/SkiaGameRendering.Stride/SkiaStrideContext.cs): <c>GraphicsResourceBase.nativeResource</c>.
+/// (src/SkiaGameRendering.Stride.D3D11/SkiaStrideContext.cs): <c>GraphicsResourceBase.nativeResource</c>.
 ///
 /// Everything else the Stride adapter needs - <c>GraphicsDevice.NativeDevice</c>,
 /// <c>TextureFlags.RenderTarget</c> - is public and used as a normal compile-time member, so a

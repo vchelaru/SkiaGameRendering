@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          # Every package here but SkiaGameRendering.Stride still needs 8.0.x - Stride 4.4.0-beta5's
+          # Every package here but SkiaGameRendering.Stride.D3D11 still needs 8.0.x - Stride 4.4.0-beta5's
           # packages target net10.0, hence the second version rather than a replacement.
           dotnet-version: |
             8.0.x
@@ -89,10 +89,10 @@ jobs:
       - run: dotnet build samples/Sample.Kni.DesktopGL/Sample.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Kni.WindowsDX/SkiaGameRendering.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Kni.WindowsDX/Sample.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}
-      - run: dotnet build src/SkiaGameRendering.Raylib/SkiaGameRendering.Raylib.csproj -c ${{ matrix.configuration }}
-      - run: dotnet build samples/Sample.Raylib/Sample.Raylib.csproj -c ${{ matrix.configuration }}
-      - run: dotnet build src/SkiaGameRendering.Stride/SkiaGameRendering.Stride.csproj -c ${{ matrix.configuration }}
-      - run: dotnet build samples/Sample.Stride/Sample.Stride.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Raylib.OGL/SkiaGameRendering.Raylib.OGL.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.Raylib.OGL/Sample.Raylib.OGL.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Stride.D3D11/SkiaGameRendering.Stride.D3D11.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.Stride.D3D11/Sample.Stride.D3D11.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Stride.VK/SkiaGameRendering.Stride.VK.csproj -c ${{ matrix.configuration }}
       # Sample.Stride.VK.csproj forces StrideGraphicsApi=Vulkan (see that csproj's comment) so this
       # exercises the Vulkan variant of Stride.Graphics.dll on windows-latest with no Linux/macOS

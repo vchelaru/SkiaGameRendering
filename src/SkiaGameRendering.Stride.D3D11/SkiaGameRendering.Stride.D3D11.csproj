@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PackageId>SkiaGameRendering.Stride</PackageId>
+    <PackageId>SkiaGameRendering.Stride.D3D11</PackageId>
     <Version>$(LibraryVersion)</Version>
     <Description>GPU SkiaSharp rendering into Stride Texture targets via D3D11/ANGLE, with zero-copy GPU texture sharing.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>

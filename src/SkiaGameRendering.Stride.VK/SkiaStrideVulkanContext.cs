@@ -17,7 +17,7 @@ namespace SkiaGameRendering.Stride.VK
     /// MAINTENANCE NOTES:
     /// - Targets Stride 4.4.0-beta5+, built with <c>StrideGraphicsApi=Vulkan</c> downstream (see
     ///   SkiaGameRendering.Stride.VK.csproj's TFM comment). Unlike
-    ///   <c>SkiaGameRendering.Stride</c>'s D3D11 adapter, EVERY Vulkan handle this class needs -
+    ///   <c>SkiaGameRendering.Stride.D3D11</c>'s D3D11 adapter, EVERY Vulkan handle this class needs -
     ///   <see cref="GraphicsDevice"/>'s <c>NativeInstance</c>/<c>NativePhysicalDevice</c>/
     ///   <c>NativeDevice</c> properties, its <c>NativeCommandQueue</c>/<c>QueueLock</c> fields, and
     ///   <see cref="Texture"/>'s <c>NativeImage</c>/<c>NativeLayout</c>/<c>NativeFormat</c> fields -

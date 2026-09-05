@@ -16,8 +16,8 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 | KNI WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |
 | KNI WebGL (Blazor) | WebGL2 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WebGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
-| raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib)](https://www.nuget.org/packages/SkiaGameRendering.Raylib) (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
-| Stride (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride)](https://www.nuget.org/packages/SkiaGameRendering.Stride) (Windows) | ANGLE (GL ES → D3D11 translation) on shared device |
+| raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
+| Stride (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D11)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) (Windows) | ANGLE (GL ES → D3D11 translation) on shared device |
 | Stride (Vulkan) | Vulkan | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.VK)](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) (Linux, macOS, Windows) | Skia's Vulkan backend on Stride's shared `VkDevice`/`VkQueue`, no separate context |
 
 ## Requirements
@@ -36,8 +36,8 @@ Install the NuGet package for your platform into an existing MonoGame/KNI projec
 - **KNI DesktopGL**: `dotnet add package SkiaGameRendering.Kni.DesktopGL`
 - **KNI WindowsDX**: `dotnet add package SkiaGameRendering.Kni.WindowsDX`
 - **KNI WebGL (Blazor)**: `dotnet add package SkiaGameRendering.Kni.WebGL` — needs a couple of extra setup steps beyond the package install; see `docs/webgl/quickstart.md`.
-- **raylib**: `dotnet add package SkiaGameRendering.Raylib` — see `docs/raylib/quickstart.md`.
-- **Stride (D3D11)**: `dotnet add package SkiaGameRendering.Stride` — see `docs/stride/quickstart.md`.
+- **raylib**: `dotnet add package SkiaGameRendering.Raylib.OGL` — see `docs/raylib/quickstart.md`.
+- **Stride (D3D11)**: `dotnet add package SkiaGameRendering.Stride.D3D11` — see `docs/stride/quickstart.md`.
 - **Stride (Vulkan)**: `dotnet add package SkiaGameRendering.Stride.VK` — see `docs/stride/vulkan-quickstart.md`.
 
 No setup outside `Game` needed — `Program.cs` stays whatever the stock MonoGame/KNI template gives
@@ -114,8 +114,8 @@ Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or 
 - `samples/Sample.Kni.DesktopGL/` — KNI DesktopGL sample (cross-platform: Windows, Linux, macOS)
 - `samples/Sample.Kni.WindowsDX/` — KNI WindowsDX sample (Windows only)
 - `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample using the patched canvas-upload API
-- `samples/Sample.Raylib/` — raylib sample (Windows + Linux)
-- `samples/Sample.Stride/` — Stride sample (Windows, D3D11 only)
+- `samples/Sample.Raylib.OGL/` — raylib sample (Windows + Linux)
+- `samples/Sample.Stride.D3D11/` — Stride sample (Windows, D3D11 only)
 - `samples/Sample.Stride.VK/` — Stride sample (Vulkan; builds on Windows via `StrideGraphicsApi=Vulkan`, runs on Windows/Linux/macOS)
 - `samples/Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
@@ -132,8 +132,8 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Kni.DesktopGL/` — KNI DesktopGL library (shared core + `SkiaKniGlBackend`)
 - `src/SkiaGameRendering.Kni.WindowsDX/` — KNI WindowsDX library (shared core + `SkiaKniAngleBackend`, on `Core.ANGLE`)
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
-- `src/SkiaGameRendering.Raylib/` — raylib library (shared `Core.OGL` + `SkiaRaylibRenderTarget2D`)
-- `src/SkiaGameRendering.Stride/` — Stride library (shared `Core.ANGLE` + `SkiaStrideRenderTarget2D`, Windows/D3D11 only)
+- `src/SkiaGameRendering.Raylib.OGL/` — raylib library (shared `Core.OGL` + `SkiaRaylibRenderTarget2D`)
+- `src/SkiaGameRendering.Stride.D3D11/` — Stride library (shared `Core.ANGLE` + `SkiaStrideRenderTarget2D`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Core.VK/` — engine-agnostic Vulkan/Skia interop shared by Vulkan-based backends
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaStrideVulkanRenderTarget2D`, Windows/Linux/macOS)
 

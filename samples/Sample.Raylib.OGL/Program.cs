@@ -5,7 +5,7 @@ using SkiaSharp;
 const int Width = 800;
 const int Height = 600;
 
-Raylib.InitWindow(Width, Height, "Sample: raylib + SkiaGameRendering.Raylib");
+Raylib.InitWindow(Width, Height, "Sample: raylib + SkiaGameRendering.Raylib.OGL");
 Raylib.SetTargetFPS(60);
 
 // SkiaRaylibRenderTarget2D auto-initializes SkiaRaylibRenderer.EnsureInitialized() on first use,

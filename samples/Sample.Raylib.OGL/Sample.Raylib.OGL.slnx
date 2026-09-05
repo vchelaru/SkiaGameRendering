@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../../src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj" />
+  <Project Path="../../src/SkiaGameRendering.Raylib.OGL/SkiaGameRendering.Raylib.OGL.csproj" />
+  <Project Path="Sample.Raylib.OGL.csproj" />
+</Solution>

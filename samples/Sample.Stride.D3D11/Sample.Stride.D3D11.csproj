@@ -24,7 +24,7 @@
       NuGet-only sample has. The Community Toolkit is Stride's own documented way to get a
       GraphicsCompositor/camera/light for a pure-code Game without either - SetupBase3DScene lives in
       the Bepu physics flavor (there's no non-physics equivalent), so that's pulled in even though
-      this sample doesn't otherwise use physics. Sample-only: src/SkiaGameRendering.Stride depends on
+      this sample doesn't otherwise use physics. Sample-only: src/SkiaGameRendering.Stride.D3D11 depends on
       neither package.
     -->
     <PackageReference Include="Stride.CommunityToolkit.Bepu" Version="$(StrideCommunityToolkitVersion)" />
@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SkiaGameRendering.Stride\SkiaGameRendering.Stride.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Stride.D3D11\SkiaGameRendering.Stride.D3D11.csproj" />
   </ItemGroup>
 
 </Project>

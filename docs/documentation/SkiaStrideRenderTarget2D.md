@@ -6,13 +6,13 @@
 `SkiaRenderTarget2D`'s Begin/Canvas/End shape via ANGLE/D3D11 (the same interop
 `SkiaAngleBackend`/`SkiaKniAngleBackend` use), but is a standalone class: Stride support does
 **not** go through `SkiaBackend`/`SkiaRenderer`. Those types are typed directly to MonoGame's
-`Texture2D`/`GraphicsDevice`, and Stride has neither type, so `src/SkiaGameRendering.Stride/` is a
+`Texture2D`/`GraphicsDevice`, and Stride has neither type, so `src/SkiaGameRendering.Stride.D3D11/` is a
 hand-rolled sibling typed to Stride's own `Texture`/`GraphicsDevice` throughout - the same choice
 `SkiaRaylibRenderTarget2D` made for raylib.
 
-Namespace: `SkiaGameRendering.Stride`
+Namespace: `SkiaGameRendering.Stride.D3D11`
 
-Assembly/package: `SkiaGameRendering.Stride`
+Assembly/package: `SkiaGameRendering.Stride.D3D11`
 
 ```csharp
 public sealed class SkiaStrideRenderTarget2D : IDisposable

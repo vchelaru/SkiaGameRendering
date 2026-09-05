@@ -35,8 +35,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Kni.WindowsDX/SkiaGameRendering.Kni.WindowsDX.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Kni.WebGL
         run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
-      - name: Pack SkiaGameRendering.Raylib
-        run: dotnet pack src/SkiaGameRendering.Raylib/SkiaGameRendering.Raylib.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Raylib.OGL
+        run: dotnet pack src/SkiaGameRendering.Raylib.OGL/SkiaGameRendering.Raylib.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
 
       - uses: actions/upload-artifact@v4
         with:

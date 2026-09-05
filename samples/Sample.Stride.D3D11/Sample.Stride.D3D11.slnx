@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../../src/SkiaGameRendering.Core.ANGLE/SkiaGameRendering.Core.ANGLE.csproj" />
+  <Project Path="../../src/SkiaGameRendering.Stride.D3D11/SkiaGameRendering.Stride.D3D11.csproj" />
+  <Project Path="Sample.Stride.D3D11.csproj" />
+</Solution>

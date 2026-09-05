@@ -7,13 +7,13 @@
 `Raylib.DrawTexture` — but is a standalone class: raylib support does **not** go through
 `SkiaBackend`/`SkiaRenderer`. Those
 types are typed directly to MonoGame's `Texture2D`, and raylib is the first non-MonoGame engine
-this library supports, so `src/SkiaGameRendering.Raylib/` is a hand-rolled sibling typed to
+this library supports, so `src/SkiaGameRendering.Raylib.OGL/` is a hand-rolled sibling typed to
 raylib's own `Texture2D` throughout, reusing the same engine-agnostic GL/Skia FBO interop
 (`Core.OGL`) that `SkiaGlBackend`/`SkiaKniGlBackend` use.
 
-Namespace: `SkiaGameRendering.Raylib`
+Namespace: `SkiaGameRendering.Raylib.OGL`
 
-Assembly/package: `SkiaGameRendering.Raylib`
+Assembly/package: `SkiaGameRendering.Raylib.OGL`
 
 ```csharp
 public sealed class SkiaRaylibRenderTarget2D : IDisposable

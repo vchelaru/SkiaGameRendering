@@ -6,7 +6,7 @@ namespace SkiaGameRendering.Stride.VK
 {
     /// <summary>
     /// The <see cref="SceneRendererBase"/> hook Stride needs to run a Skia draw every frame. Vulkan
-    /// analog of <c>SkiaGameRendering.Stride</c>'s D3D11 <c>SkiaStrideSceneRenderer</c>. Stride
+    /// analog of <c>SkiaGameRendering.Stride.D3D11</c>'s D3D11 <c>SkiaStrideSceneRenderer</c>. Stride
     /// drives rendering through its <c>GraphicsCompositor</c> rather than a user-owned <c>Draw()</c>
     /// call the way MonoGame/KNI do, so <see cref="SkiaStrideVulkanRenderTarget2D.Begin"/>/<c>End</c>
     /// have to run inside <see cref="DrawCore"/> instead of an arbitrary call site.

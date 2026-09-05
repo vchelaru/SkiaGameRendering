@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SkiaGameRendering.Stride\SkiaGameRendering.Stride.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Stride.D3D11\SkiaGameRendering.Stride.D3D11.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -32,7 +32,7 @@
       downstream (Stride.Graphics's Vulkan variant is built against Vortice.Vulkan), but this project
       names its handle types directly (VkInstance, VkPhysicalDevice, VkDevice, VkQueue, VkImage), so
       the version is pinned explicitly here rather than left to whatever Stride.Engine happens to pull
-      in - same reasoning SkiaGameRendering.Stride's Silk.NET.Direct3D11 pin documents for D3D11.
+      in - same reasoning SkiaGameRendering.Stride.D3D11's Silk.NET.Direct3D11 pin documents for D3D11.
     -->
     <PackageReference Include="Vortice.Vulkan" Version="$(VorticeVulkanVersion)" />
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />

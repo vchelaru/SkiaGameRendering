@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="../../src/SkiaGameRendering.Core.ANGLE/SkiaGameRendering.Core.ANGLE.csproj" />
-  <Project Path="../../src/SkiaGameRendering.Stride/SkiaGameRendering.Stride.csproj" />
-  <Project Path="Sample.Stride.csproj" />
-</Solution>
