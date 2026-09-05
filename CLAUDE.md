@@ -38,8 +38,12 @@ authoritative list of what CI builds and in what order; mirror it when deciding 
 `Directory.Build.props` sets `TreatWarningsAsErrors`, so a new C# warning fails the build. MSBuild
 task warnings from third-party targets stay warnings; don't silence them there.
 
-**Never launch a sample `.exe`, `dotnet run`, or a GUI app** to verify — build and test only.
-Anything that needs a window on screen is the user's manual test; give them numbered steps.
+**You may launch a sample `.exe`/`dotnet run` and screenshot it to verify objective output** — a
+solid fullscreen color, a known static frame, a specific pixel value — by launching it, waiting for
+it to render, and comparing a screenshot's pixels against the expected value; kill the process when
+done. Prefer a small standalone verification app over the full interactive sample when one exists,
+since a sample's camera/controls/gameplay still need a human's subjective judgment. For anything
+needing that subjective read, keep to build-and-test and give the user numbered manual steps instead.
 
 ## Gotchas
 
