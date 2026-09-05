@@ -1,15 +1,16 @@
 "use strict";
 
-const WARMUP_FRAMES = 120;
-const MEASURED_FRAMES = 600;
+const WARMUP_FRAMES = 60;
+const MEASURED_FRAMES = 300;
 const sourceCanvas = document.getElementById("source");
 const destinationCanvas = document.getElementById("destination");
-const resolution = document.getElementById("resolution");
-const pathSelect = document.getElementById("path");
 const renderableCountSelect = document.getElementById("renderable-count");
-const runButton = document.getElementById("run");
-const exportButton = document.getElementById("export");
+const runAllButton = document.getElementById("run-all");
+const exportAllButton = document.getElementById("export-all");
 const reportElement = document.getElementById("report");
+const RESOLUTIONS = ["1920x1080", "2560x1440", "3840x2160"];
+const PATHS = ["texSubImage2D", "texImage2D", "imageBitmap", "offscreenBitmap", "readPixels"];
+let latestFullMatrixReports = null;
 const sourceGl = sourceCanvas.getContext("webgl2", { alpha: true, premultipliedAlpha: true, antialias: false });
 const destinationGl = destinationCanvas.getContext("webgl2", { alpha: true, premultipliedAlpha: true, antialias: false });
 if (!sourceGl || !destinationGl) throw new Error("WebGL 2 is required.");
@@ -17,7 +18,6 @@ if (!sourceGl || !destinationGl) throw new Error("WebGL 2 is required.");
 const timerExtension = destinationGl.getExtension("EXT_disjoint_timer_query_webgl2");
 const debugRenderer = destinationGl.getExtension("WEBGL_debug_renderer_info");
 let contextLossCount = 0;
-let latestReport = null;
 let running = false;
 for (const canvas of [sourceCanvas, destinationCanvas]) {
   canvas.addEventListener("webglcontextlost", event => { event.preventDefault(); contextLossCount++; });
@@ -79,8 +79,8 @@ if (typeof OffscreenCanvas !== "undefined") {
     void main(){ color=vec4(uv.x,uv.y,.5+.5*sin(time),.35+.65*uv.x); }`);
 }
 
-function resize() {
-  const [width, height] = resolution.value.split("x").map(Number);
+function resize(resolutionString) {
+  const [width, height] = resolutionString.split("x").map(Number);
   sourceCanvas.width = destinationCanvas.width = width;
   sourceCanvas.height = destinationCanvas.height = height;
   if (offscreen) { offscreen.width = width; offscreen.height = height; }
@@ -118,13 +118,8 @@ function queryGpuStart() {
   return query;
 }
 
-async function run() {
-  if (running) return;
-  running = true;
-  runButton.disabled = true;
-  exportButton.disabled = true;
-  const size = resize();
-  const path = pathSelect.value;
+async function runOnce(resolutionString, path, progressPrefix) {
+  const size = resize(resolutionString);
   const renderableCount = Number(renderableCountSelect.value);
   if (path === "offscreenBitmap" && !offscreenGl) throw new Error("OffscreenCanvas WebGL2 is unavailable.");
   const readback = new Uint8Array(size.width * size.height * 4);
@@ -194,12 +189,12 @@ async function run() {
         pendingQueries.splice(index, 1);
       }
     }
-    reportElement.textContent = frame < WARMUP_FRAMES
+    reportElement.textContent = `${progressPrefix}` + (frame < WARMUP_FRAMES
       ? `Warm-up ${frame + 1}/${WARMUP_FRAMES}`
-      : `Measured ${frame - WARMUP_FRAMES + 1}/${MEASURED_FRAMES}`;
+      : `Measured ${frame - WARMUP_FRAMES + 1}/${MEASURED_FRAMES}`);
   }
 
-  latestReport = {
+  return {
     schemaVersion: 1,
     timestampUtc: new Date().toISOString(),
     browser: navigator.userAgent,
@@ -218,22 +213,45 @@ async function run() {
     contextLossCount,
     timingsMilliseconds: { sourceCpu: stats(sourceTimes), uploadCpu: stats(uploadTimes), uploadGpu: stats(gpuTimes), frameCpu: stats(frameTimes) },
   };
-  reportElement.textContent = JSON.stringify(latestReport, null, 2);
-  exportButton.disabled = false;
-  runButton.disabled = false;
-  running = false;
 }
 
-runButton.addEventListener("click", () => run().catch(error => {
-  reportElement.textContent = error.stack || String(error); running = false; runButton.disabled = false;
-}));
-exportButton.addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(latestReport, null, 2)], { type: "application/json" });
+function downloadJson(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `webgl-${pathSelect.value}-${resolution.value}.json`;
+  anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+runAllButton.addEventListener("click", async () => {
+  if (running) return;
+  running = true;
+  runAllButton.disabled = true;
+  exportAllButton.disabled = true;
+  const reports = [];
+  try {
+    let index = 0;
+    const total = RESOLUTIONS.length * PATHS.length;
+    for (const res of RESOLUTIONS) {
+      for (const path of PATHS) {
+        index++;
+        const report = await runOnce(res, path, `Combo ${index}/${total} (${res}, ${path}) — `);
+        reports.push(report);
+      }
+    }
+    latestFullMatrixReports = reports;
+    reportElement.textContent = `Done. ${reports.length} combos captured — click "Export all" to download.`;
+    exportAllButton.disabled = false;
+  } catch (error) {
+    reportElement.textContent = error.stack || String(error);
+  } finally {
+    running = false;
+    runAllButton.disabled = false;
+  }
 });
-resize();
+exportAllButton.addEventListener("click", () => {
+  downloadJson(latestFullMatrixReports, `webgl-full-matrix-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
+});
+resize(RESOLUTIONS[0]);

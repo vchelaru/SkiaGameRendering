@@ -20,23 +20,11 @@
 <body>
   <h1>Cross-context canvas upload benchmark</h1>
   <div class="toolbar">
-    <label>Resolution
-      <select id="resolution"><option>1920x1080</option><option>2560x1440</option><option>3840x2160</option></select>
-    </label>
-    <label>Path
-      <select id="path">
-        <option value="texSubImage2D">texSubImage2D(canvas)</option>
-        <option value="texImage2D">texImage2D(canvas)</option>
-        <option value="imageBitmap">createImageBitmap + texSubImage2D</option>
-        <option value="offscreenBitmap">OffscreenCanvas + ImageBitmap</option>
-        <option value="readPixels">readPixels baseline</option>
-      </select>
-    </label>
     <label>Sequential renderables
       <select id="renderable-count"><option>1</option><option>2</option><option>4</option></select>
     </label>
-    <button id="run">Run 120 + 600 frames</button>
-    <button id="export" disabled>Export JSON</button>
+    <button id="run-all">Run full matrix (15 combos, ~2 min)</button>
+    <button id="export-all" disabled>Export all (JSON)</button>
   </div>
   <div class="canvases"><canvas id="source"></canvas><canvas id="destination"></canvas></div>
   <pre id="report">Ready.</pre>
