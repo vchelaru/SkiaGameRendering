@@ -80,5 +80,26 @@ namespace SkiaGameRendering.Core.ANGLE
             fn(context1, newState, &previous);
             return (IntPtr)previous;
         }
+
+        /// <summary>
+        /// ID3D11Device::GetImmediateContext, vtable slot 40: IUnknown (0-2) + ID3D11Device's first
+        /// 37 methods (3-39, CreateBuffer..GetDeviceRemovedReason) + GetImmediateContext (40). Index
+        /// cross-checked against github.com/terrafx/terrafx.interop.windows's ID3D11Device.cs.
+        /// Returns void on the native side - there is no HRESULT to check. Per MSDN, this AddRefs
+        /// the returned context - callers must Release it once done, same as any other
+        /// QueryInterface-shaped result here.
+        ///
+        /// Added for the Stride adapter (<c>SkiaGameRendering.Stride</c>): Stride's own immediate
+        /// context accessor (<c>GraphicsDevice.NativeDeviceContext</c>) is not public, unlike
+        /// <c>NativeDevice</c>, so the adapter asks the device for its context instead of reflecting
+        /// a private Stride field.
+        /// </summary>
+        internal static IntPtr GetImmediateContext(IntPtr device)
+        {
+            var fn = (delegate* unmanaged[MemberFunction]<IntPtr, void**, void>)(*(void***)device)[40];
+            void* context;
+            fn(device, &context);
+            return (IntPtr)context;
+        }
     }
 }
