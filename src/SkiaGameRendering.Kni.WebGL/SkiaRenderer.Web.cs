@@ -44,8 +44,9 @@ namespace SkiaGameRendering
             ArgumentNullException.ThrowIfNull(host);
             _attachedHost = host;
 #pragma warning disable CA1416 // see <remarks> above - this assembly is browser-only in practice
-            _ambientBackendFactory = () => new SkiaWebGlBackend(_attachedHost!, options);
-            _ambientReadyCheck = () => _attachedHost?.IsReady ?? false;
+            AttachAmbient(
+                () => new SkiaWebGlBackend(_attachedHost!, options),
+                () => _attachedHost?.IsReady ?? false);
 #pragma warning restore CA1416
         }
     }

@@ -43,6 +43,18 @@ namespace SkiaGameRendering
         /// </summary>
         public static bool IsReady => _ambientReadyCheck?.Invoke() ?? true;
 
+        /// <summary>
+        /// Seam for a platform package (currently only <c>SkiaGameRendering.Kni.WebGL</c>'s
+        /// <c>AttachHost</c>) to plug an async-created backend into <see cref="IsReady"/> and the
+        /// single-arg <see cref="Initialize(GraphicsDevice)"/> without this shared code knowing about
+        /// that platform. Also used by tests to drive the ambient path directly.
+        /// </summary>
+        internal static void AttachAmbient(Func<SkiaBackend>? backendFactory, Func<bool>? readyCheck)
+        {
+            _ambientBackendFactory = backendFactory;
+            _ambientReadyCheck = readyCheck;
+        }
+
         public static void Initialize(SkiaBackend backend, GraphicsDevice graphicsDevice)
         {
             ArgumentNullException.ThrowIfNull(backend);
