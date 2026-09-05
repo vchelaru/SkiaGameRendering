@@ -1,7 +1,7 @@
 using SkiaGameRendering.Core.OGL;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Raylib
+namespace SkiaGameRendering.Raylib.OGL
 {
     /// <summary>
     /// Owns the Skia-dedicated GL context (see <see cref="IPlatformGlContext"/>: <see cref="Wgl"/>
@@ -25,7 +25,7 @@ namespace SkiaGameRendering.Raylib
                 return new Glx();
 
             throw new PlatformNotSupportedException(
-                "SkiaGameRendering.Raylib requires Windows (WGL) or Linux (GLX). macOS is not implemented (see issue #10).");
+                "SkiaGameRendering.Raylib.OGL requires Windows (WGL) or Linux (GLX). macOS is not implemented (see issue #10).");
         }
 
         public void Initialize()

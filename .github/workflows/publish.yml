@@ -17,7 +17,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          # The Stride packages target net10.0 (Stride 4.4.0-beta5's own packages do), everything
+          # else still needs 8.0.x - hence both, not a replacement. Mirrors master.yml.
+          dotnet-version: |
+            8.0.x
+            10.0.x
       - name: Install WASM toolchain
         run: dotnet workload install wasm-tools-net8
 
@@ -25,6 +29,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Core.ANGLE
         run: dotnet pack src/SkiaGameRendering.Core.ANGLE/SkiaGameRendering.Core.ANGLE.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Core.VK
+        run: dotnet pack src/SkiaGameRendering.Core.VK/SkiaGameRendering.Core.VK.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering
         run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.WindowsDX
@@ -35,8 +41,12 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Kni.WindowsDX/SkiaGameRendering.Kni.WindowsDX.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Kni.WebGL
         run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
-      - name: Pack SkiaGameRendering.Raylib
-        run: dotnet pack src/SkiaGameRendering.Raylib/SkiaGameRendering.Raylib.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Raylib.OGL
+        run: dotnet pack src/SkiaGameRendering.Raylib.OGL/SkiaGameRendering.Raylib.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Stride.D3D11
+        run: dotnet pack src/SkiaGameRendering.Stride.D3D11/SkiaGameRendering.Stride.D3D11.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Stride.VK
+        run: dotnet pack src/SkiaGameRendering.Stride.VK/SkiaGameRendering.Stride.VK.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
 
       - uses: actions/upload-artifact@v4
         with:

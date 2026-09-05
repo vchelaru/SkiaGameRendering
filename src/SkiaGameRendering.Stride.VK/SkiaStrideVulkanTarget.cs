@@ -7,7 +7,7 @@ namespace SkiaGameRendering.Stride.VK
     /// <summary>
     /// Owns the GPU resources backing one <see cref="SkiaStrideVulkanRenderTarget2D"/>: the Stride
     /// <see cref="Texture"/>, the wrapped-image state, and the <see cref="SKSurface"/>/
-    /// <see cref="GRBackendRenderTarget"/> wrapping it. Mirrors <c>SkiaGameRendering.Stride</c>'s
+    /// <see cref="GRBackendRenderTarget"/> wrapping it. Mirrors <c>SkiaGameRendering.Stride.D3D11</c>'s
     /// D3D11 <c>SkiaStrideTarget</c>, minus the ANGLE-specific bind/unbind step - Vulkan has no
     /// separate GL-style context to make current, so there is nothing to bind beyond the queue lock
     /// <see cref="SkiaStrideVulkanContext.BeginDraw"/>/<c>EndDraw</c> already handle.

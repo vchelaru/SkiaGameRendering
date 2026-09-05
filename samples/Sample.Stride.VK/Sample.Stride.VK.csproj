@@ -22,7 +22,7 @@
       farm/remote-deploy plumbing inside Stride's own tooling). Directory.Build.props's
       TreatWarningsAsErrors also escalates NuGet audit warnings, not just compiler ones, so this
       would otherwise fail restore. Scoped to this project only, since it's Stride.CommunityToolkit's
-      dependency tree, not this repo's own code. Same suppression samples/Sample.Stride needs, for
+      dependency tree, not this repo's own code. Same suppression samples/Sample.Stride.D3D11 needs, for
       the same reason.
     -->
     <NoWarn>$(NoWarn);NU1903</NoWarn>
@@ -30,7 +30,7 @@
 
   <ItemGroup>
     <!--
-      Same Community Toolkit packages samples/Sample.Stride uses to get a GraphicsCompositor/
+      Same Community Toolkit packages samples/Sample.Stride.D3D11 uses to get a GraphicsCompositor/
       camera/light without GameStudio - see that sample's comment. Stride.CommunityToolkit.Windows
       is windowing (SDL) only, which is graphics-API-agnostic; StrideGraphicsApi above is what
       actually picks Vulkan over Direct3D11 underneath it.

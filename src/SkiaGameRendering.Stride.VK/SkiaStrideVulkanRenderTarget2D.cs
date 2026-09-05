@@ -6,7 +6,7 @@ namespace SkiaGameRendering.Stride.VK
 {
     /// <summary>
     /// A GPU surface that SkiaSharp renders directly into, sized to match whatever you intend to
-    /// draw it onto. Vulkan analog of <c>SkiaGameRendering.Stride</c>'s D3D11
+    /// draw it onto. Vulkan analog of <c>SkiaGameRendering.Stride.D3D11</c>'s D3D11
     /// <c>SkiaStrideRenderTarget2D</c> - same Begin/Canvas/End shape, same <see cref="End"/>-needs-a-
     /// <see cref="GraphicsContext"/> reasoning (Stride's <see cref="SpriteBatch"/> composite needs
     /// one, normally <c>RenderDrawContext.GraphicsContext</c> from inside a

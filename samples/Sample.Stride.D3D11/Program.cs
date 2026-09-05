@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride;
+using SkiaGameRendering.Stride.D3D11;
 using SkiaSharp;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
@@ -7,7 +7,7 @@ using Stride.Games;
 
 // Stride's default authoring flow is GameStudio plus an asset-pipeline project; the Community
 // Toolkit's code-only helpers (SetupBase3DScene, AddSceneRenderer) are its documented alternative
-// for a pure-code Game like this one - see Sample.Stride.csproj's comment.
+// for a pure-code Game like this one - see Sample.Stride.D3D11.csproj's comment.
 using var game = new Game();
 
 SkiaStrideRenderTarget2D? canvas = null;

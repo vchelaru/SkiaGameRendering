@@ -18,7 +18,12 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>SkiaGameRendering.Stride.VK</PackageId>
-    <Version>$(LibraryVersion)</Version>
+    <!--
+      Prerelease, unlike every other package here: Stride.Engine 4.4.0-beta5 is itself a
+      prerelease, and NuGet rejects a stable package that depends on one (NU5104, an error under
+      TreatWarningsAsErrors). Drop the suffix once Stride 4.4.0 ships stable.
+    -->
+    <Version>$(LibraryVersion)-beta</Version>
     <Description>GPU SkiaSharp rendering into Stride Texture targets via Vulkan, with zero-copy GPU texture sharing.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
@@ -32,7 +37,7 @@
       downstream (Stride.Graphics's Vulkan variant is built against Vortice.Vulkan), but this project
       names its handle types directly (VkInstance, VkPhysicalDevice, VkDevice, VkQueue, VkImage), so
       the version is pinned explicitly here rather than left to whatever Stride.Engine happens to pull
-      in - same reasoning SkiaGameRendering.Stride's Silk.NET.Direct3D11 pin documents for D3D11.
+      in - same reasoning SkiaGameRendering.Stride.D3D11's Silk.NET.Direct3D11 pin documents for D3D11.
     -->
     <PackageReference Include="Vortice.Vulkan" Version="$(VorticeVulkanVersion)" />
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />

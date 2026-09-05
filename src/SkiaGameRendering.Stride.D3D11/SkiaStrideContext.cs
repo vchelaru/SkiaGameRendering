@@ -3,7 +3,7 @@ using SkiaGameRendering.Core.ANGLE;
 using SkiaSharp;
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride
+namespace SkiaGameRendering.Stride.D3D11
 {
     /// <summary>
     /// Stride-specific adapter over <see cref="AngleSkiaSurfaceFactory"/> (see that class for how the
@@ -23,7 +23,7 @@ namespace SkiaGameRendering.Stride
     ///   public <c>NativeResource</c> property wrapping it is <c>protected internal</c> - visible to
     ///   a subclass of <see cref="GraphicsResourceBase"/>, not to an external caller like this one.
     ///   A Stride bump that renames this field is pinned by
-    ///   <c>tests/Tests.Stride/StrideReflectionTests.cs</c>.
+    ///   <c>tests/Tests.Stride.D3D11/StrideReflectionTests.cs</c>.
     /// </summary>
     internal sealed class SkiaStrideContext : IDisposable
     {

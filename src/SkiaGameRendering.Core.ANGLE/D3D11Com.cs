@@ -89,7 +89,7 @@ namespace SkiaGameRendering.Core.ANGLE
         /// the returned context - callers must Release it once done, same as any other
         /// QueryInterface-shaped result here.
         ///
-        /// Added for the Stride adapter (<c>SkiaGameRendering.Stride</c>): Stride's own immediate
+        /// Added for the Stride adapter (<c>SkiaGameRendering.Stride.D3D11</c>): Stride's own immediate
         /// context accessor (<c>GraphicsDevice.NativeDeviceContext</c>) is not public, unlike
         /// <c>NativeDevice</c>, so the adapter asks the device for its context instead of reflecting
         /// a private Stride field.

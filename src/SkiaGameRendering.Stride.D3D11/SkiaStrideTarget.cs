@@ -2,7 +2,7 @@ using SkiaGameRendering.Core.ANGLE;
 using SkiaSharp;
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride
+namespace SkiaGameRendering.Stride.D3D11
 {
     /// <summary>
     /// Owns the GPU resources backing one <see cref="SkiaStrideRenderTarget2D"/>: the Stride

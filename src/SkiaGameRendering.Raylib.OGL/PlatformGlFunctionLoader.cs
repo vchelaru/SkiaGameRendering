@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using SkiaGameRendering.Core.OGL;
 
-namespace SkiaGameRendering.Raylib
+namespace SkiaGameRendering.Raylib.OGL
 {
     /// <summary>
     /// Loads GL entry points via <see cref="IPlatformGlContext.GetProcAddress"/> while the

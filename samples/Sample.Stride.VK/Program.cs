@@ -9,7 +9,7 @@ using Stride.Games;
 // Toolkit's code-only helpers (SetupBase3DScene, AddSceneRenderer) are its documented alternative
 // for a pure-code Game like this one - see Sample.Stride.VK.csproj's comment. This sample forces
 // StrideGraphicsApi=Vulkan (also in the csproj) so it exercises the Vulkan Skia interop
-// (SkiaGameRendering.Stride.VK) rather than the default Direct3D11 path samples/Sample.Stride uses.
+// (SkiaGameRendering.Stride.VK) rather than the default Direct3D11 path samples/Sample.Stride.D3D11 uses.
 using var game = new Game();
 
 SkiaStrideVulkanRenderTarget2D? canvas = null;

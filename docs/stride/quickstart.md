@@ -14,17 +14,17 @@ support is structured differently.
 ## Add the package
 
 ```powershell
-dotnet add package SkiaGameRendering.Stride
+dotnet add package SkiaGameRendering.Stride.D3D11
 ```
 
 ## Getting a GraphicsCompositor without GameStudio
 
 Stride's normal authoring flow is a GameStudio project with an asset pipeline, which is where a
 `GraphicsCompositor` (camera, lighting, render stages) usually comes from. A pure-code `Game` like
-`samples/Sample.Stride` needs one from somewhere else - the
+`samples/Sample.Stride.D3D11` needs one from somewhere else - the
 [Stride Community Toolkit](https://stride3d.github.io/stride-community-toolkit/)'s
 `SetupBase3DScene()`/`AddSceneRenderer()` helpers are Stride's own documented way to do that without
-GameStudio. This is a sample-only dependency; `SkiaGameRendering.Stride` itself doesn't need it - any
+GameStudio. This is a sample-only dependency; `SkiaGameRendering.Stride.D3D11` itself doesn't need it - any
 project with its own `GraphicsCompositor` can skip the toolkit entirely.
 
 ## Initialize and render
@@ -34,7 +34,7 @@ Skia draw runs inside a `SceneRendererBase.DrawCore` override -
 [SkiaStrideSceneRenderer](../documentation/SkiaStrideRenderTarget2D.md) is that hook:
 
 ```cs
-using SkiaGameRendering.Stride;
+using SkiaGameRendering.Stride.D3D11;
 using SkiaSharp;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
@@ -77,8 +77,8 @@ Full member list and other remarks are documented on
 ## Build and run the sample in this repo
 
 ```powershell
-dotnet build samples\Sample.Stride\Sample.Stride.csproj -c Release
-dotnet run --project samples\Sample.Stride\Sample.Stride.csproj -c Release --no-build
+dotnet build samples\Sample.Stride.D3D11\Sample.Stride.D3D11.csproj -c Release
+dotnet run --project samples\Sample.Stride.D3D11\Sample.Stride.D3D11.csproj -c Release --no-build
 ```
 
 ## Known limitations

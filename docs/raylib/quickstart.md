@@ -13,7 +13,7 @@ for why and how the raylib support is structured differently.
 ## Add the package
 
 ```powershell
-dotnet add package SkiaGameRendering.Raylib
+dotnet add package SkiaGameRendering.Raylib.OGL
 ```
 
 On Linux, also add `SkiaSharp.NativeAssets.Linux` — the main `SkiaSharp` package only carries
@@ -28,7 +28,7 @@ dotnet add package SkiaSharp.NativeAssets.Linux
 
 ```cs
 using Raylib_cs;
-using SkiaGameRendering.Raylib;
+using SkiaGameRendering.Raylib.OGL;
 using SkiaSharp;
 
 Raylib.InitWindow(800, 600, "raylib + Skia");
@@ -67,8 +67,8 @@ Full member list, the WGL/GLX context-sharing mechanism, and other remarks are d
 ## Build and run the sample in this repo
 
 ```powershell
-dotnet build samples\Sample.Raylib\Sample.Raylib.csproj -c Release
-dotnet run --project samples\Sample.Raylib\Sample.Raylib.csproj -c Release --no-build
+dotnet build samples\Sample.Raylib.OGL\Sample.Raylib.OGL.csproj -c Release
+dotnet run --project samples\Sample.Raylib.OGL\Sample.Raylib.OGL.csproj -c Release --no-build
 ```
 
 ## Known limitations

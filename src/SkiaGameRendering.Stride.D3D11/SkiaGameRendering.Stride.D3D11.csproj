@@ -6,8 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PackageId>SkiaGameRendering.Stride</PackageId>
-    <Version>$(LibraryVersion)</Version>
+    <PackageId>SkiaGameRendering.Stride.D3D11</PackageId>
+    <!--
+      Prerelease, unlike every other package here: Stride.Engine 4.4.0-beta5 is itself a
+      prerelease, and NuGet rejects a stable package that depends on one (NU5104, an error under
+      TreatWarningsAsErrors). Drop the suffix once Stride 4.4.0 ships stable.
+    -->
+    <Version>$(LibraryVersion)-beta</Version>
     <Description>GPU SkiaSharp rendering into Stride Texture targets via D3D11/ANGLE, with zero-copy GPU texture sharing.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
