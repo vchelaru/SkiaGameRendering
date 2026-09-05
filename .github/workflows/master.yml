@@ -91,9 +91,16 @@ jobs:
         # with no X server at all. Without this, Firefox exhausts every GL driver route and WebGL2
         # never initializes ("Exhausted GL driver options" - see repo issue #12).
         run: xvfb-run --auto-servernum -- npm test
+      # AOT + trimming take ~8 of this job's ~13 minutes. They're the shippable release build (and
+      # the strictest check on the reflection path in WebGlCanvasUpload.cs, which trimming can
+      # strip), but that doesn't need to block every PR - only push (i.e. post-merge to master)
+      # runs them, so a broken trim/AOT build surfaces within minutes of merge without slowing down
+      # per-PR iteration.
       - name: Publish trimmed WASM AOT
+        if: github.event_name == 'push'
         run: dotnet publish samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
       - name: Pack WebGL library
+        if: github.event_name == 'push'
         run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -o .artifacts/packages
       - uses: actions/upload-artifact@v4
         if: always()
