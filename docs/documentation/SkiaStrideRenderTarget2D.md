@@ -56,8 +56,8 @@ game.AddSceneRenderer(renderer);
 
 ## Remarks
 
-- Windows and D3D11 only (Vulkan is a separate future adapter - see repo issue #23). Stride on
-  Vulkan, Linux, or macOS is unsupported by this package.
+- Windows and D3D11 only. For Vulkan (Windows/Linux/macOS), see `SkiaGameRendering.Stride.VK` /
+  [SkiaStrideVulkanRenderTarget2D](SkiaStrideVulkanRenderTarget2D.md) instead.
 - Requires Stride 4.4.0-beta5 or newer. Stride's D3D11 backend became Silk.NET (from SharpDX) in
   this release, which is what makes `GraphicsDevice.NativeDevice` a public
   `ComPtr<ID3D11Device>` - the current stable release (4.3.0.2507) still wraps D3D11 in SharpDX and

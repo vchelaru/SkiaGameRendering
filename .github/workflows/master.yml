@@ -93,6 +93,11 @@ jobs:
       - run: dotnet build samples/Sample.Raylib/Sample.Raylib.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Stride/SkiaGameRendering.Stride.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Stride/Sample.Stride.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Stride.VK/SkiaGameRendering.Stride.VK.csproj -c ${{ matrix.configuration }}
+      # Sample.Stride.VK.csproj forces StrideGraphicsApi=Vulkan (see that csproj's comment) so this
+      # exercises the Vulkan variant of Stride.Graphics.dll on windows-latest with no Linux/macOS
+      # hardware needed to build - repo issue #54's "force GraphicsPlatform: Vulkan" trick.
+      - run: dotnet build samples/Sample.Stride.VK/Sample.Stride.VK.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.DesktopGL/Benchmarks.ShapeRendering.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.WindowsDX/Benchmarks.ShapeRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}

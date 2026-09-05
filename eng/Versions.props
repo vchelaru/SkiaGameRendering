@@ -24,5 +24,10 @@
          package's own nuspec on a Stride version bump) - SkiaGameRendering.Stride names
          Silk.NET.Direct3D11/Core types directly (ComPtr<ID3D11Device>, ID3D11Resource*). -->
     <SilkNetVersion>2.23.0</SilkNetVersion>
+    <!-- Must match the Vortice.Vulkan version Stride.Graphics 4.4.0-beta5 itself depends on (check
+         that package's own nuspec on a Stride version bump) - SkiaGameRendering.Stride.VK names
+         Vortice.Vulkan's VkInstance/VkPhysicalDevice/VkDevice/VkQueue/VkImage types directly, the
+         same reasoning SilkNetVersion above documents for the D3D11 adapter. -->
+    <VorticeVulkanVersion>3.0.3</VorticeVulkanVersion>
   </PropertyGroup>
 </Project>

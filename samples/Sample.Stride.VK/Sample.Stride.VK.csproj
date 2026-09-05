@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!--
+      Plain net10.0, not net10.0-windows - see SkiaGameRendering.Stride.VK.csproj's TFM comment.
+      StrideGraphicsApi=Vulkan below is what actually selects the Vulkan-built Stride.Graphics.dll on
+      this TFM; it is the "force GraphicsPlatform: Vulkan" trick repo issue #54 describes, which lets
+      this sample build and its reflection pins run on windows-latest CI with no real Linux/macOS
+      hardware. Running it still needs a real (or lavapipe) Vulkan driver - see the class doc comment
+      on Program.cs's known limitations.
+    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <StrideGraphicsApi>Vulkan</StrideGraphicsApi>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!--
+      NU1903: a transitive dependency several layers under Stride.AssetCompiler pulls in a
+      vulnerable SSH.NET version (unrelated to anything this sample touches - it looks like build-
+      farm/remote-deploy plumbing inside Stride's own tooling). Directory.Build.props's
+      TreatWarningsAsErrors also escalates NuGet audit warnings, not just compiler ones, so this
+      would otherwise fail restore. Scoped to this project only, since it's Stride.CommunityToolkit's
+      dependency tree, not this repo's own code. Same suppression samples/Sample.Stride needs, for
+      the same reason.
+    -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Same Community Toolkit packages samples/Sample.Stride uses to get a GraphicsCompositor/
+      camera/light without GameStudio - see that sample's comment. Stride.CommunityToolkit.Windows
+      is windowing (SDL) only, which is graphics-API-agnostic; StrideGraphicsApi above is what
+      actually picks Vulkan over Direct3D11 underneath it.
+    -->
+    <PackageReference Include="Stride.CommunityToolkit.Bepu" Version="$(StrideCommunityToolkitVersion)" />
+    <PackageReference Include="Stride.CommunityToolkit.Windows" Version="$(StrideCommunityToolkitVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Stride.VK\SkiaGameRendering.Stride.VK.csproj" />
+  </ItemGroup>
+
+</Project>

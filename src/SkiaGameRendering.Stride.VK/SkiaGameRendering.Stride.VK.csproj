@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+
+  <PropertyGroup>
+    <!--
+      Plain net10.0, not net10.0-windows: Stride.Graphics 4.4.0-beta5's own nuspec only ships a
+      net10.0-windows-specific asset for Android/iOS/macOS (as separate TFMs) - the desktop group is
+      just "net10.0", covering Windows, Linux and macOS from one TargetFramework, with the actual
+      D3D11-vs-Vulkan choice made per-project via the StrideGraphicsApi MSBuild property (see
+      Stride.Graphics's build\Stride.GraphicsApiSpecificPackages.targets) rather than baked into the
+      TFM. This project only ever touches Stride.Graphics's PUBLIC surface plus reflection (see
+      SkiaStrideVulkanContext), so it never needs StrideGraphicsApi set itself - whichever
+      Stride.Graphics.dll variant the final consuming project (a game, or samples/Sample.Stride.VK)
+      resolves at build time is what runs.
+    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageId>SkiaGameRendering.Stride.VK</PackageId>
+    <Version>$(LibraryVersion)</Version>
+    <Description>GPU SkiaSharp rendering into Stride Texture targets via Vulkan, with zero-copy GPU texture sharing.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" />
+    <!--
+      Stride.Engine already depends on this transitively when StrideGraphicsApi=Vulkan is selected
+      downstream (Stride.Graphics's Vulkan variant is built against Vortice.Vulkan), but this project
+      names its handle types directly (VkInstance, VkPhysicalDevice, VkDevice, VkQueue, VkImage), so
+      the version is pinned explicitly here rather than left to whatever Stride.Engine happens to pull
+      in - same reasoning SkiaGameRendering.Stride's Silk.NET.Direct3D11 pin documents for D3D11.
+    -->
+    <PackageReference Include="Vortice.Vulkan" Version="$(VorticeVulkanVersion)" />
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SkiaGameRendering.Core.VK\SkiaGameRendering.Core.VK.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
