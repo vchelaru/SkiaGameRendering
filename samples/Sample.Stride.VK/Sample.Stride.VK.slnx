@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../../src/SkiaGameRendering.Core.VK/SkiaGameRendering.Core.VK.csproj" />
+  <Project Path="../../src/SkiaGameRendering.Stride.VK/SkiaGameRendering.Stride.VK.csproj" />
+  <Project Path="Sample.Stride.VK.csproj" />
+</Solution>
