@@ -47,9 +47,10 @@ The zero-copy texture-sharing pattern has two requirements:
 |---|---|---|---|
 | DesktopGL (OpenGL) | 3.8.4+ | Native GL (`GRContext.CreateGl`) | **Done** — this library |
 | WindowsDX (D3D11) | 3.8.4 | ANGLE (GL ES → D3D11) | **Done** — see section 7 |
-| D3D12 | 3.8.5 (preview) | Native Skia D3D12 (`GRContext.CreateDirect3D`) *or* ANGLE-on-D3D12 | Both partially unready — see below |
 | Vulkan | 3.8.5 (preview) | Native Skia Vulkan (`GRContext.CreateVulkan`) *or* ANGLE-on-Vulkan | Most promising 3.8.5 target |
 | Metal | (not MG) | `GRContext.CreateMetal` | Not applicable |
+
+D3D12 is not planned. [Issue #24](https://github.com/vchelaru/SkiaGameRendering/issues/24) has the decision and the evidence behind it.
 
 ### Per-API detail
 
@@ -61,10 +62,6 @@ The zero-copy texture-sharing pattern has two requirements:
 - Skia draws into them. Same zero-copy shape as the OpenGL version.
 
 Template: [SkiaSharp.Views.WinUI](https://github.com/mono/SkiaSharp/tree/main/source/SkiaSharp.Views/SkiaSharp.Views.WinUI) + the [WinUI sample](https://github.com/mono/SkiaSharp/tree/main/samples/Basic/WinUI). Pay attention to the ANGLE SwapChains and the `Egl`/`Gles`/`GlesContext` bindings.
-
-**Native D3D12.** `GRContext.CreateDirect3D` with `GRD3DBackendContext` (device + command queue + adapter). Same device as MG, so `ID3D12Resource` is directly shareable — no NT-handle interop needed. Wrap resources in `GRD3DTextureResourceInfo` (resource pointer, current state, DXGI format). Synchronization via D3D12 fences; must track and restore resource state around Skia submissions.
-
-Caveat: **SkiaSharp's managed D3D12 bindings have historically been the least-polished of Skia's backends.** Verify `GRContext.CreateDirect3D` is actually exported in the SkiaSharp version you'd use at port time.
 
 **Native Vulkan.** `GRContext.CreateVulkan` with `GRVkBackendContext` (`VkDevice`, `VkQueue`, `VkPhysicalDevice`, queue family index). Import MG-allocated `VkImage`s via `GRVkImageInfo` + `GRBackendTexture`. Same device as MG, so images are directly visible.
 
@@ -79,17 +76,16 @@ Vulkan-specific complexity:
 
 ## 3. The ANGLE vs. native-backend question (for MG 3.8.5)
 
-This is the crux if you plan to support MG 3.8.5's new D3D12 / Vulkan backends.
+This is the crux if you plan to support MG 3.8.5's new Vulkan backend.
 
 ### The case for ANGLE
 - **Maintenance outsourcing.** Chrome on Windows runs on ANGLE. It is one of the most battle-tested graphics libraries in existence, continuously maintained by Google.
-- **SkiaSharp's managed bindings are a weaker link** than Skia itself. Vulkan bindings are decent; D3D12 bindings have lagged.
+- **SkiaSharp's managed bindings are a weaker link** than Skia itself, though the Vulkan bindings are decent.
 - GL→D3D11 translation through ANGLE is the specific path SkiaSharp-on-UWP uses, so there is existence-proof and a template to copy.
 - Performance concern is mostly not real — ANGLE translates GLSL→HLSL at shader compile time, and per-dispatch overhead is small constants. Skia 2D workloads are fill-rate- and shader-compile-bound, not API-bound.
 
 ### The case against ANGLE (specifically for MG 3.8.5)
 - **"Let Google maintain it" assumes Google maintains the specific feature you're relying on.** Chrome exercises the *forward* direction (GL → D3D for display). You need the *inverse* (import an engine-allocated native texture into Skia's GL context). Extensions like `EGL_D3D_TEXTURE_ANGLE`, `EGL_ANGLE_d3d_share_handle_client_buffer`, `EGL_ANGLE_vulkan_image` exist and work, but they're a secondary use case, not Chrome's primary dependency.
-- **ANGLE's D3D12 backend is not production-quality.** Chrome still defaults to D3D11 on Windows. Using ANGLE with an MG D3D12 build would mean ANGLE stands up its own D3D11 device on the side → cross-device shared-handle interop → the ugly path.
 - **ANGLE's Vulkan backend is production** (ChromeOS, Android), but the Vulkan texture-import path is less exercised than the D3D11 one.
 - When Skia has a native backend for your API, going through ANGLE is a translation layer for no reason — extra DLL, extra shader compile path, extra bug surface.
 
@@ -97,10 +93,9 @@ This is the crux if you plan to support MG 3.8.5's new D3D12 / Vulkan backends.
 | Target | Best path |
 |---|---|
 | MG 3.8.4 WindowsDX (D3D11) today | **ANGLE** — clear winner, UWP template exists |
-| MG 3.8.5 D3D12 | Decide at port time. Check (a) is SkiaSharp shipping `GRContext.CreateDirect3D`? (b) has ANGLE's D3D12 backend moved off experimental? Whichever is more mature wins. |
-| MG 3.8.5 Vulkan | Native Skia Vulkan (`GRContext.CreateVulkan`) is the cleanest target of the three — Skia's Vulkan backend is mature. |
+| MG 3.8.5 Vulkan | Native Skia Vulkan (`GRContext.CreateVulkan`) is the cleanest 3.8.5 target — Skia's Vulkan backend is mature. |
 
-Writing the D3D11/ANGLE version now doesn't lock you out of either 3.8.5 future — the abstraction boundary (Skia draws into an MG-allocated texture, somehow) is the same.
+Writing the D3D11/ANGLE version now doesn't lock you out of the 3.8.5 Vulkan future — the abstraction boundary (Skia draws into an MG-allocated texture, somehow) is the same.
 
 ---
 
@@ -149,7 +144,7 @@ Issue: [mfigueirido/SkiaMonoGameRendering#2](https://github.com/mfigueirido/Skia
 
 Relevant points from the thread:
 - Author confirmed a WindowsDX port would require replacing the OpenGL layer and said he'd "be happy to offer support if someone shows up and wants to deal with this." Explicit invitation to fork/contribute.
-- Author believed (in 2022) SkiaSharp only supported OpenGL backends — this was true-ish then but is **outdated now**; modern SkiaSharp binds Vulkan and D3D12 `GRContext` creation.
+- Author believed (in 2022) SkiaSharp only supported OpenGL backends — this was true-ish then but is **outdated now**; modern SkiaSharp binds Vulkan `GRContext` creation.
 - `@LilithSilver` identified the ANGLE path and the SkiaSharp WinUI sample as the template. The thread converged on ANGLE as the viable D3D route.
 - Author confirmed platform support should match DesktopGL (Linux, Android probably work, untested).
 - Consoles: native calls + SDK access issues make them hard regardless of API.
@@ -161,11 +156,10 @@ Relevant points from the thread:
 - **ANGLE** — "Almost Native Graphics Layer Engine," Google's GL ES implementation on top of D3D11 / Vulkan / Metal. Used by Chrome, WebGL, SkiaSharp-on-UWP. Source: [google/angle](https://github.com/google/angle).
 - **EGL** — the "windowing system" binding layer for OpenGL ES. ANGLE exposes a standard EGL interface. `EGL_PLATFORM_ANGLE_ANGLE` + platform-type attribute selects the backing API.
 - **`GRContext`** — Skia's GPU context handle. One per graphics API: `CreateGl`, `CreateVulkan`, `CreateDirect3D`, `CreateMetal`.
-- **`GRBackendRenderTarget` / `GRBackendTexture`** — Skia's way to wrap an externally-allocated GPU resource (FBO, VkImage, D3D12Resource, etc.) so Skia can draw into it without owning the allocation.
-- **Object sharing (GL)** — GL contexts created with a shared-list flag see each other's texture/buffer object IDs. No equivalent in Vulkan/D3D12 — you share the *device* itself instead.
+- **`GRBackendRenderTarget` / `GRBackendTexture`** — Skia's way to wrap an externally-allocated GPU resource (FBO, VkImage, etc.) so Skia can draw into it without owning the allocation.
+- **Object sharing (GL)** — GL contexts created with a shared-list flag see each other's texture/buffer object IDs. No equivalent in Vulkan — you share the *device* itself instead.
 - **Shared NT handle (D3D)** — the cross-device/cross-API interop mechanism. `D3D11_RESOURCE_MISC_SHARED_NTHANDLE` on create, `OpenSharedHandle` on the other side. Needed if two different device objects must see the same texture.
 - **Image layout (Vulkan)** — Vulkan images have an explicit layout state (e.g. `COLOR_ATTACHMENT_OPTIMAL`, `SHADER_READ_ONLY_OPTIMAL`) that must match what the current operation expects. Must be tracked and transitioned with barriers.
-- **Resource state (D3D12)** — D3D12's equivalent of Vulkan image layout; transitioned via resource barriers.
 
 ---
 
@@ -227,7 +221,5 @@ Short version of the recommendation: **build Option D**, which on Chrome/Edge me
 
 ## 9. Open questions to revisit when MG 3.8.5 ships
 
-- Is `GRContext.CreateDirect3D` exposed and working in the SkiaSharp version available at that time?
-- Has ANGLE's D3D12 backend moved off experimental status?
-- Does MG 3.8.5 expose `VkDevice` / `VkQueue` / `ID3D12Device` / `ID3D12CommandQueue` publicly, or is reflection still required?
+- Does MG 3.8.5 expose `VkDevice` / `VkQueue` publicly, or is reflection still required?
 - Does MG 3.8.5's texture allocation respect usage flags needed for Skia interop (render-target, storage, appropriate format support)?
