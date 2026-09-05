@@ -83,6 +83,15 @@ jobs:
           } catch {
             Write-Host "LoadLibrary(vulkan-1.dll) FAILED: $_"
           }
+      # TEMPORARY diagnostic - a plain `dotnet run` console app, not vstest, so native stderr (where
+      # VK_LOADER_DEBUG writes) is actually captured by the Actions log instead of being swallowed by
+      # the vstest testhost.
+      - name: DIAGNOSTIC - vkCreateInstance with VK_LOADER_DEBUG
+        shell: pwsh
+        run: dotnet run --project tests/Tests.Core.VK/diag/diag.csproj -c Debug
+        env:
+          VK_ICD_FILENAMES: ${{ github.workspace }}\tests\Tests.Core.VK\mesa-vendor\lvp_icd.x86_64.json
+          VK_LOADER_DEBUG: all
       # Mesa's gallium WGL loader auto-selects a D3D12-backed driver when a D3D12 adapter is
       # enumerable (including WARP) and only falls back to llvmpipe otherwise - forcing the driver
       # here makes the software path deterministic instead of depending on what this runner exposes.
