@@ -45,7 +45,6 @@ finding is preserved in issue #3's spike comment and carried into `Wgl.cs`'s doc
 
 ## Open Questions
 
-- **MonoGame 3.8.5 Vulkan**: DX11 or DX12? Need to decide which DirectX version the Vulkan row targets.
 - **KNI versions**: Which KNI package versions to target?
 
 ## Next Steps
