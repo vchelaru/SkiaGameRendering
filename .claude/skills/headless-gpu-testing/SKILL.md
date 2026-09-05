@@ -125,3 +125,23 @@ Linux test job is ever added, but this is unverified - no such job runs today.
   it, the call appears to succeed (no exception, correct count) but every element comes back zeroed -
   the native writes never make it back into the managed array. An `IntPtr[]` (as used for
   `vkEnumeratePhysicalDevices`) round-trips fine without the attribute; a custom struct array does not.
+
+## Golden images
+
+`tests/Shared/GoldenScene.cs` (one scene, drawn by every backend) and `tests/Shared/GoldenImage.cs`
+(tolerance comparison against a checked-in PNG in each test project's `goldens/`) are linked into the
+three `Tests.Core.*` projects the way `EngineReflectionPin.cs` is. A failing run writes the render and
+a magenta diff to `golden-failures/` next to the test binary, which `master.yml` uploads as an
+artifact. `SKIAGAMERENDERING_UPDATE_GOLDENS=1` rewrites a golden instead of comparing, and fails the
+test so the update cannot read as a pass.
+
+### Landmines
+
+- **A Core.OGL or Core.VK golden is only valid if Mesa rendered it.** Those backends use whatever
+  driver the machine has, so one generated on a dev box's GPU will not match CI. Both compare only
+  when `SKIAGAMERENDERING_PINNED_RASTERIZER=1` (set in `master.yml`) and otherwise check the render's
+  orientation alone; regenerating locally means vendoring Mesa first and running under
+  `GALLIUM_DRIVER=llvmpipe` or `VK_ICD_FILENAMES`. Core.ANGLE needs no gate, since WARP is the driver
+  everywhere.
+- **`VK_ICD_FILENAMES` works on a dev box**, the mirror of the elevated-CI case above: an unelevated
+  shell is exactly what the Vulkan loader still honors it for.

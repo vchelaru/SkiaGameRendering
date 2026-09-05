@@ -9,9 +9,10 @@ namespace Tests.CoreAngle;
 ///
 /// Vtable slot indices are cross-checked against github.com/terrafx/terrafx.interop.windows the
 /// same way <c>D3D11Com</c>'s are: ID3D11Device::CreateTexture2D is slot 5, ID3D11DeviceContext::Map
-/// is slot 14, ::Unmap is slot 15, ::CopyResource is slot 47 (all on the base, non-.1 interfaces,
-/// which the .1 pointers this test passes in satisfy too since ID3D11Device1/DeviceContext1 only
-/// append slots after their base interface's).
+/// is slot 14, ::Unmap is slot 15, ::RSSetViewports is slot 44, ::CopyResource is slot 47,
+/// ::RSGetViewports is slot 95 (all on the base, non-.1 interfaces, which the .1 pointers this test
+/// passes in satisfy too since ID3D11Device1/DeviceContext1 only append slots after their base
+/// interface's).
 /// </summary>
 static unsafe class D3D11RawResources
 {
@@ -43,6 +44,18 @@ static unsafe class D3D11RawResources
         public uint MiscFlags;
     }
 
+    /// <summary>D3D11_VIEWPORT. Used as a marker value to check the context state survives a Skia draw.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct Viewport
+    {
+        public float TopLeftX;
+        public float TopLeftY;
+        public float Width;
+        public float Height;
+        public float MinDepth;
+        public float MaxDepth;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     struct MappedSubresource
     {
@@ -72,6 +85,28 @@ static unsafe class D3D11RawResources
     {
         var fn = (delegate* unmanaged[MemberFunction]<IntPtr, IntPtr, IntPtr, void>)(*(void***)context)[47];
         fn(context, dst, src);
+    }
+
+    /// <summary>ID3D11DeviceContext::RSSetViewports, vtable slot 44.</summary>
+    internal static void SetViewport(IntPtr context, in Viewport viewport)
+    {
+        var fn = (delegate* unmanaged[MemberFunction]<IntPtr, uint, Viewport*, void>)(*(void***)context)[44];
+        fixed (Viewport* viewportPtr = &viewport)
+            fn(context, 1, viewportPtr);
+    }
+
+    /// <summary>
+    /// ID3D11DeviceContext::RSGetViewports, vtable slot 95. Returns null when the context has no
+    /// viewport bound at all, which is distinct from having a different one bound.
+    /// </summary>
+    internal static Viewport? GetViewport(IntPtr context)
+    {
+        var fn = (delegate* unmanaged[MemberFunction]<IntPtr, uint*, Viewport*, void>)(*(void***)context)[95];
+
+        Viewport viewport;
+        uint count = 1;
+        fn(context, &count, &viewport);
+        return count == 0 ? null : viewport;
     }
 
     /// <summary>

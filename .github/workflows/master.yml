@@ -77,6 +77,21 @@ jobs:
       - run: dotnet test tests/Tests.proj -c ${{ matrix.configuration }}
         env:
           GALLIUM_DRIVER: llvmpipe
+          # Tells the Core.OGL and Core.VK golden-image tests that this run is on the pinned Mesa
+          # rasterizers their reference images were rendered from, so they compare pixels instead of
+          # only checking the render's orientation. A dev box runs those two backends against its own
+          # GPU driver, which antialiases differently enough that comparing would fail for reasons
+          # that are not regressions. Core.ANGLE needs no such flag - it is on WARP everywhere.
+          SKIAGAMERENDERING_PINNED_RASTERIZER: 1
+      # A golden-image failure is a picture, not a number: "2.7% of pixels differ" says nothing about
+      # what moved. The tests write the render and a diff next to the test binary on failure.
+      - name: Upload golden-image diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-image-diffs-${{ matrix.configuration }}
+          path: tests/**/golden-failures/*.png
+          if-no-files-found: ignore
       # Every src/ project builds here so warnings-as-errors (Directory.Build.props) has something
       # to fire on. Each package's sample builds too, since a sample is the only thing that compiles
       # against the package's public API the way a consumer does. Sample.Kni.WebGL is the exception -

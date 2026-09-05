@@ -19,4 +19,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\SkiaGameRendering.Core.ANGLE\SkiaGameRendering.Core.ANGLE.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
+    <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

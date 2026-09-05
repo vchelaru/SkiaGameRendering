@@ -1,5 +1,6 @@
 using SkiaGameRendering.Core.OGL;
 using SkiaSharp;
+using Tests.Shared;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -79,6 +80,83 @@ public sealed class WglSkiaPixelReadbackTests
             GlSkiaSurfaceFactory.DisposeRenderState(gl, framebufferState);
 
             Assert.Equal([expected.Red, expected.Green, expected.Blue, expected.Alpha], pixel);
+        }
+        finally
+        {
+            raw.DeleteTextures(1, ref textureId);
+        }
+    }
+
+    /// <summary>
+    /// The same pipeline as above, but drawing <see cref="GoldenScene"/> - antialiased shapes, a
+    /// gradient, overlapping translucent fills - and comparing the whole surface against a checked-in
+    /// reference image instead of sampling one pixel. A solid-color clear can't tell a working Skia
+    /// GPU pipeline from one that silently lost its blending or its antialiasing; this can.
+    /// <para>
+    /// The framebuffer binding is checked afterwards because that is the only GL state
+    /// <see cref="GlSkiaSurfaceFactory"/> undertakes to restore. Unlike the ANGLE backend, which
+    /// isolates Skia behind a D3D11.1 device-context-state swap, this path shares one GL context
+    /// with the engine and leaves the rest of the state for the engine to reset itself - so
+    /// asserting that, say, the viewport survived would be testing a promise nothing here makes.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public unsafe void Scene_MatchesGolden_ThroughRealWglContext()
+    {
+        using var context = new WglContext();
+        var loader = new WglFunctionLoader();
+        var raw = new GlRawTestFunctions(loader);
+
+        var renderer = raw.GetStringUtf8(GlRawTestFunctions.GL_RENDERER);
+        _output.WriteLine($"GL_RENDERER: {renderer}");
+
+        raw.GenTextures(1, out var textureId);
+        try
+        {
+            raw.BindTexture(GlRawTestFunctions.GL_TEXTURE_2D, textureId);
+            raw.TexImage2D(GlRawTestFunctions.GL_TEXTURE_2D, 0, GlRawTestFunctions.GL_RGBA8,
+                GoldenScene.Width, GoldenScene.Height, 0,
+                GlRawTestFunctions.GL_RGBA, GlRawTestFunctions.GL_UNSIGNED_BYTE, null);
+
+            var gl = GlFunctions.Load(loader);
+            using var grContext = GRContext.CreateGl()
+                ?? throw new InvalidOperationException("GRContext.CreateGl() returned null.");
+            grContext.ResetContext();
+
+            var (surface, renderTarget) = GlSkiaSurfaceFactory.CreateSurface(
+                grContext, gl, textureId, GoldenScene.Width, GoldenScene.Height, SKColorType.Rgba8888,
+                out var framebufferState);
+
+            GlSkiaSurfaceFactory.BindForDrawing(gl, framebufferState);
+            GoldenScene.Draw(surface.Canvas);
+            surface.Flush();
+
+            // As in the clear test above, glReadPixels reads the bound framebuffer, so this has to
+            // happen before UnbindAfterDrawing. Rows come back tightly packed here (the default
+            // GL_PACK_ALIGNMENT of 4 divides a 4-byte-per-pixel row evenly), so no pitch handling.
+            var pixels = new byte[GoldenScene.Width * GoldenScene.Height * 4];
+            fixed (byte* pixelPtr = pixels)
+            {
+                raw.ReadPixels(0, 0, GoldenScene.Width, GoldenScene.Height,
+                    GlRawTestFunctions.GL_RGBA, GlRawTestFunctions.GL_UNSIGNED_BYTE, pixelPtr);
+            }
+
+            GlSkiaSurfaceFactory.UnbindAfterDrawing(gl);
+            raw.GetIntegerv(GlRawTestFunctions.GL_FRAMEBUFFER_BINDING, out var boundFramebuffer);
+
+            renderTarget.Dispose();
+            surface.Dispose();
+            GlSkiaSurfaceFactory.DisposeRenderState(gl, framebufferState);
+
+            Assert.Equal(0, boundFramebuffer);
+
+            GoldenImage.AssertSceneOrientation(pixels);
+            if (GoldenImage.PinnedRasterizerInUse)
+                GoldenImage.AssertMatchesGolden(pixels, "core-ogl-scene.png");
+            else
+                _output.WriteLine($"Golden comparison skipped: the golden was rendered by CI's pinned " +
+                    $"Mesa llvmpipe build and this run used '{renderer}'. The render itself still ran " +
+                    "and was checked for orientation.");
         }
         finally
         {

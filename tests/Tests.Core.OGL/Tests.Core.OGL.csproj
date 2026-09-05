@@ -20,6 +20,12 @@
     <ProjectReference Include="..\..\src\SkiaGameRendering.Core.OGL\SkiaGameRendering.Core.OGL.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
+    <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!--
     Not checked in (see mesa-vendor/ in .gitignore) - CI's "Download Mesa llvmpipe for headless
     Core.OGL tests" step (master.yml) downloads pal1000/mesa-dist-win and drops these two files here

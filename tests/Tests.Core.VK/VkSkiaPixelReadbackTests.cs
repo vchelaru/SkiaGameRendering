@@ -1,5 +1,7 @@
+using System.Runtime.InteropServices;
 using SkiaGameRendering.Core.VK;
 using SkiaSharp;
+using Tests.Shared;
 using Xunit;
 using Xunit.Abstractions;
 using static Tests.CoreVK.VulkanTestNative;
@@ -43,10 +45,46 @@ public sealed unsafe class VkSkiaPixelReadbackTests
     [Fact]
     public void Clear_WritesExpectedColor_ThroughRealVulkanDevice()
     {
-        const int width = 4;
-        const int height = 4;
         var expected = new SKColor(10, 20, 30, 255);
 
+        var pixels = RenderAndReadBack(4, 4, canvas => canvas.Clear(expected));
+
+        Assert.Equal([expected.Red, expected.Green, expected.Blue, expected.Alpha], pixels[..4]);
+    }
+
+    /// <summary>
+    /// The same pipeline as above, but drawing <see cref="GoldenScene"/> - antialiased shapes, a
+    /// gradient, overlapping translucent fills - and comparing the whole image against a checked-in
+    /// reference instead of sampling one pixel. A solid-color clear can't tell a working Skia GPU
+    /// pipeline from one that silently lost its blending or its antialiasing; this can.
+    /// <para>
+    /// Nothing here checks graphics state was handed back the way the ANGLE and OpenGL backends do.
+    /// Vulkan has no persistent bound state to leak: everything is recorded into command buffers the
+    /// host owns, so there is no equivalent promise for a test to hold this backend to.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Scene_MatchesGolden_ThroughRealVulkanDevice()
+    {
+        var pixels = RenderAndReadBack(GoldenScene.Width, GoldenScene.Height, GoldenScene.Draw);
+
+        GoldenImage.AssertSceneOrientation(pixels);
+        if (GoldenImage.PinnedRasterizerInUse)
+            GoldenImage.AssertMatchesGolden(pixels, "core-vk-scene.png");
+        else
+            _output.WriteLine("Golden comparison skipped: the golden was rendered by CI's pinned Mesa " +
+                "lavapipe build and this run used whichever Vulkan driver this machine has. The render " +
+                "itself still ran and was checked for orientation.");
+    }
+
+    /// <summary>
+    /// Wraps a host-allocated <c>VkImage</c> with <see cref="VkSkiaSurfaceFactory"/>, runs
+    /// <paramref name="draw"/> on the resulting canvas, and copies the result back to CPU as tightly
+    /// packed RGBA8888. Shared by both tests above so the Vulkan scaffolding - image, staging buffer,
+    /// command pool, layout barrier, fence - is written once.
+    /// </summary>
+    byte[] RenderAndReadBack(int width, int height, Action<SKCanvas> draw)
+    {
         using var vk = new VulkanTestDevice();
         _output.WriteLine($"Vulkan graphics queue family index: {vk.GraphicsQueueFamilyIndex}");
 
@@ -69,7 +107,7 @@ public sealed unsafe class VkSkiaPixelReadbackTests
                 sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
                 imageType = VK_IMAGE_TYPE_2D,
                 format = VK_FORMAT_R8G8B8A8_UNORM,
-                extent = new VkExtent3D { width = width, height = height, depth = 1 },
+                extent = new VkExtent3D { width = (uint)width, height = (uint)height, depth = 1 },
                 mipLevels = 1,
                 arrayLayers = 1,
                 samples = VK_SAMPLE_COUNT_1_BIT,
@@ -108,7 +146,7 @@ public sealed unsafe class VkSkiaPixelReadbackTests
 
             factory.BeginDraw();
             var (surface, renderTarget) = factory.CreateSurface(state, width, height, SKColorType.Rgba8888);
-            surface.Canvas.Clear(expected);
+            draw(surface.Canvas);
             surface.Flush();
             factory.EndDraw();
             renderTarget.Dispose();
@@ -195,6 +233,8 @@ public sealed unsafe class VkSkiaPixelReadbackTests
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
                 0, IntPtr.Zero, 0, IntPtr.Zero, 1, &barrier);
 
+            // bufferRowLength and bufferImageHeight of 0 mean "tightly packed to imageExtent", so the
+            // staging buffer comes back with no row padding to unwind on the CPU side.
             var copyRegion = new VkBufferImageCopy
             {
                 bufferOffset = 0,
@@ -208,7 +248,7 @@ public sealed unsafe class VkSkiaPixelReadbackTests
                     layerCount = 1,
                 },
                 imageOffset = new VkOffset3D { x = 0, y = 0, z = 0 },
-                imageExtent = new VkExtent3D { width = width, height = height, depth = 1 },
+                imageExtent = new VkExtent3D { width = (uint)width, height = (uint)height, depth = 1 },
             };
             vkCmdCopyImageToBuffer(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer, 1, &copyRegion);
 
@@ -235,11 +275,11 @@ public sealed unsafe class VkSkiaPixelReadbackTests
 
             hr = vkMapMemory(vk.Device, stagingMemory, 0, bufferSize, 0, out var mapped);
             Assert.True(hr == VK_SUCCESS, $"vkMapMemory failed. VkResult: {hr}");
-            var pixel = new byte[pixelBytes];
-            System.Runtime.InteropServices.Marshal.Copy(mapped, pixel, 0, pixelBytes);
+            var pixels = new byte[width * height * pixelBytes];
+            Marshal.Copy(mapped, pixels, 0, pixels.Length);
             vkUnmapMemory(vk.Device, stagingMemory);
 
-            Assert.Equal([expected.Red, expected.Green, expected.Blue, expected.Alpha], pixel);
+            return pixels;
         }
         finally
         {
