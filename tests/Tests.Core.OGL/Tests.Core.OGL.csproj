@@ -19,4 +19,20 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\SkiaGameRendering.Core.OGL\SkiaGameRendering.Core.OGL.csproj" />
   </ItemGroup>
+
+  <!--
+    Not checked in (see mesa-vendor/ in .gitignore) - CI's "Download Mesa llvmpipe for headless
+    Core.OGL tests" step (master.yml) downloads pal1000/mesa-dist-win and drops these two files here
+    before `dotnet test` runs, so WglSkiaPixelReadbackTests exercises a real software GL driver on
+    GitHub's GPU-less windows-latest runner instead of just whatever driver a dev box's GPU provides.
+    ~59MB combined (opengl32.dll is a thin loader; libgallium_wgl.dll has the actual rasterizer) -
+    too large to vendor into the repo itself, hence the download-at-CI-time approach instead of a
+    committed copy. Absent locally, these Include paths simply don't exist and are silently skipped.
+  -->
+  <ItemGroup>
+    <!-- Link flattens these into the output root (next to Tests.Core.OGL.dll) instead of preserving
+         the mesa-vendor\ subfolder, which is where WglNative's preload expects to find them. -->
+    <None Include="mesa-vendor\opengl32.dll" Condition="Exists('mesa-vendor\opengl32.dll')" Link="opengl32.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="mesa-vendor\libgallium_wgl.dll" Condition="Exists('mesa-vendor\libgallium_wgl.dll')" Link="libgallium_wgl.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

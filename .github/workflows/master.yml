@@ -17,7 +17,28 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      # windows-latest has no GPU, and its default OpenGL driver is 1.1 with no FBO support -
+      # Tests.Core.OGL's WglSkiaPixelReadbackTests needs a real GL 3.x+ driver, so this drops
+      # Mesa's llvmpipe software rasterizer (pal1000/mesa-dist-win) next to the test binary. See the
+      # headless-gpu-testing skill and the conditional <None> includes in Tests.Core.OGL.csproj -
+      # ~59MB combined, too large to vendor into the repo, so this fetches it at CI time instead.
+      - name: Download Mesa llvmpipe for headless Core.OGL tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "26.2.0"
+          $url = "https://github.com/pal1000/mesa-dist-win/releases/download/$version/mesa3d-$version-release-msvc.7z"
+          Invoke-WebRequest -Uri $url -OutFile mesa.7z
+          $vendorDir = "tests/Tests.Core.OGL/mesa-vendor"
+          New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
+          & "C:\Program Files\7-Zip\7z.exe" e mesa.7z -o"$vendorDir" "x64/opengl32.dll" "x64/libgallium_wgl.dll" -y
+          Remove-Item mesa.7z
+      # Mesa's gallium WGL loader auto-selects a D3D12-backed driver when a D3D12 adapter is
+      # enumerable (including WARP) and only falls back to llvmpipe otherwise - forcing the driver
+      # here makes the software path deterministic instead of depending on what this runner exposes.
       - run: dotnet test tests/Tests.proj -c ${{ matrix.configuration }}
+        env:
+          GALLIUM_DRIVER: llvmpipe
       # Every src/ project builds here so warnings-as-errors (Directory.Build.props) has something
       # to fire on. Each package's sample builds too, since a sample is the only thing that compiles
       # against the package's public API the way a consumer does. Sample.Kni.WebGL is the exception -
