@@ -6,6 +6,13 @@ using Xunit;
 
 namespace Tests.Core;
 
+// SkiaRenderer holds process-wide static state, so this collection also covers
+// SkiaRendererAmbientTests - xUnit runs different collections in parallel by default, and the two
+// classes would otherwise race on that shared state.
+[CollectionDefinition("SkiaRenderer static state")]
+public sealed class SkiaRendererCollection { }
+
+[Collection("SkiaRenderer static state")]
 public sealed class SkiaRendererTests : IDisposable
 {
     private readonly GraphicsDevice _graphicsDevice =
@@ -137,7 +144,12 @@ public sealed class SkiaRendererTests : IDisposable
 
     public void Dispose() => SkiaRenderer.Dispose();
 
-    private sealed class FakeBackend : SkiaBackend
+    // Internal, not private: SkiaRendererAmbientTests.cs reuses this as the sole concrete
+    // SkiaBackend subclass loaded in this test process - see the scoping note there about why a
+    // second one isn't added. (Internal vs. private makes no difference to Activator.CreateInstance
+    // across assemblies on .NET 8 - neither blocks reflection construction of this type - so the
+    // visibility bump doesn't change anything the existing tests below rely on.)
+    internal sealed class FakeBackend : SkiaBackend
     {
         public int InitializeCount { get; private set; }
         public int BeginRenderCount { get; private set; }
@@ -184,7 +196,7 @@ public sealed class SkiaRendererTests : IDisposable
         public override void Dispose() => IsDisposed = true;
     }
 
-    private sealed class FakeTarget : SkiaTarget
+    internal sealed class FakeTarget : SkiaTarget
     {
         private static readonly Texture2D DummyTexture =
             (Texture2D)RuntimeHelpers.GetUninitializedObject(typeof(Texture2D));
