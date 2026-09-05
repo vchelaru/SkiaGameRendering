@@ -34,7 +34,7 @@ Skia draw runs inside a `SceneRendererBase.DrawCore` override -
 [SkiaStrideSceneRenderer](../documentation/SkiaStrideRenderTarget2D.md) is that hook:
 
 ```cs
-using SkiaGameRendering.Stride;
+using SkiaGameRendering.Stride.D3D11;
 using SkiaSharp;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;

@@ -1,4 +1,4 @@
-namespace SkiaGameRendering.Raylib
+namespace SkiaGameRendering.Raylib.OGL
 {
     /// <summary>
     /// A second, OS-native GL context that shares raylib's GL object namespace (textures, buffers,

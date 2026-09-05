@@ -28,7 +28,7 @@ dotnet add package SkiaSharp.NativeAssets.Linux
 
 ```cs
 using Raylib_cs;
-using SkiaGameRendering.Raylib;
+using SkiaGameRendering.Raylib.OGL;
 using SkiaSharp;
 
 Raylib.InitWindow(800, 600, "raylib + Skia");

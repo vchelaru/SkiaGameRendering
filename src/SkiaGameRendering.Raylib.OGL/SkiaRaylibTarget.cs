@@ -3,7 +3,7 @@ using SkiaGameRendering.Core.OGL;
 using SkiaSharp;
 using RaylibTexture2D = Raylib_cs.Texture2D;
 
-namespace SkiaGameRendering.Raylib
+namespace SkiaGameRendering.Raylib.OGL
 {
     /// <summary>
     /// Owns the GPU resources backing one <see cref="SkiaRaylibRenderTarget2D"/>: the raylib

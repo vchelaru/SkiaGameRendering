@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace SkiaGameRendering.Raylib
+namespace SkiaGameRendering.Raylib.OGL
 {
     /// <summary>
     /// Raw GLX (X11) calls to create a second GL context that shares raylib's object namespace, the

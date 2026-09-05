@@ -1,5 +1,5 @@
 using Raylib_cs;
-using SkiaGameRendering.Raylib;
+using SkiaGameRendering.Raylib.OGL;
 using SkiaSharp;
 
 const int Width = 800;

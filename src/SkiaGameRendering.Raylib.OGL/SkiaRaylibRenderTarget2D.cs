@@ -3,7 +3,7 @@ using RaylibApi = Raylib_cs.Raylib;
 using RaylibColor = Raylib_cs.Color;
 using RaylibTexture2D = Raylib_cs.Texture2D;
 
-namespace SkiaGameRendering.Raylib
+namespace SkiaGameRendering.Raylib.OGL
 {
     /// <summary>
     /// A GPU surface that SkiaSharp renders directly into, sized to match whatever you intend to

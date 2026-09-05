@@ -1,6 +1,6 @@
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride
+namespace SkiaGameRendering.Stride.D3D11
 {
     /// <summary>
     /// Holds the shared <see cref="SkiaStrideContext"/> for a Stride <see cref="GraphicsDevice"/>.

@@ -47,7 +47,7 @@ public sealed class SkiaRaylibRenderTarget2D : IDisposable
 
 ```csharp
 using Raylib_cs;
-using SkiaGameRendering.Raylib;
+using SkiaGameRendering.Raylib.OGL;
 using SkiaSharp;
 
 Raylib.InitWindow(800, 600, "raylib + Skia");

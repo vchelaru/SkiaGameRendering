@@ -45,7 +45,7 @@ public sealed class SkiaStrideRenderTarget2D : IDisposable
 ## Example
 
 ```csharp
-using SkiaGameRendering.Stride;
+using SkiaGameRendering.Stride.D3D11;
 using SkiaSharp;
 
 var canvas = new SkiaStrideRenderTarget2D(game.GraphicsDevice, 200, 200);

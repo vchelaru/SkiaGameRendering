@@ -2,7 +2,7 @@ using SkiaSharp;
 using Stride.Rendering;
 using Stride.Rendering.Compositing;
 
-namespace SkiaGameRendering.Stride
+namespace SkiaGameRendering.Stride.D3D11
 {
     /// <summary>
     /// The <see cref="SceneRendererBase"/> hook Stride needs to run a Skia draw every frame. Stride

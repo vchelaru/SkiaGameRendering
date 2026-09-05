@@ -3,7 +3,7 @@ using SkiaGameRendering.Core.ANGLE;
 using SkiaSharp;
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride
+namespace SkiaGameRendering.Stride.D3D11
 {
     /// <summary>
     /// Stride-specific adapter over <see cref="AngleSkiaSurfaceFactory"/> (see that class for how the

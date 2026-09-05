@@ -2,7 +2,7 @@ using SkiaSharp;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride
+namespace SkiaGameRendering.Stride.D3D11
 {
     /// <summary>
     /// A GPU surface that SkiaSharp renders directly into, sized to match whatever you intend to

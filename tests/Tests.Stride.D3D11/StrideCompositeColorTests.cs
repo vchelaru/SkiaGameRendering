@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride;
+using SkiaGameRendering.Stride.D3D11;
 using SkiaSharp;
 using Stride.Core.Mathematics;
 using Stride.Graphics;

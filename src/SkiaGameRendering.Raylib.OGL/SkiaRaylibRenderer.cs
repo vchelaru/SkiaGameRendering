@@ -1,4 +1,4 @@
-namespace SkiaGameRendering.Raylib
+namespace SkiaGameRendering.Raylib.OGL
 {
     /// <summary>
     /// Holds the shared Skia GL context (<see cref="SkiaRaylibContext"/>) for the current raylib
