@@ -21,5 +21,11 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\EngineReflectionPin.cs" Link="EngineReflectionPin.cs" />
+    <Compile Include="..\Shared\HiddenWindow.cs" Link="HiddenWindow.cs" />
+    <Compile Include="..\Shared\HeadlessGraphicsDevice.cs" Link="HeadlessGraphicsDevice.cs" />
+    <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
+    <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Compile Include="..\Shared\EngineSkiaGolden.cs" Link="EngineSkiaGolden.cs" />
+    <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

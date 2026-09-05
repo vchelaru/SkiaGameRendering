@@ -34,9 +34,6 @@ internal static class WglNative
             NativeLibrary.TryLoad(localPath, out _);
     }
 
-    internal const uint WS_POPUP = 0x80000000;
-    internal const uint CS_OWNDC = 0x0020;
-
     internal const uint PFD_DRAW_TO_WINDOW = 0x00000004;
     internal const uint PFD_SUPPORT_OPENGL = 0x00000020;
     internal const uint PFD_DOUBLEBUFFER = 0x00000001;
@@ -74,44 +71,7 @@ internal static class WglNative
         public uint dwDamageMask;
     }
 
-    internal delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    internal struct WNDCLASSEX
-    {
-        public uint cbSize;
-        public uint style;
-        public IntPtr lpfnWndProc;
-        public int cbClsExtra;
-        public int cbWndExtra;
-        public IntPtr hInstance;
-        public IntPtr hIcon;
-        public IntPtr hCursor;
-        public IntPtr hbrBackground;
-        public string? lpszMenuName;
-        public string lpszClassName;
-        public IntPtr hIconSm;
-    }
-
     // user32.dll
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    internal static extern ushort RegisterClassExW(ref WNDCLASSEX lpwcx);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    internal static extern bool UnregisterClassW(string lpClassName, IntPtr hInstance);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    internal static extern IntPtr CreateWindowExW(
-        uint dwExStyle, string lpClassName, string lpWindowName, uint dwStyle,
-        int x, int y, int nWidth, int nHeight,
-        IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
-
-    [DllImport("user32.dll")]
-    internal static extern bool DestroyWindow(IntPtr hWnd);
-
-    [DllImport("user32.dll")]
-    internal static extern IntPtr DefWindowProcW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
     [DllImport("user32.dll")]
     internal static extern IntPtr GetDC(IntPtr hWnd);
 

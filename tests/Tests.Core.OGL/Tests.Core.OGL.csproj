@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\HiddenWindow.cs" Link="HiddenWindow.cs" />
     <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
     <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
     <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />

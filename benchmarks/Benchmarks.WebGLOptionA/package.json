@@ -1,0 +1,10 @@
+{
+  "name": "webgl-optiona-benchmark",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}
