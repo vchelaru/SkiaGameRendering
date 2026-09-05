@@ -21,6 +21,12 @@ internal sealed class GlRawTestFunctions
     internal const int GL_RENDERER = 0x1F01;
     internal const int GL_VERSION = 0x1F02;
 
+    /// <summary>
+    /// Which framebuffer is currently bound - the one piece of GL state
+    /// <c>GlSkiaSurfaceFactory.UnbindAfterDrawing</c> undertakes to put back.
+    /// </summary>
+    internal const int GL_FRAMEBUFFER_BINDING = 0x8CA6;
+
     internal delegate void GenTexturesDelegate(int n, out int textures);
     internal delegate void BindTextureDelegate(int target, int texture);
     internal delegate void DeleteTexturesDelegate(int n, ref int textures);
@@ -29,6 +35,7 @@ internal sealed class GlRawTestFunctions
     internal unsafe delegate void ReadPixelsDelegate(int x, int y, int width, int height,
         int format, int type, void* pixels);
     internal delegate IntPtr GetStringDelegate(int name);
+    internal delegate void GetIntegervDelegate(int name, out int value);
 
     internal GenTexturesDelegate GenTextures { get; }
     internal BindTextureDelegate BindTexture { get; }
@@ -36,6 +43,7 @@ internal sealed class GlRawTestFunctions
     internal TexImage2DDelegate TexImage2D { get; }
     internal ReadPixelsDelegate ReadPixels { get; }
     internal GetStringDelegate GetString { get; }
+    internal GetIntegervDelegate GetIntegerv { get; }
 
     internal GlRawTestFunctions(IGlFunctionLoader loader)
     {
@@ -45,6 +53,7 @@ internal sealed class GlRawTestFunctions
         TexImage2D = loader.Load<TexImage2DDelegate>("glTexImage2D");
         ReadPixels = loader.Load<ReadPixelsDelegate>("glReadPixels");
         GetString = loader.Load<GetStringDelegate>("glGetString");
+        GetIntegerv = loader.Load<GetIntegervDelegate>("glGetIntegerv");
     }
 
     internal string GetStringUtf8(int name) =>
