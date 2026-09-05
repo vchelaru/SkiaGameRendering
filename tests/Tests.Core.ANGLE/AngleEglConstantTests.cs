@@ -57,11 +57,6 @@ public sealed class AngleEglConstantTests
         ["EGL_TEXTURE_FORMAT"] = 0x3080,
         ["EGL_TEXTURE_RGBA"] = 0x305E,
 
-        // From EGL_ANGLE_flexible_surface_compatibility, which ANGLE has since removed, so there is
-        // no current header to check this against. Pinned at the value the repo has always used.
-        // Nothing references it; it is a candidate for deletion.
-        ["EGL_FLEXIBLE_SURFACE_COMPATIBILITY_SUPPORTED_ANGLE"] = 0x33A6,
-
         ["GL_FRAMEBUFFER"] = 0x8D40,
         ["GL_RENDERBUFFER"] = 0x8D41,
         ["GL_COLOR_ATTACHMENT0"] = 0x8CE0,

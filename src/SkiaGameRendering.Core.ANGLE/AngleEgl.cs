@@ -97,7 +97,6 @@ namespace SkiaGameRendering.Core.ANGLE
         internal const int EGL_TEXTURE_2D = 0x305F;
         internal const int EGL_TEXTURE_FORMAT = 0x3080;
         internal const int EGL_TEXTURE_RGBA = 0x305E;
-        internal const int EGL_FLEXIBLE_SURFACE_COMPATIBILITY_SUPPORTED_ANGLE = 0x33A6;
 
         // EGL core functions
         [DllImport(LibEGL, CallingConvention = CallingConvention.Winapi)]
