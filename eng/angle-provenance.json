@@ -1,0 +1,24 @@
+{
+  "_comment": "Pinned ANGLE binaries vendored into Core.ANGLE (issue #36), checked in directly under src/SkiaGameRendering.Core.ANGLE/runtimes/<rid>/native. Built from ANGLE's own source via vcpkg's 'angle' port, not extracted from a browser/embedder build - Chromium's own snapshot builds and Electron's current releases were tried first and both produce libEGL.dll/libGLESv2.dll with zero exports (verified by PE export-table inspection), because modern Chromium links ANGLE privately into the browser process instead of shipping it as a standalone redistributable DLL. vcpkg builds ANGLE as its own standalone target, and vcpkg's post-build policy checks would reject an export-less DLL, so a real export surface is structural, not incidental. See eng/vendor-angle.ps1 to reproduce or update this.",
+  "vcpkg": {
+    "commit": "04a9d8e5212d01ee1dd9478eadd9caade4f8b0d4",
+    "portVersion": "chromium_7258",
+    "portVersionNumber": 2
+  },
+  "runtimes": {
+    "win-x64": {
+      "triplet": "x64-windows",
+      "files": {
+        "libEGL.dll": "sha256:9b40c68254d92a5640658345acdd71dda1365069c22bc0985ea6af1fe44bc509",
+        "libGLESv2.dll": "sha256:93ce98ce54a963a77973c268afcc12aabea958be149f21a24042c13f566a7666"
+      }
+    },
+    "win-arm64": {
+      "triplet": "arm64-windows",
+      "files": {
+        "libEGL.dll": "sha256:91d62682b09c24631fc501a0b55c0fd8e9eeeedf08eef98f79f9bbe279f36b19",
+        "libGLESv2.dll": "sha256:680951d3f9eb6e5e71a25aaa9670bb3447a87771b7cb31f0f8145ab4323f986e"
+      }
+    }
+  }
+}

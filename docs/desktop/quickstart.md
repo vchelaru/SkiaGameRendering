@@ -117,11 +117,24 @@ project, with core source files shared via linked includes (`src/SkiaGameRenderi
 `src/SkiaGameRendering.WindowsDX/`, `src/SkiaGameRendering.Kni.DesktopGL/`,
 `src/SkiaGameRendering.Kni.WindowsDX/`).
 
+## ANGLE
+
+The WindowsDX backends (`SkiaAngleBackend`, `SkiaKniAngleBackend`) run on ANGLE (GL ES → D3D11).
+`SkiaGameRendering.Core.ANGLE` vendors ANGLE's `libEGL.dll`/`libGLESv2.dll` for win-x64 and
+win-arm64 directly in its NuGet package (`runtimes/<rid>/native`), built from ANGLE's own source
+via vcpkg's `angle` port — see `eng/angle-provenance.json` for the exact vcpkg commit/version/hash
+and `eng/vendor-angle.ps1` to reproduce or update them. (Chromium's own snapshot builds and
+Electron's current releases were tried first; both ship `libEGL.dll`/`libGLESv2.dll` with zero
+exports, since modern Chromium links ANGLE privately into the browser process rather than as a
+standalone redistributable DLL.) ANGLE is
+[BSD-3-Clause](https://github.com/google/angle/blob/main/LICENSE); its license is carried in the
+package (`ANGLE-LICENSE.txt`). x86 isn't supported — `AngleEgl`'s resolver throws
+`PlatformNotSupportedException` rather than guessing a RID with no vendored binaries. Edge
+WebView's system ANGLE copy remains a last-resort fallback if the vendored DLLs are ever missing,
+but every consumer should land on the vendored copy in practice.
+
 ## Known limitations
 
-- **ANGLE DLL packaging**: the WindowsDX backends currently fall back to Edge WebView's system
-  ANGLE DLLs. The `Silk.NET.OpenGLES.ANGLE.Native` NuGet package ships 32-bit DLLs mislabeled as
-  x64, so it can't be used as-is.
 - **`glFinish` per renderable**: the ANGLE backends call `glFinish()` for GPU sync on every
   render-target pass. This could potentially be relaxed to `glFlush()` if D3D11's own
   synchronization turns out to be sufficient — unverified.
