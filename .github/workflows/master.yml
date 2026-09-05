@@ -54,54 +54,29 @@ jobs:
           New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
           & "C:\Program Files\7-Zip\7z.exe" e mesa.7z -o"$vendorDir" "x64/lvp_icd.x86_64.json" "x64/vulkan_lvp.dll" -y
           Remove-Item mesa.7z
-      # TEMPORARY diagnostic - remove once the lavapipe VkResult -9 failure is root-caused. Checks
-      # whether the runner has a system vulkan-1.dll at all, and whether vulkan_lvp.dll itself loads
-      # (a LoadLibrary failure here, e.g. a missing VC++ runtime dependency, would surface upstream
-      # as the loader reporting "no compatible driver" - indistinguishable from a bad ICD path
-      # without this).
-      - name: DIAGNOSTIC - probe Vulkan loader and lavapipe DLL
+      # GitHub's windows-latest runner executes as an elevated (admin) process, and the Vulkan
+      # loader deliberately ignores VK_ICD_FILENAMES (and VK_DRIVER_FILES/VK_ADD_DRIVER_FILES) for
+      # elevated processes - a documented anti-privilege-escalation hardening in Vulkan-Loader, so
+      # an env-var-only approach silently falls back to "no drivers found" (VkResult
+      # VK_ERROR_INCOMPATIBLE_DRIVER) with no build-time warning. Confirmed directly against this
+      # runner via VK_LOADER_DEBUG=all: "Loader is running with elevated permissions. Environment
+      # variable VK_ICD_FILENAMES will be ignored". The registry-based driver path is exempt (it
+      # already requires admin to write, so the loader trusts it) - this is the same mechanism a
+      # real GPU driver installer uses to register itself, and is unaffected by the runner's
+      # elevation. See the headless-gpu-testing skill's Vulkan section for the full story.
+      - name: Register Mesa lavapipe as a Vulkan ICD (registry, not VK_ICD_FILENAMES)
         shell: pwsh
         run: |
-          $sysLoader = "C:\Windows\System32\vulkan-1.dll"
-          Write-Host "System vulkan-1.dll present: $(Test-Path $sysLoader)"
-          if (Test-Path $sysLoader) {
-            (Get-Item $sysLoader).VersionInfo | Format-List | Out-String | Write-Host
-          }
-          $lvpDll = "$PWD\tests\Tests.Core.VK\mesa-vendor\vulkan_lvp.dll"
-          Write-Host "vulkan_lvp.dll present: $(Test-Path $lvpDll)"
-          try {
-            $h = [System.Runtime.InteropServices.NativeLibrary]::Load($lvpDll)
-            Write-Host "LoadLibrary(vulkan_lvp.dll) OK, handle=$h"
-            [System.Runtime.InteropServices.NativeLibrary]::Free($h)
-          } catch {
-            Write-Host "LoadLibrary(vulkan_lvp.dll) FAILED: $_"
-          }
-          try {
-            $h2 = [System.Runtime.InteropServices.NativeLibrary]::Load("vulkan-1.dll")
-            Write-Host "LoadLibrary(vulkan-1.dll) OK, handle=$h2"
-            [System.Runtime.InteropServices.NativeLibrary]::Free($h2)
-          } catch {
-            Write-Host "LoadLibrary(vulkan-1.dll) FAILED: $_"
-          }
-      # TEMPORARY diagnostic - a plain `dotnet run` console app, not vstest, so native stderr (where
-      # VK_LOADER_DEBUG writes) is actually captured by the Actions log instead of being swallowed by
-      # the vstest testhost.
-      - name: DIAGNOSTIC - vkCreateInstance with VK_LOADER_DEBUG
-        shell: pwsh
-        run: dotnet run --project tests/Tests.Core.VK/diag/diag.csproj -c Debug
-        env:
-          VK_ICD_FILENAMES: ${{ github.workspace }}\tests\Tests.Core.VK\mesa-vendor\lvp_icd.x86_64.json
-          VK_LOADER_DEBUG: all
+          $ErrorActionPreference = "Stop"
+          $icdPath = "$PWD\tests\Tests.Core.VK\mesa-vendor\lvp_icd.x86_64.json"
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name $icdPath -PropertyType DWord -Value 0 -Force | Out-Null
       # Mesa's gallium WGL loader auto-selects a D3D12-backed driver when a D3D12 adapter is
       # enumerable (including WARP) and only falls back to llvmpipe otherwise - forcing the driver
       # here makes the software path deterministic instead of depending on what this runner exposes.
-      # VK_ICD_FILENAMES restricts the Vulkan loader to exactly the lavapipe ICD downloaded above,
-      # the Vulkan equivalent of GALLIUM_DRIVER - without it the loader would enumerate zero devices
-      # on this GPU-less runner instead of falling back to anything.
       - run: dotnet test tests/Tests.proj -c ${{ matrix.configuration }}
         env:
           GALLIUM_DRIVER: llvmpipe
-          VK_ICD_FILENAMES: ${{ github.workspace }}\tests\Tests.Core.VK\mesa-vendor\lvp_icd.x86_64.json
       # Every src/ project builds here so warnings-as-errors (Directory.Build.props) has something
       # to fire on. Each package's sample builds too, since a sample is the only thing that compiles
       # against the package's public API the way a consumer does. Sample.Kni.WebGL is the exception -

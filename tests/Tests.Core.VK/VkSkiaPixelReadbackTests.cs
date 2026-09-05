@@ -19,7 +19,9 @@ namespace Tests.CoreVK;
 /// real, externally-owned <c>VkImage</c> reachable only through <see cref="VkSkiaSurfaceFactory"/>'s
 /// raw-<see cref="IntPtr"/> entry point, not just that the P/Invoke declarations compile. On a dev box
 /// with a real GPU this runs against the real driver; the CI-relevant path (no GPU) is Mesa lavapipe,
-/// selected via <c>VK_ICD_FILENAMES</c> - see <c>master.yml</c> and the headless-gpu-testing skill.
+/// registered via the Windows registry (not <c>VK_ICD_FILENAMES</c>, which the Vulkan loader ignores
+/// for elevated processes like GitHub's runner) - see <c>master.yml</c> and the headless-gpu-testing
+/// skill.
 /// </para>
 /// <para>
 /// The post-draw layout transition below (<c>VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL</c> -&gt;

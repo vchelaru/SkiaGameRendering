@@ -14,9 +14,10 @@ namespace Tests.CoreVK;
 /// Unlike WARP (Microsoft's own software D3D11 rasterizer, bundled with every Windows install),
 /// Vulkan has no first-party software implementation to force - whichever ICD the system loader
 /// enumerates first is what this uses. On a dev box with a real GPU that's the real driver; in CI
-/// (no GPU) that's Mesa lavapipe (llvmpipe's Vulkan ICD), selected via the <c>VK_ICD_FILENAMES</c>
-/// environment variable set by <c>master.yml</c> - see the headless-gpu-testing skill's Vulkan
-/// section for exactly how that's wired per platform.
+/// (no GPU) that's Mesa lavapipe (llvmpipe's Vulkan ICD), registered via the Windows registry by
+/// <c>master.yml</c> - NOT the <c>VK_ICD_FILENAMES</c> environment variable, which the Vulkan loader
+/// silently ignores on GitHub's elevated runner. See the headless-gpu-testing skill's Vulkan section
+/// for exactly how that's wired per platform and why the env-var approach doesn't work here.
 /// </para>
 /// </summary>
 internal sealed unsafe class VulkanTestDevice : IDisposable

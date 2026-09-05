@@ -73,13 +73,28 @@ the same role llvmpipe plays for GL, from the exact same
 above (`x64/lvp_icd.x86_64.json`, `x64/vulkan_lvp.dll`) - confirmed by downloading the archive and
 running the real test against it that, unlike the GL path, it's self-contained: no
 `libgallium_wgl.dll` dependency needed. `master.yml`'s "Download Mesa lavapipe for headless Core.VK
-tests" step vendors both files into `tests/Tests.Core.VK/mesa-vendor/`, and the `dotnet test` step
-points `VK_ICD_FILENAMES` at the vendored json's absolute path - this restricts the Vulkan loader to
-exactly that ICD, the Vulkan equivalent of `GALLIUM_DRIVER=llvmpipe`. No conditional MSBuild copy is
-needed the way `Tests.Core.OGL.csproj` needs one for its DLLs: the ICD json's `library_path`
-(`.\vulkan_lvp.dll`) resolves relative to the json itself, not to the test binary's output directory,
-so `VK_ICD_FILENAMES` alone is enough. Locally, with `VK_ICD_FILENAMES` unset, the test just uses
-whatever real Vulkan driver is already on the machine.
+tests" step vendors both files into `tests/Tests.Core.VK/mesa-vendor/`.
+
+**`VK_ICD_FILENAMES` does not work on `windows-latest` - use the registry instead.** The obvious
+approach (point `VK_ICD_FILENAMES` at the vendored json's absolute path, the Vulkan equivalent of
+`GALLIUM_DRIVER=llvmpipe`) fails silently: `windows-latest` runs its steps as an elevated
+(administrator) process, and the Vulkan loader deliberately ignores `VK_ICD_FILENAMES` - along with
+`VK_DRIVER_FILES`, `VK_ADD_DRIVER_FILES`, and the layer-path variables - for elevated processes. This
+is documented Vulkan-Loader anti-privilege-escalation hardening (an elevated process trusting an
+unprivileged env var to load an arbitrary DLL would be an escalation vector), not a bug, and it gives
+no build-time warning - `vkCreateInstance` just returns `VK_ERROR_INCOMPATIBLE_DRIVER` (-9) as if no
+driver existed at all. Confirmed directly against the runner (not assumed) via a temporary
+`VK_LOADER_DEBUG=all` diagnostic step, which logged `Loader is running with elevated permissions.
+Environment variable VK_ICD_FILENAMES will be ignored`, immediately followed by `Registry lookup
+failed to get ICD manifest files. Possibly missing Vulkan driver?` and `Found no drivers!`. The
+registry-based driver-registration path is exempt (writing `HKLM` already requires admin, so the
+loader trusts it - the same mechanism a real GPU driver installer uses), so `master.yml`'s "Register
+Mesa lavapipe as a Vulkan ICD" step writes the vendored json's absolute path as a `DWORD 0` value
+under `HKLM:\SOFTWARE\Khronos\Vulkan\Drivers` instead of setting an environment variable. No
+conditional MSBuild copy is needed the way `Tests.Core.OGL.csproj` needs one for its DLLs: the ICD
+json's `library_path` (`.\vulkan_lvp.dll`) resolves relative to the json itself, not to the test
+binary's output directory. Locally, with no registry entry added, the test just uses whatever real
+Vulkan driver is already on the machine.
 
 **Linux CI coverage does not exist for this or for Core.OGL.** The only job running
 `dotnet test tests/Tests.proj` is `desktop-and-core` on `windows-latest`; the `ubuntu-latest` job
