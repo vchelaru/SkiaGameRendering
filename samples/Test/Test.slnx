@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../../src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj" />
+  <Project Path="../../src/SkiaGameRendering/SkiaGameRendering.csproj" />
+  <Project Path="Test.csproj" />
+</Solution>
