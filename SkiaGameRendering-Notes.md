@@ -210,12 +210,12 @@ Full discussion is in a dedicated document: **`WebGL-KNI-Integration.md`** at th
 - The state-cache problem — the real obstacle when two libraries drive one context, and why it bit the WindowsDX/ANGLE port in section 7.
 - The four options (A: shared WebGL context; B: CPU readback; C: two-canvas overlay; D: cross-context GPU blit via `texImage2D(canvas)`) with comparison table.
 - Why Option D is the recommended path, plus the `OffscreenCanvas + transferToImageBitmap` fast-path variant.
-- Option A reconsidered with a KNI-side `InvalidateStateCache()` patch reducing its implementation cost significantly.
+- Option A reconsidered with a KNI-side `InvalidateStateCache()` patch reducing its implementation cost significantly — since spiked and confirmed (both the state-cache fix and the context-bridging unknown), and filed upstream as [kniEngine/kni#2710](https://github.com/kniEngine/kni/pull/2710).
 - Spike v0 findings (spike since concluded and removed from the repo): initial results (Chrome/Edge ~0.25 ms, Firefox ~25 ms), four alternative upload paths identified to test whether any rescue Firefox.
 - KNI-side changes worth making if forking KNI, and which of them are upstreamable to KNI vs better kept downstream.
-- Where to pick up: the Firefox upload-path question is now tracked in [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5) alongside the rest of the WebGL hardware-acceptance benchmark work; v1 (real KNI canvas) and v2 (full interleaving demo) followed and are done — see the integrated `Sample.Kni.WebGL`.
+- Where to pick up (section 10, updated): the Firefox upload-path question is closed — every path misses budget by 60-300x (issue #5). Option A's two open unknowns are both spiked and confirmed; what's still missing is a real-hardware Option A measurement on Firefox itself (only Chrome has been measured so far, via the parked `spike/webgl-option-a-benchmark` branch) and a production implementation — tracked in [issue #12](https://github.com/vchelaru/SkiaGameRendering/issues/12).
 
-Short version of the recommendation: **build Option D**, which on Chrome/Edge measures ~0.25 ms upload at 1080p; Firefox unknown pending alternative-path measurement; fall back to Option A (with the KNI-fork state-cache patch) only if Firefox can't be rescued.
+Short version of the recommendation: **build Option D** (shipped, Chrome/Edge Tier 1). Firefox needs Option A, which is now proven feasible but unmeasured on Firefox itself and unimplemented in production — see issue #12.
 
 ---
 

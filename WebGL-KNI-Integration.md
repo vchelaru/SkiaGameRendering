@@ -154,7 +154,13 @@ The invalidation is the bridge. Every MG drawing block that follows already uses
 
 Implementation cost in KNI: roughly 20–30 lines of straightforward code in the WebGL backend — null out cached current-blend, current-depth, current-rasterizer, current-effect, current-sampler-array, current-vertex-buffers, current-index-buffer, current-bound-textures-per-slot, current-viewport, current-scissor. WebGL's state space is smaller than D3D11's, so less to enumerate than the WindowsDX equivalent would have been.
 
-This **does not solve the other hard part of Option A** — making Skia's Emscripten-built WASM Skia and KNI's JS-interop WebGL talk to the same `WebGL2RenderingContext`. That unknown remains. But it removes the largest piece of the "weeks of debugging" estimate, and shifts Option A from "rejected for now" to "potentially viable fallback if D doesn't work on the browsers we need."
+**Update — both halves of Option A are now spiked and confirmed, not just estimated:**
+
+- **Context bridging** (the "other hard part" above): confirmed possible. Skia's Emscripten GL registry exposes `registerContext(existingCtx, attribs)` alongside `createContext` — pointing it at KNI's own `WebGL2RenderingContext` (reached the same way `WebGlCanvasUpload.cs` already does, via `.Uid`) and calling `makeContextCurrent` works. A Skia draw issued right after landed real pixels in KNI's own canvas, confirmed by `gl.readPixels`.
+- **State-cache invalidation**: confirmed necessary and confirmed fixed. Without it, a KNI draw issued right after Skia touches the shared context throws `GL_INVALID_OPERATION` and draws nothing. With `GraphicsDevice.InvalidateStateCache()` (implemented as sketched above, plus one more wrinkle: KNI's state actually has two independent cache layers — the "already pushed to the GPU" layer and a separate dirty-flag layer that short-circuits on reference-equal state objects like a reused `BlendState.Opaque`; both need clearing, not just the first), the same draw comes back correct with no GL error.
+- **Filed upstream**: [kniEngine/kni#2710](https://github.com/kniEngine/kni/pull/2710) adds `GraphicsDevice.InvalidateStateCache()` to KNI's BlazorGL backend. Not merged yet.
+- **Real-hardware comparison (Chrome, one data point so far)**: with both pieces working, live-measured Option A interop overhead (invalidate + KNI's redraw, excluding Skia's own draw) came in at ~0.5ms flat across 1080p/1440p/4K, vs. Option D's live upload cost of ~0.2–0.3ms (scaling with resolution, as expected for a data-size-bound copy). Option D still wins on Chrome/Edge — expected, since Option A does strictly more GL driver work per frame (full state rebind + full draw call) than Option D's single blit. Chrome/Edge was never the target case. **Firefox has not yet been measured on Option A on real hardware** — that's the number that actually decides whether this is worth shipping, and it's still outstanding.
+- Harness: the parked `spike/webgl-option-a-benchmark` branch runs Option A and Option D interleaved, frame-by-frame, in the same page load/browser session — avoids comparing a live run against a different day's static baseline under an unknown power state. It lives on a branch rather than on `master` because it `ProjectReference`s a locally patched KNI for `InvalidateStateCache()` and so builds on no other machine until [kniEngine/kni#2710](https://github.com/kniEngine/kni/pull/2710) ships. Issue #12 has the re-land conditions.
 
 ---
 
@@ -280,14 +286,13 @@ Maintainers usually have stronger opinions about *API shape* than about *whether
 
 ## 10. Where to pick up
 
-1. **Firefox upload path** — the v0 spike (now removed; see §7 above for its findings) never finished measuring Firefox on the four alternative upload paths at 1080p / 1440p / 4K. Particularly want path 3's result (`OffscreenCanvas + transferToImageBitmap`). This question is now tracked as part of the hardware-acceptance benchmark issue rather than a standalone spike. Outcomes:
-   - If path 3 lands in 0.5–2 ms on Firefox: Option D works everywhere by routing Skia through an `OffscreenCanvas` source.
-   - If every path is multi-ms in Firefox: Option D is Chromium-only; Firefox either falls back to Option B or is unsupported.
-2. **v1** (after v0 conclusive) — rerun upload measurement with the destination being a real KNI MG canvas. Requires:
-   - A working KNI Blazor WASM project that renders something with `SpriteBatch` (any colored quad).
-   - KNI version being targeted.
-   - WebGL1 vs WebGL2 confirmation (`gl.getParameter(gl.VERSION)` in devtools).
-3. **v2** (after v1) — interleaving with `SpriteBatch` and `RenderTarget2D`. Easiest if forking KNI with the changes in §8 — with `UploadFromCanvas` and the state-cache hook, v2 is straightforward. Without those, requires reflection into KNI to extract `WebGLTexture` from `Texture2D`.
+All of the below is now resolved except the last bullet:
+
+1. ~~Firefox upload path~~ — resolved via the hardware-acceptance benchmark (issue #5, closed): every path, including `OffscreenCanvas + transferToImageBitmap`, misses budget by 60–300x on Firefox. Option D is Chromium-only; Firefox needs Option A.
+2. ~~v1/v2 (context bridging + interleaving with a real KNI canvas)~~ — resolved by spike: Skia's Emscripten GL registry can `registerContext` onto KNI's own `WebGL2RenderingContext` and draw into it directly, confirmed via `gl.readPixels`. See §6's update.
+3. ~~State-cache invalidation~~ — resolved by spike and filed upstream as [kniEngine/kni#2710](https://github.com/kniEngine/kni/pull/2710). See §6's update.
+4. **Still open: Firefox has not been measured on Option A on real hardware.** The interleaved live A-vs-D comparison on `spike/webgl-option-a-benchmark` has only been run on Chrome so far. This is the number that actually decides whether pursuing Option A in production is worth it — Chrome/Edge were never the target and Option A costs more there, as expected.
+5. **If Firefox's Option A number clears budget**: build a real production `SkiaWebGlBackend`-equivalent for Option A (today it only exists as throwaway benchmark code on `spike/webgl-option-a-benchmark`, explicitly isolated from `src/SkiaGameRendering.Kni.WebGL/`), and decide whether to ship it as a Firefox-only runtime-selected fallback alongside Option D (default) rather than replacing Option D everywhere — Option D remains cheaper on Chrome/Edge. This also means the KNI PR needs to actually land (or be permanently vendored, reopening the exact "repo-local patched KNI" liability issue #2 eliminated) before Option A can ship anywhere.
 
 ---
 
