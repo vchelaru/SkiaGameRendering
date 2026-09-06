@@ -10,6 +10,20 @@ using SkiaSharp;
 
 namespace Benchmarks.WebGLOptionA;
 
+// Top-level (not nested in the internal OptionAFrameRunner below) so Index.razor.cs's public
+// [JSInvokable] RunFrame can return it - a type nested in an internal class is only as accessible
+// as that class, which CS0050 rejects for a public method's return type.
+public sealed class FrameTiming
+{
+    public double InvalidateMs { get; set; }
+    public double SkiaDrawMs { get; set; }
+    public double KniDrawMs { get; set; }
+    // invalidate + KNI's redraw only, excluding Skia's own render time - the number comparable
+    // to Option D's uploadCpu/uploadGpu (see OptionAFrameRunner.RunFrame's doc comment).
+    public double InteropOverheadMs { get; set; }
+    public double TotalMs { get; set; }
+}
+
 // Drives the exact 3-step Option A per-frame sequence proven out by the
 // worktree-agent-ab7b0bc9d3444d8d7 / worktree-agent-a366b823b701668f9 spikes (repo issue #12), now
 // wrapped for repeated timing instead of a single proof-of-concept pass:
@@ -31,6 +45,7 @@ internal sealed class OptionAFrameRunner
     private readonly GraphicsDevice _graphicsDevice;
     private readonly BenchGame _game;
     private readonly GRContext _context;
+    private readonly int _glContextHandle;
 
     private GRBackendRenderTarget? _renderTarget;
     private SKSurface? _surface;
@@ -39,13 +54,14 @@ internal sealed class OptionAFrameRunner
 
     public int ContextUid { get; }
 
-    private OptionAFrameRunner(IJSInProcessObjectReference module, BenchGame game, int contextUid, GRContext context)
+    private OptionAFrameRunner(IJSInProcessObjectReference module, BenchGame game, int contextUid, GRContext context, int glContextHandle)
     {
         _module = module;
         _game = game;
         _graphicsDevice = game.GraphicsDevice;
         ContextUid = contextUid;
         _context = context;
+        _glContextHandle = glContextHandle;
     }
 
     // Returns null (logging why) instead of throwing, so Index.razor.cs can show a clear
@@ -96,7 +112,7 @@ internal sealed class OptionAFrameRunner
             var context = GRContext.CreateGl(glInterface)
                 ?? throw new InvalidOperationException("GRContext.CreateGl returned null.");
             Console.WriteLine("[optionA] GRContext.CreateGl succeeded");
-            return new OptionAFrameRunner(module, game, contextUid, context);
+            return new OptionAFrameRunner(module, game, contextUid, context, registerResult.Handle);
         }
         catch (Exception exception)
         {
@@ -108,16 +124,31 @@ internal sealed class OptionAFrameRunner
     // The measured sequence. Called synchronously from JS once per benchmarked "frame" (see
     // wwwroot/js/context-bridge.js's runFrames) - NOT gated behind requestAnimationFrame/Present,
     // matching the second spike's approach of driving GraphicsDevice/Skia directly rather than
-    // through a full Game.Tick(). Returns the C#-side elapsed milliseconds for steps 1-3 only
-    // (excludes the JS<->WASM call boundary - the JS driver separately times the whole
-    // invokeMethod round trip for the "frameCpu" column; this is the "innerCpu" column).
-    public double RunFrame(int width, int height)
+    // through a full Game.Tick(). Excludes the JS<->WASM call boundary - the JS driver separately
+    // times the whole invokeMethod round trip for the "frameCpu" column.
+    //
+    // Returns per-step timings, NOT one lump sum - this matters for a fair comparison against
+    // Option D's published numbers. Option D's benchmarks/Benchmarks.WebGL never renders anything
+    // through Skia at all (its "source" draw is a trivial synthetic WebGL shader quad, timed
+    // separately as sourceCpu and explicitly excluded from docs/webgl/performance-results.md's
+    // published table) - its uploadCpu/uploadGpu numbers measure ONLY the cross-context copy of an
+    // already-rendered canvas. A real Skia draw (step 2 below) has to happen in either architecture
+    // and costs the same regardless of which one you pick, so bundling it into one number the way
+    // an earlier version of this benchmark did overstated Option A's interop cost by however long
+    // Skia's own rendering took. InteropOverheadMs (invalidate + KNI's redraw) is the number that's
+    // actually comparable to Option D's uploadCpu/uploadGpu; SkiaDrawMs is informative context only.
+    public FrameTiming RunFrame(int width, int height)
     {
-        var stopwatch = Stopwatch.StartNew();
-
         _graphicsDevice.Viewport = new Viewport(0, 0, width, height);
-        _graphicsDevice.InvalidateStateCache();
 
+        var invalidateWatch = Stopwatch.StartNew();
+        _graphicsDevice.InvalidateStateCache();
+        var invalidateMs = invalidateWatch.Elapsed.TotalMilliseconds;
+
+        var skiaWatch = Stopwatch.StartNew();
+        // Needed now that Option D's own dedicated context can also exist and become "current" in
+        // Emscripten's GL registry between frames - see context-bridge.js's makeGlContextCurrent.
+        _module.InvokeVoid("makeGlContextCurrent", _glContextHandle);
         EnsureSkiaSurface(width, height);
         using (var paint = new SKPaint { Color = new SKColor(0x00, 0x88, 0xFF, 0xFF), IsAntialias = true, Style = SKPaintStyle.Fill })
         {
@@ -126,11 +157,20 @@ internal sealed class OptionAFrameRunner
         }
         _surface.Flush();
         _context.Flush();
+        var skiaDrawMs = skiaWatch.Elapsed.TotalMilliseconds;
 
+        var kniWatch = Stopwatch.StartNew();
         DrawGreenQuad(width, height);
+        var kniDrawMs = kniWatch.Elapsed.TotalMilliseconds;
 
-        stopwatch.Stop();
-        return stopwatch.Elapsed.TotalMilliseconds;
+        return new FrameTiming
+        {
+            InvalidateMs = invalidateMs,
+            SkiaDrawMs = skiaDrawMs,
+            KniDrawMs = kniDrawMs,
+            InteropOverheadMs = invalidateMs + kniDrawMs,
+            TotalMs = invalidateMs + skiaDrawMs + kniDrawMs,
+        };
     }
 
     public int[] ReadCenterPixel(int width, int height) =>

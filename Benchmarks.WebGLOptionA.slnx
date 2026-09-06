@@ -1,0 +1,11 @@
+<Solution>
+  <!-- Spike/benchmark solution for issue #12's Option A investigation - NOT part of
+       SkiaGameRendering.sln and not built by CI. Set Benchmarks.WebGLOptionA as the startup
+       project and F5/Ctrl+F5 to launch it in your default browser (Blazor WASM dev server). -->
+  <Project Path="benchmarks/Benchmarks.WebGLOptionA/Benchmarks.WebGLOptionA.csproj" />
+  <!-- The patched local KNI clone Benchmarks.WebGLOptionA references (see its .csproj comment) -
+       included here so you can inspect/rebuild GraphicsDevice.InvalidateStateCache() in place.
+       If this path doesn't exist on your machine, re-clone kniEngine/kni at tag v4.3.9001 and
+       re-apply the patch described in WebGL-KNI-Integration.md section 6. -->
+  <Project Path="C:\kni-src\Platforms\Kni.Platform.Blazor.GL.csproj" />
+</Solution>

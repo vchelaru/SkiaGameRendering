@@ -55,5 +55,9 @@ test("Option A per-frame cost - headless indicative run", async ({ page }, testI
 
   for (const report of reports) {
     expect(report.correctness.pureGreenAfterSequence, `pureGreenAfterSequence false at ${report.resolution.width}x${report.resolution.height}`).toBe(true);
+    if (report.correctness.optionD) {
+      expect(report.correctness.optionD.pureMagentaCorner, `Option D pureMagentaCorner false at ${report.resolution.width}x${report.resolution.height}`).toBe(true);
+      expect(report.optionDLiveTimingsMilliseconds, `optionDLiveTimingsMilliseconds missing at ${report.resolution.width}x${report.resolution.height}`).toBeTruthy();
+    }
   }
 });

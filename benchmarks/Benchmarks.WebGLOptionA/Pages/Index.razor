@@ -7,17 +7,31 @@
 <PageTitle>Option A per-frame cost (indicative)</PageTitle>
 
 <main id="shell">
-    <h1>WebGL Option A per-frame cost - indicative benchmark</h1>
+    <h1>WebGL Option A vs Option D - live per-frame cost (indicative)</h1>
     <p>
-        Measures GraphicsDevice.InvalidateStateCache() + a Skia draw into KNI's shared WebGL2
-        context + KNI's own next draw call, per frame, at this page's resolution
-        (@_width x @_height - pass ?w=&amp;h= to change it, see README.md). One resolution per page
-        load: KNI's BlazorGL platform has no working live-resize (ChangeClientSize is a no-op stub
-        in kniEngine/kni v4.3.9001), so the 3-resolution matrix is 3 separate page loads, not one
-        in-session resize loop. Also see README.md before trusting any number this page reports -
+        Runs BOTH architectures back-to-back, interleaved frame-by-frame, in this same page load -
+        Option A (GraphicsDevice.InvalidateStateCache() + a Skia draw into KNI's shared WebGL2
+        context + KNI's own next draw call) and Option D (Skia draws to its own separate canvas,
+        then a cross-context texSubImage2D blit into a KNI texture - this repo's actual shipped
+        architecture). Interleaving both every frame means both see identical power/thermal
+        conditions in this session, unlike comparing a live run against
+        docs/webgl/performance-results.md's static baseline (captured a different day, possibly a
+        different power state - that baseline is still shown below for historical context).
+    </p>
+    <p>
+        Resolution: @_width x @_height.
+        <a href="?w=1920&amp;h=1080">1920x1080</a> |
+        <a href="?w=2560&amp;h=1440">2560x1440</a> |
+        <a href="?w=3840&amp;h=2160">3840x2160</a>
+        - one resolution per page load: KNI's BlazorGL platform has no working live-resize
+        (ChangeClientSize is a no-op stub in kniEngine/kni v4.3.9001), so switching resolution
+        reloads the page. Also see README.md before trusting any number this page reports -
         headless/CI runs are correctness signals only.
     </p>
+    <p>Option A (shared context, drawn via KNI's own canvas below):</p>
     <canvas id="theCanvas" width="@_width" height="@_height"></canvas>
+    <p>Option D (Skia's own separate canvas, blitted into a KNI texture each frame):</p>
+    <canvas id="option-d-source-canvas" width="@_width" height="@_height"></canvas>
     <div id="controls">
         <button id="run" disabled>Run this resolution</button>
         <button id="export" disabled>Export</button>

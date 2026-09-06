@@ -36,6 +36,9 @@ let height = 0;
 let resKey = "";
 let browserKey = null;
 let running = false;
+let hasOptionD = false; // whether OptionDFrameRunner initialized successfully this page load -
+                         // see Index.razor.cs.OnAfterRenderAsync; false degrades gracefully to
+                         // Option-A-only (e.g. if Option D's dedicated context creation fails).
 window.__optionABenchmarkReport = null; // headless drivers (Playwright) read this directly - no
                                          // download dialog needed, unlike the human "Export" flow.
 
@@ -72,9 +75,18 @@ function percentile(values, amount) {
 }
 
 function stats(values) {
-    if (!values.length) return { samples: 0, p50: null, p95: null, p99: null, max: null };
+    if (!values.length) return { samples: 0, mean: null, p50: null, p95: null, p99: null, max: null };
+    // mean is included alongside the percentiles specifically to see whether averaging over 300
+    // samples recovers a real sub-resolution number on browsers that clamp performance.now() to a
+    // coarse grid (Chrome/Edge, ~0.1ms steps) - a percentile alone can't do this (it just returns
+    // one already-quantized sample), but the mean of many *different* true elapsed times, each
+    // independently quantized, can land between grid steps if the browser's clamping doesn't apply
+    // the exact same rounding to every sample. Whether it actually does here is an open question -
+    // this is how to find out empirically instead of arguing about Chromium's clamping internals.
+    const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
     return {
         samples: values.length,
+        mean,
         p50: percentile(values, .5),
         p95: percentile(values, .95),
         p99: percentile(values, .99),
@@ -86,6 +98,12 @@ async function runBenchmark(progressPrefix) {
     for (let frame = 0; frame < WARMUP_FRAMES; frame++) {
         await new Promise(requestAnimationFrame);
         dotNetRef.invokeMethod("RunFrame", width, height);
+        // Interleaved every frame, not run as a separate phase before/after Option A's loop - both
+        // architectures see identical power/thermal conditions at every sampled instant this way,
+        // which is the whole point of measuring them in the same page load (see repo issue #12
+        // discussion: a live run compared against a different day's static baseline conflates
+        // architecture with uncontrolled session/power differences).
+        if (hasOptionD) dotNetRef.invokeMethod("RunOptionDFrame", width, height);
         reportElement.textContent = `${progressPrefix}Warm-up ${frame + 1}/${WARMUP_FRAMES}`;
     }
 
@@ -99,16 +117,46 @@ async function runBenchmark(progressPrefix) {
         && sampledPixelRgba[2] === 0 && sampledPixelRgba[3] === 255;
     contextBridge.checkGlError(contextUid);
 
-    const frameCpu = [], innerCpu = [], gpuTimes = [];
+    // Option D's correctness check: after it uploads Skia's magenta-background draw into KNI's
+    // texture and KNI draws that full-viewport, a corner pixel (away from the circle in the middle)
+    // should read back pure magenta off KNI's own canvas - proves the cross-context blit actually
+    // landed real content, not stale/garbage texture data.
+    let optionDCorrectness = null;
+    if (hasOptionD) {
+        dotNetRef.invokeMethod("RunOptionDFrame", width, height);
+        const cornerRgba = contextBridge.readKniPixel(contextUid, 2, 2);
+        const pureMagentaCorner = cornerRgba[0] === 255 && cornerRgba[1] === 0
+            && cornerRgba[2] === 255 && cornerRgba[3] === 255;
+        optionDCorrectness = { pureMagentaCorner, cornerRgba };
+    }
+
+    // Collected per-step, NOT as one lump sum - see OptionAFrameRunner.RunFrame's doc comment for
+    // why: Option D's published uploadCpu/uploadGpu numbers never included any real Skia rendering
+    // cost (its harness draws a trivial synthetic WebGL quad, timed separately and excluded from
+    // the published table), so interopOverheadMs (invalidate + KNI's redraw, excluding Skia's own
+    // draw) is the only one of these directly comparable to Option D's numbers.
+    const frameCpu = [], totalCpu = [], invalidateCpu = [], skiaDrawCpu = [], interopOverheadCpu = [], gpuTimes = [];
+    const dSkiaDrawCpu = [], dUploadCpu = [], dKniDrawCpu = [], dTotalCpu = [];
     for (let frame = 0; frame < MEASURED_FRAMES; frame++) {
         await new Promise(requestAnimationFrame);
         const gpuQueryStarted = contextBridge.gpuQueryBegin(contextUid);
         const frameStart = performance.now();
-        const innerElapsedMs = dotNetRef.invokeMethod("RunFrame", width, height);
+        const timing = dotNetRef.invokeMethod("RunFrame", width, height);
         frameCpu.push(performance.now() - frameStart);
-        innerCpu.push(innerElapsedMs);
+        totalCpu.push(timing.totalMs);
+        invalidateCpu.push(timing.invalidateMs);
+        skiaDrawCpu.push(timing.skiaDrawMs);
+        interopOverheadCpu.push(timing.interopOverheadMs);
         if (gpuQueryStarted) contextBridge.gpuQueryEnd(contextUid);
         gpuTimes.push(...contextBridge.gpuQueryPoll(contextUid));
+
+        if (hasOptionD) {
+            const dTiming = dotNetRef.invokeMethod("RunOptionDFrame", width, height);
+            dSkiaDrawCpu.push(dTiming.skiaDrawMs);
+            dUploadCpu.push(dTiming.uploadMs);
+            dKniDrawCpu.push(dTiming.kniDrawMs);
+            dTotalCpu.push(dTiming.totalMs);
+        }
         reportElement.textContent = `${progressPrefix}Measured ${frame + 1}/${MEASURED_FRAMES}`;
     }
     // Drain any GPU queries still in flight (results lag a few frames behind on some drivers).
@@ -119,7 +167,8 @@ async function runBenchmark(progressPrefix) {
 
     const info = contextBridge.getContextInfo(contextUid);
     return {
-        schemaVersion: 1,
+        schemaVersion: 3, // v3: adds live in-page Option D measurement (optionDLiveTimingsMilliseconds)
+                          // alongside Option A, run interleaved in the same session/power state.
         timestampUtc: new Date().toISOString(),
         browser: navigator.userAgent,
         platform: navigator.userAgentData?.platform || navigator.platform,
@@ -135,17 +184,38 @@ async function runBenchmark(progressPrefix) {
         devicePixelRatio: devicePixelRatio,
         warmupFrames: WARMUP_FRAMES,
         measuredFrames: MEASURED_FRAMES,
-        correctness: { pureGreenAfterSequence, sampledPixelRgba },
+        correctness: { pureGreenAfterSequence, sampledPixelRgba, optionD: optionDCorrectness },
         timingsMilliseconds: {
-            // Whole invokeMethod round trip as timed from JS - directly comparable in spirit to
-            // Benchmarks.WebGL's "uploadCpu" column (a JS-timed wall-clock cost around the work).
+            // Whole invokeMethod round trip as timed from JS, all 3 steps included - NOT the number
+            // to compare against Option D's uploadCpu (see interopOverheadCpu below for that).
             frameCpu: stats(frameCpu),
-            // C#-side Stopwatch around steps 1-3 only, excluding the JS<->WASM call boundary.
-            innerCpu: stats(innerCpu),
+            // C#-side Stopwatch total across all 3 steps, excluding the JS<->WASM call boundary.
+            totalCpu: stats(totalCpu),
+            // Step 1 only: GraphicsDevice.InvalidateStateCache().
+            invalidateCpu: stats(invalidateCpu),
+            // Step 2 only: Skia's own draw (clear + filled AA circle). Informative context, NOT
+            // comparable to Option D - Option D's own live Skia draw (optionDLiveTimingsMilliseconds
+            // .skiaDrawCpu below) is the real apples-to-apples comparison for this one, if you want it.
+            skiaDrawCpu: stats(skiaDrawCpu),
+            // Steps 1+3 (invalidate + KNI's redraw), EXCLUDING Skia's own draw time (step 2) - this
+            // is the number directly comparable to Option D's uploadCpu, since both measure only the
+            // cost attributable to the interop architecture, not the cost of rendering the content.
+            interopOverheadCpu: stats(interopOverheadCpu),
             // EXT_disjoint_timer_query_webgl2 - Chromium only. null (not zero samples) on browsers
             // that don't expose the extension, e.g. Firefox - see docs/webgl/performance-results.md.
             uploadGpu: info.gpuTimerAvailable ? stats(gpuTimes) : null,
         },
+        // Live, this-session, interleaved-with-Option-A measurement of this repo's ACTUAL shipped
+        // architecture (OptionDFrameRunner.cs) - null if it failed to initialize this page load
+        // (Index.razor.cs degrades gracefully; see its console log for why). Directly comparable to
+        // timingsMilliseconds.interopOverheadCpu (uploadCpu here vs interopOverheadCpu there), and
+        // to skiaDrawCpu above (both draw the identical magenta-clear-plus-circle content).
+        optionDLiveTimingsMilliseconds: hasOptionD ? {
+            skiaDrawCpu: stats(dSkiaDrawCpu),
+            uploadCpu: stats(dUploadCpu),
+            kniDrawCpu: stats(dKniDrawCpu),
+            totalCpu: stats(dTotalCpu),
+        } : null,
     };
 }
 
@@ -191,60 +261,128 @@ function renderComparisonTable() {
     const verdictItemsHtml = [];
 
     for (const key of RESOLUTION_KEYS) {
-        const optionD = OPTION_D_BASELINE[browserKey][key];
+        const optionDPublished = OPTION_D_BASELINE[browserKey][key];
         const optionA = history[key];
         const isCurrent = key === resKey;
         const resLabel = key + (isCurrent ? " (this page)" : "");
 
         tableRowsHtml.push(
             `<tr class="option-d${isCurrent ? " current" : ""}">` +
-            `<td>${resLabel}</td><td>Option D</td>` +
-            `<td>${fmtMs(optionD.uploadCpuP50)}</td><td>${fmtMs(optionD.uploadCpuP95)}</td>` +
-            `<td>${fmtMs(optionD.uploadGpuP50)}</td><td>${fmtMs(optionD.uploadGpuP95)}</td>` +
-            `<td>${budgetVerdict(optionD.uploadCpuP95, optionD.uploadGpuP95)}</td></tr>`);
+            `<td>${resLabel}</td><td>Option D (published, different session)</td>` +
+            `<td>${fmtMs(optionDPublished.uploadCpuP50)}</td><td>${fmtMs(optionDPublished.uploadCpuP95)}</td>` +
+            `<td>${fmtMs(optionDPublished.uploadGpuP50)}</td><td>${fmtMs(optionDPublished.uploadGpuP95)}</td>` +
+            `<td>${budgetVerdict(optionDPublished.uploadCpuP95, optionDPublished.uploadGpuP95)}</td></tr>`);
 
         if (!optionA) {
             tableRowsHtml.push(
                 `<tr class="option-a${isCurrent ? " current" : ""}">` +
-                `<td>${resLabel}</td><td>Option A</td>` +
+                `<td>${resLabel}</td><td>Option A / Option D (live)</td>` +
                 `<td colspan="5">not run yet${isCurrent ? " - click \"Run this resolution\"" : " (open ?w=&h= for this resolution)"}</td></tr>`);
-            verdictItemsHtml.push(`<li><strong>${resLabel}:</strong> Option A not run yet.</li>`);
+            verdictItemsHtml.push(`<li><strong>${resLabel}:</strong> not run yet.</li>`);
             continue;
         }
 
         const t = optionA.timingsMilliseconds;
+        // schemaVersion < 3 history lacks interopOverheadCpu (v1: one lump sum) or
+        // optionDLiveTimingsMilliseconds (v1/v2: no live Option D at all) - stale data from before
+        // this session's live-comparison methodology existed. Flag it instead of silently misreading it.
+        if (!t.interopOverheadCpu) {
+            tableRowsHtml.push(
+                `<tr class="option-a${isCurrent ? " current" : ""}">` +
+                `<td>${resLabel}</td><td>Option A / Option D (live)</td>` +
+                `<td colspan="5">stale result (pre-v3 schema) - please re-run</td></tr>`);
+            verdictItemsHtml.push(`<li><strong>${resLabel}:</strong> stale result - please re-run.</li>`);
+            continue;
+        }
+
         const gpuP50 = t.uploadGpu?.p50 ?? null;
         const gpuP95 = t.uploadGpu?.p95 ?? null;
         tableRowsHtml.push(
             `<tr class="option-a${isCurrent ? " current" : ""}">` +
-            `<td>${resLabel}</td><td>Option A</td>` +
-            `<td>${fmtMs(t.frameCpu.p50)}</td><td>${fmtMs(t.frameCpu.p95)}</td>` +
+            `<td>${resLabel}</td><td>Option A (interop only, live)</td>` +
+            `<td>${fmtMs(t.interopOverheadCpu.p50)}</td><td>${fmtMs(t.interopOverheadCpu.p95)}</td>` +
             `<td>${fmtMs(gpuP50)}</td><td>${fmtMs(gpuP95)}</td>` +
-            `<td>${budgetVerdict(t.frameCpu.p95, gpuP95)}</td></tr>`);
+            `<td>${budgetVerdict(t.interopOverheadCpu.p95, gpuP95)}</td></tr>`);
 
-        const aCpu = t.frameCpu.p50, dCpu = optionD.uploadCpuP50;
+        const dLive = optionA.optionDLiveTimingsMilliseconds;
+        if (dLive) {
+            tableRowsHtml.push(
+                `<tr class="option-d${isCurrent ? " current" : ""}">` +
+                `<td>${resLabel}</td><td>Option D (upload only, live - THIS session/power state)</td>` +
+                `<td>${fmtMs(dLive.uploadCpu.p50)}</td><td>${fmtMs(dLive.uploadCpu.p95)}</td>` +
+                `<td>n/a</td><td>n/a</td>` +
+                `<td>${budgetVerdict(dLive.uploadCpu.p95, null)}</td></tr>`);
+        }
+
+        // aCpu is invalidate + KNI's redraw ONLY, excluding Skia's own draw time - the fair
+        // comparison against Option D's upload-only number. See RunFrame's doc comment. Prefer the
+        // LIVE Option D number (same session/power state) over the published baseline whenever both
+        // exist - that's the whole point of measuring them together (repo issue #12 discussion).
+        const aCpu = t.interopOverheadCpu.p50;
+        const dCpu = dLive ? dLive.uploadCpu.p50 : optionDPublished.uploadCpuP50;
+        const dLabel = dLive ? "Option D (live, this session)" : "Option D (published baseline)";
         const comparison = dCpu <= 0
-            ? `Option A adds ~${aCpu.toFixed(2)} ms (Option D measured ~0 ms here)`
+            ? `Option A's interop overhead adds ~${aCpu.toFixed(2)} ms (${dLabel} measured ~0 ms here)`
             : (aCpu <= dCpu
-                ? `Option A is ${(dCpu / aCpu).toFixed(1)}x FASTER than Option D`
-                : `Option A is ${(aCpu / dCpu).toFixed(1)}x SLOWER than Option D`);
-        const correctnessNote = optionA.correctness.pureGreenAfterSequence
-            ? ""
-            : " [WARNING: correctness check FAILED on this run - do not trust this row]";
+                ? `Option A's interop overhead is ${(dCpu / aCpu).toFixed(1)}x FASTER than ${dLabel}`
+                : `Option A's interop overhead is ${(aCpu / dCpu).toFixed(1)}x SLOWER than ${dLabel}`);
+        const correctnessFailed = !optionA.correctness.pureGreenAfterSequence
+            || (optionA.correctness.optionD && !optionA.correctness.optionD.pureMagentaCorner);
+        const correctnessNote = correctnessFailed
+            ? " [WARNING: a correctness check FAILED on this run - do not trust this row]"
+            : "";
+        const skiaCompare = dLive
+            ? `Option A's own Skia draw was ${fmtMs(t.skiaDrawCpu?.p50 ?? null, 2)} ms p50 vs Option D's ` +
+              `live Skia draw at ${fmtMs(dLive.skiaDrawCpu.p50, 2)} ms p50 (same visual content in both - ` +
+              `should track closely; a big gap would itself be a finding worth investigating)`
+            : `Skia's own draw cost was ${fmtMs(t.skiaDrawCpu?.p50 ?? null, 2)} ms p50, common to both ` +
+              `architectures and NOT counted in this comparison`;
         verdictItemsHtml.push(
             `<li><strong>${resLabel}:</strong> ${comparison} ` +
-            `(frame p50 ${fmtMs(aCpu, 2)} ms vs upload p50 ${fmtMs(dCpu, 2)} ms). ` +
-            `Budget (p95): ${budgetVerdict(t.frameCpu.p95, gpuP95)}.${correctnessNote}</li>`);
+            `(interop overhead p50 ${fmtMs(aCpu, 2)} ms, mean ${fmtMs(t.interopOverheadCpu.mean, 4)} ms ` +
+            `over ${t.interopOverheadCpu.samples} samples - the mean can reveal a real sub-clamp-` +
+            `resolution number on Chrome/Edge that the percentile can't - vs ${dLabel} p50 ` +
+            `${fmtMs(dCpu, 2)} ms${dLive ? `, mean ${fmtMs(dLive.uploadCpu.mean, 4)} ms` : ""}. ` +
+            `${skiaCompare}). ` +
+            `Budget (p95): ${budgetVerdict(t.interopOverheadCpu.p95, gpuP95)}.${correctnessNote}</li>`);
     }
 
     comparisonElement.innerHTML =
         `<h2>${label} - Option A vs Option D</h2>` +
-        `<p>Option D is already-published reference data (${OPTION_D_SOURCE_DOC}), not re-measured ` +
-        `here. Budget: upload CPU &lt; ${OPTION_D_BUDGET_MS.uploadCpu} ms, upload GPU &lt; ${OPTION_D_BUDGET_MS.uploadGpu} ms.</p>` +
+        `<p>"Live" rows were measured THIS page load, interleaved frame-by-frame with Option A so ` +
+        `both see the same power/thermal conditions - prefer these over the "published, different ` +
+        `session" row, which is static reference data from ${OPTION_D_SOURCE_DOC} captured a different ` +
+        `day under unknown power conditions. Both live rows measure interop overhead only, excluding ` +
+        `each side's own Skia draw time (shown separately in the verdict list below). ` +
+        `Budget: upload CPU &lt; ${OPTION_D_BUDGET_MS.uploadCpu} ms, upload GPU &lt; ${OPTION_D_BUDGET_MS.uploadGpu} ms.</p>` +
         `<table class="comparison-table"><thead><tr>` +
         `<th>Resolution</th><th>Source</th><th>CPU p50</th><th>CPU p95</th><th>GPU p50</th><th>GPU p95</th><th>Budget (p95)</th>` +
         `</tr></thead><tbody>${tableRowsHtml.join("")}</tbody></table>` +
         `<ul class="verdicts">${verdictItemsHtml.join("")}</ul>`;
+}
+
+// Exports EVERY resolution this browser profile has recorded so far (loadHistory()), not just the
+// run that just finished - so running all 3 resolutions in one browser and clicking Export once
+// hands back a single file covering the whole matrix for that browser. Overwrites the same
+// filename on every click (no timestamp in the name) so repeated exports across a Chrome/Edge/
+// Firefox run each land at one stable, predictable path in the Downloads folder instead of
+// scattering timestamped one-resolution files that have to be hand-merged afterward.
+function exportHistory() {
+    const history = browserKey ? (loadHistory()[browserKey] || {}) : {};
+    const runsCount = Object.keys(history).length;
+    downloadJson({
+        schemaVersion: 1,
+        exportedUtc: new Date().toISOString(),
+        browserKey,
+        browser: navigator.userAgent,
+        optionDSourceDoc: OPTION_D_SOURCE_DOC,
+        optionDBudgetMs: OPTION_D_BUDGET_MS,
+        optionDBaseline: browserKey ? OPTION_D_BASELINE[browserKey] : null,
+        runs: history, // keyed by resolution, e.g. "3840x2160" - whatever's been run in this browser so far
+    }, `webgl-optionA-${browserKey || "unknown-browser"}.json`);
+    reportElement.textContent =
+        `Exported ${runsCount} resolution(s) for ${browserKey || "this browser"} to your Downloads folder ` +
+        `as webgl-optionA-${browserKey || "unknown-browser"}.json (same filename every export - it overwrites).`;
 }
 
 async function onRunClick() {
@@ -273,11 +411,12 @@ globalThis.optionABenchmark = {
     // Called from Index.razor.cs.OnAfterRenderAsync, i.e. after Blazor has actually rendered
     // Index.razor's markup - see the comment on the element-lookup variables above for why this
     // module can't just look these up (or wire click handlers) at top-level load time.
-    init(dotNetInstance, resolvedContextUid, resolvedWidth, resolvedHeight) {
+    init(dotNetInstance, resolvedContextUid, resolvedWidth, resolvedHeight, resolvedHasOptionD) {
         dotNetRef = dotNetInstance;
         contextUid = resolvedContextUid;
         width = resolvedWidth;
         height = resolvedHeight;
+        hasOptionD = resolvedHasOptionD;
         resKey = `${width}x${height}`;
         browserKey = detectOptionDBrowserKey(navigator.userAgent);
         reportElement = document.getElementById("report");
@@ -285,10 +424,13 @@ globalThis.optionABenchmark = {
         exportButton = document.getElementById("export");
         comparisonElement = document.getElementById("comparison");
         runButton.addEventListener("click", onRunClick);
-        exportButton.addEventListener("click", () => {
-            downloadJson([window.__optionABenchmarkReport], `webgl-optionA-${width}x${height}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
-        });
+        exportButton.addEventListener("click", exportHistory);
         renderComparisonTable(); // shows any earlier resolutions' history immediately, before Run is clicked
+        // Enabled whenever this browser already has at least one recorded run (from an earlier page
+        // load/resolution), not just right after this page's own Run finishes - otherwise there'd be
+        // no way to export a full 3-resolution history without re-running the last resolution first.
+        const alreadyHasHistory = browserKey && Object.keys(loadHistory()[browserKey] || {}).length > 0;
+        exportButton.disabled = !alreadyHasHistory;
         runButton.disabled = false;
     },
 };

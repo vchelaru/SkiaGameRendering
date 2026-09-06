@@ -58,6 +58,16 @@ export function registerKniContext(contextUid) {
     return { registerContextAvailable: true, success: true, handle, error: null };
 }
 
+// Generic "make this Emscripten GL context handle current" - needed once Option D's own dedicated
+// context exists alongside Option A's shared/registered one, so each side's Skia draw calls land on
+// the context that side actually owns instead of whichever one happened to be current last. Cheap
+// safety net: called before every Skia draw on both sides even if SkiaSharp's own Emscripten GL
+// binding already restores its context internally per GRContext (unverified either way - explicit
+// beats assumed here), so the cost is symmetric and doesn't bias either side's benchmark number.
+export function makeGlContextCurrent(handle) {
+    getEmscriptenGl().makeContextCurrent(handle);
+}
+
 export function getFramebufferInfo(contextUid) {
     const gl = getKniGl(contextUid);
     const framebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
