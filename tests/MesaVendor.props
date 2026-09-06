@@ -1,0 +1,22 @@
+<!--
+  Imported by every test project that ends up on an OpenGL context. The files are not checked in
+  (see tests/mesa-vendor/ in .gitignore): CI's "Download Mesa" step in master.yml fetches
+  pal1000/mesa-dist-win into tests/mesa-vendor/ before `dotnet test` runs, so those tests get a real
+  software GL driver on GitHub's GPU-less windows-latest runner instead of the 1.1 driver Windows
+  falls back to. ~59MB combined (opengl32.dll is a thin loader; libgallium_wgl.dll has the actual
+  rasterizer), too large to vendor into the repo, hence downloading at CI time. Absent on a dev box,
+  these Include paths simply don't exist and are silently skipped, leaving the machine's own driver
+  in play. See the headless-gpu-testing skill.
+-->
+<Project>
+  <ItemGroup>
+    <!-- Link flattens these into the output root, next to the test binary, which is where
+         VendoredOpenGl.PreloadIfPresent looks for them. -->
+    <None Include="$(MSBuildThisFileDirectory)mesa-vendor\opengl32.dll"
+          Condition="Exists('$(MSBuildThisFileDirectory)mesa-vendor\opengl32.dll')"
+          Link="opengl32.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)mesa-vendor\libgallium_wgl.dll"
+          Condition="Exists('$(MSBuildThisFileDirectory)mesa-vendor\libgallium_wgl.dll')"
+          Link="libgallium_wgl.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -14,8 +14,7 @@ packages/
 **/obj/
 **/Content/obj/
 
-tests/Tests.Core.OGL/mesa-vendor/
-tests/Tests.Core.VK/mesa-vendor/
+tests/mesa-vendor/
 
 ## Claude
 .claude/settings.local.json
