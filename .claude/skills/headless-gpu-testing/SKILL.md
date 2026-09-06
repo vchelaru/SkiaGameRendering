@@ -126,11 +126,28 @@ Linux test job is ever added, but this is unverified - no such job runs today.
   the native writes never make it back into the managed array. An `IntPtr[]` (as used for
   `vkEnumeratePhysicalDevices`) round-trips fine without the attribute; a custom struct array does not.
 
+## Engine glue - headless GraphicsDevice
+
+MonoGame and KNI both build a WindowsDX `GraphicsDevice` from a bare window handle, with no `Game`
+and no game loop - `tests/Shared/HeadlessGraphicsDevice.cs` over `tests/Shared/HiddenWindow.cs`
+(created without `WS_VISIBLE`, never shown, and what `WglContext` runs on too).
+`tests/Shared/EngineSkiaGolden.cs` draws `GoldenScene` through `SkiaRenderTarget2D` and reads it back
+with the engine's own `GetData`, so one file serves both engines.
+
+Both engines can be asked for a WARP device, so these goldens need no environment gate. The knob sits
+in a different place in each - `GraphicsAdapter.UseDriverType` (MonoGame) against
+`PresentationParameters.UseDriverType` (KNI) - which is why
+`HeadlessGraphicsDevice.PinToSoftwareRasterizer` is a partial method each test project implements.
+
+DesktopGL has no such shortcut: MonoGame's GL `PlatformSetup` takes its context from
+`SdlGameWindow.Instance`, which only a running `Game` creates. `Game.RunOneFrame()` under a preloaded
+Mesa `opengl32.dll` does render on llvmpipe, so that path is open but costs a real game loop.
+
 ## Golden images
 
 `tests/Shared/GoldenScene.cs` (one scene, drawn by every backend) and `tests/Shared/GoldenImage.cs`
-(tolerance comparison against a checked-in PNG in each test project's `goldens/`) are linked into the
-three `Tests.Core.*` projects the way `EngineReflectionPin.cs` is. A failing run writes the render and
+(tolerance comparison against a checked-in PNG in each test project's `goldens/`) are linked into
+every project that renders the scene, the way `EngineReflectionPin.cs` is. A failing run writes the render and
 a magenta diff to `golden-failures/` next to the test binary, which `master.yml` uploads as an
 artifact. `SKIAGAMERENDERING_UPDATE_GOLDENS=1` rewrites a golden instead of comparing, and fails the
 test so the update cannot read as a pass.
