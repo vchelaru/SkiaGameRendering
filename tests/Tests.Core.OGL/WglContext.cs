@@ -24,8 +24,8 @@ internal sealed class WglContext : IDisposable
 
     public WglContext()
     {
-        // Must happen before any GDI pixel-format call - see PreloadVendoredOpenGl32IfPresent.
-        PreloadVendoredOpenGl32IfPresent();
+        // Must happen before any GDI pixel-format call - see VendoredOpenGl.PreloadIfPresent.
+        VendoredOpenGl.PreloadIfPresent();
 
         _window = new HiddenWindow();
 

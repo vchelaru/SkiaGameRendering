@@ -33,10 +33,11 @@ FBOs) - a dev box with a real GPU exercises the WGL/loader plumbing but not that
 [pal1000/mesa-dist-win](https://github.com/pal1000/mesa-dist-win)'s `release-msvc` archive ships a
 software rasterizer (Mesa llvmpipe, GL 4.6, full FBO support) built for exactly this. `x64/opengl32.dll`
 in that archive is a thin loader - it needs `x64/libgallium_wgl.dll` (~59MB) alongside it to actually
-render, which is why `master.yml`'s "Download Mesa llvmpipe for headless Core.OGL tests" step fetches
-both into `tests/Tests.Core.OGL/mesa-vendor/` at CI time instead of vendoring them into the repo (too
-large to check in). `Tests.Core.OGL.csproj` copies them into the test output directory - conditionally,
-so their absence on a dev box is a silent no-op, not a build error.
+render, which is why `master.yml`'s "Download Mesa llvmpipe and lavapipe for headless GPU tests" step
+fetches them into `tests/mesa-vendor/` at CI time instead of vendoring them into the repo (too large
+to check in). `tests/MesaVendor.props`, imported by every test project that ends up on a GL context,
+copies them into the test output directory - conditionally, so their absence on a dev box is a silent
+no-op, not a build error.
 
 ### Landmines
 
@@ -44,10 +45,12 @@ so their absence on a dev box is a silent no-op, not a build error.
   `ChoosePixelFormat`/`SetPixelFormat` resolve their own internal `opengl32.dll` reference
   independently of any `DllImport` in test code, and on modern Windows that resolution is hardened to
   always come from System32 - so `wglCreateContext` fails against a pixel format GDI picked from the
-  real driver's tables while WGL calls go to Mesa's. The fix, `WglNative.PreloadVendoredOpenGl32IfPresent`,
+  real driver's tables while WGL calls go to Mesa's. The fix, `VendoredOpenGl.PreloadIfPresent`,
   exploits the one loophole: Windows reuses an already-loaded module that matches by file name
   regardless of where it came from, so explicitly `LoadLibrary`-ing the vendored DLL's full path
-  *before* the first GDI pixel-format call makes GDI's own resolution land on the same module.
+  *before* anything else touches `opengl32.dll` makes those later resolutions land on the same module.
+  SDL loads its GL library the same way, so the DesktopGL tests need the identical call before the
+  `Game` starts.
 - **Mesa's gallium WGL loader prefers a D3D12-backed driver over llvmpipe whenever a D3D12 adapter is
   enumerable (WARP included), and only falls back to llvmpipe when none exists.** That makes the
   software path non-deterministic across machines - set `GALLIUM_DRIVER=llvmpipe` to force it
@@ -72,8 +75,8 @@ the same role llvmpipe plays for GL, from the exact same
 [pal1000/mesa-dist-win](https://github.com/pal1000/mesa-dist-win) `release-msvc` archive already used
 above (`x64/lvp_icd.x86_64.json`, `x64/vulkan_lvp.dll`) - confirmed by downloading the archive and
 running the real test against it that, unlike the GL path, it's self-contained: no
-`libgallium_wgl.dll` dependency needed. `master.yml`'s "Download Mesa lavapipe for headless Core.VK
-tests" step vendors both files into `tests/Tests.Core.VK/mesa-vendor/`.
+`libgallium_wgl.dll` dependency needed. They come down in the same `master.yml` download step as the
+GL pair, into `tests/mesa-vendor/`.
 
 **`VK_ICD_FILENAMES` does not work on `windows-latest` - use the registry instead.** The obvious
 approach (point `VK_ICD_FILENAMES` at the vendored json's absolute path, the Vulkan equivalent of
@@ -91,7 +94,7 @@ registry-based driver-registration path is exempt (writing `HKLM` already requir
 loader trusts it - the same mechanism a real GPU driver installer uses), so `master.yml`'s "Register
 Mesa lavapipe as a Vulkan ICD" step writes the vendored json's absolute path as a `DWORD 0` value
 under `HKLM:\SOFTWARE\Khronos\Vulkan\Drivers` instead of setting an environment variable. No
-conditional MSBuild copy is needed the way `Tests.Core.OGL.csproj` needs one for its DLLs: the ICD
+conditional MSBuild copy is needed the way `MesaVendor.props` does for the GL DLLs: the ICD
 json's `library_path` (`.\vulkan_lvp.dll`) resolves relative to the json itself, not to the test
 binary's output directory. Locally, with no registry entry added, the test just uses whatever real
 Vulkan driver is already on the machine.
@@ -140,8 +143,10 @@ in a different place in each - `GraphicsAdapter.UseDriverType` (MonoGame) agains
 `HeadlessGraphicsDevice.PinToSoftwareRasterizer` is a partial method each test project implements.
 
 DesktopGL has no such shortcut: MonoGame's GL `PlatformSetup` takes its context from
-`SdlGameWindow.Instance`, which only a running `Game` creates. `Game.RunOneFrame()` under a preloaded
-Mesa `opengl32.dll` does render on llvmpipe, so that path is open but costs a real game loop.
+`SdlGameWindow.Instance`, which only a running `Game` creates. So `tests/Shared/OneFrameGame.cs` pays
+for a real game loop, running `Game.RunOneFrame()` and reading back inside `Draw`, on llvmpipe. Skia
+resources have to be created and disposed inside that one frame - the backend's `GRContext` belongs
+to the GL context the window owns and cannot outlive it.
 
 ## Golden images
 
@@ -154,11 +159,11 @@ test so the update cannot read as a pass.
 
 ### Landmines
 
-- **A Core.OGL or Core.VK golden is only valid if Mesa rendered it.** Those backends use whatever
-  driver the machine has, so one generated on a dev box's GPU will not match CI. Both compare only
+- **An OpenGL or Vulkan golden is only valid if Mesa rendered it.** Those backends use whatever
+  driver the machine has, so one generated on a dev box's GPU will not match CI. They compare only
   when `SKIAGAMERENDERING_PINNED_RASTERIZER=1` (set in `master.yml`) and otherwise check the render's
-  orientation alone; regenerating locally means vendoring Mesa first and running under
-  `GALLIUM_DRIVER=llvmpipe` or `VK_ICD_FILENAMES`. Core.ANGLE needs no gate, since WARP is the driver
-  everywhere.
+  orientation alone; regenerating locally means copying Mesa into `tests/mesa-vendor/` first and
+  running under `GALLIUM_DRIVER=llvmpipe` or `VK_ICD_FILENAMES`. The WindowsDX goldens need no gate,
+  since those tests pin themselves to WARP.
 - **`VK_ICD_FILENAMES` works on a dev box**, the mirror of the elevated-CI case above: an unelevated
   shell is exactly what the Vulkan loader still honors it for.

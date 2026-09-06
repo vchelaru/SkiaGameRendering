@@ -10,30 +10,6 @@ namespace Tests.CoreOgl;
 /// </summary>
 internal static class WglNative
 {
-    /// <summary>
-    /// Explicitly preloads a vendored <c>opengl32.dll</c> sitting next to the test binary, if one is
-    /// there, before any GDI pixel-format call - <see cref="WglContext"/> calls this first thing.
-    /// <para>
-    /// A plain <c>DllImport("opengl32.dll")</c> is not enough by itself: GDI's own
-    /// <c>ChoosePixelFormat</c>/<c>SetPixelFormat</c> (see <c>WglContext</c>) resolve their own
-    /// internal reference to <c>opengl32.dll</c> independently of anything this assembly does, and on
-    /// modern Windows that resolution is hardened to always come from System32 - so a vendored copy
-    /// sitting next to the test binary loses to the real driver for GDI's half even when a later
-    /// direct <c>DllImport("opengl32.dll")</c> call from our own code would have found the local one.
-    /// The one loophole: Windows always reuses an already-loaded module that matches by file name,
-    /// regardless of where it was loaded from or which search rules would otherwise apply - the same
-    /// mechanism DLL-proxying/hijacking exploits. Loading the vendored copy here, before GDI ever
-    /// touches "opengl32.dll" itself, makes GDI's later internal resolution reuse this module too, so
-    /// <c>ChoosePixelFormat</c> and <c>wglCreateContext</c> end up talking to the same driver.
-    /// </para>
-    /// </summary>
-    internal static void PreloadVendoredOpenGl32IfPresent()
-    {
-        var localPath = Path.Combine(AppContext.BaseDirectory, "opengl32.dll");
-        if (File.Exists(localPath))
-            NativeLibrary.TryLoad(localPath, out _);
-    }
-
     internal const uint PFD_DRAW_TO_WINDOW = 0x00000004;
     internal const uint PFD_SUPPORT_OPENGL = 0x00000020;
     internal const uint PFD_DOUBLEBUFFER = 0x00000001;
