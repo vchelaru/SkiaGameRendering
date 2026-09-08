@@ -22,5 +22,19 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\EngineReflectionPin.cs" Link="EngineReflectionPin.cs" />
+    <Compile Include="..\Shared\StrideTestParallelism.cs" Link="StrideTestParallelism.cs" />
+    <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
+    <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Compile Include="..\Shared\StrideSkiaGolden.cs" Link="StrideSkiaGolden.cs" />
+    <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      StrideSkiaGolden.cs is shared with Tests.Stride.VK, whose render-target type has a different
+      name but the same members. Aliasing each backend's own type to one name here is what lets the
+      shared file name it - see that file's doc comment.
+    -->
+    <Using Include="SkiaGameRendering.Stride.D3D11.SkiaStrideRenderTarget2D" Alias="SkiaStrideCanvas" />
   </ItemGroup>
 </Project>

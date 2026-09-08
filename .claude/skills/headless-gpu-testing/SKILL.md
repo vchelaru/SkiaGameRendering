@@ -115,6 +115,13 @@ json's `library_path` (`.\vulkan_lvp.dll`) resolves relative to the json itself,
 binary's output directory. Locally, with no registry entry added, the test just uses whatever real
 Vulkan driver is already on the machine.
 
+**Stride's own Vulkan device goes through the same loader, so one ICD registration covers it too.**
+`GraphicsDevice.New()` enumerates adapters through the standard loader rather than its own logic, so
+the lavapipe registry entry `master.yml` writes for `Tests.Core.VK` also gets `Tests.Stride.VK` a
+device - no extra CI wiring. Stride requires Vulkan 1.3: a dev box on an older driver fails device
+creation outright (`NotSupportedException`, no graceful skip), so those tests need vendored lavapipe
+locally as well.
+
 **Linux CI coverage does not exist for this or for Core.OGL.** The only job running
 `dotnet test tests/Tests.proj` is `desktop-and-core` on `windows-latest`; the `ubuntu-latest` job
 (`webgl-functional`) is a Playwright suite unrelated to either, and `raylib-linux` (see the GLX

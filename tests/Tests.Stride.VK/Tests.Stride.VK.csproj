@@ -32,5 +32,15 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\EngineReflectionPin.cs" Link="EngineReflectionPin.cs" />
+    <Compile Include="..\Shared\StrideTestParallelism.cs" Link="StrideTestParallelism.cs" />
+    <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
+    <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Compile Include="..\Shared\StrideSkiaGolden.cs" Link="StrideSkiaGolden.cs" />
+    <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- See Tests.Stride.D3D11.csproj's matching alias for why this is here. -->
+    <Using Include="SkiaGameRendering.Stride.VK.SkiaStrideVulkanRenderTarget2D" Alias="SkiaStrideCanvas" />
   </ItemGroup>
 </Project>

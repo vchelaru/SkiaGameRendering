@@ -47,7 +47,7 @@ public sealed class StrideVulkanCompositeColorTests
             device, width, height, PixelFormat.R8G8B8A8_UNorm_SRgb,
             TextureFlags.RenderTarget | TextureFlags.ShaderResource);
 
-        using var canvas = new SkiaStrideVulkanRenderTarget2D(device, width, height);
+        var canvas = new SkiaStrideVulkanRenderTarget2D(device, width, height);
 
         canvas.Begin();
         canvas.Canvas.Clear(crimson);
@@ -69,6 +69,12 @@ public sealed class StrideVulkanCompositeColorTests
         using var readbackCommandList = CommandList.New(device);
         var pixels = compositeTarget.GetData<Color>(readbackCommandList);
         device.ExecuteCommandList(readbackCommandList.Close());
+
+        canvas.Dispose();
+        // The context SkiaStrideVulkanRenderTarget2D auto-initialized is static and pinned to this
+        // test's device, so leaving it behind would make the next test's device fail to initialize.
+        // Canvas first: the renderer does not track or dispose live targets.
+        SkiaStrideVulkanRenderer.Dispose();
 
         var actual = pixels[0];
 
