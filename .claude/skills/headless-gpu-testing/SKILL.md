@@ -60,6 +60,22 @@ no-op, not a build error.
   so app-local DLL probing works the same as any other .NET Core host - this was checked directly,
   not assumed.
 
+## Linux - GLX + Xvfb (raylib backend)
+
+`tests/Tests.Raylib.OGL/RaylibGoldenImageTests.cs` is the one golden test in this repo that actually
+runs on Linux: a real raylib window under Xvfb, exercising `SkiaRaylibContext`'s GLX path
+(`src/SkiaGameRendering.Raylib.OGL/Glx.cs`) end to end. `master.yml`'s `raylib-linux` job runs it
+directly (`dotnet test tests/Tests.Raylib.OGL/Tests.Raylib.OGL.csproj`, not through `Tests.proj`)
+under `xvfb-run`, with `LIBGL_ALWAYS_SOFTWARE=1`/`GALLIUM_DRIVER=llvmpipe` forcing Mesa's software
+path - `ubuntu-latest` ships Mesa already, so no vendoring step like `MesaVendor.props` is needed.
+`LinuxOnlyFactAttribute` skips the test on Windows for now (build-only there; see its doc comment for
+what real Windows coverage would need).
+
+**`SkiaRaylibContext.CreateSurface` uses `GRSurfaceOrigin.BottomLeft`** (matching raylib's own
+texture-sampling convention), so a tightly-packed `glGetTexImage`/`LoadImageFromTexture` readback
+comes back with row 0 as the canvas's *bottom* row, not its top - flip vertically before comparing
+against a `GoldenImage`, which expects top-down.
+
 ## Vulkan - lavapipe
 
 `tests/Tests.Core.VK/VulkanTestDevice.cs` creates a real, minimal `VkInstance`/`VkPhysicalDevice`/
@@ -101,9 +117,11 @@ Vulkan driver is already on the machine.
 
 **Linux CI coverage does not exist for this or for Core.OGL.** The only job running
 `dotnet test tests/Tests.proj` is `desktop-and-core` on `windows-latest`; the `ubuntu-latest` job
-(`webgl-functional`) is a Playwright suite unrelated to either. `apt-get install mesa-vulkan-drivers`
-installing `lvp_icd.x86_64.json` under `/usr/share/vulkan/icd.d/` would be the Linux equivalent if a
-Linux test job is ever added, but this is unverified - no such job runs today.
+(`webgl-functional`) is a Playwright suite unrelated to either, and `raylib-linux` (see the GLX
+section above) runs a single project directly rather than through `Tests.proj`. `apt-get install
+mesa-vulkan-drivers` installing `lvp_icd.x86_64.json` under `/usr/share/vulkan/icd.d/` would be the
+Linux equivalent if a Core.VK Linux test job is ever added, but this is unverified - no such job
+runs today.
 
 ### Landmines
 

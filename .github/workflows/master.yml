@@ -149,3 +149,32 @@ jobs:
             tests/Tests.Kni.WebGL/playwright-report
             tests/Tests.Kni.WebGL/test-results
             .artifacts/packages
+
+  raylib-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      # ubuntu-latest ships Mesa already, unlike windows-latest (which has no system GL driver at
+      # all, hence that job's "Download Mesa llvmpipe" step) - no vendoring needed here, just forcing
+      # the software path below so it doesn't depend on whatever this runner happens to expose.
+      - name: Run raylib GLX golden test under Xvfb
+        # Real window/display needed even headless - see webgl-functional's xvfb-run step above and
+        # issue #12 for why a bare headless process isn't enough for a real GL context (GLX here,
+        # rather than that job's WebGL/EGL case, but the same underlying need for an X display).
+        run: xvfb-run --auto-servernum -- dotnet test tests/Tests.Raylib.OGL/Tests.Raylib.OGL.csproj
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 1
+          GALLIUM_DRIVER: llvmpipe
+          # See master.yml's desktop-and-core job for what this flag does; the golden here was
+          # rendered on this job's own Mesa llvmpipe build, not a dev box's GPU.
+          SKIAGAMERENDERING_PINNED_RASTERIZER: 1
+      - name: Upload golden-image diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-image-diffs-raylib-linux
+          path: tests/**/golden-failures/*.png
+          if-no-files-found: ignore
