@@ -80,6 +80,10 @@ public sealed class StrideCompositeColorTests
             var pixels = compositeTarget.GetData<Color>(commandList);
 
             canvas.Dispose();
+            // The context SkiaStrideRenderTarget2D auto-initialized is static and pinned to this
+            // test's device, so leaving it behind would make the next test's device fail to
+            // initialize. Canvas first: the renderer does not track or dispose live targets.
+            SkiaStrideRenderer.Dispose();
 
             var actual = pixels[0];
 
