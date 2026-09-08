@@ -2,7 +2,7 @@
 
 [![Join the chat](https://img.shields.io/discord/586997072373481494)](https://discord.gg/tG5RBgw)
 
-A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering to produce `Texture2D`s — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into game-engine textures without any CPU readback.
+A library that lets MonoGame, KNI, raylib, and Stride applications use SkiaSharp's GPU rendering to produce game-engine textures — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into game-engine textures without any CPU readback.
 
 ## Platform Support
 
@@ -10,8 +10,8 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 |----------|---------|--------|--------------|
 | MonoGame 3.8.4 DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering)](https://www.nuget.org/packages/SkiaGameRendering) | Shared GL context via SDL |
 | MonoGame 3.8.4 WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
-| MonoGame 3.8.5 DirectX | D3D11 | Blocked — see `TODO.md` | |
-| MonoGame 3.8.5 Vulkan | Vulkan | Blocked — see `TODO.md` | |
+| MonoGame 3.8.5 WindowsDX12 | D3D12 | Blocked — see `TODO.md` | |
+| MonoGame 3.8.5 DesktopVK | Vulkan | Blocked — see `TODO.md` | |
 | KNI DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.DesktopGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Shared GL context via SDL |
 | KNI WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |
@@ -19,6 +19,10 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 | raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
 | Stride (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D11)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) (Windows) | ANGLE (GL ES → D3D11 translation) on shared device |
 | Stride (Vulkan) | Vulkan | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.VK)](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) (Linux, macOS, Windows) | Skia's Vulkan backend on Stride's shared `VkDevice`/`VkQueue`, no separate context |
+
+MonoGame 3.8.5 ships the legacy `WindowsDX` (D3D11) project unchanged alongside the two new native
+platforms above — only `WindowsDX12` and `DesktopVK` are blocked; D3D11 is expected to keep working
+on 3.8.5 the same as it does on 3.8.4 (see `SkiaGameRendering-Notes.md` section 9).
 
 ## Requirements
 
@@ -29,8 +33,9 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 
 ## Quick Start
 
-Install the NuGet package for your platform into an existing MonoGame/KNI project (see
-`docs/desktop/quickstart.md` for a full walkthrough of the four backends below):
+Install the NuGet package for your platform into an existing project (see
+`docs/desktop/quickstart.md` for the four MonoGame/KNI desktop backends, or the engine-specific
+quickstart linked below for raylib and Stride):
 - **MonoGame DesktopGL**: `dotnet add package SkiaGameRendering`
 - **MonoGame WindowsDX**: `dotnet add package SkiaGameRendering.WindowsDX`
 - **KNI DesktopGL**: `dotnet add package SkiaGameRendering.Kni.DesktopGL`

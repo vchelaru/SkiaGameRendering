@@ -2,8 +2,8 @@
 
 ## What Is This?
 
-A library that lets MonoGame, KNI, and raylib applications render with SkiaSharp straight into
-engine textures, with no CPU readback. `README.md` covers the public API (`SkiaRenderer`,
+A library that lets MonoGame, KNI, raylib, and Stride applications render with SkiaSharp straight
+into engine textures, with no CPU readback. `README.md` covers the public API (`SkiaRenderer`,
 `SkiaRenderTarget2D`), the per-platform package list, and the backend-per-graphics-API architecture.
 `SkiaGameRendering-Notes.md` has the deeper interop detail (ANGLE, D3D11 state management).
 
