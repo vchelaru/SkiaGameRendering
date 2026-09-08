@@ -8,6 +8,20 @@
 -->
 <Project Sdk="Microsoft.Build.Traversal/4.1.0">
 
+  <!--
+    Traversal defaults to BuildInParallel=true. Every project pinned to StrideVersion (all four
+    Stride.* projects, via eng/Versions.props) shares one build-time temp path for Stride.Core's
+    AssemblyProcessor tool copy (Stride.Core.targets: StrideAssemblyProcessorTempBasePath is keyed
+    by a hash of the tool binary, not per-project) and that copy is an unguarded
+    Condition="!Exists(...)" check with no lock. Two of those projects building at once race on it -
+    one MSBuild node wins the copy, the other hits MSB3027/"used by another process". Serializing the
+    whole traversal is the simplest fix that can't miss a future project hitting the same shared
+    path; it costs CI wall-clock (no more parallel project builds) in exchange for not racing.
+  -->
+  <PropertyGroup>
+    <BuildInParallel>false</BuildInParallel>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="$(MSBuildThisFileDirectory)**\*.csproj" />
   </ItemGroup>
