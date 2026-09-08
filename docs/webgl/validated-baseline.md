@@ -28,7 +28,13 @@ Hardware acceptance measured 2026-09-05 on an RTX 5060 Laptop GPU (ANGLE/D3D11);
   Option A gate**: Option A is now required before Firefox can be declared Tier 1.
 - **Safari: still Tier 2, untested.** No Mac hardware was available for this run.
 
-Option A (shared-context — see [WebGL-KNI-Integration.md](../../WebGL-KNI-Integration.md), section 3)
-is not yet implemented. Its gate has now been triggered by a measured Firefox failure (above); the
-work itself — a `GraphicsDevice.InvalidateStateCache()`-equivalent in KNI, and reconciling Skia's
-Emscripten WASM build with KNI's JS-interop WebGL context — is unstarted and tracked separately.
+Option A (shared-context — see [WebGL-KNI-Integration.md](../../WebGL-KNI-Integration.md), section 6)
+is not yet implemented in production, but both of its previously-open unknowns are now spiked and
+confirmed: reconciling Skia's Emscripten WASM build with KNI's JS-interop WebGL context works
+(`registerContext` onto KNI's own context, verified via pixel readback), and a
+`GraphicsDevice.InvalidateStateCache()`-equivalent in KNI fixes the resulting state corruption
+(filed upstream as [kniEngine/kni#2710](https://github.com/kniEngine/kni/pull/2710), not merged
+yet). A live A-vs-D benchmark (parked on the `spike/webgl-option-a-benchmark` branch, since it needs
+that unmerged KNI patch to build) has only been run on Chrome so far — Option D still wins there, as expected, since Option A does more GL driver work per frame.
+**Firefox has not yet been measured on Option A on real hardware**; that result is what actually
+decides whether Option A ships. See `WebGL-KNI-Integration.md` section 6/10 for the full state.

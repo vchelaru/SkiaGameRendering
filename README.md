@@ -158,8 +158,10 @@ The sample proves SpriteBatch interleaving, render-target consumption, shader sa
 Measured on real hardware (`docs/webgl/performance-results.md`), every upload path misses budget on
 Firefox by 60-300x (35-171ms per frame just for the upload, vs. a <1ms target), consistent with an
 internal CPU readback on cross-context canvas uploads. Chrome and Edge are unaffected (Tier 1).
-Fixing this needs a shared-GL-context redesign ("Option A" in `docs/webgl/validated-baseline.md`),
-which is unstarted.
+Fixing this needs a shared-GL-context redesign ("Option A" in `docs/webgl/validated-baseline.md`).
+The idea is spiked and confirmed feasible, with the KNI-side fix filed upstream as
+[kniEngine/kni#2710](https://github.com/kniEngine/kni/pull/2710), but it's not measured on Firefox
+itself yet and there's no production implementation.
 
 ## Using SkiaSharp
 
