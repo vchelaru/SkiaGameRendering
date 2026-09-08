@@ -10,8 +10,8 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 |----------|---------|--------|--------------|
 | MonoGame 3.8.4 DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering)](https://www.nuget.org/packages/SkiaGameRendering) | Shared GL context via SDL |
 | MonoGame 3.8.4 WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
-| MonoGame 3.8.5 DirectX | D3D11 | Not started | |
-| MonoGame 3.8.5 Vulkan | Vulkan | Not started | |
+| MonoGame 3.8.5 DirectX | D3D11 | Blocked — see `TODO.md` | |
+| MonoGame 3.8.5 Vulkan | Vulkan | Blocked — see `TODO.md` | |
 | KNI DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.DesktopGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Shared GL context via SDL |
 | KNI WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |

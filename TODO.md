@@ -8,8 +8,8 @@ This document tracks which framework/platform/backend combinations have been pro
 |-----------------|---------|-----------|----------|-----------------------------|-------------|-------|
 | MonoGame        | 3.8.4   | DesktopGL | Desktop  | samples/Sample.MonoGame.DesktopGL/  | Working     | See `docs/desktop/quickstart.md`. Cross-platform (Windows, Linux, macOS). |
 | MonoGame        | 3.8.4   | WindowsDX | Desktop  | samples/Sample.MonoGame.WindowsDX/  | Working     | See `docs/desktop/quickstart.md`. Windows only. |
-| MonoGame        | 3.8.5   | DirectX   | Desktop  | —                           | Not started | |
-| MonoGame        | 3.8.5   | Vulkan    | Desktop  | —                           | Not started | |
+| MonoGame        | 3.8.5   | DirectX   | Desktop  | —                           | Blocked | MG 3.8.5's DirectX platform is the new native backend (`MonoGame.Framework.Native`), which hides its D3D device behind an opaque native handle — no `ID3D11Device` reachable via reflection. See `SkiaGameRendering-Notes.md` section 9. |
+| MonoGame        | 3.8.5   | Vulkan    | Desktop  | —                           | Blocked | Same native-backend blocker as 3.8.5 DirectX (see the row above): `api_MGG.h` exposes no getter for the `VkDevice`/`VkQueue` the native library holds internally. See `SkiaGameRendering-Notes.md` section 9 and issue #67. |
 | KNI             | 4.3.9001 (stock) | DesktopGL | Desktop  | samples/Sample.Kni.DesktopGL/ | Working | See `docs/desktop/quickstart.md`. Cross-platform (Windows, Linux, macOS). |
 | KNI             | 4.3.9001 (stock) | WindowsDX | Desktop  | samples/Sample.Kni.WindowsDX/ | Working | See `docs/desktop/quickstart.md`. Windows only. |
 | KNI             | —       | —         | Android  | —                           | Not started | |
