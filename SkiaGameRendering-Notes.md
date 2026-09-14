@@ -48,9 +48,12 @@ The zero-copy texture-sharing pattern has two requirements:
 | DesktopGL (OpenGL) | 3.8.4+ | Native GL (`GRContext.CreateGl`) | **Done** — this library |
 | WindowsDX (D3D11) | 3.8.4 | ANGLE (GL ES → D3D11) | **Done** — see section 7 |
 | Vulkan | 3.8.5 (preview) | Native Skia Vulkan (`GRContext.CreateVulkan`) *or* ANGLE-on-Vulkan | Most promising 3.8.5 target |
+| D3D12 | 3.8.5 (native) | Native Skia Direct3D (`GRContext.CreateDirect3D`) | Skia-side interop built (`Core.D3D12`); MG glue blocked, see below |
 | Metal | (not MG) | `GRContext.CreateMetal` | Not applicable |
 
-D3D12 is not planned. [Issue #24](https://github.com/vchelaru/SkiaGameRendering/issues/24) has the decision and the evidence behind it — though that issue only covers the Skia-side risk (Ganesh D3D12 deprecation). It predates a second, independent blocker found for MG 3.8.5's new native `WindowsDX12`/`DesktopVK` platforms (D3D12 and Vulkan) — the legacy D3D11 `WindowsDX` target is a separate project, unaffected by it. See the note below section 4's work plan and section 9.
+D3D12 was originally decided against in [issue #24](https://github.com/vchelaru/SkiaGameRendering/issues/24) on Skia-side grounds alone: Ganesh (Skia's whole GPU-backend generation, D3D12 included) is a Google-maintained path Google has flagged for eventual replacement by Graphite. That risk is now knowingly accepted rather than waited out — new backends have been cheap enough to build that reaching the users already on D3D12-targeting engine runtimes (MonoGame 3.8.5's native `WindowsDX12`, Stride's D3D12 mode) is worth it. `src/SkiaGameRendering.Core.D3D12/` is the result: an engine-agnostic Skia/D3D12 interop layer, same split `Core.VK` used (issue #23) — built and tested (WARP-backed golden test) with no host engine wired up yet.
+
+The MonoGame side is separately blocked, independent of the above: MG 3.8.5's new native `WindowsDX12`/`DesktopVK` platforms hide their device behind an opaque handle, so there is no `ID3D12Device`/`VkDevice` reachable via reflection today (see section 9 and issue #67). `MonoGame/MonoGame#9536` ("Exposing Native GPU Handles") adds the managed accessor that would fix this for both D3D12 and Vulkan, but it is still open with zero reviews as of this writing — the MonoGame `WindowsDX12` glue project waits on it merging with a locked API shape before it's safe to build against.
 
 ### Per-API detail
 
@@ -69,6 +72,12 @@ Vulkan-specific complexity:
 - **Synchronization is explicit** — no implicit ordering like GL. Needs semaphores / pipeline barriers around Skia's submissions.
 - **Image layout tracking** — Skia expects to know the layout on entry and leaves it in a known layout on exit. `GRVkImageInfo` carries this.
 - Expect 200–500 lines of real work vs. the current ~15 lines of GL context plumbing.
+
+**Native D3D12.** `GRContext.CreateDirect3D` with `GRD3DBackendContext` (`Adapter`, `Device`, `Queue`) — the same shared-device shape as native Vulkan, no ANGLE involved. Import a host-allocated `ID3D12Resource` via `GRD3DTextureResourceInfo` + `GRBackendTexture`/`GRBackendRenderTarget`. Verified directly against the pinned SkiaSharp assembly (reflection, not docs) when `Core.D3D12` was built: these types and the native `gr_direct_context_make_direct3d`/`gr_backendrendertarget_new_direct3d` entry points are real and callable.
+
+D3D12-specific complexity, same shape as Vulkan's:
+- **Synchronization is explicit** — `ID3D12CommandQueue::ExecuteCommandLists` needs the same external-lock discipline `Core.VK` documents for `vkQueueSubmit`.
+- **Resource-state tracking** — the SkiaSharp version this repo pins has no way to read back the `D3D12_RESOURCE_STATES` a wrapped resource ends up in after a draw (no `gr_backendrendertarget_get_d3d_*` entry point, no `GrBackendSurfaceMutableState` binding), so a host needing certainty must insert its own `ResourceBarrier` rather than trust a reported value — see `D3D12SkiaSurfaceFactory.EndDraw`'s doc comment.
 
 **Metal.** Not applicable to MonoGame.
 
