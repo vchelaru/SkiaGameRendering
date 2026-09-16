@@ -2,7 +2,7 @@
 
 ## What Is This?
 
-A library that lets MonoGame, KNI, raylib, and Stride applications render with SkiaSharp straight
+A library that lets MonoGame, KNI, FNA, raylib, and Stride applications render with SkiaSharp straight
 into engine textures, with no CPU readback. `README.md` covers the public API (`SkiaRenderer`,
 `SkiaRenderTarget2D`), the per-platform package list, and the backend-per-graphics-API architecture.
 `SkiaGameRendering-Notes.md` has the deeper interop detail (ANGLE, D3D11 state management).
@@ -54,6 +54,11 @@ needing that subjective read, keep to build-and-test and give the user numbered 
 - **A backend is only verifiable on its own platform and GPU stack.** A change to shared core source
   compiles for every backend but is exercised by none of them until each platform actually runs.
   Say which backends you verified and which you did not, rather than implying a clean build covers all.
+- **FNA is a submodule, not a package.** `external/FNA` (plus the five C#-binding submodules under
+  its `lib/`) must be initialized before anything `Fna.*` builds; the checkout step in
+  `.github/workflows/master.yml` is the exact command list. Its native DLLs are vendored under
+  `external/fnalibs/` (see the README.txt there), and the D3D11 adapter depends on the layout of a
+  struct inside that `FNA3D.dll` (`SkiaFnaAngleBackend`'s MAINTENANCE NOTES), so bump the two together.
 - **Engine internals are reached by reflection, not a fork.** See
   `src/SkiaGameRendering.Kni.WebGL/WebGlCanvasUpload.cs`. A MonoGame or KNI version bump can break
   these silently at runtime with no compile error. Every backend has reflection pin tests

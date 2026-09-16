@@ -14,6 +14,13 @@ jobs:
         configuration: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
+      # FNA (external/FNA) is a submodule, not a package, and needs five of its own submodules for
+      # the C# bindings FNA.Core.csproj compiles. Not `submodules: recursive`: that would also pull
+      # FNA's native source trees (FNA3D and its shader toolchain), which nothing here builds.
+      - name: Check out the FNA submodule
+        run: |
+          git submodule update --init external/FNA
+          git -C external/FNA submodule update --init lib/SDL2-CS lib/SDL3-CS lib/FAudio lib/Theorafile lib/dav1dfile
       - uses: actions/setup-dotnet@v4
         with:
           # Every package here but SkiaGameRendering.Stride.D3D11 still needs 8.0.x - Stride 4.4.0-beta5's
@@ -89,6 +96,8 @@ jobs:
       - run: dotnet build samples/Sample.Kni.DesktopGL/Sample.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Kni.WindowsDX/SkiaGameRendering.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Kni.WindowsDX/Sample.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Fna.WindowsDX/SkiaGameRendering.Fna.WindowsDX.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.Fna.WindowsDX/Sample.Fna.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Raylib.OGL/SkiaGameRendering.Raylib.OGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Raylib.OGL/Sample.Raylib.OGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Stride.D3D11/SkiaGameRendering.Stride.D3D11.csproj -c ${{ matrix.configuration }}

@@ -19,6 +19,9 @@ namespace SkiaGameRendering.Core.ANGLE
     {
         internal static readonly Guid IID_ID3D11Device1 = new("a04bfb29-08ef-43d6-a49c-a9bdbdcbe686");
         internal static readonly Guid IID_ID3D11DeviceContext1 = new("bb2c6faa-b5fb-4082-8e6b-388b8cfa90e1");
+        // Used by SkiaGameRendering.Fna.WindowsDX to check a pointer it read out of an FNA3D-internal
+        // struct really is a texture before ANGLE is handed it - see SkiaFnaAngleBackend.
+        internal static readonly Guid IID_ID3D11Texture2D = new("6f15aaf2-d208-4e89-9ab4-489535d34f9c");
 
         const uint D3D11_SDK_VERSION = 7;
         const int D3D_FEATURE_LEVEL_11_0 = 0xb000;

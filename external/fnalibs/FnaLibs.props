@@ -1,0 +1,11 @@
+<!--
+  Copies the vendored FNA native libraries next to whatever imports this (the FNA sample and its
+  test project). Consumers of the SkiaGameRendering.Fna.* packages ship fnalibs themselves, the way
+  every FNA game does; this is only so the repo's own sample and tests run without a manual step.
+  See README.txt in this folder for where the binaries came from.
+-->
+<Project>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)x64\*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+</Project>

@@ -232,3 +232,58 @@ Short version of the recommendation: **build Option D**, which on Chrome/Edge me
 
 - ~~Does MG 3.8.5 expose `VkDevice` / `VkQueue` publicly, or is reflection still required?~~ **Answered, and it's worse than "reflection required" — but only for the new native targets.** MG 3.8.5 ships two separate Windows platforms: the legacy `WindowsDX` (D3D11, `MonoGame.Framework.WindowsDX.csproj`, still SharpDX-based, unaffected by anything below) and the new `WindowsDX12` (D3D12, `MonoGame.Framework.Native.csproj`) backed by a single native C/C++ library (`native/`). Confirmed by reading `MonoGame.Framework/Platform/Native/GraphicsDevice.Native.cs` at tag `v3.8.5`: on `WindowsDX12`, `GraphicsDevice` holds `internal unsafe MGG_GraphicsDevice* Handle;` — an opaque pointer into that native library, not a `Vortice ID3D12Device` COM object. There is no managed device object left to reflect into on this target. Reaching a real `ID3D12Device` would mean going through MG's native interop layer (`MGG.*` P/Invoke surface) instead of C# reflection — a materially bigger undertaking than the reflection glue that ported the legacy WindowsDX in section 4. This blocker is specific to the new native `WindowsDX12` target; the legacy D3D11 `WindowsDX` project this library already ports (section 7) is a separate, untouched project on 3.8.5 same as 3.8.4. Filed as [issue #67](https://github.com/vchelaru/SkiaGameRendering/issues/67).
 - **Vulkan on MG 3.8.5's `DesktopVK` platform has the identical blocker, confirmed.** The same native library builds the Vulkan backend (`native/monogame/vulkan/MGG_Vulkan.cpp`); its `MGG_GraphicsDevice` struct holds the real `VkDevice`/`VkQueue` (`vulkan/MGG_Vulkan.cpp:249-253`), but the public C API (`native/monogame/include/api_MGG.h`) exposes no getter for them — only opaque draw/state calls (`Draw`, `SetTexture`, `Clear`, etc.). There is no exported path back to a `VkDevice` any more than there is to `ID3D12Device`. Same fix scope as `WindowsDX12`: it needs new exports added to MG's native API, not a client-side workaround.
+
+## 10. FNA / FNA3D (D3D11, completed)
+
+FNA's graphics layer is FNA3D, a native library with three drivers: SDL_GPU (first in FNA3D's
+driver table, so the default wherever SDL3's GPU API initializes), D3D11 (Windows builds) and
+OpenGL. `src/SkiaGameRendering.Fna.WindowsDX` is the D3D11 adapter; issue #74 tracks OpenGL.
+
+### Getting the device
+
+FNA3D ships an opt-in extension header, `include/FNA3D_SysRenderer.h`, with two exports:
+`FNA3D_GetSysRendererEXT` fills a struct with the driver's native handles (`ID3D11Device*` and the
+immediate `ID3D11DeviceContext*` for D3D11, `SDL_GLContext` for OpenGL), and
+`FNA3D_CreateSysTextureEXT` wraps an external texture as an `FNA3D_Texture*`. FNA's C# binding
+doesn't declare either, so `Fna3dSysRenderer.cs` is a second `DllImport("FNA3D")` into the library
+FNA already loaded. The `FNA3D_Device*` itself is `GraphicsDevice.GLDevice`, an internal field
+reached by reflection (pinned in `tests/Tests.Fna.WindowsDX`). No FNA fork, no FNA3D fork.
+
+### The SDL_GPU blocker
+
+`SDLGPU_GetSysRenderer` in `FNA3D_Driver_SDL.c` is a `/* TODO */` memset, and
+`SDLGPU_CreateSysTexture` returns NULL. It can't be finished from FNA3D alone: `SDL_GPUDevice` is
+opaque and SDL3's only device properties are name/driver strings, no native handles. So the adapter
+requires the D3D11 driver, selected with `FNA3D_FORCE_DRIVER=D3D11` before the window exists.
+Verified in SDL3's `SDL_hints.c` that `SDL_GetHint` reads the environment variable of the same name
+first, which is why a plain `Environment.SetEnvironmentVariable` in `Program.cs` is enough.
+`SkiaFnaAngleBackend.Initialize` checks `rendererType` and throws with that instruction otherwise.
+Same shape as MG 3.8.5's native backends (section 9): the fix is upstream exports, in SDL and then
+FNA3D.
+
+### Textures: the one native layout dependency
+
+ANGLE needs `D3D11_BIND_RENDER_TARGET`, which FNA3D's D3D11 driver only sets for render targets, so
+the adapter allocates `RenderTarget2D`s (same as MonoGame WindowsDX, section 7), and FNA creates the
+GPU resource in the constructor, so the SetData workaround from section 7 isn't needed. What FNA3D
+has no API for is reading the `ID3D11Resource*` back out of an `FNA3D_Texture*`. The
+`CreateSysTextureEXT` route (make the texture ourselves, import it) was considered and rejected: a
+sys texture has zeroed width/height/format inside FNA3D, so `Texture2D.GetData` on it fails at the
+staging-texture step. Instead the adapter reads the first pointer of the `D3D11Texture` struct
+(`FNA3D_Driver_D3D11.c`, "Cast FNA3D_Texture* to this!"), which is `handle`. That layout can't be
+reflection-pinned; `CaptureTextureHandle` QueryInterfaces the pointer for `ID3D11Texture2D` before
+ANGLE sees it, and the vendored `external/fnalibs/x64/FNA3D.dll` is the binary it was verified on.
+
+### Build and test plumbing
+
+- FNA is not on NuGet. `external/FNA` is a submodule pinned to release tag 26.09 with only the
+  five C#-binding submodules it needs initialized (`lib/SDL2-CS`, `lib/SDL3-CS`, `lib/FAudio`,
+  `lib/Theorafile`, `lib/dav1dfile`; not `lib/FNA3D`, which is the native source tree). The
+  package references `FNA.Core.csproj` with `PrivateAssets="All"`, the Gum.FNA arrangement.
+- fnalibs are only published as expiring GitHub Actions artifacts of `FNA-XNA/fnalibs-dailies`
+  (authenticated download), so the Windows x64 set is checked in under `external/fnalibs/` and
+  `FnaLibs.props` copies it next to the sample and test binaries.
+- `tests/Tests.Fna.WindowsDX` runs a hidden one-frame FNA `Game` (FNA has no headless device
+  path: `FNA3D_PrepareWindowAttributes` only runs inside FNA's window creation) on WARP via the
+  `FNA3D_D3D11_USE_WARP=1` hint. Its golden came out byte-identical to the MonoGame WindowsDX one,
+  which is what you'd expect from the same ANGLE build on the same rasterizer.

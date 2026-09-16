@@ -2,7 +2,7 @@
 
 [![Join the chat](https://img.shields.io/discord/586997072373481494)](https://discord.gg/tG5RBgw)
 
-A library that lets MonoGame, KNI, raylib, and Stride applications use SkiaSharp's GPU rendering to produce game-engine textures — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into game-engine textures without any CPU readback.
+A library that lets MonoGame, KNI, FNA, raylib, and Stride applications use SkiaSharp's GPU rendering to produce game-engine textures — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into game-engine textures without any CPU readback.
 
 ## Platform Support
 
@@ -17,6 +17,9 @@ A library that lets MonoGame, KNI, raylib, and Stride applications use SkiaSharp
 | KNI Android | GL ES | Not started | |
 | KNI WebGL (Blazor) | WebGL2 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WebGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
 | raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
+| FNA (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) (Windows) | ANGLE (GL ES → D3D11 translation) on the device FNA3D's D3D11 driver exposes through `FNA3D_GetSysRendererEXT`; needs `FNA3D_FORCE_DRIVER=D3D11` |
+| FNA (OpenGL) | OpenGL | Not started (issue #74) | |
+| FNA (SDL_GPU) | Vulkan/D3D12/Metal | Blocked: FNA3D's default driver exposes no native device (see the FNA section below) | |
 | Stride (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D11)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) (Windows) | ANGLE (GL ES → D3D11 translation) on shared device |
 | Stride (Vulkan) | Vulkan | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.VK)](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) (Linux, macOS, Windows) | Skia's Vulkan backend on Stride's shared `VkDevice`/`VkQueue`, no separate context |
 
@@ -28,7 +31,7 @@ on 3.8.5 the same as it does on 3.8.4 (see `SkiaGameRendering-Notes.md` section 
 
 - .NET 8 (.NET 10 for the Stride backend)
 - Visual Studio 2022
-- MonoGame 3.8.4.1 (DesktopGL or WindowsDX), KNI (DesktopGL, WindowsDX, or WebGL/Blazor), raylib, or Stride 4.4.0-beta5+ (D3D11 on Windows, or Vulkan on Windows/Linux/macOS; prerelease)
+- MonoGame 3.8.4.1 (DesktopGL or WindowsDX), KNI (DesktopGL, WindowsDX, or WebGL/Blazor), FNA 26.09+ (D3D11 on Windows), raylib, or Stride 4.4.0-beta5+ (D3D11 on Windows, or Vulkan on Windows/Linux/macOS; prerelease)
 - SkiaSharp 3.119.4 for WebGL and the KNI desktop backends; 3.119.2 for the MonoGame desktop projects
 
 ## Quick Start
@@ -42,6 +45,7 @@ quickstart linked below for raylib and Stride):
 - **KNI WindowsDX**: `dotnet add package SkiaGameRendering.Kni.WindowsDX`
 - **KNI WebGL (Blazor)**: `dotnet add package SkiaGameRendering.Kni.WebGL` — needs a couple of extra setup steps beyond the package install; see `docs/webgl/quickstart.md`.
 - **raylib**: `dotnet add package SkiaGameRendering.Raylib.OGL` — see `docs/raylib/quickstart.md`.
+- **FNA (D3D11)**: `dotnet add package SkiaGameRendering.Fna.WindowsDX`, plus one line in `Program.cs`; see the FNA section below.
 - **Stride (D3D11)**: `dotnet add package SkiaGameRendering.Stride.D3D11` — see `docs/stride/quickstart.md`.
 - **Stride (Vulkan)**: `dotnet add package SkiaGameRendering.Stride.VK` — see `docs/stride/vulkan-quickstart.md`.
 
@@ -120,11 +124,12 @@ Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or 
 - `samples/Sample.Kni.WindowsDX/` — KNI WindowsDX sample (Windows only)
 - `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample using the patched canvas-upload API
 - `samples/Sample.Raylib.OGL/` — raylib sample (Windows + Linux)
+- `samples/Sample.Fna.WindowsDX/`: FNA sample (Windows, D3D11 only; builds against the `external/FNA` submodule and the vendored `external/fnalibs`)
 - `samples/Sample.Stride.D3D11/` — Stride sample (Windows, D3D11 only)
 - `samples/Sample.Stride.VK/` — Stride sample (Vulkan; builds on Windows via `StrideGraphicsApi=Vulkan`, runs on Windows/Linux/macOS)
 - `samples/Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
-DesktopGL, WindowsDX, and KNI WindowsDX share the same `Game1.cs` via a linked file include; KNI DesktopGL has its own copy.
+DesktopGL, WindowsDX, KNI WindowsDX, and FNA share the same `Game1.cs` via a linked file include; KNI DesktopGL has its own copy.
 
 ## Architecture
 
@@ -137,12 +142,35 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Kni.DesktopGL/` — KNI DesktopGL library (shared core + `SkiaKniGlBackend`)
 - `src/SkiaGameRendering.Kni.WindowsDX/` — KNI WindowsDX library (shared core + `SkiaKniAngleBackend`, on `Core.ANGLE`)
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
+- `src/SkiaGameRendering.Fna.WindowsDX/`: FNA library (shared core + `SkiaFnaAngleBackend`, on `Core.ANGLE`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Raylib.OGL/` — raylib library (shared `Core.OGL` + `SkiaRaylibRenderTarget2D`)
 - `src/SkiaGameRendering.Stride.D3D11/` — Stride library (shared `Core.ANGLE` + `SkiaStrideRenderTarget2D`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Core.VK/` — engine-agnostic Vulkan/Skia interop shared by Vulkan-based backends
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaStrideVulkanRenderTarget2D`, Windows/Linux/macOS)
 
 See `SkiaGameRendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
+
+## FNA
+
+FNA's graphics layer is the native FNA3D library, which has three drivers: SDL_GPU (the default on
+SDL3 builds), D3D11 (Windows) and OpenGL. Only D3D11 and OpenGL hand out their native device
+(`FNA3D_GetSysRendererEXT`); the SDL_GPU driver leaves that call unimplemented, and SDL3 itself
+exposes no native handles from an `SDL_GPUDevice`, so there is nothing for Skia to share. Until
+that changes upstream, the FNA backend needs FNA3D's D3D11 driver, which you select with an SDL
+hint before the `Game` exists:
+
+```csharp
+// Program.cs
+System.Environment.SetEnvironmentVariable("FNA3D_FORCE_DRIVER", "D3D11");
+using var game = new Game1();
+game.Run();
+```
+
+`SkiaRenderer.Initialize` throws with that instruction if any other driver is active. Everything
+inside `Game` is the same code as the MonoGame/KNI backends (`samples/Sample.Fna.WindowsDX` links
+the shared `Game1.cs`). FNA itself is referenced the FNA way, as a submodule plus a
+`ProjectReference`, so the package carries no FNA dependency and binds to whatever FNA your game
+builds against; ship `fnalibs` next to your exe as usual. Tested against FNA 26.09.
 
 ## WebGL / WASM Status
 

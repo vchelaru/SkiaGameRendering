@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="../../external/FNA/FNA.Core.csproj" />
+  <Project Path="../../src/SkiaGameRendering.Core.ANGLE/SkiaGameRendering.Core.ANGLE.csproj" />
+  <Project Path="../../src/SkiaGameRendering.Fna.WindowsDX/SkiaGameRendering.Fna.WindowsDX.csproj" />
+  <Project Path="Sample.Fna.WindowsDX.csproj" />
+</Solution>
