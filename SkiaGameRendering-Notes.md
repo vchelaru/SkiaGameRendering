@@ -233,11 +233,11 @@ Short version of the recommendation: **build Option D**, which on Chrome/Edge me
 - ~~Does MG 3.8.5 expose `VkDevice` / `VkQueue` publicly, or is reflection still required?~~ **Answered, and it's worse than "reflection required" — but only for the new native targets.** MG 3.8.5 ships two separate Windows platforms: the legacy `WindowsDX` (D3D11, `MonoGame.Framework.WindowsDX.csproj`, still SharpDX-based, unaffected by anything below) and the new `WindowsDX12` (D3D12, `MonoGame.Framework.Native.csproj`) backed by a single native C/C++ library (`native/`). Confirmed by reading `MonoGame.Framework/Platform/Native/GraphicsDevice.Native.cs` at tag `v3.8.5`: on `WindowsDX12`, `GraphicsDevice` holds `internal unsafe MGG_GraphicsDevice* Handle;` — an opaque pointer into that native library, not a `Vortice ID3D12Device` COM object. There is no managed device object left to reflect into on this target. Reaching a real `ID3D12Device` would mean going through MG's native interop layer (`MGG.*` P/Invoke surface) instead of C# reflection — a materially bigger undertaking than the reflection glue that ported the legacy WindowsDX in section 4. This blocker is specific to the new native `WindowsDX12` target; the legacy D3D11 `WindowsDX` project this library already ports (section 7) is a separate, untouched project on 3.8.5 same as 3.8.4. Filed as [issue #67](https://github.com/vchelaru/SkiaGameRendering/issues/67).
 - **Vulkan on MG 3.8.5's `DesktopVK` platform has the identical blocker, confirmed.** The same native library builds the Vulkan backend (`native/monogame/vulkan/MGG_Vulkan.cpp`); its `MGG_GraphicsDevice` struct holds the real `VkDevice`/`VkQueue` (`vulkan/MGG_Vulkan.cpp:249-253`), but the public C API (`native/monogame/include/api_MGG.h`) exposes no getter for them — only opaque draw/state calls (`Draw`, `SetTexture`, `Clear`, etc.). There is no exported path back to a `VkDevice` any more than there is to `ID3D12Device`. Same fix scope as `WindowsDX12`: it needs new exports added to MG's native API, not a client-side workaround.
 
-## 10. FNA / FNA3D (D3D11, completed)
+## 10. FNA / FNA3D (D3D11 and OpenGL, completed)
 
 FNA's graphics layer is FNA3D, a native library with three drivers: SDL_GPU (first in FNA3D's
 driver table, so the default wherever SDL3's GPU API initializes), D3D11 (Windows builds) and
-OpenGL. `src/SkiaGameRendering.Fna.WindowsDX` is the D3D11 adapter; issue #74 tracks OpenGL.
+OpenGL. `src/SkiaGameRendering.Fna.WindowsDX` is the D3D11 adapter, `src/SkiaGameRendering.Fna.OGL` the OpenGL one; `src/SkiaGameRendering.Fna/` holds the `FNA3D_GetSysRendererEXT` binding both link.
 
 ### Getting the device
 
@@ -274,6 +274,19 @@ staging-texture step. Instead the adapter reads the first pointer of the `D3D11T
 reflection-pinned; `CaptureTextureHandle` QueryInterfaces the pointer for `ID3D11Texture2D` before
 ANGLE sees it, and the vendored `external/fnalibs/x64/FNA3D.dll` is the binary it was verified on.
 
+### OpenGL adapter
+
+Same design as MonoGame DesktopGL's `SkiaGlBackend`: `SDL_GL_CreateContext` with
+`SDL_GL_SHARE_WITH_CURRENT_CONTEXT` gives Skia its own context sharing FNA's texture namespace, and
+FNA3D's aggressive GL state cache never sees Skia's state changes. The SDL calls go through the
+SDL3-CS binding FNA compiles into `FNA.dll` (`SDL3.SDL` is public there), so nothing is reflected
+on the SDL side; SDL2 FNA builds (`FNA_PLATFORM_BACKEND=SDL2`) aren't supported. FNA's context and
+window come from `SDL_GL_GetCurrentContext/Window` on the game thread, cross-checked against the
+`opengl.context` FNA3D reports. The GL texture name is the first field of FNA3D's `OpenGLTexture`
+struct (same no-API situation as D3D11), checked with `glIsTexture` on the shared context. Plain
+`Texture2D`s work here (FNA3D's GL driver allocates storage in the constructor); `TopLeft` origin,
+same as MonoGame, and the golden comes out identical to the DesktopGL ones.
+
 ### Build and test plumbing
 
 - FNA is not on NuGet. `external/FNA` is a submodule pinned to release tag 26.09 with only the
@@ -287,3 +300,9 @@ ANGLE sees it, and the vendored `external/fnalibs/x64/FNA3D.dll` is the binary i
   path: `FNA3D_PrepareWindowAttributes` only runs inside FNA's window creation) on WARP via the
   `FNA3D_D3D11_USE_WARP=1` hint. Its golden came out byte-identical to the MonoGame WindowsDX one,
   which is what you'd expect from the same ANGLE build on the same rasterizer.
+- `tests/Tests.Fna.OGL` is the same one-frame Game on `FNA3D_FORCE_DRIVER=OpenGL`, Mesa-gated like
+  the DesktopGL goldens (`MesaVendor.props`, `SKIAGAMERENDERING_PINNED_RASTERIZER`). FNA loads GL
+  through SDL after `VendoredOpenGl.PreloadIfPresent`, so the vendored `opengl32.dll` takes effect
+  for it the same way it does for MonoGame. With `tests/mesa-vendor/` present and
+  `GALLIUM_DRIVER` unset, Mesa's D3D12 path crashes the test host (MonoGame's DesktopGL tests
+  too); that's the known landmine in the `headless-gpu-testing` skill, not the adapter.

@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>SkiaGameRendering</RootNamespace>
-    <PackageId>SkiaGameRendering.Fna.WindowsDX</PackageId>
+    <PackageId>SkiaGameRendering.Fna.OGL</PackageId>
     <Version>$(LibraryVersion)</Version>
-    <Description>GPU SkiaSharp rendering into FNA Texture2D targets via ANGLE on FNA3D's D3D11 driver, with zero-copy GPU texture sharing. Requires FNA3D_FORCE_DRIVER=D3D11.</Description>
+    <Description>GPU SkiaSharp rendering into FNA Texture2D targets on FNA3D's OpenGL driver, with zero-copy GPU texture sharing. Requires FNA3D_FORCE_DRIVER=OpenGL.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
@@ -18,20 +18,16 @@
 
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="[$(SkiaSharpVersion)]" />
   </ItemGroup>
 
-  <!--
-    FNA isn't on NuGet: the FNA way is a submodule plus a ProjectReference to FNA.Core.csproj, so
-    that's how this builds too (external/FNA, pinned to a release tag). PrivateAssets="All" keeps FNA
-    out of the package's dependency list - a consumer brings their own FNA, and this assembly binds
-    to it by name ("FNA") at runtime, the same arrangement Gum.FNA uses.
-  -->
+  <!-- See SkiaGameRendering.Fna.WindowsDX.csproj for why FNA is a submodule ProjectReference with PrivateAssets="All". -->
   <ItemGroup>
     <ProjectReference Include="..\..\external\FNA\FNA.Core.csproj" PrivateAssets="All" />
-    <ProjectReference Include="..\SkiaGameRendering.Core.ANGLE\SkiaGameRendering.Core.ANGLE.csproj" />
+    <ProjectReference Include="..\SkiaGameRendering.Core.OGL\SkiaGameRendering.Core.OGL.csproj" />
   </ItemGroup>
 
-  <!-- Shared core files from the DesktopGL project, plus the FNA3D binding shared with Fna.OGL -->
+  <!-- Shared core files from the DesktopGL project, plus the FNA3D binding shared with Fna.WindowsDX -->
   <ItemGroup>
     <Compile Include="..\SkiaGameRendering.Fna\Fna3dSysRenderer.cs" Link="Fna3dSysRenderer.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />

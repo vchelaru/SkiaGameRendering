@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\external\fnalibs\FnaLibs.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The backend keeps FNA out of its dependency list (PrivateAssets="All"), so this project
+         references FNA itself, the way a game would. -->
+    <ProjectReference Include="..\..\external\FNA\FNA.Core.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Fna.OGL\SkiaGameRendering.Fna.OGL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\EngineReflectionPin.cs" Link="EngineReflectionPin.cs" />
+    <Compile Include="..\Shared\VendoredOpenGl.cs" Link="VendoredOpenGl.cs" />
+    <Compile Include="..\Shared\OneFrameGame.cs" Link="OneFrameGame.cs" />
+    <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
+    <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Compile Include="..\Shared\EngineSkiaGolden.cs" Link="EngineSkiaGolden.cs" />
+    <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Import Project="..\MesaVendor.props" />
+</Project>

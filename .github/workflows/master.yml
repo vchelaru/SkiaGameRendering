@@ -98,6 +98,8 @@ jobs:
       - run: dotnet build samples/Sample.Kni.WindowsDX/Sample.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Fna.WindowsDX/SkiaGameRendering.Fna.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Fna.WindowsDX/Sample.Fna.WindowsDX.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Fna.OGL/SkiaGameRendering.Fna.OGL.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.Fna.OGL/Sample.Fna.OGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Raylib.OGL/SkiaGameRendering.Raylib.OGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Raylib.OGL/Sample.Raylib.OGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Stride.D3D11/SkiaGameRendering.Stride.D3D11.csproj -c ${{ matrix.configuration }}
