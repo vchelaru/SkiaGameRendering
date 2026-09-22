@@ -1,2 +1,2 @@
-using var game = new Sample.Kni.DesktopGL.Game1();
+using var game = new Sample.Game1();
 game.Run();

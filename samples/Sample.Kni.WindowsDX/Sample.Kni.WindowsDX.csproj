@@ -37,5 +37,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
+    <Compile Include="..\Shared\Scene.cs" Link="Scene.cs" />
   </ItemGroup>
 </Project>

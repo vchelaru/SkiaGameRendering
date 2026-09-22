@@ -35,4 +35,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\SkiaGameRendering.Kni.DesktopGL\SkiaGameRendering.Kni.DesktopGL.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
+    <Compile Include="..\Shared\Scene.cs" Link="Scene.cs" />
+  </ItemGroup>
 </Project>

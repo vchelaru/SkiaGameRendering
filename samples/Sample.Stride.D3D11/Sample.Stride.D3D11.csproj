@@ -35,4 +35,8 @@
     <ProjectReference Include="..\..\src\SkiaGameRendering.Stride.D3D11\SkiaGameRendering.Stride.D3D11.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared\Scene.cs" Link="Scene.cs" />
+  </ItemGroup>
+
 </Project>

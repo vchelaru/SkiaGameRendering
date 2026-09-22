@@ -1,4 +1,5 @@
 using Raylib_cs;
+using Sample.Shared;
 using SkiaGameRendering.Raylib.OGL;
 using SkiaSharp;
 
@@ -17,14 +18,9 @@ SkiaRaylibRenderer.Initialize();
 // the GL context it depends on, which top-level statements' end-of-scope disposal order can't
 // guarantee relative to the explicit SkiaRaylibRenderer.Dispose() call below.
 var canvas = new SkiaRaylibRenderTarget2D(Width, Height);
-using var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
-
-float angle = 0f;
 
 while (!Raylib.WindowShouldClose())
 {
-    angle += Raylib.GetFrameTime() * 90f;
-
     Raylib.BeginDrawing();
     Raylib.ClearBackground(Color.Black);
 
@@ -33,13 +29,10 @@ while (!Raylib.WindowShouldClose())
     // Skia surface itself (see SkiaRaylibContext.CreateSurface), so it samples correctly.
     canvas.Begin();
     canvas.Canvas.Clear(SKColors.CornflowerBlue);
-    canvas.Canvas.Save();
-    canvas.Canvas.RotateDegrees(angle, Width / 2f, Height / 2f);
-    canvas.Canvas.DrawRect(SKRect.Create(Width / 2f - 100, Height / 2f - 100, 200, 200), paint);
-    canvas.Canvas.Restore();
+    Scene.Draw(canvas.Canvas, Width, Height);
     canvas.End();
 
-    Raylib.DrawText("Skia-rendered square (raylib backend)", 10, 10, 20, Color.White);
+    Raylib.DrawText("Skia-rendered scene (raylib backend)", 10, 10, 20, Color.White);
     Raylib.DrawFPS(10, Height - 30);
     Raylib.EndDrawing();
 }
