@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RollForward>Major</RollForward>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <TieredCompilation>false</TieredCompilation>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Selects the WindowsDX12 native platform out of MonoGame.Framework.Native's multi-platform
+         package - required by MonoGame.Content.Builder.Task.targets even with no content to build. -->
+    <MonoGamePlatform>WindowsDX12</MonoGamePlatform>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>..\Sample.MonoGame.WindowsDX\app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\Sample.MonoGame.WindowsDX\Icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!--
+    PROOF-OF-CONCEPT for https://github.com/MonoGame/MonoGame/pull/9536 and
+    https://github.com/MonoGame/MonoGame/pull/9535 - see README.md. Neither PR is merged as of
+    3.8.5.1 (the latest MonoGame.Framework.Native on NuGet), so this project does NOT compile yet:
+    GetNativeHandles()/FromNativeHandle() don't exist in that build. Bump the Version below once a
+    release contains both.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Sample.MonoGame.WindowsDX\Icon.ico" Link="Icon.ico" />
+    <EmbeddedResource Include="..\Sample.MonoGame.WindowsDX\Icon.bmp" Link="Icon.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.5.1" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.5.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Core.D3D12\SkiaGameRendering.Core.D3D12.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\Scene.cs" Link="Scene.cs" />
+  </ItemGroup>
+  <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
+    <Message Text="Restoring dotnet tools" Importance="High" />
+    <Exec Command="dotnet tool restore" />
+  </Target>
+</Project>

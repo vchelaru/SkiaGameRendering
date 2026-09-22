@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../../src/SkiaGameRendering.Core.D3D12/SkiaGameRendering.Core.D3D12.csproj" />
+  <Project Path="Sample.MonoGame.WindowsDX12.csproj" />
+</Solution>
