@@ -2,5 +2,5 @@
   <Project Path="../../external/FNA/FNA.Core.csproj" />
   <Project Path="../../src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj" />
   <Project Path="../../src/SkiaGameRendering.Fna.OGL/SkiaGameRendering.Fna.OGL.csproj" />
-  <Project Path="Sample.Fna.OGL.csproj" />
+  <Project Path="Sample.Fna.OGL.csproj" DefaultStartup="true" />
 </Solution>
