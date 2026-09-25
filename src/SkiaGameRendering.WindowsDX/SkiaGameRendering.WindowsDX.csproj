@@ -21,6 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="ILLink.Descriptors.xml" LogicalName="ILLink.Descriptors.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SkiaGameRendering.Core.ANGLE\SkiaGameRendering.Core.ANGLE.csproj" />
   </ItemGroup>
 

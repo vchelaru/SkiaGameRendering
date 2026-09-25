@@ -21,13 +21,6 @@
     <EmbeddedResource Include="Icon.ico" />
     <EmbeddedResource Include="Icon.bmp" />
   </ItemGroup>
-  <!-- SharpDX wraps every COM pointer with Activator.CreateInstance(typeof(T), IntPtr), which the
-       trimmer can't see, so MonoGame's device creation fails under NativeAOT unless these are kept whole. -->
-  <ItemGroup>
-    <TrimmerRootAssembly Include="SharpDX" />
-    <TrimmerRootAssembly Include="SharpDX.Direct3D11" />
-    <TrimmerRootAssembly Include="SharpDX.DXGI" />
-  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.4.1" />
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.4.1" />

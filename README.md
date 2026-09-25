@@ -36,10 +36,7 @@ on 3.8.5 the same as it does on 3.8.4 (see `SkiaGameRendering-Notes.md` section 
 
 The MonoGame DesktopGL (`SkiaGameRendering`) and WindowsDX (`SkiaGameRendering.WindowsDX`) packages
 are trim- and NativeAOT-compatible; CI publishes `Sample.MonoGame.DesktopGL` (on Linux) and
-`Sample.MonoGame.WindowsDX` (on Windows, WARP) with `PublishAot` and runs them. MonoGame WindowsDX
-itself needs `<TrimmerRootAssembly Include="SharpDX" />` (plus `SharpDX.Direct3D11` and
-`SharpDX.DXGI`) in the game's project, or its device creation fails trimmed; see the sample's
-`.csproj`. The other packages are not yet verified under NativeAOT.
+`Sample.MonoGame.WindowsDX` (on Windows, WARP) with `PublishAot` and runs them. The other packages are not yet verified under NativeAOT.
 
 ## Quick Start
 

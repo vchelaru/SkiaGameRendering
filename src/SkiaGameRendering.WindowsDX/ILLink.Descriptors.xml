@@ -1,0 +1,11 @@
+<!--
+  Embedded in the assembly, so the trimmer and NativeAOT honor it in any app that references this
+  package. MonoGame WindowsDX wraps every D3D11 COM pointer with SharpDX's
+  Activator.CreateInstance(typeof(T), IntPtr), which the trimmer can't see; without these roots,
+  device creation fails in a trimmed app before any Skia code runs.
+-->
+<linker>
+  <assembly fullname="SharpDX" preserve="all" />
+  <assembly fullname="SharpDX.Direct3D11" preserve="all" />
+  <assembly fullname="SharpDX.DXGI" preserve="all" />
+</linker>
