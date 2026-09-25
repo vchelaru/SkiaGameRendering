@@ -36,24 +36,32 @@ on 3.8.5 the same as it does on 3.8.4 (see `SkiaGameRendering-Notes.md` section 
 
 ## Quick Start
 
-Install the NuGet package for your platform into an existing project (see
-`docs/desktop/quickstart.md` for the four MonoGame/KNI desktop backends, or the engine-specific
-quickstart linked below for raylib and Stride):
-- **MonoGame DesktopGL**: `dotnet add package SkiaGameRendering`
-- **MonoGame WindowsDX**: `dotnet add package SkiaGameRendering.WindowsDX`
-- **KNI DesktopGL**: `dotnet add package SkiaGameRendering.Kni.DesktopGL`
-- **KNI WindowsDX**: `dotnet add package SkiaGameRendering.Kni.WindowsDX`
-- **KNI WebGL (Blazor)**: `dotnet add package SkiaGameRendering.Kni.WebGL` — needs a couple of extra setup steps beyond the package install; see `docs/webgl/quickstart.md`.
-- **raylib**: `dotnet add package SkiaGameRendering.Raylib.OGL` — see `docs/raylib/quickstart.md`.
-- **FNA (D3D11)**: `dotnet add package SkiaGameRendering.Fna.WindowsDX`, plus one line in `Program.cs`; see the FNA section below.
-- **FNA (OpenGL)**: `dotnet add package SkiaGameRendering.Fna.OGL`, same one line with `OpenGL`.
-- **Stride (D3D11)**: `dotnet add package SkiaGameRendering.Stride.D3D11` — see `docs/stride/quickstart.md`.
-- **Stride (Vulkan)**: `dotnet add package SkiaGameRendering.Stride.VK` — see `docs/stride/vulkan-quickstart.md`.
+Install the NuGet package for your platform, then follow the setup for your engine below.
 
-No setup outside `Game` needed — `Program.cs` stays whatever the stock MonoGame/KNI template gives
-you (`using var game = new Game1(); game.Run();`). Inside `Game`, poll `SkiaRenderer.IsReady`
-before calling `SkiaRenderer.Initialize`, in `Draw()` (a rendering-setup concern, colocated with the
-rendering that follows it):
+| Engine | Package | Full guide |
+|--------|---------|------------|
+| MonoGame DesktopGL | `SkiaGameRendering` | `docs/desktop/quickstart.md` |
+| MonoGame WindowsDX | `SkiaGameRendering.WindowsDX` | `docs/desktop/quickstart.md` |
+| KNI DesktopGL | `SkiaGameRendering.Kni.DesktopGL` | `docs/desktop/quickstart.md` |
+| KNI WindowsDX | `SkiaGameRendering.Kni.WindowsDX` | `docs/desktop/quickstart.md` |
+| KNI WebGL (Blazor) | `SkiaGameRendering.Kni.WebGL` | `docs/webgl/quickstart.md` (extra host setup) |
+| FNA (D3D11) | `SkiaGameRendering.Fna.WindowsDX` | [FNA](#fna) |
+| FNA (OpenGL) | `SkiaGameRendering.Fna.OGL` | [FNA](#fna) |
+| raylib | `SkiaGameRendering.Raylib.OGL` | `docs/raylib/quickstart.md` |
+| Stride (D3D11) | `SkiaGameRendering.Stride.D3D11` | `docs/stride/quickstart.md` |
+| Stride (Vulkan) | `SkiaGameRendering.Stride.VK` | `docs/stride/vulkan-quickstart.md` |
+
+```powershell
+dotnet add package <package from the table>
+```
+
+### MonoGame, KNI, and FNA
+
+These share one API (`SkiaRenderer` plus `SkiaRenderTarget2D`), so the code inside `Game` is
+identical on all of them. `Program.cs` stays whatever the stock template gives you, except on FNA,
+which needs one extra line to pick its graphics driver (see [FNA](#fna)).
+
+Inside `Game`, poll `SkiaRenderer.IsReady` before calling `SkiaRenderer.Initialize`, in `Draw()`:
 ```cs
 using SkiaGameRendering; // SkiaRenderer
 
@@ -70,13 +78,88 @@ protected override void Draw(GameTime gameTime)
 }
 ```
 
-This is deliberate, not just convenient: `IsReady`/`Initialize(GraphicsDevice)` are declared on
-`SkiaRenderer`'s shared, platform-agnostic part, so this exact code also compiles and behaves
-correctly on KNI WebGL, where `IsReady` reflects a real async host-readiness check instead of
-always being `true` — see `docs/webgl/quickstart.md`. `Game` code never names a specific
-`SkiaBackend` type on any platform.
+`IsReady` is always `true` on desktop. On KNI WebGL it reflects a real async host-readiness check,
+which is why the same code works there unchanged (see `docs/webgl/quickstart.md`). `Game` code never
+names a specific `SkiaBackend` type on any platform. Drawing goes through
+[SkiaRenderTarget2D](#skiarendertarget2d).
+
+### raylib
+
+raylib has no `Game` class, so it gets its own `SkiaRaylibRenderTarget2D` that you drive from the
+main loop, between `BeginDrawing`/`EndDrawing` like any other raylib draw call. On Linux, also add
+`SkiaSharp.NativeAssets.Linux`.
+
+```cs
+using Raylib_cs;
+using SkiaGameRendering.Raylib.OGL;
+using SkiaSharp;
+
+Raylib.InitWindow(800, 600, "raylib + Skia");
+var canvas = new SkiaRaylibRenderTarget2D(800, 600);
+using var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
+
+while (!Raylib.WindowShouldClose())
+{
+    Raylib.BeginDrawing();
+    canvas.Begin();
+    canvas.Canvas.DrawCircle(100, 100, 100, paint);
+    canvas.End(); // composites onto the screen at (0,0)
+    Raylib.EndDrawing();
+}
+
+canvas.Dispose();
+SkiaRaylibRenderer.Dispose();
+Raylib.CloseWindow();
+```
+
+### Stride
+
+Stride renders through its `GraphicsCompositor` rather than a user-owned `Draw()`, so you add a
+`SkiaStrideSceneRenderer` to the compositor and draw in its `SkiaDraw` event. This example uses the
+[Stride Community Toolkit](https://stride3d.github.io/stride-community-toolkit/) to get a compositor
+without GameStudio; the package itself doesn't depend on it.
+
+```cs
+using SkiaGameRendering.Stride.D3D11;
+using SkiaSharp;
+using Stride.CommunityToolkit.Bepu;
+using Stride.CommunityToolkit.Engine;
+using Stride.Engine;
+
+using var game = new Game();
+SkiaStrideRenderTarget2D? canvas = null;
+var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
+
+// Called as a static method because Game.Run(GameContext) hides the toolkit's Run extension.
+Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: rootScene =>
+{
+    game.SetupBase3DScene();
+    var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
+    canvas = new SkiaStrideRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
+
+    var renderer = new SkiaStrideSceneRenderer { Canvas = canvas };
+    renderer.SkiaDraw += skCanvas =>
+    {
+        skCanvas.Clear(SKColors.Transparent);
+        skCanvas.DrawCircle(100, 100, 100, paint);
+    };
+    game.AddSceneRenderer(renderer); // draws on top of the 3D scene every frame
+});
+
+canvas?.Dispose();
+SkiaStrideRenderer.Dispose();
+paint.Dispose();
+```
+
+For Vulkan, use the `SkiaGameRendering.Stride.VK` namespace and the `SkiaStrideVulkan*` types
+(`SkiaStrideVulkanRenderTarget2D`, `SkiaStrideVulkanSceneRenderer`, `SkiaStrideVulkanRenderer`).
+On Windows, also set `<StrideGraphicsApi>Vulkan</StrideGraphicsApi>` in your project; see
+`docs/stride/vulkan-quickstart.md`.
 
 ## SkiaRenderTarget2D
+
+Applies to MonoGame, KNI, and FNA. raylib and Stride have their own render-target types with the
+same `Begin`/`Canvas`/`End` shape (see their quickstarts).
 
 `SkiaRenderTarget2D` is a GPU surface that SkiaSharp renders directly into, sized to match whatever
 you intend to draw it onto (typically the back buffer, or a `RenderTarget2D` the same size as the
