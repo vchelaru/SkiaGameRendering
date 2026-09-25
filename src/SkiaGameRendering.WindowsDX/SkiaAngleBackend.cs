@@ -38,17 +38,17 @@ namespace SkiaGameRendering
             // These are SharpDX wrapper objects around the native COM interfaces.
             _d3dDeviceField ??= typeof(GraphicsDevice).GetField("_d3dDevice", flags);
 
-            var d3dDevice = _d3dDeviceField?.GetValue(graphicsDevice)
+            var d3dDevice = (SharpDX.CppObject?)_d3dDeviceField?.GetValue(graphicsDevice)
                 ?? throw new Exception("Could not extract _d3dDevice from GraphicsDevice.");
 
             // _texture on the Texture base class holds the SharpDX.Direct3D11.Resource
             _textureField ??= typeof(Texture).GetField("_texture", flags);
 
             _d3dContextField ??= typeof(GraphicsDevice).GetField("_d3dContext", flags);
-            var d3dContext = _d3dContextField!.GetValue(graphicsDevice)
+            var d3dContext = (SharpDX.CppObject?)_d3dContextField!.GetValue(graphicsDevice)
                 ?? throw new Exception("Could not extract _d3dContext from GraphicsDevice.");
 
-            _factory.Initialize(d3dDevice, d3dContext);
+            _factory.InitializeFromNative(d3dDevice.NativePointer, d3dContext.NativePointer);
         }
 
         internal override void BeginDraw() => _factory.BeginDraw();
@@ -57,11 +57,10 @@ namespace SkiaGameRendering
 
         IntPtr GetD3DTexturePtr(Texture2D texture)
         {
-            var sharpDxResource = _textureField!.GetValue(texture);
-            if (sharpDxResource == null)
-                throw new Exception(
+            var sharpDxResource = (SharpDX.CppObject?)_textureField!.GetValue(texture)
+                ?? throw new Exception(
                     $"D3D11 resource is null on Texture2D ({texture.Width}x{texture.Height}).");
-            return AngleSkiaSurfaceFactory.GetNativePointer(sharpDxResource);
+            return sharpDxResource.NativePointer;
         }
 
         /// <summary>

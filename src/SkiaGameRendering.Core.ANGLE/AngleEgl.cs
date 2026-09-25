@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace SkiaGameRendering.Core.ANGLE
@@ -10,7 +9,7 @@ namespace SkiaGameRendering.Core.ANGLE
 
         static AngleEgl()
         {
-            NativeLibrary.SetDllImportResolver(typeof(AngleEgl).Assembly, (name, assembly, searchPath) =>
+            NativeLibrary.SetDllImportResolver(typeof(AngleEgl).Assembly, (name, _, _) =>
             {
                 if (name != LibEGL && name != LibGLESv2)
                     return IntPtr.Zero;
@@ -18,22 +17,20 @@ namespace SkiaGameRendering.Core.ANGLE
                 var dllName = name + ".dll";
                 var tried = new List<string>();
 
-                // Assembly.Location is empty for a single-file or in-memory assembly, which leaves
-                // no directory to probe - skip straight to the machine-wide fallback.
-                var assemblyDir = Path.GetDirectoryName(assembly.Location);
-                if (!string.IsNullOrEmpty(assemblyDir))
-                {
-                    // 1. Try app-local (bundled ANGLE DLLs next to the executable)
-                    if (TryLoad(Path.Combine(assemblyDir, dllName), tried, out var localHandle))
-                        return localHandle;
+                // The app's base directory, not Assembly.Location: NativeAOT and single-file apps have
+                // no assembly file, so Location is empty there.
+                var appDir = AppContext.BaseDirectory;
 
-                    // 2. Try runtimes folder - this is where Core.ANGLE's own NuGet package vendors
-                    // ANGLE (see eng/vendor-angle.ps1), so this is the tier almost every consumer
-                    // should land on.
-                    var rid = GetRuntimeIdentifier(RuntimeInformation.ProcessArchitecture);
-                    if (TryLoad(Path.Combine(assemblyDir, "runtimes", rid, "native", dllName), tried, out var runtimesHandle))
-                        return runtimesHandle;
-                }
+                // 1. Try app-local (bundled ANGLE DLLs next to the executable)
+                if (TryLoad(Path.Combine(appDir, dllName), tried, out var localHandle))
+                    return localHandle;
+
+                // 2. Try runtimes folder - this is where Core.ANGLE's own NuGet package vendors
+                // ANGLE (see eng/vendor-angle.ps1), so this is the tier almost every consumer
+                // should land on.
+                var rid = GetRuntimeIdentifier(RuntimeInformation.ProcessArchitecture);
+                if (TryLoad(Path.Combine(appDir, "runtimes", rid, "native", dllName), tried, out var runtimesHandle))
+                    return runtimesHandle;
 
                 // 3. Last resort: Edge WebView's private ANGLE copy, if present. This is not a
                 // supported API - Microsoft can rename or relocate it with no warning, the ANGLE

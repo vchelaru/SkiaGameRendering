@@ -25,15 +25,13 @@ namespace SkiaGameRendering.Core.ANGLE
     /// MAINTENANCE NOTES:
     /// - The real entry point is <see cref="InitializeFromNative"/>, which takes the D3D11
     ///   device/context as raw <see cref="IntPtr"/>s and talks to them purely through the COM
-    ///   vtable (see <see cref="D3D11Com"/>) - no interop library on either side.
-    ///   <see cref="Initialize"/> is a SharpDX convenience wrapper over it: MonoGame WindowsDX and
-    ///   KNI WindowsDX both hand this class boxed SharpDX <c>Device</c>/<c>DeviceContext</c>
-    ///   instances, and <see cref="GetNativePointer"/> reflects out the underlying pointer so
-    ///   those adapters don't need to change. A host that isn't SharpDX-based (e.g. Stride 4.4+ on
-    ///   Silk.NET) calls <see cref="InitializeFromNative"/> directly. Never add a direct SharpDX
-    ///   PackageReference here - different host engines pin different SharpDX versions (MonoGame
-    ///   WindowsDX 3.8.4.1 -> SharpDX 4.0.1, KNI's DX11 platform -> SharpDX 4.2.0); a hard
-    ///   PackageReference would force NuGet's resolver to pick one version for every consumer.
+    ///   vtable (see <see cref="D3D11Com"/>) - no interop library on either side. SharpDX-based
+    ///   hosts (MonoGame WindowsDX, KNI WindowsDX) read <c>CppObject.NativePointer</c> themselves,
+    ///   typed, so nothing here reflects over an unknown SharpDX object (which the trimmer can't
+    ///   follow). Never add a direct SharpDX PackageReference here - different host engines pin
+    ///   different SharpDX versions (MonoGame WindowsDX 3.8.4.1 -> SharpDX 4.0.1, KNI's DX11
+    ///   platform -> SharpDX 4.2.0); a hard PackageReference would force NuGet's resolver to pick
+    ///   one version for every consumer.
     /// - ANGLE DLLs (libEGL.dll, libGLESv2.dll) are resolved at runtime. See AngleEgl.cs for the
     ///   resolution order.
     /// </summary>
@@ -61,23 +59,6 @@ namespace SkiaGameRendering.Core.ANGLE
         IntPtr _savedState;
 
         public GRContext GRContext => _grContext;
-
-        /// <summary>
-        /// Reflects a boxed SharpDX <c>CppObject</c>'s <c>NativePointer</c> property. Shared helper
-        /// so callers don't need their own copy of this reflection just to hand a texture pointer
-        /// to <see cref="CreateTextureState"/>.
-        /// </summary>
-        public static IntPtr GetNativePointer(object sharpDxObject)
-        {
-            var property = sharpDxObject.GetType().GetProperty("NativePointer")
-                ?? throw new Exception($"NativePointer property not found on {sharpDxObject.GetType()}.");
-            return (IntPtr)property.GetValue(sharpDxObject)!;
-        }
-
-        /// <param name="d3dDevice">Boxed SharpDX.Direct3D11.Device (or Device1) from the host engine.</param>
-        /// <param name="d3dContext">Boxed SharpDX.Direct3D11.DeviceContext (or DeviceContext1) from the host engine.</param>
-        public void Initialize(object d3dDevice, object d3dContext) =>
-            InitializeFromNative(GetNativePointer(d3dDevice), GetNativePointer(d3dContext));
 
         /// <param name="d3dDevicePtr">Native <c>ID3D11Device*</c> from the host engine.</param>
         /// <param name="d3dContextPtr">Native <c>ID3D11DeviceContext*</c> (the immediate context) from the host engine.</param>

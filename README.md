@@ -34,9 +34,10 @@ on 3.8.5 the same as it does on 3.8.4 (see `SkiaGameRendering-Notes.md` section 
 - MonoGame 3.8.4.1 (DesktopGL or WindowsDX), KNI (DesktopGL, WindowsDX, or WebGL/Blazor), FNA 26.09+ (D3D11 on Windows, or OpenGL anywhere), raylib, or Stride 4.4.0-beta5+ (D3D11 on Windows, or Vulkan on Windows/Linux/macOS; prerelease)
 - SkiaSharp 3.119.4 for WebGL and the KNI desktop backends; 3.119.2 for the MonoGame desktop projects
 
-The MonoGame DesktopGL package (`SkiaGameRendering`) is trim- and NativeAOT-compatible; CI publishes
-`Sample.MonoGame.DesktopGL` with `PublishAot` and runs it on Linux. The other packages are not yet
-verified under NativeAOT.
+The MonoGame DesktopGL (`SkiaGameRendering`) and WindowsDX (`SkiaGameRendering.WindowsDX`) packages
+are trim- and NativeAOT-compatible; CI publishes `Sample.MonoGame.DesktopGL` (on Linux) and
+`Sample.MonoGame.WindowsDX` (on Windows, WARP) with `PublishAot` and runs them. The other packages
+are not yet verified under NativeAOT.
 
 ## Quick Start
 

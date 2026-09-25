@@ -39,16 +39,16 @@ namespace SkiaGameRendering.Kni.WindowsDX
             var deviceStrategy = ((IPlatformGraphicsDevice)graphicsDevice).Strategy;
             _d3dDeviceProperty ??= deviceStrategy.GetType().GetProperty("D3DDevice", flags)
                 ?? throw new Exception("Could not find internal D3DDevice property on KNI's ConcreteGraphicsDevice.");
-            var d3dDevice = _d3dDeviceProperty.GetValue(deviceStrategy)
+            var d3dDevice = (SharpDX.CppObject?)_d3dDeviceProperty.GetValue(deviceStrategy)
                 ?? throw new Exception("D3DDevice was null on KNI's ConcreteGraphicsDevice.");
 
             var contextStrategy = ((IPlatformGraphicsContext)deviceStrategy.CurrentContext).Strategy;
             _d3dContextProperty ??= contextStrategy.GetType().GetProperty("D3dContext", flags)
                 ?? throw new Exception("Could not find internal D3dContext property on KNI's ConcreteGraphicsContext.");
-            var d3dContext = _d3dContextProperty.GetValue(contextStrategy)
+            var d3dContext = (SharpDX.CppObject?)_d3dContextProperty.GetValue(contextStrategy)
                 ?? throw new Exception("D3dContext was null on KNI's ConcreteGraphicsContext.");
 
-            _factory.Initialize(d3dDevice, d3dContext);
+            _factory.InitializeFromNative(d3dDevice.NativePointer, d3dContext.NativePointer);
         }
 
         internal override void BeginDraw() => _factory.BeginDraw();
@@ -61,9 +61,9 @@ namespace SkiaGameRendering.Kni.WindowsDX
             _getTextureMethod ??= textureStrategy.GetType().GetMethod("GetTexture", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new Exception("Could not find internal GetTexture() method on KNI's ConcreteTexture.");
 
-            var sharpDxResource = _getTextureMethod.Invoke(textureStrategy, null)
+            var sharpDxResource = (SharpDX.CppObject?)_getTextureMethod.Invoke(textureStrategy, null)
                 ?? throw new Exception($"D3D11 resource is null on Texture2D ({texture.Width}x{texture.Height}).");
-            return AngleSkiaSurfaceFactory.GetNativePointer(sharpDxResource);
+            return sharpDxResource.NativePointer;
         }
 
         /// <summary>

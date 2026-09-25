@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
     <PackageId>SkiaGameRendering.Core.ANGLE</PackageId>
     <Version>$(LibraryVersion)</Version>
     <Description>Engine-agnostic ANGLE/D3D11-Skia interop shared by D3D11-based SkiaGameRendering backends (MonoGame WindowsDX, KNI WindowsDX). Not meant to be referenced directly - installed automatically as a dependency of those backends.</Description>

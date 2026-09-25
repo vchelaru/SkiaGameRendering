@@ -5,6 +5,9 @@
     <RollForward>Major</RollForward>
     <PublishReadyToRun>false</PublishReadyToRun>
     <TieredCompilation>false</TieredCompilation>
+    <!-- Only affects dotnet publish; dotnet run and F5 still use the JIT. CI publishes this
+         sample with NativeAOT to prove the library works trimmed. -->
+    <PublishAot>true</PublishAot>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>

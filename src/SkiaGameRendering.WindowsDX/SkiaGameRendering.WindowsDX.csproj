@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
     <RootNamespace>SkiaGameRendering</RootNamespace>
     <PackageId>SkiaGameRendering.WindowsDX</PackageId>
     <Version>$(LibraryVersion)</Version>

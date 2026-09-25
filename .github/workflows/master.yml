@@ -212,3 +212,23 @@ jobs:
         env:
           LIBGL_ALWAYS_SOFTWARE: 1
           GALLIUM_DRIVER: llvmpipe
+
+  # Same as desktopgl-nativeaot, for MonoGame WindowsDX (ANGLE over D3D11). --smoke-test pins the
+  # sample to WARP, since windows-latest has no GPU.
+  windowsdx-nativeaot:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet publish samples/Sample.MonoGame.WindowsDX/Sample.MonoGame.WindowsDX.csproj -c Release -r win-x64 -o aot-out
+      - name: Run the AOT exe's smoke test
+        working-directory: aot-out
+        shell: pwsh
+        # WinExe detaches from the console, so wait on the process for its exit code and print its redirected stdout.
+        run: |
+          $p = Start-Process ./Sample.MonoGame.WindowsDX.exe -ArgumentList --smoke-test -PassThru -RedirectStandardOutput smoke.txt
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); throw "Smoke test timed out" }
+          Get-Content smoke.txt
+          exit $p.ExitCode
