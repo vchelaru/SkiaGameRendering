@@ -65,6 +65,10 @@ namespace SkiaGameRendering.Core.OGL
         [UnmanagedFunctionPointer(CallingConvention)]
         internal delegate void FlushDelegate();
 
+        [System.Security.SuppressUnmanagedCodeSecurity]
+        [UnmanagedFunctionPointer(CallingConvention)]
+        internal delegate IntPtr GetStringDelegate(int name);
+
         internal GenRenderbuffersDelegate GenRenderbuffers { get; private init; } = null!;
         internal BindRenderbufferDelegate BindRenderbuffer { get; private init; } = null!;
         internal DeleteRenderbuffersDelegate DeleteRenderbuffers { get; private init; } = null!;
@@ -79,6 +83,7 @@ namespace SkiaGameRendering.Core.OGL
         internal CheckFramebufferStatusDelegate CheckFramebufferStatus { get; private init; } = null!;
         internal FlushDelegate Flush { get; private init; } = null!;
         private GetIntegerDelegate GetIntegerv { get; init; } = null!;
+        private GetStringDelegate GetStringPtr { get; init; } = null!;
 
         private GlFunctions() { }
 
@@ -99,6 +104,7 @@ namespace SkiaGameRendering.Core.OGL
                 CheckFramebufferStatus = loader.Load<CheckFramebufferStatusDelegate>("glCheckFramebufferStatus"),
                 GetIntegerv = loader.Load<GetIntegerDelegate>("glGetIntegerv"),
                 Flush = loader.Load<FlushDelegate>("glFlush"),
+                GetStringPtr = loader.Load<GetStringDelegate>("glGetString"),
             };
         }
 
@@ -114,6 +120,8 @@ namespace SkiaGameRendering.Core.OGL
                 return null;
             }
         }
+
+        internal string? GetString(int name) => Marshal.PtrToStringAnsi(GetStringPtr(name));
 
         internal unsafe void GetInteger(int name, out int value)
         {

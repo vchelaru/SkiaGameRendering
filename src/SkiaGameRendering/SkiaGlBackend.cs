@@ -40,7 +40,7 @@ namespace SkiaGameRendering
 
             MakeSkiaContextCurrent();
             _gl = GlFunctions.Load(new MonoGameGlFunctionLoader());
-            _grContext = GRContext.CreateGl();
+            _grContext = GlGrContextFactory.Create(_gl);
             MakeEngineContextCurrent();
         }
 

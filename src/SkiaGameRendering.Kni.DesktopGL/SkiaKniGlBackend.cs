@@ -33,7 +33,7 @@ namespace SkiaGameRendering.Kni.DesktopGL
 
             MakeSkiaContextCurrent();
             _gl = GlFunctions.Load(new KniGlFunctionLoader());
-            _grContext = GRContext.CreateGl();
+            _grContext = GlGrContextFactory.Create(_gl);
             MakeEngineContextCurrent();
         }
 

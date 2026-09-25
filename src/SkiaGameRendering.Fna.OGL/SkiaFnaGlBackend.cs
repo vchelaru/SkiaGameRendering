@@ -97,8 +97,7 @@ namespace SkiaGameRendering
                 var loader = new SdlGlFunctionLoader();
                 _gl = GlFunctions.Load(loader);
                 _isTexture = loader.Load<IsTextureDelegate>("glIsTexture");
-                _grContext = GRContext.CreateGl()
-                    ?? throw new Exception("GRContext.CreateGl failed on the Skia GL context.");
+                _grContext = GlGrContextFactory.Create(_gl);
             }
             finally
             {

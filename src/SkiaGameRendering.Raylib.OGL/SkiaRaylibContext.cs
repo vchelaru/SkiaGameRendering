@@ -42,7 +42,7 @@ namespace SkiaGameRendering.Raylib.OGL
             try
             {
                 _gl = GlFunctions.Load(new PlatformGlFunctionLoader(_platform));
-                _grContext = GRContext.CreateGl();
+                _grContext = GlGrContextFactory.Create(_gl);
             }
             finally
             {

@@ -112,6 +112,13 @@ internal sealed class RecordingGlFunctionLoader : IGlFunctionLoader
             case "glFlush":
                 return (T)(Delegate)new GlFunctions.FlushDelegate(() => Record("glFlush"));
 
+            case "glGetString":
+                return (T)(Delegate)new GlFunctions.GetStringDelegate(name =>
+                {
+                    Record("glGetString", name);
+                    return IntPtr.Zero;
+                });
+
             default:
                 throw new NotSupportedException(
                     $"{nameof(RecordingGlFunctionLoader)} has no fake for {nativeName}. " +
