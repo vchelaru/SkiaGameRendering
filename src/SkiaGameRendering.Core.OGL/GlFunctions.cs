@@ -61,17 +61,23 @@ namespace SkiaGameRendering.Core.OGL
         [UnmanagedFunctionPointer(CallingConvention)]
         internal unsafe delegate void GetIntegerDelegate(int param, [Out] int* data);
 
+        [System.Security.SuppressUnmanagedCodeSecurity]
+        [UnmanagedFunctionPointer(CallingConvention)]
+        internal delegate void FlushDelegate();
+
         internal GenRenderbuffersDelegate GenRenderbuffers { get; private init; } = null!;
         internal BindRenderbufferDelegate BindRenderbuffer { get; private init; } = null!;
         internal DeleteRenderbuffersDelegate DeleteRenderbuffers { get; private init; } = null!;
         internal GenFramebuffersDelegate GenFramebuffers { get; private init; } = null!;
         internal BindFramebufferDelegate BindFramebuffer { get; private init; } = null!;
         internal DeleteFramebuffersDelegate DeleteFramebuffers { get; private init; } = null!;
-        internal InvalidateFramebufferDelegate InvalidateFramebuffer { get; private init; } = null!;
+        /// <summary>Null when the driver lacks it (GL 4.3 / ES 3.0, so not macOS's GL 4.1).</summary>
+        internal InvalidateFramebufferDelegate? InvalidateFramebuffer { get; private init; }
         internal FramebufferTexture2DDelegate FramebufferTexture2D { get; private init; } = null!;
         internal FramebufferRenderbufferDelegate FramebufferRenderbuffer { get; private init; } = null!;
         internal RenderbufferStorageDelegate RenderbufferStorage { get; private init; } = null!;
         internal CheckFramebufferStatusDelegate CheckFramebufferStatus { get; private init; } = null!;
+        internal FlushDelegate Flush { get; private init; } = null!;
         private GetIntegerDelegate GetIntegerv { get; init; } = null!;
 
         private GlFunctions() { }
@@ -86,13 +92,27 @@ namespace SkiaGameRendering.Core.OGL
                 GenFramebuffers = loader.Load<GenFramebuffersDelegate>("glGenFramebuffers"),
                 BindFramebuffer = loader.Load<BindFramebufferDelegate>("glBindFramebuffer"),
                 DeleteFramebuffers = loader.Load<DeleteFramebuffersDelegate>("glDeleteFramebuffers"),
-                InvalidateFramebuffer = loader.Load<InvalidateFramebufferDelegate>("glInvalidateFramebuffer"),
+                InvalidateFramebuffer = LoadOptional<InvalidateFramebufferDelegate>(loader, "glInvalidateFramebuffer"),
                 FramebufferTexture2D = loader.Load<FramebufferTexture2DDelegate>("glFramebufferTexture2D"),
                 FramebufferRenderbuffer = loader.Load<FramebufferRenderbufferDelegate>("glFramebufferRenderbuffer"),
                 RenderbufferStorage = loader.Load<RenderbufferStorageDelegate>("glRenderbufferStorage"),
                 CheckFramebufferStatus = loader.Load<CheckFramebufferStatusDelegate>("glCheckFramebufferStatus"),
                 GetIntegerv = loader.Load<GetIntegerDelegate>("glGetIntegerv"),
+                Flush = loader.Load<FlushDelegate>("glFlush"),
             };
+        }
+
+        // Loaders disagree on a missing entry point: some return null, others throw.
+        private static T? LoadOptional<T>(IGlFunctionLoader loader, string nativeName) where T : Delegate
+        {
+            try
+            {
+                return loader.Load<T>(nativeName);
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return null;
+            }
         }
 
         internal unsafe void GetInteger(int name, out int value)

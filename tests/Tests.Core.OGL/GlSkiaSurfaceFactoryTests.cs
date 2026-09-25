@@ -113,6 +113,38 @@ public sealed class GlSkiaSurfaceFactoryTests
         Assert.Equal(0, _loader.BoundFramebuffer);
     }
 
+    /// <summary>
+    /// The engine samples the texture from its own shared context, which only sees this context's
+    /// writes after a flush. Without it macOS composites a blank texture.
+    /// </summary>
+    [Fact]
+    public void UnbindAfterDrawing_FlushesAfterUnbinding()
+    {
+        GlSkiaSurfaceFactory.UnbindAfterDrawing(_gl);
+
+        Assert.Equal(new[]
+        {
+            Call("glBindFramebuffer", (int)FramebufferTarget.Framebuffer, 0),
+            Call("glFlush"),
+        }, _loader.Calls);
+    }
+
+    /// <summary>glInvalidateFramebuffer is GL 4.3; macOS stops at 4.1.</summary>
+    [Fact]
+    public void DisposeRenderState_WithoutInvalidateFramebuffer_StillDeletesBothObjects()
+    {
+        var loader = new RecordingGlFunctionLoader();
+        loader.Missing.Add("glInvalidateFramebuffer");
+        var gl = GlFunctions.Load(loader);
+        var state = new GlFramebufferState { FramebufferId = GeneratedFramebufferId, RenderbufferId = GeneratedRenderbufferId };
+
+        GlSkiaSurfaceFactory.DisposeRenderState(gl, state);
+
+        Assert.DoesNotContain(loader.Calls, call => call.StartsWith("glInvalidateFramebuffer"));
+        Assert.Contains(Call("glDeleteFramebuffers", 1, GeneratedFramebufferId), loader.Calls);
+        Assert.Contains(Call("glDeleteRenderbuffers", 1, GeneratedRenderbufferId), loader.Calls);
+    }
+
     [Fact]
     public void DisposeRenderState_DetachesBeforeDeletingBothObjects()
     {

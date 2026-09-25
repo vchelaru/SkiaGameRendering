@@ -76,9 +76,15 @@ namespace SkiaGameRendering.Core.OGL
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, state.FramebufferId);
         }
 
+        /// <summary>
+        /// Also flushes: the engine samples the texture from its own (shared) GL context, and GL only
+        /// guarantees another context sees this one's writes after a flush. macOS shows a blank texture
+        /// without it; SKSurface.Flush alone does not issue one.
+        /// </summary>
         public static void UnbindAfterDrawing(GlFunctions gl)
         {
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            gl.Flush();
         }
 
         public static void DisposeRenderState(GlFunctions gl, GlFramebufferState state)
@@ -86,7 +92,7 @@ namespace SkiaGameRendering.Core.OGL
             if (state.FramebufferId > 0)
             {
                 gl.BindFramebuffer(FramebufferTarget.Framebuffer, state.FramebufferId);
-                gl.InvalidateFramebuffer(FramebufferTarget.Framebuffer, 3, new[]
+                gl.InvalidateFramebuffer?.Invoke(FramebufferTarget.Framebuffer, 3, new[]
                 {
                     FramebufferAttachment.ColorAttachment0,
                     FramebufferAttachment.DepthAttachment,

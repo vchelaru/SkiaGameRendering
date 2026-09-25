@@ -30,8 +30,14 @@ internal sealed class RecordingGlFunctionLoader : IGlFunctionLoader
     public static string Call(string name, params int[] args) =>
         $"{name}({string.Join(", ", args.Select(FormatArgument))})";
 
+    /// <summary>Entry points to report as absent, the way a driver without them would.</summary>
+    public HashSet<string> Missing { get; } = new();
+
     public unsafe T Load<T>(string nativeName) where T : Delegate
     {
+        if (Missing.Contains(nativeName))
+            throw new EntryPointNotFoundException(nativeName);
+
         switch (nativeName)
         {
             case "glGetIntegerv":
@@ -102,6 +108,9 @@ internal sealed class RecordingGlFunctionLoader : IGlFunctionLoader
                     Record("glCheckFramebufferStatus", (int)target);
                     return Status;
                 });
+
+            case "glFlush":
+                return (T)(Delegate)new GlFunctions.FlushDelegate(() => Record("glFlush"));
 
             default:
                 throw new NotSupportedException(
