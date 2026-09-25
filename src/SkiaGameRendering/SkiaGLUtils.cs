@@ -22,66 +22,49 @@ namespace SkiaGameRendering
         static readonly FieldInfo _winHandleField;
         static readonly PropertyInfo _contextProperty;
 
-        static readonly object _sdl_GL_GetCurrentContextValue;
-        static readonly MethodInfo _sdl_GL_GetCurrentContextMethod;
+        static readonly Delegate _sdl_GL_GetCurrentContext;
+        static readonly Delegate _sdl_GL_CreateContext;
+        static readonly Delegate _sdl_GL_SetAttribute;
+        static readonly Delegate _makeCurrent;
+        static readonly Delegate _getProcAddress;
 
-        static readonly object _sdl_GL_CreateContextValue;
-        static readonly MethodInfo _sdl_GL_CreateContextMethod;
-
-        static readonly object _sdl_GL_SetAttributeValue;
-        static readonly MethodInfo _sdl_GL_SetAttributeMethod;
-
-        static readonly object _makeCurrentValue;
-        static readonly MethodInfo _makeCurrentMethod;
-
-        static readonly MethodInfo _loadFunctionMethod;
-
+        // Every type and member below is named by a string literal passed straight to
+        // Type.GetType/GetField/GetProperty. The trimmer resolves literals like these at publish time
+        // and keeps exactly those members, which is what makes this reflection NativeAOT-safe. Routing
+        // a name through a variable or helper parameter loses that and brings back IL2xxx warnings.
         static GlWrapper()
         {
-            var monoGameAssembly = typeof(Texture2D).Assembly;
+            const string MonoGameAssembly = ", MonoGame.Framework";
 
-            var sdlType = monoGameAssembly.GetType("Sdl")
-                ?? throw new InvalidOperationException("Sdl type not found in MonoGame.Framework.");
-            var sdlGlType = sdlType.GetNestedType("GL")
+            var sdlGlType = Type.GetType("Sdl+GL" + MonoGameAssembly)
                 ?? throw new InvalidOperationException("Sdl.GL type not found in MonoGame.Framework.");
-            var mgGlType = monoGameAssembly.GetType("MonoGame.OpenGL.GL")
-                ?? throw new InvalidOperationException("MonoGame.OpenGL.GL type not found in MonoGame.Framework.");
-            var graphicsContextType = monoGameAssembly.GetType("MonoGame.OpenGL.GraphicsContext")
+            var graphicsContextType = Type.GetType("MonoGame.OpenGL.GraphicsContext" + MonoGameAssembly)
                 ?? throw new InvalidOperationException("MonoGame.OpenGL.GraphicsContext type not found in MonoGame.Framework.");
-            var graphicsDeviceType = monoGameAssembly.GetType("Microsoft.Xna.Framework.Graphics.GraphicsDevice")
-                ?? throw new InvalidOperationException("GraphicsDevice type not found in MonoGame.Framework.");
 
             _winHandleField = graphicsContextType.GetField("_winHandle", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("GraphicsContext._winHandle field not found.");
-            _contextProperty = graphicsDeviceType.GetProperty("Context", BindingFlags.Instance | BindingFlags.NonPublic)
+            _contextProperty = typeof(GraphicsDevice).GetProperty("Context", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException("GraphicsDevice.Context property not found.");
 
-            (_sdl_GL_GetCurrentContextValue, _sdl_GL_GetCurrentContextMethod) =
-                GetStaticDelegate(sdlGlType, "SDL_GL_GetCurrentContext", BindingFlags.NonPublic | BindingFlags.Static);
-            (_sdl_GL_CreateContextValue, _sdl_GL_CreateContextMethod) =
-                GetStaticDelegate(sdlGlType, "SDL_GL_CreateContext", BindingFlags.NonPublic | BindingFlags.Static);
-            (_sdl_GL_SetAttributeValue, _sdl_GL_SetAttributeMethod) =
-                GetStaticDelegate(sdlGlType, "SDL_GL_SetAttribute", BindingFlags.NonPublic | BindingFlags.Static);
-            (_makeCurrentValue, _makeCurrentMethod) =
-                GetStaticDelegate(sdlGlType, "MakeCurrent", BindingFlags.Public | BindingFlags.Static);
-
-            _loadFunctionMethod = mgGlType.GetMethod("LoadFunction", BindingFlags.NonPublic | BindingFlags.Static)
-                ?? throw new InvalidOperationException("MonoGame.OpenGL.GL.LoadFunction method not found.");
+            const BindingFlags NonPublicStatic = BindingFlags.NonPublic | BindingFlags.Static;
+            const BindingFlags PublicStatic = BindingFlags.Public | BindingFlags.Static;
+            _sdl_GL_GetCurrentContext = ReadDelegate(sdlGlType.GetField("SDL_GL_GetCurrentContext", NonPublicStatic), "SDL_GL_GetCurrentContext");
+            _sdl_GL_CreateContext = ReadDelegate(sdlGlType.GetField("SDL_GL_CreateContext", NonPublicStatic), "SDL_GL_CreateContext");
+            _sdl_GL_SetAttribute = ReadDelegate(sdlGlType.GetField("SDL_GL_SetAttribute", NonPublicStatic), "SDL_GL_SetAttribute");
+            _makeCurrent = ReadDelegate(sdlGlType.GetField("MakeCurrent", PublicStatic), "MakeCurrent");
+            _getProcAddress = ReadDelegate(sdlGlType.GetField("GetProcAddress", PublicStatic), "GetProcAddress");
         }
 
         /// <summary>
-        /// Reads a static delegate field and returns it alongside its Invoke method, so callers can
-        /// call through it without referencing MonoGame's internal delegate type at compile time.
+        /// Reads one of Sdl.GL's static delegate fields, so callers can call through it with
+        /// DynamicInvoke without referencing MonoGame's internal delegate type at compile time.
         /// </summary>
-        static (object Value, MethodInfo Invoke) GetStaticDelegate(Type type, string fieldName, BindingFlags flags)
+        static Delegate ReadDelegate(FieldInfo? field, string fieldName)
         {
-            var field = type.GetField(fieldName, flags)
-                ?? throw new InvalidOperationException($"{type.FullName}.{fieldName} field not found.");
-            var value = field.GetValue(null)
-                ?? throw new InvalidOperationException($"{type.FullName}.{fieldName} field is null.");
-            var invoke = value.GetType().GetMethod("Invoke")
-                ?? throw new InvalidOperationException($"{type.FullName}.{fieldName} delegate has no Invoke method.");
-            return (value, invoke);
+            if (field == null)
+                throw new InvalidOperationException($"Sdl.GL.{fieldName} field not found.");
+            return (Delegate?)field.GetValue(null)
+                ?? throw new InvalidOperationException($"Sdl.GL.{fieldName} field is null.");
         }
 
         internal static IntPtr GetMgWindowId(GraphicsDevice graphicsDevice)
@@ -94,32 +77,37 @@ namespace SkiaGameRendering
 
         internal static IntPtr SDL_GL_GetCurrentContext()
         {
-            return (IntPtr)_sdl_GL_GetCurrentContextMethod.Invoke(_sdl_GL_GetCurrentContextValue, null)!;
+            return (IntPtr)_sdl_GL_GetCurrentContext.DynamicInvoke()!;
         }
 
         internal static IntPtr SDL_GL_CreateContext(IntPtr window)
         {
-            return (IntPtr)_sdl_GL_CreateContextMethod.Invoke(_sdl_GL_CreateContextValue, new object[] { window })!;
+            return (IntPtr)_sdl_GL_CreateContext.DynamicInvoke(window)!;
         }
 
         internal static int SDL_GL_SetAttribute(int attribute, int value)
         {
-            return (int)_sdl_GL_SetAttributeMethod.Invoke(_sdl_GL_SetAttributeValue, new object[] { attribute, value })!;
+            return (int)_sdl_GL_SetAttribute.DynamicInvoke(attribute, value)!;
         }
 
-        // This allocates a little, we can make it a little quieter by reusing this object array:
-        static object[] makeCurrentArray = new object[2];
         internal static int MakeCurrent(IntPtr window, IntPtr context)
         {
-            makeCurrentArray[0] = window;
-            makeCurrentArray[1] = context;
-            return (int)_makeCurrentMethod.Invoke(_makeCurrentValue, makeCurrentArray)!;
+            return (int)_makeCurrent.DynamicInvoke(window, context)!;
         }
 
+        /// <summary>
+        /// Resolves a GL entry point through SDL and binds it to <typeparamref name="T"/>. The
+        /// generic Marshal call is visible to the AOT compiler for each delegate type, unlike
+        /// closing MonoGame's own GL.LoadFunction&lt;T&gt; over T at runtime.
+        /// </summary>
         internal static T LoadFunction<T>(string nativeMethodName) where T : Delegate
         {
-            var method = _loadFunctionMethod.MakeGenericMethod(new Type[] { typeof(T) });
-            return (T)method.Invoke(null, new object[] { nativeMethodName, false })!;
+            var address = (IntPtr)_getProcAddress.DynamicInvoke(nativeMethodName)!;
+            // Null for a function the driver lacks (e.g. glInvalidateFramebuffer on macOS's GL 4.1),
+            // matching MonoGame's own GL.LoadFunction with throwIfNotFound: false.
+            if (address == IntPtr.Zero)
+                return null!;
+            return Marshal.GetDelegateForFunctionPointer<T>(address);
         }
 
         /// <summary>
@@ -149,7 +137,7 @@ namespace SkiaGameRendering
     }
 
     /// <summary>
-    /// Adapts MonoGame's reflection-based native GL function loading (<see cref="GlWrapper.LoadFunction{T}"/>)
+    /// Adapts SDL's GL function loading (<see cref="GlWrapper.LoadFunction{T}"/>)
     /// to the engine-agnostic <see cref="IGlFunctionLoader"/> contract Core.OGL depends on.
     /// </summary>
     internal sealed class MonoGameGlFunctionLoader : IGlFunctionLoader

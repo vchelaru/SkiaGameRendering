@@ -18,9 +18,14 @@ namespace Sample
     {
         private GraphicsDeviceManager _graphics;
         private SkiaRenderTarget2D _canvas;
+        private readonly bool _smokeTest;
+        private int _frameCount;
 
-        public Game1()
+        public int ExitCode { get; private set; }
+
+        public Game1(bool smokeTest = false)
         {
+            _smokeTest = smokeTest;
             _graphics = new GraphicsDeviceManager(this);
             _graphics.PreferredBackBufferWidth = 800;
             _graphics.PreferredBackBufferHeight = 800;
@@ -51,9 +56,34 @@ namespace Sample
                 _canvas.Begin();
                 Scene.Draw(_canvas.Canvas, 200, 200);
                 _canvas.End();
+
+                if (_smokeTest && ++_frameCount == 3)
+                    CheckSmokeTestFrame();
             }
 
             base.Draw(gameTime);
+        }
+
+        /// <summary>
+        /// The 200x200 canvas lands at the back buffer's origin, so its center is inside Scene's
+        /// red circle and anything outside the canvas is still the black clear color.
+        /// </summary>
+        private void CheckSmokeTestFrame()
+        {
+            var inside = ReadBackBufferPixel(100, 100);
+            var outside = ReadBackBufferPixel(400, 400);
+            var passed = inside.R > 200 && inside.G < 50 && inside.B < 50 && outside == Color.Black;
+
+            System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: inside={inside}, outside={outside}");
+            ExitCode = passed ? 0 : 1;
+            Exit();
+        }
+
+        private Color ReadBackBufferPixel(int x, int y)
+        {
+            var pixel = new Color[1];
+            GraphicsDevice.GetBackBufferData(new Rectangle(x, y, 1, 1), pixel, 0, 1);
+            return pixel[0];
         }
     }
 }

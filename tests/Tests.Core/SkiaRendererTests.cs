@@ -144,11 +144,7 @@ public sealed class SkiaRendererTests : IDisposable
 
     public void Dispose() => SkiaRenderer.Dispose();
 
-    // Internal, not private: SkiaRendererAmbientTests.cs reuses this as the sole concrete
-    // SkiaBackend subclass loaded in this test process - see the scoping note there about why a
-    // second one isn't added. (Internal vs. private makes no difference to Activator.CreateInstance
-    // across assemblies on .NET 8 - neither blocks reflection construction of this type - so the
-    // visibility bump doesn't change anything the existing tests below rely on.)
+    // Internal, not private: SkiaRendererAmbientTests.cs reuses it.
     internal sealed class FakeBackend : SkiaBackend
     {
         public int InitializeCount { get; private set; }

@@ -189,3 +189,26 @@ jobs:
           name: golden-image-diffs-raylib-linux
           path: tests/**/golden-failures/*.png
           if-no-files-found: ignore
+
+  # NativeAOT publish of the MonoGame DesktopGL sample, then a run of the native exe that checks the
+  # back buffer for the scene. The build half is the trim/AOT analyzer (IsAotCompatible on the
+  # library, warnings as errors); the run half catches what the analyzer can't see, such as a
+  # reflected MonoGame member the trimmer removed.
+  desktopgl-nativeaot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Install NativeAOT prerequisites
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+      - run: dotnet publish samples/Sample.MonoGame.DesktopGL/Sample.MonoGame.DesktopGL.csproj -c Release -r linux-x64 -o aot-out
+      - name: Run the AOT exe's smoke test under Xvfb
+        working-directory: aot-out
+        # xvfb-run's default screen is 640x480 at 8-bit depth, too small for the sample's 800x800
+        # window and too shallow for a GLX visual.
+        run: timeout 120 xvfb-run --auto-servernum -s "-screen 0 1024x1024x24" -- ./Sample.MonoGame.DesktopGL --smoke-test
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 1
+          GALLIUM_DRIVER: llvmpipe

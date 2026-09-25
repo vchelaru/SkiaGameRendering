@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
     <PackageId>SkiaGameRendering</PackageId>
     <Version>$(LibraryVersion)</Version>
     <Description>GPU SkiaSharp rendering into MonoGame DesktopGL Texture2D targets, with zero-copy GPU texture sharing.</Description>

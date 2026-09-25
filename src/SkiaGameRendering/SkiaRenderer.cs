@@ -75,35 +75,14 @@ namespace SkiaGameRendering
         }
 
         /// <summary>
-        /// Auto-detects the correct backend for the current MonoGame platform.
-        /// Explicit initialization is recommended for trimmed applications.
+        /// Initializes with this platform package's default backend (see
+        /// <see cref="CreateDefaultBackend"/>).
         /// </summary>
         public static void Initialize(GraphicsDevice graphicsDevice)
         {
-            if (_ambientBackendFactory != null)
-            {
-                Initialize(_ambientBackendFactory(), graphicsDevice);
-                return;
-            }
-
-            var backendType = FindBackendType()
-                ?? throw new InvalidOperationException(
-                    "Could not auto-detect a SkiaBackend. Reference the platform package or initialize an explicit backend.");
-
-            SkiaBackend backend;
-            try
-            {
-                backend = (SkiaBackend?)Activator.CreateInstance(backendType)
-                    ?? throw new InvalidOperationException($"Could not create backend '{backendType.FullName}'.");
-            }
-            catch (MissingMethodException exception)
-            {
-                throw new InvalidOperationException(
-                    $"'{backendType.FullName}' has no public parameterless constructor, so it can't be " +
-                    "auto-detected. This backend requires extra setup (e.g. a host object) - construct it " +
-                    $"explicitly and pass it to SkiaRenderer.Initialize(SkiaBackend, GraphicsDevice) instead.",
-                    exception);
-            }
+            var backend = _ambientBackendFactory != null
+                ? _ambientBackendFactory()
+                : CreateDefaultBackend();
 
             Initialize(backend, graphicsDevice);
         }
@@ -128,25 +107,12 @@ namespace SkiaGameRendering
             return _backend!;
         }
 
-        private static Type? FindBackendType()
-        {
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                try
-                {
-                    foreach (var type in assembly.GetTypes())
-                    {
-                        if (!type.IsAbstract && type.IsSubclassOf(typeof(SkiaBackend)))
-                            return type;
-                    }
-                }
-                catch (System.Reflection.ReflectionTypeLoadException)
-                {
-                }
-            }
-
-            return null;
-        }
+        /// <summary>
+        /// The backend this platform package constructs when nothing chose one explicitly. Each
+        /// package that links this file implements it (in its <c>SkiaRenderer.Default.cs</c>) with a
+        /// plain <c>new</c>, so trimming and NativeAOT keep the backend type without any reflection.
+        /// </summary>
+        internal static partial SkiaBackend CreateDefaultBackend();
 
         /// <summary>
         /// Disposes the shared backend. Dispose any live <see cref="SkiaRenderTarget2D"/> instances

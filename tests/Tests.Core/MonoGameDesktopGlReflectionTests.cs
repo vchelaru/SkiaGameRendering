@@ -37,8 +37,8 @@ public sealed class MonoGameDesktopGlReflectionTests
     }
 
     /// <summary>
-    /// The four Sdl.GL entry points GlWrapper calls through. Each is a static delegate field invoked
-    /// with a fixed-length object[], so arity is pinned alongside the name.
+    /// The Sdl.GL entry points GlWrapper calls through. Each is a static delegate field invoked via
+    /// DynamicInvoke with a fixed argument count, so arity is pinned alongside the name.
     /// </summary>
     [Fact]
     public void SdlGlDelegateFields_Resolve()
@@ -50,20 +50,18 @@ public sealed class MonoGameDesktopGlReflectionTests
         EngineReflectionPin.RequireDelegateField(sdlGl, "SDL_GL_CreateContext", NonPublicStatic, parameterCount: 1);
         EngineReflectionPin.RequireDelegateField(sdlGl, "SDL_GL_SetAttribute", NonPublicStatic, parameterCount: 2);
         EngineReflectionPin.RequireDelegateField(sdlGl, "MakeCurrent", BindingFlags.Public | BindingFlags.Static, parameterCount: 2);
+        EngineReflectionPin.RequireDelegateField(sdlGl, "GetProcAddress", BindingFlags.Public | BindingFlags.Static, parameterCount: 1);
     }
 
     /// <summary>
-    /// GlWrapper.LoadFunction closes MonoGame.OpenGL.GL.LoadFunction over the delegate type and
-    /// invokes it as (name, throwIfNotFound).
+    /// GlWrapper resolves these with Type.GetType and an assembly-qualified literal (so the trimmer
+    /// can see them), which pins the assembly name as well as the type name.
     /// </summary>
-    [Fact]
-    public void GlLoadFunction_Resolves()
+    [Theory]
+    [InlineData("Sdl+GL, MonoGame.Framework")]
+    [InlineData("MonoGame.OpenGL.GraphicsContext, MonoGame.Framework")]
+    public void AssemblyQualifiedTypeNames_Resolve(string assemblyQualifiedName)
     {
-        var gl = EngineReflectionPin.RequireType(MonoGame, "MonoGame.OpenGL.GL");
-        var loadFunction = EngineReflectionPin.RequireMethod(gl, "LoadFunction", NonPublicStatic);
-
-        EngineReflectionPin.RequireParameterCount(loadFunction, 2);
-        Assert.True(loadFunction.IsGenericMethodDefinition);
-        Assert.Single(loadFunction.GetGenericArguments());
+        Assert.NotNull(Type.GetType(assemblyQualifiedName));
     }
 }

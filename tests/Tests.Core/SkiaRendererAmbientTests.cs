@@ -10,12 +10,6 @@ namespace Tests.Core;
 /// Covers <see cref="SkiaRenderer.IsReady"/> and the ambient init path (<see
 /// cref="SkiaRenderer.AttachAmbient"/>), which <see cref="SkiaRendererTests"/> doesn't touch because
 /// it only exercises the two-arg <c>Initialize(SkiaBackend, GraphicsDevice)</c> overload.
-///
-/// Reuses <see cref="SkiaRendererTests.FakeBackend"/> rather than declaring a second concrete
-/// <c>SkiaBackend</c> subclass here: <c>SkiaRenderer.FindBackendType()</c> scans every assembly in
-/// the AppDomain for any non-abstract SkiaBackend subclass, so a second one loaded anywhere in this
-/// test process would make the reflection-fallback test's outcome depend on enumeration order (see
-/// that test's comment, and this PR's description, for why no second type was added).
 /// </summary>
 [Collection("SkiaRenderer static state")]
 public sealed class SkiaRendererAmbientTests : IDisposable
@@ -114,26 +108,11 @@ public sealed class SkiaRendererAmbientTests : IDisposable
     }
 
     [Fact]
-    public void Initialize_WithNoAmbientFactoryFallsThroughToReflectionAndConstructsTheDetectedBackend()
+    public void CreateDefaultBackend_IsThisPackagesBackend()
     {
-        // No ambient factory attached (constructor reset it). FakeBackend is the only concrete
-        // SkiaBackend subclass loaded in this test process, so FindBackendType() deterministically
-        // finds it and Activator.CreateInstance constructs it via its implicit parameterless ctor.
-        //
-        // This does NOT exercise the "no public parameterless constructor -> friendly
-        // InvalidOperationException, not a raw MissingMethodException" branch a few lines below in
-        // SkiaRenderer.Initialize(GraphicsDevice) - see this PR's description for why: on .NET 8,
-        // Activator.CreateInstance can construct a private (or internal) nested type's implicit
-        // parameterless constructor from a different assembly without throwing, so a type like this
-        // one can't be used to exercise that branch. Reaching it would need a second concrete
-        // SkiaBackend type with NO parameterless constructor at all (e.g. one requiring a host
-        // object, like the real SkiaWebGlBackend) - which reintroduces exactly the enumeration-order
-        // ambiguity called out above, since FindBackendType() would then have two matching types and
-        // might construct either one. Skipped rather than risk a flaky test.
-        SkiaRenderer.Initialize(_graphicsDevice);
-
-        var backend = Assert.IsType<FakeBackend>(SkiaRenderer.CurrentBackend);
-        Assert.Equal(1, backend.InitializeCount);
+        // Initialize(GraphicsDevice) with no ambient factory uses this. Asserted directly rather than
+        // through Initialize, since initializing a real SkiaGlBackend needs a live GL context.
+        Assert.IsType<SkiaGlBackend>(SkiaRenderer.CreateDefaultBackend());
     }
 
     public void Dispose()
