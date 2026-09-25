@@ -16,6 +16,9 @@ packages/
 
 tests/mesa-vendor/
 
+# Godot's per-project cache/import directory (created by the editor or --import; never checked in)
+**/.godot/
+
 ## Claude
 .claude/settings.local.json
 CLAUDE.local.md

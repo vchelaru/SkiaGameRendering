@@ -1,0 +1,28 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Sample.Godot"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="Sample.Godot"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+; SkiaGameRendering.Godot supports the vulkan, d3d12 and opengl3 drivers and picks its backend at
+; runtime. These mirror what Godot 4.6+ writes for a new project (d3d12 on Windows). macOS is not
+; supported on any driver. Override per run with --rendering-driver vulkan|d3d12.
+rendering_device/driver="vulkan"
+rendering_device/driver.windows="d3d12"

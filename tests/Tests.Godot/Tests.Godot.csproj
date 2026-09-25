@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <!-- Decodes the PNG the sample writes; nothing here draws with Skia. -->
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <!--
+    GodotSharp's types only work inside a running Godot process, so the adapter cannot be exercised
+    in-process the way the other backends' tests exercise theirs. The adapter reference is only for
+    its Godot-free helpers (GodotVulkanQueueFamilies); anything touching a Godot type must go through
+    GodotSampleTests, which launches the real Godot binary against samples/Sample.Godot, once per
+    supported rendering driver, and checks the screenshot it writes. The sample reference below
+    exists only to make `dotnet test` build that sample first
+    (ReferenceOutputAssembly=false copies nothing). SetConfiguration pins that build to Debug
+    whatever configuration this project is built in: Godot loads a project's assembly from
+    .godot/mono/temp/bin/Debug when running it outside an export, so a Release-built sample would be
+    invisible to it and the test would fail for the wrong reason.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Godot\SkiaGameRendering.Godot.csproj" />
+    <ProjectReference Include="..\..\samples\Sample.Godot\Sample.Godot.csproj" ReferenceOutputAssembly="false" SetConfiguration="Configuration=Debug" />
+  </ItemGroup>
+</Project>

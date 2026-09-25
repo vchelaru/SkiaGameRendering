@@ -41,7 +41,7 @@ public sealed class SkiaRaylibRenderTarget2D : IDisposable
 | Type | Role |
 | --- | --- |
 | `SkiaRaylibRenderer` | Static holder for the shared `SkiaRaylibContext`, mirroring `SkiaRenderer`. `Initialize()` is optional — call it explicitly (after `Raylib.InitWindow`) only to fail fast on context creation instead of lazily on first render target. `Dispose()` releases it. |
-| `SkiaRaylibContext` | The shared second GL context. rlgl (raylib's GL layer) and Skia both issue raw GL calls; sharing raylib's single context between them corrupts rlgl's own rendering, so this creates a second context sharing raylib's GL object namespace (the same trick `SkiaGlBackend` uses via SDL). raylib statically links GLFW and doesn't export context-creation entry points, so this goes through the OS's raw windowing API directly: `Wgl.cs` (raw Win32/WGL) on Windows, `Glx.cs` (raw X11/GLX) on Linux, picked via `OperatingSystem.IsWindows()`/`IsLinux()`. |
+| `SkiaRaylibContext` | The shared second GL context. rlgl (raylib's GL layer) and Skia both issue raw GL calls; sharing raylib's single context between them corrupts rlgl's own rendering, so this creates a second context sharing raylib's GL object namespace (the same trick `SkiaGlBackend` uses via SDL). raylib statically links GLFW and doesn't export context-creation entry points, so this goes through the OS's raw windowing API directly: `Core.OGL`'s `WglSharedContext` (raw Win32/WGL) on Windows and `GlxSharedContext` (raw X11/GLX) on Linux, picked via `OperatingSystem.IsWindows()`/`IsLinux()`. The Godot adapter's Compatibility backend uses the same two classes. |
 
 ## Example
 

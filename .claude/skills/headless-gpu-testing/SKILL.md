@@ -154,6 +154,14 @@ runs today.
   the native writes never make it back into the managed array. An `IntPtr[]` (as used for
   `vkEnumeratePhysicalDevices`) round-trips fine without the attribute; a custom struct array does not.
 
+## Godot - a real window or nothing
+
+Godot's `--headless` gives the dummy driver, so `src/SkiaGameRendering.Godot`
+has no in-process GPU test. `tests/Tests.Godot/GodotSampleTests.cs` launches
+the binary named by `GODOT_BIN` against `samples/Sample.Godot` once per
+rendering driver and skips without it; `master.yml` runs it on Windows (vulkan, d3d12) and Linux
+(vulkan under validation, opengl3).
+
 ## Engine glue - headless GraphicsDevice
 
 MonoGame and KNI both build a WindowsDX `GraphicsDevice` from a bare window handle, with no `Game`

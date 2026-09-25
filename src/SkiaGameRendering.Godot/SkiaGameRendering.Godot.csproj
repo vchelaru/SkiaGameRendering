@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+
+  <PropertyGroup>
+    <!--
+      net8.0 because GodotSharp 4.7.2 itself ships lib/net8.0 only (4.8-dev still does). A game
+      project may target net9/net10 on top of that; this library stays at the floor so any of them
+      can reference it.
+    -->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageId>SkiaGameRendering.Godot</PackageId>
+    <Version>$(LibraryVersion)</Version>
+    <!--
+      One package for every Godot rendering driver rather than one per graphics API like the
+      other engines here: Godot picks Vulkan, D3D12 or OpenGL at run time (a project setting, a command-line
+      switch, or an automatic fallback when the preferred driver is unavailable), so a game cannot
+      choose a graphics-API-specific package at build time. The backend is selected from
+      RenderingServer.GetCurrentRenderingDriverName() when the renderer initializes.
+    -->
+    <Description>GPU SkiaSharp rendering into Godot 4 textures on the Vulkan and D3D12 RenderingDevice drivers (Forward+ and Mobile renderers) and the Compatibility renderer's native OpenGL driver, with zero-copy GPU texture sharing on Vulkan and OpenGL.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Plain Microsoft.NET.Sdk + a GodotSharp PackageReference is how a class library for Godot is
+      built (Godot.NET.Sdk is for the game project itself, which must be the one assembly Godot
+      scans for script classes). Nothing here derives from GodotObject, so Godot.SourceGenerators
+      is not needed either: the public types are ordinary C# classes that hand back an engine-owned
+      Texture2D. A game project's own Godot.NET.Sdk pins GodotSharp to its editor version, and
+      NuGet unifies this floor upward to it.
+    -->
+    <PackageReference Include="GodotSharp" Version="$(GodotSharpVersion)" />
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+    <!--
+      Godot's Forward+/Mobile renderers run on Vulkan on Linux too, and the main SkiaSharp package
+      only carries Windows/macOS native assets implicitly - same reasoning as
+      SkiaGameRendering.Raylib.OGL's identical reference.
+    -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SkiaGameRendering.Core.VK\SkiaGameRendering.Core.VK.csproj" />
+    <!-- Only touched when Godot reports the d3d12 driver; compiles everywhere, runs on Windows. -->
+    <ProjectReference Include="..\SkiaGameRendering.Core.D3D12\SkiaGameRendering.Core.D3D12.csproj" />
+    <!-- The Compatibility (OpenGL) renderer: FBO-wrapping a GL texture, like the raylib adapter. -->
+    <ProjectReference Include="..\SkiaGameRendering.Core.OGL\SkiaGameRendering.Core.OGL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -39,6 +39,13 @@ namespace SkiaGameRendering.Core.VK
                 if (NativeLibrary.TryLoad("libvulkan.so.1", out var linuxHandle))
                     return linuxHandle;
 
+                // A macOS host that links MoltenVK statically (Godot does) carries its own Vulkan
+                // implementation, and a separately installed MoltenVK would be a second copy that
+                // does not recognize the host's VkInstance/VkDevice handles. Prefer the host's.
+                if (OperatingSystem.IsMacOS() &&
+                    NativeLibrary.TryGetExport(NativeLibrary.GetMainProgramHandle(), "vkGetInstanceProcAddr", out _))
+                    return NativeLibrary.GetMainProgramHandle();
+
                 if (NativeLibrary.TryLoad("libvulkan.dylib", out var macHandle))
                     return macHandle;
                 if (NativeLibrary.TryLoad("libMoltenVK.dylib", out var moltenHandle))
@@ -75,6 +82,88 @@ namespace SkiaGameRendering.Core.VK
                     return deviceProc;
             }
             return vkGetInstanceProcAddr(instance, name);
+        }
+
+        /// <summary>
+        /// Resolves a device-level entry point through <c>vkGetDeviceProcAddr</c>, throwing (rather
+        /// than returning <see cref="IntPtr.Zero"/>) so a missing core function fails at
+        /// <see cref="VkImageLayoutTransitioner"/> construction with the function's name instead of
+        /// as a null-call access violation later.
+        /// </summary>
+        internal static IntPtr RequireDeviceProc(IntPtr device, string name)
+        {
+            var proc = vkGetDeviceProcAddr(device, name);
+            if (proc == IntPtr.Zero)
+                throw new EntryPointNotFoundException($"vkGetDeviceProcAddr could not resolve '{name}' on the host's VkDevice.");
+            return proc;
+        }
+
+        /// <summary>
+        /// The highest Vulkan core version BOTH the host's instance (per <c>vkEnumerateInstanceVersion</c>)
+        /// and its physical device (per <c>VkPhysicalDeviceProperties.apiVersion</c>) support. See
+        /// <see cref="VkSkiaSurfaceFactory.QueryApiVersion"/> for why a host that does not record the
+        /// version it created its device against needs this.
+        /// </summary>
+        internal static unsafe uint QueryApiVersion(IntPtr instance, IntPtr physicalDevice)
+        {
+            // vkEnumerateInstanceVersion is a global (instance-less) command that only exists on
+            // Vulkan 1.1+ loaders; a 1.0 loader has no entry point for it and is, by definition, 1.0.
+            uint instanceVersion = VkConstants.MakeApiVersion(1, 0);
+            var enumerateInstanceVersion = vkGetInstanceProcAddr(IntPtr.Zero, "vkEnumerateInstanceVersion");
+            if (enumerateInstanceVersion != IntPtr.Zero)
+            {
+                uint reported;
+                if (((delegate* unmanaged<uint*, int>)enumerateInstanceVersion)(&reported) == 0)
+                    instanceVersion = reported;
+            }
+
+            var getPhysicalDeviceProperties = vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties");
+            if (getPhysicalDeviceProperties == IntPtr.Zero)
+                throw new EntryPointNotFoundException("vkGetInstanceProcAddr could not resolve 'vkGetPhysicalDeviceProperties'.");
+
+            // VkPhysicalDeviceProperties is 824 bytes and apiVersion is its first field; the rest
+            // of the struct is not needed here, so an oversized scratch buffer stands in for a full
+            // struct definition.
+            byte* properties = stackalloc byte[1024];
+            ((delegate* unmanaged<IntPtr, void*, void>)getPhysicalDeviceProperties)(physicalDevice, properties);
+            uint deviceVersion = *(uint*)properties;
+
+            return Math.Min(instanceVersion, deviceVersion);
+        }
+
+        /// <summary>
+        /// <c>VkQueueFamilyProperties.queueFlags</c> for every queue family of
+        /// <paramref name="physicalDevice"/>, indexed by family. See
+        /// <see cref="VkSkiaSurfaceFactory.QueryQueueFamilyFlags"/>.
+        /// </summary>
+        internal static unsafe uint[] QueryQueueFamilyFlags(IntPtr instance, IntPtr physicalDevice)
+        {
+            var getProperties = vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceQueueFamilyProperties");
+            if (getProperties == IntPtr.Zero)
+                throw new EntryPointNotFoundException("vkGetInstanceProcAddr could not resolve 'vkGetPhysicalDeviceQueueFamilyProperties'.");
+            var call = (delegate* unmanaged<IntPtr, uint*, VkQueueFamilyProperties*, void>)getProperties;
+
+            uint count;
+            call(physicalDevice, &count, null);
+            var properties = new VkQueueFamilyProperties[count];
+            fixed (VkQueueFamilyProperties* p = properties)
+                call(physicalDevice, &count, p);
+
+            var flags = new uint[count];
+            for (int i = 0; i < count; i++)
+                flags[i] = properties[i].queueFlags;
+            return flags;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct VkQueueFamilyProperties
+        {
+            public uint queueFlags;
+            public uint queueCount;
+            public uint timestampValidBits;
+            public uint minImageTransferGranularityWidth;
+            public uint minImageTransferGranularityHeight;
+            public uint minImageTransferGranularityDepth;
         }
     }
 }

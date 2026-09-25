@@ -12,12 +12,12 @@ using RaylibApi = Raylib_cs.Raylib;
 namespace Tests.Raylib.OGL;
 
 /// <summary>
-/// Draws <see cref="GoldenScene"/> through a real raylib window and the real <c>Glx</c> path (see
+/// Draws <see cref="GoldenScene"/> through a real raylib window and the real <c>GlxSharedContext</c> path (see
 /// <see cref="LinuxOnlyFactAttribute"/> - this only runs on Linux) and compares the readback against
 /// a checked-in reference. Closes the gap issue #9 opened: the GLX implementation
-/// (<c>src/SkiaGameRendering.Raylib.OGL/Glx.cs</c>) has been build-only since it landed - every CI
+/// (<c>src/SkiaGameRendering.Core.OGL/GlxSharedContext.cs</c>) has been build-only since it landed - every CI
 /// job that touches the raylib backend only compiles it, on <c>windows-latest</c>, where
-/// <c>SkiaRaylibContext</c> always picks <c>Wgl</c> instead. A prior spike on this same
+/// <c>SkiaRaylibContext</c> always picks <c>WglSharedContext</c> instead. A prior spike on this same
 /// shared-GL-context trick (issue #3) found a real state-corruption bug a clean build completely
 /// missed, so "it compiles" is not this repo's bar for this code path.
 /// </summary>

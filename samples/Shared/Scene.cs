@@ -12,8 +12,8 @@ namespace Sample.Shared;
 /// engine-specific Game/Program - only the actual Skia canvas commands live here.
 /// Shapes sit in a grid of square cells, half the canvas's shorter side each, filled left to
 /// right then top to bottom: a red circle, then an embedded SVG water drop. Add new shapes in the
-/// next free cell. The DesktopGL/WindowsDX <c>--smoke-test</c> checks the center of the first two
-/// cells, so moving either shape means updating that check.
+/// next free cell. The DesktopGL/WindowsDX <c>--smoke-test</c> and <c>tests/Tests.Godot</c> check
+/// the center of the first two cells, so moving either shape means updating those checks.
 /// </summary>
 public static class Scene
 {

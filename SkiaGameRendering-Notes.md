@@ -306,3 +306,189 @@ same as MonoGame, and the golden comes out identical to the DesktopGL ones.
   for it the same way it does for MonoGame. With `tests/mesa-vendor/` present and
   `GALLIUM_DRIVER` unset, Mesa's D3D12 path crashes the test host (MonoGame's DesktopGL tests
   too); that's the known landmine in the `headless-gpu-testing` skill, not the adapter.
+
+## 11. Godot 4 (Vulkan, D3D12 and Compatibility/OpenGL, completed)
+
+`src/SkiaGameRendering.Godot` targets Godot 4.7+ .NET projects on the Forward+/Mobile renderer
+with the Vulkan or D3D12 driver and on the Compatibility renderer with the native OpenGL driver -
+one package, backend chosen at run time from `RenderingServer.GetCurrentRenderingDriverName()`,
+because Godot decides its renderer and driver per run (project settings, `--rendering-driver`/
+`--rendering-method`, or an automatic fallback). It is the first adapter in this
+repo that reaches the engine's device with **no reflection**: `RenderingDevice.GetDriverResource(DriverResource.X, rid, 0)` is public API
+(Godot 4.3+) returning the raw `VkInstance` (`TopmostObject`), `VkPhysicalDevice`, `VkDevice`
+(`LogicalDevice`), `VkQueue` (`CommandQueue`), queue family index (`QueueFamily`), and for any RD
+texture its `VkImage` (`Texture`) and `VkFormat` (`TextureDataFormat`). The texture Skia draws into
+is created with `RenderingDevice.TextureCreate` and shown through the stock `Texture2DRD` resource,
+which builds a shared *view* of the RD texture (no copy). Zero-copy, same as every other backend.
+
+### What made it non-trivial: Godot tracks image layouts
+
+Godot's `RenderingDeviceGraph` (servers/rendering/rendering_device_graph.cpp) derives each mutable
+texture's `VkImageLayout` from the last `ResourceUsage` it recorded, and only emits a barrier when
+that usage changes. A texture Godot merely samples starts at `RESOURCE_USAGE_NONE` (`UNDEFINED`),
+gets one `UNDEFINED -> SHADER_READ_ONLY_OPTIMAL` barrier the first frame it is drawn, and then
+**no barrier ever again** - every later frame's descriptor says `SHADER_READ_ONLY_OPTIMAL` and
+assumes it. Skia leaves a wrapped render target in `COLOR_ATTACHMENT_OPTIMAL`, and SkiaSharp
+3.119.4 has no `GrBackendSurfaceMutableState` binding to request otherwise (the same gap
+`VkSkiaSurfaceFactory.EndDraw` documents for Stride). Left alone, Godot samples an image whose real
+layout never matches its bookkeeping - which happens to work on NVIDIA and is undefined elsewhere.
+
+The fix is the "host inserts its own barrier" fallback Core.VK already prescribed, now packaged as
+`Core.VK`'s `VkImageLayoutTransitioner`: after Skia's flush, `End()` submits a
+`COLOR_ATTACHMENT_OPTIMAL -> SHADER_READ_ONLY_OPTIMAL` barrier on Godot's queue, and `Begin()`
+re-wraps the `GRBackendRenderTarget`/`SKSurface` each frame with that layout as Skia's starting
+point (Skia caches the last layout it set, so a persistent surface would skip its own transition
+back to `COLOR_ATTACHMENT_OPTIMAL`). Two more details close the remaining holes. Godot's single
+barrier for the texture has `oldLayout = UNDEFINED`, which the spec allows to discard contents and
+tiled/mobile drivers do; so the constructor runs a one-triangle fragment-shader pass that samples
+the texture and then flushes and stalls the graph (`texture_get_data` on a 1x1 scratch texture is
+Godot's public "execute everything recorded so far and wait"), making that transition happen
+before Skia ever draws and leaving Godot's tracker on TEXTURE_SAMPLE for good. Fragment rather than
+compute matters on D3D12's legacy path, where it narrows the state to `PIXEL_SHADER_RESOURCE`, the
+state the 2D canvas samples in later. And `Begin()`
+records a 1x1 modulate-by-white draw so a frame with no other Skia work still executes a render
+pass and really ends in `COLOR_ATTACHMENT_OPTIMAL` - otherwise the hand-back barrier's
+`oldLayout` would be wrong for a `Begin(clear: false)`/`End()` early-out. Verified clean under
+Godot's `--gpu-validation` (Khronos validation layer 1.3.261.1) across the sample and a scenario
+suite covering no-draw frames, dispose/recreate, multiple targets and the Separate thread model.
+
+A second validation finding: `Texture2DRD` creates an sRGB view of the image, which is only legal on
+an image created with `VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT` (VUID-VkImageViewCreateInfo-image-01762).
+Godot sets that bit when `RDTextureFormat` lists shareable formats, so the adapter declares the
+UNORM and sRGB twins.
+
+### Threading and synchronization
+
+`get_driver_resource` and every RD command are guarded by `ERR_RENDER_THREAD_GUARD`. Under the
+default `rendering/driver/threads/thread_model` ("Safe") the render thread is the main thread and
+Godot's frame submit happens in `RS::draw`, after `_Process`, so Skia submits from `_Process` are
+serialized with it. Godot's own per-queue `submit_mutex` is unreachable from C#, and it guards more
+than the frame submit: texture/buffer uploads (`_acquire_transfer_worker`) can submit from any
+thread. Godot creates one queue per family and puts uploads on the family with the fewest flags
+that include `TRANSFER`, so on GPUs with a dedicated transfer family they never touch Skia's queue.
+Without one (integrated, mobile, MoltenVK) they share it, and an upload from a loader thread can
+race Skia's submit. `GodotVulkanQueueFamilies.UploadsShareMainQueue` mirrors Godot's pick and
+`Initialize` pushes a Godot warning in that case; D3D12 queues are free-threaded, so only Vulkan is
+affected. Under "Separate" (experimental in Godot, verified with
+`--render-thread separate`), construction, `Begin`/`End` and `Initialize` must go through
+`RenderingServer.CallOnRenderThread`; every entry point checks `RenderingServer.IsOnRenderThread()`
+and throws with that instruction. `Dispose` is the one call that has to straddle both threads there:
+clearing `Texture2DRD.texture_rd_rid` emits `changed`, and a `Sprite2D` showing the texture answers
+with `queue_redraw`, which Godot only allows from the node's thread (the main thread), while freeing
+the RD texture must happen on the render thread. So `SkiaGodotRenderTarget2D.Dispose` runs the half
+that belongs to the calling thread immediately and hands the other half over (`CallOnRenderThread`
+or `CallDeferred`), and the Texture2DRD wrapper itself is never `Dispose()`d - it is a refcounted
+resource other nodes may still hold.
+
+Nothing per frame waits on the GPU. `End()` submits Skia's work asynchronously
+(`VkSkiaSurfaceFactory.EndDraw(synchronous: false)`; Stride keeps the synchronous default), because Godot's own sampling of the texture is its frame submit on the same queue, later
+in the frame, and queue order alone makes it see the finished draw. The hand-back barrier goes
+through a ring of command buffers in `VkImageLayoutTransitioner` that grows (to 64) instead of
+waiting when the oldest is still in flight; the only deliberate stall is in `Dispose`, before Godot frees
+the `VkImage`. A note on Godot's Texture2DRD: assigning an invalid RID frees its RenderingServer view
+and zeroes its size but leaves `texture_rd_rid` reporting the old value (`texture_rd.cpp`), so size
+is the observable signal that a texture was detached.
+
+### Other findings
+
+- Godot creates its `VkInstance` against `VK_API_VERSION_1_2` (1.0 on a 1.0 loader) and enables
+  every core `VkPhysicalDeviceFeatures` member it finds supported, so Skia is told 1.2 (clamped
+  from `VkSkiaSurfaceFactory.QueryApiVersion`) and left to query features itself.
+- Godot 4.6+ defaults **new** Windows projects to the `d3d12` driver (supported, see below) and
+  macOS to `metal`. macOS is unsupported on every driver: no Metal interop here, and SkiaSharp
+  3.119.4's macOS native library has no Vulkan backend (`GRContext.CreateVulkan` returns null on
+  MoltenVK; the dylib has none of the `vk*` entry-point names the Windows build carries).
+  `SkiaGodotRenderer.Initialize` throws on macOS.
+- Godot's default 2D pipeline is gamma-space (`hdr_2d` off), so a plain UNORM texture holding
+  Skia's sRGB bytes displays 1:1 - none of the Stride adapter's linear-space compensation. The
+  sample's pure red and CornflowerBlue read back exactly.
+- A C# class library for Godot is a plain `Microsoft.NET.Sdk` project referencing the `GodotSharp`
+  package; only the game project uses `Godot.NET.Sdk`, and only its assembly is scanned for script
+  classes. The adapter's public types are ordinary classes handing back an engine-owned
+  `Texture2DRD`, so no source generators are involved.
+- `--headless` uses the dummy renderer (`GetRenderingDevice()` returns null), so the only way to
+  test this adapter is a real Godot window. `tests/Tests.Godot.VK` launches the engine against the
+  sample with a `--screenshot` user argument and probes the PNG; it runs only when `GODOT_BIN`
+  points at a Godot .NET executable and skips otherwise. CI sets it on Windows and Linux (`master.yml`).
+- Beyond the sample, the adapter was exercised as a real NuGet package (packed, restored from a
+  local feed into a fresh `Godot.NET.Sdk` project) through a scenario suite: several targets at
+  once on `Sprite2D`, `TextureRect` and `_Draw()`/`DrawTexture`; a BGRA target; transparent clears
+  with the premultiplied material (half-alpha pixels blend to the expected value); dispose and
+  recreate mid-run; a draw-once texture still intact 60 frames later; every misuse path (Begin
+  twice, End before Begin, Dispose mid-frame, use after Dispose, off-thread calls, double Initialize);
+  200 create/draw/dispose cycles with no RID leak; 600 frames with three targets (flat managed and
+  RD memory); the Separate thread model end to end; and the D3D12 / Compatibility error messages.
+  All of it clean under `--gpu-validation`. That suite lives outside the repo (it needs a Godot
+  binary); the pieces worth keeping are the sample, the `GODOT_BIN` test, and this list.
+- Prior art: no GPU-path Skia integration for Godot existed. The published Godot+SkiaSharp projects
+  are CPU readback (`SKBitmap` -> `ImageTexture`), and other external renderers embedded in Godot
+  (Servo, Rive) share *memory* (external-memory handles) rather than the logical device.
+
+### D3D12
+
+Godot 4.6+ writes `rendering/rendering_device/driver.windows="d3d12"` into every new Windows
+project, so D3D12 is the path most new Godot Windows projects will hit. The same
+`GetDriverResource` calls return the `IDXGIAdapter1` (`PhysicalDevice`), `ID3D12Device`
+(`LogicalDevice`), `ID3D12CommandQueue` (`CommandQueue`) and a texture's `ID3D12Resource`
+(`Texture`), which is everything `Core.D3D12`'s `D3D12SkiaSurfaceFactory` needs. Two things made it
+different from Vulkan:
+
+- **Godot's D3D12 textures are typeless, and Skia cannot render into a typeless resource.**
+  `texture_create` in `rendering_device_driver_d3d12.cpp` always uses the format's typeless
+  family (`RD_TO_D3D12_FORMAT[...].family`) so UNORM and sRGB views can share one resource, and
+  `TextureDataFormat` reports that typeless format. Skia's D3D12 backend creates its render-target
+  view with a null descriptor (`GrD3DCpuDescriptorManager::createRenderTargetView`), which D3D12
+  rejects for typeless resources. `TextureCreateFromExtension` (Godot wrapping a typed resource we
+  own) is a dead end on this driver too: `Texture2DRD` always goes through `texture_create_shared`,
+  which the D3D12 driver refuses for a texture without a Godot-owned allocation. So the D3D12
+  backend renders into a typed `ID3D12Resource` this library allocates
+  (`D3D12SkiaSurfaceFactory.CreateRenderTargetResource`, raw COM) and `End()` queues one
+  `CopyResource` into Godot's texture - typed UNORM into TYPELESS of the same family is a legal
+  copy. GPU-to-GPU, no CPU readback, but not zero-copy; `SkiaGodotRenderer.IsZeroCopy` reports it.
+  A side benefit: Skia owns its surface outright, so nothing is re-wrapped per frame and no
+  sentinel draw is needed - the copy returns Skia's resource to `RENDER_TARGET`, which is what
+  Skia believes.
+- **Godot's D3D12 driver tracks state two different ways.** With
+  `D3D12_FEATURE_D3D12_OPTIONS12.EnhancedBarriersSupported` it uses the render graph's usage
+  tracking like Vulkan and maps a sampled texture to `D3D12_BARRIER_LAYOUT_SHADER_RESOURCE`,
+  whose legacy-state equivalent is `ALL_SHADER_RESOURCE`. Without it, it keeps legacy
+  per-subresource states and `command_uniform_set_prepare_for_use` narrows a texture sampled only
+  by a fragment shader to `PIXEL_SHADER_RESOURCE`; its later "is this transition redundant" check
+  (`_resource_transition_batch`) passes whenever the current state already has every wanted bit,
+  so once the texture sits in the state canvas rendering wants, Godot never barriers it again.
+  The backend queries `OPTIONS12` the same way Godot does and hands the texture back in the
+  matching state after every copy. This is also why priming is a *fragment-shader* draw rather
+  than a compute dispatch on both backends: compute would leave the legacy path in
+  `NON_PIXEL_SHADER_RESOURCE`, which Godot's first canvas draw would then transition away from -
+  a state change this library cannot observe. The remaining caveat: sampling the texture from a
+  vertex or compute shader on the legacy path moves Godot's belief, and the hand-back state no
+  longer matches (the debug layer reports it; hardware mostly tolerates it). 2D canvas use is
+  fragment-only. The dev box that verified all this runs Godot's D3D12 with enhanced barriers
+  (`SkiaGodotRenderer.D3D12UsesEnhancedBarriers` reports it); the legacy path is implemented from
+  the driver source but not yet exercised on hardware.
+
+`Core.D3D12` gained `D3D12ResourceTransitioner` (a ring of command allocator/list pairs and a
+fence, `Transition` and `CopyWithTransitions`), the `CreateRenderTargetResource`/`ReleaseResource`
+helpers, `QueryEnhancedBarriersSupported`, and `EndDraw(synchronous)`, all over raw COM vtables in
+`D3D12Com.cs` (slots cross-checked against `tests/Tests.Core.D3D12/D3D12TestNative.cs`).
+
+### Compatibility renderer (OpenGL)
+
+The Compatibility renderer has no `RenderingDevice` (`GetRenderingDevice()` is null), so none of
+the above applies; what Godot does expose is the window (`DisplayServer.WindowGetNativeHandle`)
+and, for any `ImageTexture`, its `GLuint` (`RenderingServer.TextureGetNativeHandle`). That is
+exactly the raylib adapter's situation, and the backend is that adapter's shape: `Core.OGL`'s
+`WglSharedContext`/`GlxSharedContext` (shared with the raylib adapter) create a second context sharing Godot's object
+namespace off the context current on the render thread, Skia gets its own `GRContext` on it, and
+`Core.OGL`'s `GlSkiaSurfaceFactory` wraps the texture in an FBO with `GRSurfaceOrigin.TopLeft`:
+Godot uploads image row 0 to texel row 0 and samples v=0 as the top, so Skia must write canvas row 0
+into texel row 0 - the opposite of the raylib adapter's `BottomLeft`, which renders everything
+upside down here. A symmetric test image such as the sample circle cannot show the difference. Separate contexts keep
+Godot's cached GL state and Skia's apart; cross-context visibility is GL's shared-object rule
+(Skia's flush ends in `glFlush`, Godot's canvas binds the texture per draw). Zero-copy, a
+persistent surface, no priming or hand-back. Limits: Godot's `Image.Format` has no BGRA/10-bit
+formats, so RGBA8 only; and only the native `opengl3` driver on Windows (WGL) and Linux X11 (GLX) -
+`opengl3_angle`, `opengl3_es`, Wayland and macOS are EGL/NSOpenGL contexts with no platform code
+here yet, and web exports cannot P/Invoke GL at all. Verified on Windows; the GLX path compiles
+from the raylib adapter's code but has not been run under Godot.
+

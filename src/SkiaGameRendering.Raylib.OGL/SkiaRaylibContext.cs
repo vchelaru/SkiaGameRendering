@@ -4,8 +4,8 @@ using SkiaSharp;
 namespace SkiaGameRendering.Raylib.OGL
 {
     /// <summary>
-    /// Owns the Skia-dedicated GL context (see <see cref="IPlatformGlContext"/>: <see cref="Wgl"/>
-    /// on Windows, <see cref="Glx"/> on Linux) for one raylib window, plus the
+    /// Owns the Skia-dedicated GL context (see <see cref="ISharedGlContext"/>: <see cref="WglSharedContext"/>
+    /// on Windows, <see cref="GlxSharedContext"/> on Linux) for one raylib window, plus the
     /// <see cref="GRContext"/>/<see cref="GlFunctions"/> loaded against it. Callers are responsible
     /// for bracketing any Skia GL work with <see cref="BeginDraw"/>/<see cref="EndDraw"/> - the
     /// other members assume the Skia context is already current, mirroring how
@@ -13,16 +13,16 @@ namespace SkiaGameRendering.Raylib.OGL
     /// </summary>
     internal sealed class SkiaRaylibContext : IDisposable
     {
-        private readonly IPlatformGlContext _platform = CreatePlatformGlContext();
+        private readonly ISharedGlContext _platform = CreatePlatformGlContext();
         private GRContext? _grContext;
         private GlFunctions? _gl;
 
-        private static IPlatformGlContext CreatePlatformGlContext()
+        private static ISharedGlContext CreatePlatformGlContext()
         {
             if (OperatingSystem.IsWindows())
-                return new Wgl();
+                return new WglSharedContext();
             if (OperatingSystem.IsLinux())
-                return new Glx();
+                return new GlxSharedContext();
 
             throw new PlatformNotSupportedException(
                 "SkiaGameRendering.Raylib.OGL requires Windows (WGL) or Linux (GLX). macOS is not implemented (see issue #10).");
@@ -41,12 +41,12 @@ namespace SkiaGameRendering.Raylib.OGL
             _platform.MakeSkiaContextCurrent();
             try
             {
-                _gl = GlFunctions.Load(new PlatformGlFunctionLoader(_platform));
+                _gl = GlFunctions.Load(new SharedGlContextFunctionLoader(_platform));
                 _grContext = GlGrContextFactory.Create(_gl);
             }
             finally
             {
-                _platform.MakeEngineContextCurrent();
+                _platform.RestoreHostContext();
             }
         }
 
@@ -58,7 +58,7 @@ namespace SkiaGameRendering.Raylib.OGL
 
         internal void EndDraw()
         {
-            _platform.MakeEngineContextCurrent();
+            _platform.RestoreHostContext();
         }
 
         internal (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
@@ -99,6 +99,7 @@ namespace SkiaGameRendering.Raylib.OGL
             {
                 EndDraw();
             }
+            _platform.Dispose();
         }
     }
 }

@@ -63,6 +63,22 @@ jobs:
           $icdPath = "$PWD\tests\mesa-vendor\lvp_icd.x86_64.json"
           New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
           New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name $icdPath -PropertyType DWord -Value 0 -Force | Out-Null
+      # tests/Tests.Godot runs samples/Sample.Godot in the real engine once GODOT_BIN is set: vulkan
+      # on the lavapipe ICD registered above, and d3d12 on WARP (Godot takes a software adapter when
+      # it is the only one). opengl3 is skipped here (see the test step's env); godot-linux covers
+      # it. One configuration is enough; the sample always builds in Debug for Godot to load it.
+      - name: Download Godot .NET for the Godot sample tests
+        if: matrix.configuration == 'Debug'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "4.7.2-stable"
+          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/$version/Godot_v${version}_mono_win64.zip" -OutFile godot.zip
+          Expand-Archive godot.zip -DestinationPath godot
+          Remove-Item godot.zip
+          # The console build writes to the redirected stdout the test reads.
+          $exe = Get-ChildItem godot -Recurse -Filter "*_console.exe" | Select-Object -First 1
+          "GODOT_BIN=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
       # Mesa's gallium WGL loader auto-selects a D3D12-backed driver when a D3D12 adapter is
       # enumerable (including WARP) and only falls back to llvmpipe otherwise - forcing the driver
       # here makes the software path deterministic instead of depending on what this runner exposes.
@@ -75,6 +91,10 @@ jobs:
           # which antialiases differently enough that comparing would fail for reasons that are not
           # regressions. The WindowsDX tests need no such flag - they pin themselves to WARP.
           SKIAGAMERENDERING_PINNED_RASTERIZER: 1
+          # The runner's only OpenGL is GDI's 1.1, and Mesa's opengl32.dll next to Godot's exe does
+          # not take: GDI's pixel-format calls load System32's copy regardless (the landmine in the
+          # headless-gpu-testing skill), Godot fails to create its GL window and then hangs.
+          SKIAGAMERENDERING_GODOT_SKIP_DRIVERS: opengl3
       # A golden-image failure is a picture, not a number: "2.7% of pixels differ" says nothing about
       # what moved. The tests write the render and a diff next to the test binary on failure.
       - name: Upload golden-image diffs
@@ -109,6 +129,10 @@ jobs:
       # exercises the Vulkan variant of Stride.Graphics.dll on windows-latest with no Linux/macOS
       # hardware needed to build - repo issue #54's "force GraphicsPlatform: Vulkan" trick.
       - run: dotnet build samples/Sample.Stride.VK/Sample.Stride.VK.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Godot/SkiaGameRendering.Godot.csproj -c ${{ matrix.configuration }}
+      # A Godot.NET.Sdk project builds with the plain .NET SDK (GodotSharp comes from NuGet); no
+      # Godot binary is needed to compile it. Running it is tests/Tests.Godot's job, above.
+      - run: dotnet build samples/Sample.Godot/Sample.Godot.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.DesktopGL/Benchmarks.ShapeRendering.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.WindowsDX/Benchmarks.ShapeRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
@@ -235,3 +259,42 @@ jobs:
           Get-Content smoke.txt, smoke-err.txt
           "Exit code: $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode
           exit $p.ExitCode
+
+  godot-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      # Mesa's lavapipe (Vulkan) and llvmpipe (GL), the Khronos validation layer, and the X11
+      # libraries Godot loads at startup.
+      - name: Install Mesa, the Vulkan validation layer, and Godot's X11 dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers libvulkan1 vulkan-validationlayers vulkan-tools libgl1 libxcursor1 libxinerama1 libxrandr2 libxi6 xvfb
+      # --gpu-validation silently does nothing when the layer is missing, so a clean run would
+      # prove nothing. Fail here instead.
+      - name: Confirm the Khronos validation layer is installed
+        run: vulkaninfo --summary | grep VK_LAYER_KHRONOS_validation
+      - name: Download Godot .NET
+        run: |
+          version=4.7.2-stable
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/$version/Godot_v${version}_mono_linux_x86_64.zip"
+          unzip -q godot.zip -d godot
+          rm godot.zip
+          bin=$(find "$PWD/godot" -name 'Godot_*.x86_64' -type f | head -n 1)
+          chmod +x "$bin"
+          echo "GODOT_BIN=$bin" >> "$GITHUB_ENV"
+      # A real X display (Godot's --headless means the dummy driver, no GPU at all). xvfb-run's
+      # default screen is 8-bit, which GLX cannot give a GL context, hence the explicit 24-bit one.
+      # The vulkan case runs under --gpu-validation with synchronization validation on and fails on
+      # any VUID- or SYNC-HAZARD message (see GodotSampleTests).
+      - name: Run the Godot sample on vulkan and opengl3 under Xvfb
+        run: xvfb-run --auto-servernum -s "-screen 0 1280x720x24" -- dotnet test tests/Tests.Godot/Tests.Godot.csproj --logger "console;verbosity=normal"
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 1
+          GALLIUM_DRIVER: llvmpipe
+          SKIAGAMERENDERING_GODOT_GPU_VALIDATION: 1
+          VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+          VK_LOADER_DEBUG: layer

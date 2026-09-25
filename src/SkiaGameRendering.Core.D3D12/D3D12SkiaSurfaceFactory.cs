@@ -57,13 +57,13 @@ namespace SkiaGameRendering.Core.D3D12
     /// own work to. Same reasoning <c>VkSkiaSurfaceFactory</c> gives for <c>vkQueueSubmit</c>:
     /// <c>Core.D3D12</c> cannot invent a shared lock out of nothing, so <see cref="InitializeFromNative"/>
     /// takes the same optional <c>acquireQueueLock</c> hook, invoked/disposed by
-    /// <see cref="BeginDraw"/>/<see cref="EndDraw"/> around the one call that actually submits to the
+    /// <see cref="BeginDraw"/>/<see cref="EndDraw(bool)"/> around the one call that actually submits to the
     /// queue (<c>GRContext.Flush(submit: true, ...)</c>). Passing <c>null</c> means "no external
     /// synchronization" - the caller's responsibility either way; this library has no way to verify it.
     /// </item>
     /// <item>
     /// <b>The post-draw <c>D3D12_RESOURCE_STATES</c> cannot be read back through this SkiaSharp
-    /// version.</b> See the doc comment on <see cref="EndDraw"/> - verified by listing SkiaSharp
+    /// version.</b> See the doc comment on <see cref="EndDraw(bool)"/> - verified by listing SkiaSharp
     /// 3.119.4's actual native P/Invoke surface (<c>SkiaApi</c>), not assumed: there is no
     /// <c>gr_backendrendertarget_get_d3d_*</c> entry point and no <c>GrBackendSurfaceMutableState</c>
     /// binding, the same absence <c>VkSkiaSurfaceFactory.EndDraw</c> documents for Vulkan's
@@ -78,6 +78,60 @@ namespace SkiaGameRendering.Core.D3D12
         IDisposable? _queueLockHandle;
 
         public GRContext GRContext => _grContext;
+
+        /// <summary>
+        /// Whether the host's device (and the D3D12 runtime under it) supports enhanced barriers.
+        /// An engine that has them tracks textures by <c>D3D12_BARRIER_LAYOUT</c> rather than legacy
+        /// <c>D3D12_RESOURCE_STATES</c> (Godot's D3D12 driver does exactly this switch), which changes
+        /// the legacy state a host adapter must hand a resource back in - see the Godot backend.
+        /// </summary>
+        public static bool QueryEnhancedBarriersSupported(IntPtr device)
+        {
+            if (device == IntPtr.Zero)
+                throw new ArgumentException("D3D12 device native pointer is null.", nameof(device));
+            return D3D12Com.CheckEnhancedBarriersSupported(device);
+        }
+
+        /// <summary>
+        /// Allocates a typed, render-target-capable <c>ID3D12Resource</c> on the host's device,
+        /// starting in <c>D3D12_RESOURCE_STATE_RENDER_TARGET</c>, ready for
+        /// <see cref="CreateTextureState"/>. For hosts whose own textures Skia cannot render into
+        /// directly - Skia's D3D12 backend creates its render-target view with a null descriptor, so
+        /// the resource's own format must be a typed one, and Godot allocates every texture with the
+        /// typeless family format. Release it with <see cref="ReleaseResource"/>.
+        /// </summary>
+        public static IntPtr CreateRenderTargetResource(IntPtr device, int width, int height, uint dxgiFormat)
+        {
+            if (device == IntPtr.Zero)
+                throw new ArgumentException("D3D12 device native pointer is null.", nameof(device));
+            if (width <= 0)
+                throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= 0)
+                throw new ArgumentOutOfRangeException(nameof(height));
+
+            var desc = new D3D12Com.D3D12_RESOURCE_DESC
+            {
+                Dimension = D3D12Com.D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+                Alignment = 0,
+                Width = (ulong)width,
+                Height = (uint)height,
+                DepthOrArraySize = 1,
+                MipLevels = 1,
+                Format = dxgiFormat,
+                SampleDesc = new D3D12Com.DXGI_SAMPLE_DESC { Count = 1, Quality = 0 },
+                Layout = D3D12Com.D3D12_TEXTURE_LAYOUT_UNKNOWN,
+                Flags = D3D12Com.D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
+            };
+            var heap = new D3D12Com.D3D12_HEAP_PROPERTIES { Type = D3D12Com.D3D12_HEAP_TYPE_DEFAULT };
+            return D3D12Com.CreateCommittedResource(device, heap, desc, D3D12Constants.ResourceStateRenderTarget);
+        }
+
+        /// <summary>Releases a resource from <see cref="CreateRenderTargetResource"/> (one <c>IUnknown::Release</c>).</summary>
+        public static void ReleaseResource(IntPtr resource)
+        {
+            if (resource != IntPtr.Zero)
+                D3D12Com.Release(resource);
+        }
 
         /// <param name="adapter">
         /// The host's <c>IDXGIAdapter1*</c> (or <c>IDXGIAdapter*</c>) the device was created against.
@@ -129,7 +183,7 @@ namespace SkiaGameRendering.Core.D3D12
         /// <param name="resourceState">
         /// The resource's CURRENT <c>D3D12_RESOURCE_STATES</c> at the moment this call is made - Skia
         /// reads this once, as an input, to know what state to transition from for its first internal
-        /// barrier. See <see cref="EndDraw"/> for why this library cannot report back what state the
+        /// barrier. See <see cref="EndDraw(bool)"/> for why this library cannot report back what state the
         /// resource ends up in afterward.
         /// </param>
         /// <param name="sampleCount">The resource's own multisample count - almost always 1 for a render target.</param>
@@ -183,22 +237,26 @@ namespace SkiaGameRendering.Core.D3D12
         /// <summary>
         /// Acquires the host's queue lock (if one was wired through <c>acquireQueueLock</c> on
         /// <see cref="InitializeFromNative"/>) before any drawing happens. Paired with
-        /// <see cref="EndDraw"/>.
+        /// <see cref="EndDraw(bool)"/>.
         /// </summary>
         public void BeginDraw()
         {
             _queueLockHandle = _acquireQueueLock?.Invoke();
         }
 
+        /// <summary>Same as <see cref="EndDraw(bool)"/> with <c>synchronous: true</c>.</summary>
+        public void EndDraw() => EndDraw(synchronous: true);
+
         /// <summary>
         /// Flushes Skia's recorded D3D12 commands and submits them to the shared
-        /// <c>ID3D12CommandQueue</c> (<c>GRContext.Flush(submit: true, synchronous: true)</c>) - the
+        /// <c>ID3D12CommandQueue</c> (<c>GRContext.Flush(submit: true, synchronous)</c>) - the
         /// one call in this whole class that actually calls <c>ExecuteCommandLists</c>, which is why
         /// it (and not, say, <see cref="CreateSurface"/>) is what <see cref="BeginDraw"/>'s queue lock
-        /// brackets. <c>synchronous: true</c> blocks until the GPU finishes, matching
-        /// <c>VkSkiaSurfaceFactory.EndDraw</c>'s <c>Flush(true, true)</c> and for the same reason: the
-        /// host is about to read or resume using the resource and needs the GPU work to have actually
-        /// landed first.
+        /// brackets. <paramref name="synchronous"/> <c>true</c> (what <see cref="EndDraw()"/> passes) blocks until the GPU
+        /// finishes, matching <c>VkSkiaSurfaceFactory.EndDraw</c> and for the same reason: a host about
+        /// to read the resource from the CPU needs the GPU work to have actually landed first. A host
+        /// whose own consumption is queued behind this on the SAME queue can pass <c>false</c> and skip
+        /// the stall, as the Godot backend does.
         /// <para>
         /// <b>This cannot tell the caller what <c>D3D12_RESOURCE_STATES</c> the resource ends up in.</b>
         /// Verified directly against SkiaSharp 3.119.4's native P/Invoke surface (<c>SkiaApi</c>), not
@@ -212,17 +270,17 @@ namespace SkiaGameRendering.Core.D3D12
         /// A resource being drawn into by Skia's D3D12 backend must sit in
         /// <c>D3D12_RESOURCE_STATE_RENDER_TARGET</c> while Skia's draw commands execute, and nothing
         /// in this flush path transitions it anywhere else afterward - so
-        /// <c>D3D12_RESOURCE_STATE_RENDER_TARGET</c> is the ASSUMED post-<see cref="EndDraw"/> state
+        /// <c>D3D12_RESOURCE_STATE_RENDER_TARGET</c> is the ASSUMED post-<see cref="EndDraw(bool)"/> state
         /// for such a resource, not a value this library can verify or guarantee. A host needing
         /// certainty must insert its own <c>ResourceBarrier</c> rather than trust a reported value,
         /// since none exists.
         /// </para>
         /// </summary>
-        public void EndDraw()
+        public void EndDraw(bool synchronous)
         {
             try
             {
-                _grContext.Flush(true, true);
+                _grContext.Flush(submit: true, synchronous: synchronous);
             }
             finally
             {

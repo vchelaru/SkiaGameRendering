@@ -78,12 +78,93 @@ public sealed unsafe class VkSkiaPixelReadbackTests
     }
 
     /// <summary>
+    /// Drives <see cref="VkImageLayoutTransitioner"/> the way the Godot adapter does, starting from a
+    /// one-slot ring so it has to grow: many transitions back and forth after Skia's draw, all
+    /// submitted without waiting, then a readback that assumes the last one landed. Queue order must
+    /// put every transition after Skia's work and before the copy for the pixels to survive.
+    /// </summary>
+    [Fact]
+    public void Transitioner_ManyQueuedTransitions_KeepSkiaContentAndLandInOrder()
+    {
+        var expected = new SKColor(200, 40, 90, 255);
+        int slotCount = 0;
+
+        var pixels = RenderAndReadBack(4, 4, canvas => canvas.Clear(expected), (vk, image) =>
+        {
+            using var transitioner = new VkImageLayoutTransitioner(vk.Device, vk.Queue, vk.GraphicsQueueFamilyIndex, slots: 1);
+            var layout = VkConstants.ImageLayoutColorAttachmentOptimal;
+            for (int i = 0; i < 20; i++)
+            {
+                var next = layout == VkConstants.ImageLayoutShaderReadOnlyOptimal
+                    ? VkConstants.ImageLayoutColorAttachmentOptimal
+                    : VkConstants.ImageLayoutShaderReadOnlyOptimal;
+                transitioner.Transition(
+                    (ulong)image, layout, next,
+                    srcStageMask: VkConstants.PipelineStageColorAttachmentOutput | VkConstants.PipelineStageFragmentShader,
+                    srcAccessMask: VkConstants.AccessColorAttachmentWrite,
+                    dstStageMask: VkConstants.PipelineStageColorAttachmentOutput | VkConstants.PipelineStageFragmentShader,
+                    dstAccessMask: VkConstants.AccessShaderRead);
+                layout = next;
+            }
+            transitioner.Transition(
+                (ulong)image, layout, VkConstants.ImageLayoutTransferSrcOptimal,
+                srcStageMask: VkConstants.PipelineStageColorAttachmentOutput | VkConstants.PipelineStageFragmentShader,
+                srcAccessMask: VkConstants.AccessColorAttachmentWrite,
+                dstStageMask: VkConstants.PipelineStageTransfer,
+                dstAccessMask: VkConstants.AccessTransferRead);
+            slotCount = transitioner.SlotCount;
+            transitioner.WaitForCompletion();
+            return VkConstants.ImageLayoutTransferSrcOptimal;
+        });
+
+        Assert.Equal([expected.Red, expected.Green, expected.Blue, expected.Alpha], pixels[..4]);
+        Assert.InRange(slotCount, 1, VkImageLayoutTransitioner.MaxSlots);
+        _output.WriteLine($"Ring grew to {slotCount} slots.");
+    }
+
+    [Fact]
+    public void Transitioner_RejectsBadArgumentsAndUseAfterDispose()
+    {
+        using var vk = new VulkanTestDevice();
+
+        Assert.Throws<ArgumentException>(() => new VkImageLayoutTransitioner(IntPtr.Zero, vk.Queue, vk.GraphicsQueueFamilyIndex));
+        Assert.Throws<ArgumentException>(() => new VkImageLayoutTransitioner(vk.Device, IntPtr.Zero, vk.GraphicsQueueFamilyIndex));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new VkImageLayoutTransitioner(vk.Device, vk.Queue, vk.GraphicsQueueFamilyIndex, slots: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new VkImageLayoutTransitioner(vk.Device, vk.Queue, vk.GraphicsQueueFamilyIndex, slots: VkImageLayoutTransitioner.MaxSlots + 1));
+
+        var transitioner = new VkImageLayoutTransitioner(vk.Device, vk.Queue, vk.GraphicsQueueFamilyIndex);
+        Assert.Throws<ArgumentException>(() => transitioner.Transition(0, 0, 0, 0, 0, 0, 0));
+        transitioner.WaitForCompletion(); // nothing pending: returns immediately
+        transitioner.Dispose();
+        transitioner.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => transitioner.Transition(1, 0, 0, 0, 0, 0, 0));
+    }
+
+    [Fact]
+    public void QueryHelpers_ReportTheTestDevice()
+    {
+        using var vk = new VulkanTestDevice();
+
+        var apiVersion = VkSkiaSurfaceFactory.QueryApiVersion(vk.Instance, vk.PhysicalDevice);
+        Assert.True(apiVersion >= VkConstants.MakeApiVersion(1, 0), $"apiVersion 0x{apiVersion:X}");
+
+        var families = VkSkiaSurfaceFactory.QueryQueueFamilyFlags(vk.Instance, vk.PhysicalDevice);
+        Assert.InRange((int)vk.GraphicsQueueFamilyIndex, 0, families.Length - 1);
+        Assert.NotEqual(0u, families[vk.GraphicsQueueFamilyIndex] & VkConstants.QueueGraphics);
+
+        Assert.Throws<ArgumentException>(() => VkSkiaSurfaceFactory.QueryApiVersion(IntPtr.Zero, vk.PhysicalDevice));
+        Assert.Throws<ArgumentException>(() => VkSkiaSurfaceFactory.QueryQueueFamilyFlags(vk.Instance, IntPtr.Zero));
+    }
+
+    /// <summary>
     /// Wraps a host-allocated <c>VkImage</c> with <see cref="VkSkiaSurfaceFactory"/>, runs
     /// <paramref name="draw"/> on the resulting canvas, and copies the result back to CPU as tightly
-    /// packed RGBA8888. Shared by both tests above so the Vulkan scaffolding - image, staging buffer,
-    /// command pool, layout barrier, fence - is written once.
+    /// packed RGBA8888. Shared by the tests above so the Vulkan scaffolding - image, staging buffer,
+    /// command pool, layout barrier, fence - is written once. <paramref name="afterDraw"/> runs
+    /// between Skia's flush and the readback and returns the layout it left the image in; without
+    /// it the image is assumed to be where Skia leaves it.
     /// </summary>
-    byte[] RenderAndReadBack(int width, int height, Action<SKCanvas> draw)
+    byte[] RenderAndReadBack(int width, int height, Action<SKCanvas> draw, Func<VulkanTestDevice, IntPtr, uint>? afterDraw = null)
     {
         using var vk = new VulkanTestDevice();
         _output.WriteLine($"Vulkan graphics queue family index: {vk.GraphicsQueueFamilyIndex}");
@@ -152,6 +233,8 @@ public sealed unsafe class VkSkiaPixelReadbackTests
             renderTarget.Dispose();
             surface.Dispose();
 
+            var layoutBeforeCopy = afterDraw?.Invoke(vk, image) ?? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
             // --- Read the drawn image back to CPU via a staging buffer copy. ---
             const int pixelBytes = 4;
             ulong bufferSize = (ulong)(width * height * pixelBytes);
@@ -214,7 +297,7 @@ public sealed unsafe class VkSkiaPixelReadbackTests
                 sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                 srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                 dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
-                oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                oldLayout = layoutBeforeCopy,
                 newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,

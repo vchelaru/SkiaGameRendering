@@ -77,9 +77,6 @@ namespace SkiaGameRendering.Stride.VK
         static FieldInfo? _nativeLayoutField;
         static FieldInfo? _nativeFormatField;
 
-        /// <summary><c>VK_MAKE_API_VERSION(0, 1, 3, 0)</c> - see this class's doc comment.</summary>
-        const uint VK_API_VERSION_1_3 = (1u << 22) | (3u << 12);
-
         internal GRContext GRContext => _factory.GRContext;
 
         internal void Initialize(GraphicsDevice graphicsDevice)
@@ -114,7 +111,7 @@ namespace SkiaGameRendering.Stride.VK
             _factory.InitializeFromNative(
                 (IntPtr)instance, (IntPtr)physicalDevice, (IntPtr)device, (IntPtr)queue,
                 graphicsQueueFamilyIndex: 0,
-                apiVersion: VK_API_VERSION_1_3,
+                apiVersion: VkConstants.MakeApiVersion(1, 3), // see this class's doc comment
                 instanceExtensions: [],
                 deviceExtensions: [],
                 acquireQueueLock: () => AcquireQueueLock(queueLock));
@@ -168,16 +165,11 @@ namespace SkiaGameRendering.Stride.VK
         /// </summary>
         static uint ComputeImageUsageFlags(TextureFlags flags)
         {
-            const uint VK_IMAGE_USAGE_TRANSFER_SRC_BIT = 0x1;
-            const uint VK_IMAGE_USAGE_TRANSFER_DST_BIT = 0x2;
-            const uint VK_IMAGE_USAGE_SAMPLED_BIT = 0x4;
-            const uint VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT = 0x10;
-
-            uint usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            uint usage = VkConstants.ImageUsageTransferSrc | VkConstants.ImageUsageTransferDst;
             if ((flags & TextureFlags.RenderTarget) != 0)
-                usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                usage |= VkConstants.ImageUsageColorAttachment;
             if ((flags & TextureFlags.ShaderResource) != 0)
-                usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+                usage |= VkConstants.ImageUsageSampled;
             return usage;
         }
 

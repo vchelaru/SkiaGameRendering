@@ -29,5 +29,10 @@
          Vortice.Vulkan's VkInstance/VkPhysicalDevice/VkDevice/VkQueue/VkImage types directly, the
          same reasoning SilkNetVersion above documents for the D3D11 adapter. -->
     <VorticeVulkanVersion>3.0.3</VorticeVulkanVersion>
+    <!-- GodotSharp is Godot's C# core API, published to NuGet per engine release; 4.7.2 is the
+         current stable. This is a floor (>=), not a pin: a game on a newer Godot resolves its own
+         Godot.NET.Sdk's GodotSharp and NuGet unifies upward. samples/Sample.Godot's csproj names
+         the same version in its Sdk attribute (which cannot read an MSBuild property) - bump both. -->
+    <GodotSharpVersion>4.7.2</GodotSharpVersion>
   </PropertyGroup>
 </Project>

@@ -1,0 +1,23 @@
+<!--
+  Godot.NET.Sdk, not Microsoft.NET.Sdk: this is the Godot PROJECT assembly (the one Godot loads
+  and scans for script classes such as Main.cs), so it needs Godot's source generators and output
+  layout (.godot/mono/temp/bin/). The Sdk version must be a literal here (an Sdk attribute cannot
+  read an MSBuild property) and must match GodotSharpVersion in eng/Versions.props - bump both.
+-->
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SampleGodot</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Godot\SkiaGameRendering.Godot.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\Shared\Scene.props" />
+
+</Project>
