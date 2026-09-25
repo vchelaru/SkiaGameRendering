@@ -226,9 +226,12 @@ jobs:
       - name: Run the AOT exe's smoke test
         working-directory: aot-out
         shell: pwsh
-        # WinExe detaches from the console, so wait on the process for its exit code and print its redirected stdout.
+        # WinExe detaches from the console, so wait on the process for its exit code and print its
+        # redirected output. Touching Handle first makes ExitCode available after the process exits.
         run: |
-          $p = Start-Process ./Sample.MonoGame.WindowsDX.exe -ArgumentList --smoke-test -PassThru -RedirectStandardOutput smoke.txt
+          $p = Start-Process ./Sample.MonoGame.WindowsDX.exe -ArgumentList --smoke-test -PassThru -RedirectStandardOutput smoke.txt -RedirectStandardError smoke-err.txt
+          $null = $p.Handle
           if (-not $p.WaitForExit(120000)) { $p.Kill(); throw "Smoke test timed out" }
-          Get-Content smoke.txt
+          Get-Content smoke.txt, smoke-err.txt
+          "Exit code: $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode
           exit $p.ExitCode
