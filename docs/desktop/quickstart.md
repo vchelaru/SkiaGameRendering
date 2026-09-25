@@ -120,8 +120,8 @@ project, with core source files shared via linked includes (`src/SkiaGameRenderi
 ## ANGLE
 
 The WindowsDX backends (`SkiaAngleBackend`, `SkiaKniAngleBackend`) run on ANGLE (GL ES → D3D11).
-`SkiaGameRendering.Core.ANGLE` vendors ANGLE's `libEGL.dll`/`libGLESv2.dll` for win-x64 and
-win-arm64 directly in its NuGet package (`runtimes/<rid>/native`), built from ANGLE's own source
+`SkiaGameRendering.Core.ANGLE` vendors ANGLE's `libEGL.dll`/`libGLESv2.dll`, plus the zlib `z.dll` that `libGLESv2.dll`
+imports, for win-x64 and win-arm64 directly in its NuGet package (`runtimes/<rid>/native`), built from ANGLE's own source
 via vcpkg's `angle` port — see `eng/angle-provenance.json` for the exact vcpkg commit/version/hash
 and `eng/vendor-angle.ps1` to reproduce or update them. (Chromium's own snapshot builds and
 Electron's current releases were tried first; both ship `libEGL.dll`/`libGLESv2.dll` with zero

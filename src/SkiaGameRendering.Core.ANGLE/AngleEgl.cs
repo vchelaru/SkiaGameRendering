@@ -24,18 +24,14 @@ namespace SkiaGameRendering.Core.ANGLE
                 if (!string.IsNullOrEmpty(assemblyDir))
                 {
                     // 1. Try app-local (bundled ANGLE DLLs next to the executable)
-                    var localPath = Path.Combine(assemblyDir, dllName);
-                    tried.Add(localPath);
-                    if (NativeLibrary.TryLoad(localPath, out var localHandle))
+                    if (TryLoad(Path.Combine(assemblyDir, dllName), tried, out var localHandle))
                         return localHandle;
 
                     // 2. Try runtimes folder - this is where Core.ANGLE's own NuGet package vendors
                     // ANGLE (see eng/vendor-angle.ps1), so this is the tier almost every consumer
                     // should land on.
                     var rid = GetRuntimeIdentifier(RuntimeInformation.ProcessArchitecture);
-                    var runtimesPath = Path.Combine(assemblyDir, "runtimes", rid, "native", dllName);
-                    tried.Add(runtimesPath);
-                    if (NativeLibrary.TryLoad(runtimesPath, out var runtimesHandle))
+                    if (TryLoad(Path.Combine(assemblyDir, "runtimes", rid, "native", dllName), tried, out var runtimesHandle))
                         return runtimesHandle;
                 }
 
@@ -46,16 +42,37 @@ namespace SkiaGameRendering.Core.ANGLE
                 var edgePath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.Windows),
                     "System32", "Microsoft-Edge-WebView", dllName);
-                tried.Add(edgePath);
-                if (NativeLibrary.TryLoad(edgePath, out var edgeHandle))
+                if (TryLoad(edgePath, tried, out var edgeHandle))
                     return edgeHandle;
 
                 throw new DllNotFoundException(
-                    $"Could not locate ANGLE's {dllName}. SkiaGameRendering.Core.ANGLE needs ANGLE " +
+                    $"Could not load ANGLE's {dllName}. SkiaGameRendering.Core.ANGLE needs ANGLE " +
                     "(libEGL/libGLESv2) to back its D3D11 interop, and vendors it under " +
-                    "runtimes/<rid>/native in its own NuGet package, but none of the following " +
-                    "paths resolved: " + string.Join(", ", tried));
+                    "runtimes/<rid>/native in its own NuGet package. Tried: " + string.Join("; ", tried));
             });
+        }
+
+        // A file that exists but fails to load (usually a missing dependency DLL) is reported with
+        // the loader's reason, so it can't be mistaken for the file simply being absent.
+        private static bool TryLoad(string path, List<string> tried, out IntPtr handle)
+        {
+            handle = IntPtr.Zero;
+            if (!File.Exists(path))
+            {
+                tried.Add(path + " (not found)");
+                return false;
+            }
+
+            try
+            {
+                handle = NativeLibrary.Load(path);
+                return true;
+            }
+            catch (Exception ex) when (ex is DllNotFoundException or BadImageFormatException)
+            {
+                tried.Add(path + " (exists but failed to load: " + ex.Message + ")");
+                return false;
+            }
         }
 
         /// <summary>

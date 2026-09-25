@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <!--
-    ANGLE's libEGL.dll/libGLESv2.dll are checked in directly under runtimes/<rid>/native (~12 MB
+    ANGLE's libEGL.dll/libGLESv2.dll (and the zlib z.dll libGLESv2 imports) are checked in directly under runtimes/<rid>/native (~12 MB
     total for both RIDs) rather than downloaded at build/pack time - see eng/vendor-angle.ps1 and
     eng/angle-provenance.json. They're built from source via vcpkg, which is a real multi-minute
     compile requiring the MSVC C++ toolchain, so unlike Tests.Core.OGL's mesa-vendor/ (a same-day
@@ -36,8 +36,10 @@
   <ItemGroup>
     <None Include="runtimes\win-x64\native\libEGL.dll" Pack="true" PackagePath="runtimes\win-x64\native\libEGL.dll" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-x64\native\libGLESv2.dll" Pack="true" PackagePath="runtimes\win-x64\native\libGLESv2.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-x64\native\z.dll" Pack="true" PackagePath="runtimes\win-x64\native\z.dll" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-arm64\native\libEGL.dll" Pack="true" PackagePath="runtimes\win-arm64\native\libEGL.dll" CopyToOutputDirectory="PreserveNewest" />
     <None Include="runtimes\win-arm64\native\libGLESv2.dll" Pack="true" PackagePath="runtimes\win-arm64\native\libGLESv2.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="runtimes\win-arm64\native\z.dll" Pack="true" PackagePath="runtimes\win-arm64\native\z.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -4,7 +4,8 @@
     runtimes/<rid>/native layout (issue #36).
 
 .DESCRIPTION
-    Core.ANGLE's NuGet package vendors ANGLE's libEGL.dll/libGLESv2.dll so every consumer's
+    Core.ANGLE's NuGet package vendors ANGLE's libEGL.dll/libGLESv2.dll (plus the zlib z.dll they
+    import) so every consumer's
     AngleEgl resolver hits its "runtimes/<rid>/native" tier instead of falling back to Edge
     WebView's private, non-redistributable copy.
 
@@ -61,6 +62,10 @@ if (-not (Test-Path (Join-Path $VcpkgRoot "vcpkg.exe"))) {
 
 $vcpkgExe = Join-Path $VcpkgRoot "vcpkg.exe"
 
+# libGLESv2.dll statically imports vcpkg's zlib (z.dll), so it ships alongside. Any other
+# non-Windows import added here is caught by Tests.Core.ANGLE's VendoredAngleImportTests.
+$vendoredFiles = @("libEGL.dll", "libGLESv2.dll", "z.dll")
+
 # rid -> vcpkg triplet. Only these two are vendored - see AngleEgl.GetRuntimeIdentifier, which
 # throws PlatformNotSupportedException for anything else rather than guessing.
 $targets = @{
@@ -79,7 +84,7 @@ foreach ($rid in $targets.Keys) {
     $destDir = Join-Path $angleProjectDir "runtimes\$rid\native"
     New-Item -ItemType Directory -Force -Path $destDir | Out-Null
 
-    foreach ($fileName in @("libEGL.dll", "libGLESv2.dll")) {
+    foreach ($fileName in $vendoredFiles) {
         $srcPath = Join-Path $VcpkgRoot "installed\$triplet\bin\$fileName"
         Copy-Item -Path $srcPath -Destination (Join-Path $destDir $fileName) -Force
     }
@@ -95,7 +100,7 @@ $runtimes = [ordered]@{}
 foreach ($rid in $targets.Keys) {
     $triplet = $targets[$rid]
     $files = [ordered]@{}
-    foreach ($fileName in @("libEGL.dll", "libGLESv2.dll")) {
+    foreach ($fileName in $vendoredFiles) {
         $hash = (Get-FileHash -Path (Join-Path $angleProjectDir "runtimes\$rid\native\$fileName") -Algorithm SHA256).Hash.ToLowerInvariant()
         $files[$fileName] = "sha256:$hash"
     }
