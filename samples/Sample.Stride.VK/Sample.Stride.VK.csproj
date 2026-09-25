@@ -43,8 +43,6 @@
     <ProjectReference Include="..\..\src\SkiaGameRendering.Stride.VK\SkiaGameRendering.Stride.VK.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\Shared\Scene.cs" Link="Scene.cs" />
-  </ItemGroup>
 
+  <Import Project="..\Shared\Scene.props" />
 </Project>

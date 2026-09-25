@@ -16,8 +16,6 @@
     <ProjectReference Include="..\..\src\SkiaGameRendering.Raylib.OGL\SkiaGameRendering.Raylib.OGL.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\Shared\Scene.cs" Link="Scene.cs" />
-  </ItemGroup>
 
+  <Import Project="..\Shared\Scene.props" />
 </Project>

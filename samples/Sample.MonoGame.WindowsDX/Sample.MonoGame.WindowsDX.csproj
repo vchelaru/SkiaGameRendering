@@ -30,10 +30,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
-    <Compile Include="..\Shared\Scene.cs" Link="Scene.cs" />
   </ItemGroup>
   <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
     <Message Text="Restoring dotnet tools" Importance="High" />
     <Exec Command="dotnet tool restore" />
   </Target>
+  <Import Project="..\Shared\Scene.props" />
 </Project>

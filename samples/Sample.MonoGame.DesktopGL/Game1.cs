@@ -65,16 +65,20 @@ namespace Sample
         }
 
         /// <summary>
-        /// The 200x200 canvas lands at the back buffer's origin, so its center is inside Scene's
-        /// red circle and anything outside the canvas is still the black clear color.
+        /// The 200x200 canvas lands at the back buffer's origin. Its center is on Scene's gold SVG
+        /// star, which proves the SVG parser survived trimming; (100, 20) is on the red circle above
+        /// the star, and anything outside the canvas is still the black clear color.
         /// </summary>
         private void CheckSmokeTestFrame()
         {
-            var inside = ReadBackBufferPixel(100, 100);
+            var star = ReadBackBufferPixel(100, 100);
+            var circle = ReadBackBufferPixel(100, 20);
             var outside = ReadBackBufferPixel(400, 400);
-            var passed = inside.R > 200 && inside.G < 50 && inside.B < 50 && outside == Color.Black;
+            var passed = star.R > 200 && star.G > 150 && star.B < 100
+                && circle.R > 200 && circle.G < 50 && circle.B < 50
+                && outside == Color.Black;
 
-            System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: inside={inside}, outside={outside}");
+            System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: star={star}, circle={circle}, outside={outside}");
             ExitCode = passed ? 0 : 1;
             Exit();
         }
