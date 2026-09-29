@@ -40,8 +40,10 @@ public sealed class GodotBinaryFactAttribute : FactAttribute
             _driver = value;
             if (Skip != null)
                 return;
-            if (OperatingSystem.IsMacOS())
-                Skip = "The Godot adapter does not support macOS.";
+            if (OperatingSystem.IsMacOS() != (value == "metal"))
+                Skip = OperatingSystem.IsMacOS()
+                    ? "On macOS the Godot adapter supports only the metal driver."
+                    : "Godot offers metal only on macOS.";
             else if (value == "d3d12" && !OperatingSystem.IsWindows())
                 Skip = "Godot offers d3d12 only on Windows.";
             else if ((Environment.GetEnvironmentVariable(SkipDriversVariable) ?? "")

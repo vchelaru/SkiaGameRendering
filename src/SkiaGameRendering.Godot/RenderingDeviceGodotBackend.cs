@@ -5,7 +5,7 @@ using SkiaSharp;
 namespace SkiaGameRendering.Godot
 {
     /// <summary>
-    /// What the Vulkan and D3D12 backends share: creating the RD texture Godot will
+    /// What the Vulkan, D3D12 and Metal backends share: creating the RD texture Godot will
     /// sample, priming it, and the <see cref="Texture2Drd"/> that exposes it to the scene tree. What
     /// differs per graphics API - how Skia gets at the device and the texture, and how the texture is
     /// handed back to Godot after a draw - is left to <see cref="VulkanGodotBackend"/> and
@@ -27,9 +27,8 @@ namespace SkiaGameRendering.Godot
     /// tracked state never moves again.
     /// </item>
     /// <item>
-    /// <b>Metal is not this package.</b> Godot exposes its <c>MTLDevice</c>/<c>MTLCommandQueue</c> the
-    /// same way, but this repo has no Metal Core library yet; <see cref="SkiaGodotRenderer.Initialize"/>
-    /// fails with a message naming the setting.
+    /// <b>Metal has no layouts or states</b>, so priming does nothing useful there; <see cref="MetalGodotBackend"/>
+    /// still goes through it to keep one code path.
     /// </item>
     /// </list>
     /// </summary>

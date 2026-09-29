@@ -214,9 +214,9 @@ jobs:
           path: tests/**/golden-failures/*.png
           if-no-files-found: ignore
 
-  # macos-latest is an Apple silicon VM with a paravirtualized Metal device, so Core.Metal runs on
-  # real Metal here with nothing to vendor. Its tests skip in desktop-and-core (no Metal on Windows).
-  core-metal-macos:
+  # macos-latest is an Apple silicon VM with a paravirtualized Metal device, so Core.Metal and the
+  # Godot metal driver run on real Metal here with nothing to vendor. Both skip elsewhere.
+  metal-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -224,11 +224,20 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - run: dotnet test tests/Tests.Core.Metal/Tests.Core.Metal.csproj --logger "console;verbosity=normal"
+      - name: Download Godot .NET
+        run: |
+          version=4.7.2-stable
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/$version/Godot_v${version}_mono_macos.universal.zip"
+          unzip -q godot.zip -d godot
+          rm godot.zip
+          echo "GODOT_BIN=$PWD/godot/Godot_mono.app/Contents/MacOS/Godot" >> "$GITHUB_ENV"
+      # The runner has a logged-in GUI session, so Godot gets a real window without Xvfb's help.
+      - run: dotnet test tests/Tests.Godot/Tests.Godot.csproj --logger "console;verbosity=normal"
       - name: Upload golden-image diffs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: golden-image-diffs-core-metal-macos
+          name: golden-image-diffs-metal-macos
           path: tests/**/golden-failures/*.png
           if-no-files-found: ignore
 

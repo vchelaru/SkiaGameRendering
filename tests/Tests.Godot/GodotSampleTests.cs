@@ -24,6 +24,9 @@ public class GodotSampleTests
     [GodotBinaryFact(Driver = "d3d12")]
     public void D3D12() => RunSample("d3d12");
 
+    [GodotBinaryFact(Driver = "metal")]
+    public void Metal() => RunSample("metal");
+
     [GodotBinaryFact(Driver = "opengl3")]
     public void OpenGl3() => RunSample("opengl3");
 

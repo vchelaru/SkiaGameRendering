@@ -157,7 +157,7 @@ runs today.
 ## Metal - the real device
 
 `tests/Tests.Core.Metal/MetalTestDevice.cs` uses `MTLCreateSystemDefaultDevice`; `macos-latest` has
-a virtualized Metal device, so nothing is vendored. It runs in `master.yml`'s `core-metal-macos` job
+a virtualized Metal device, so nothing is vendored. It runs in `master.yml`'s `metal-macos` job
 and skips elsewhere via `MacOnlyFactAttribute`.
 
 ## Godot - a real window or nothing
@@ -165,8 +165,8 @@ and skips elsewhere via `MacOnlyFactAttribute`.
 Godot's `--headless` gives the dummy driver, so `src/SkiaGameRendering.Godot`
 has no in-process GPU test. `tests/Tests.Godot/GodotSampleTests.cs` launches
 the binary named by `GODOT_BIN` against `samples/Sample.Godot` once per
-rendering driver and skips without it; `master.yml` runs it on Windows (vulkan, d3d12) and Linux
-(vulkan under validation, opengl3).
+rendering driver and skips without it; `master.yml` runs it on Windows (vulkan, d3d12), Linux
+(vulkan under validation, opengl3) and macOS (metal).
 
 ## Engine glue - headless GraphicsDevice
 
