@@ -210,6 +210,38 @@ SkiaRenderer.Dispose();
 ```
 Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or dispose them for you.
 
+## Performance
+
+Skia is a general-purpose vector renderer. It is not a sprite batcher, so draw sprites with the
+engine's own `SpriteBatch` and use Skia for vectors, SVG and text. The two interleave freely.
+
+- **If sprites must go through Skia, use `SKCanvas.DrawAtlas`.** One `DrawAtlas` call per texture
+  sheet costs about the same as `SpriteBatch`. One `DrawImage` per sprite is several times slower.
+- **Tint through `DrawAtlas`'s `colors` array with `SKBlendMode.Modulate`**, the equivalent of
+  `SpriteBatch.Draw`'s `color`. It costs almost nothing extra. Tinting `DrawImage` with a per-sprite
+  `SKPaint.ColorFilter` is the slowest option measured. `SKColor` is unpremultiplied, so the matching
+  `SpriteBatch` color is `Color.FromNonPremultiplied(r, g, b, a)`.
+- **Upload sprite images once** with `SKImage.ToTextureImage(SkiaRenderer.CurrentBackend.GRContext)`,
+  called between `Begin()` and `End()` when Skia's GPU context is current, and reuse the result.
+- **Use few, large targets.** Every `Begin()`/`End()` pair switches GPU context and flushes Skia. On
+  WindowsDX and KNI WindowsDX, `End()` also calls `glFinish`, which stalls the CPU until the GPU
+  finishes. One screen-sized target per frame beats one per element.
+
+Measured with `benchmarks/Benchmarks.ShapeRendering.DesktopGL` (MonoGame DesktopGL, macOS, Apple
+Silicon), frame time in ms:
+
+| Sprites | Skia `DrawImage` | Skia `DrawAtlas` | `SpriteBatch` |
+|---:|---:|---:|---:|
+| 0 | 0.190 | 0.187 | 0.149 |
+| 500 | 0.466 | 0.242 | 0.174 |
+| 2k | 1.017 | 0.284 | 0.218 |
+| 10k | 3.977 | 0.638 | 0.579 |
+| 500 tinted | 0.836 | 0.250 | 0.174 |
+| 10k tinted | 10.794 | 0.658 | 0.585 |
+
+WindowsDX has not been measured yet. To measure your own hardware, run either
+`Benchmarks.ShapeRendering` project and press B. It writes `benchmark-results.md` next to the exe.
+
 ## Sample Projects
 
 - `samples/Sample.MonoGame.DesktopGL/` — DesktopGL sample (cross-platform: Windows, Linux, macOS)

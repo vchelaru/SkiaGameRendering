@@ -12,6 +12,24 @@ namespace Benchmarks.ShapeRendering
     {
         Skia,
         AposShapes,
+        SkiaAtlas,
+        SpriteBatch,
+    }
+
+    public static class RendererKindExtensions
+    {
+        public static string Label(this RendererKind renderer) => renderer switch
+        {
+            RendererKind.Skia => "Skia",
+            RendererKind.AposShapes => "Apos.Shapes",
+            RendererKind.SkiaAtlas => "Skia DrawAtlas",
+            RendererKind.SpriteBatch => "SpriteBatch",
+            _ => renderer.ToString(),
+        };
+
+        /// <summary>True for renderers that draw into the SkiaRenderTarget2D and pay its blit.</summary>
+        public static bool UsesSkia(this RendererKind renderer) =>
+            renderer is RendererKind.Skia or RendererKind.SkiaAtlas;
     }
 
     /// <summary>
@@ -19,13 +37,14 @@ namespace Benchmarks.ShapeRendering
     /// <see cref="SkiaGameRendering"/> (SkiaSharp canvas rendered into a screen-sized
     /// <see cref="SkiaRenderTarget2D"/>, then blitted with <see cref="SpriteBatch"/>) versus
     /// <see cref="Apos.Shapes"/>' <see cref="ShapeBatch"/> (drawn straight to the back buffer).
+    /// Sprite scenes instead compare Skia DrawImage and DrawAtlas against plain SpriteBatch.
     ///
     /// The Skia render-target-plus-blit cost is intentionally included every frame - that overhead
     /// is part of the real cost of using this library, not an artifact to optimize away. The
     /// correct backend (OGL vs ANGLE) is auto-detected at runtime based on which library assembly
     /// is referenced, same as the other samples in this repo.
     ///
-    /// Controls: 1-8 pick a scene, Up/Down toggle the renderer, B runs an automated benchmark
+    /// Controls: 1-9 or Left/Right pick a scene, Up/Down cycle the renderer, B runs an automated benchmark
     /// sweep across every scene/renderer pair and writes benchmark-results.md next to the exe,
     /// Escape quits.
     /// </summary>
@@ -44,6 +63,7 @@ namespace Benchmarks.ShapeRendering
         private SKPath _trianglePath = null!;
 
         private ShapeBatch _shapeBatch = null!;
+        private SpriteRenderers _spriteRenderers = null!;
 
         private Scene[] _scenes = null!;
         private int _sceneIndex;
@@ -89,6 +109,7 @@ namespace Benchmarks.ShapeRendering
             _trianglePath = new SKPath();
 
             _shapeBatch = new ShapeBatch(GraphicsDevice, Content);
+            _spriteRenderers = new SpriteRenderers(GraphicsDevice);
 
             _scenes = Scene.BuildAll(BackBufferWidth, BackBufferHeight);
 
@@ -106,21 +127,28 @@ namespace Benchmarks.ShapeRendering
 
             if (!benchmarkActive)
             {
-                if (KeyPushed(keyboard, Keys.D1)) _sceneIndex = 0;
-                else if (KeyPushed(keyboard, Keys.D2)) _sceneIndex = 1;
-                else if (KeyPushed(keyboard, Keys.D3)) _sceneIndex = 2;
-                else if (KeyPushed(keyboard, Keys.D4)) _sceneIndex = 3;
-                else if (KeyPushed(keyboard, Keys.D5)) _sceneIndex = 4;
-                else if (KeyPushed(keyboard, Keys.D6)) _sceneIndex = 5;
-                else if (KeyPushed(keyboard, Keys.D7)) _sceneIndex = 6;
-                else if (KeyPushed(keyboard, Keys.D8)) _sceneIndex = 7;
+                for (int i = 0; i < 9 && i < _scenes.Length; i++)
+                {
+                    if (KeyPushed(keyboard, Keys.D1 + i))
+                        _sceneIndex = i;
+                }
+                if (KeyPushed(keyboard, Keys.Right))
+                    _sceneIndex = (_sceneIndex + 1) % _scenes.Length;
+                else if (KeyPushed(keyboard, Keys.Left))
+                    _sceneIndex = (_sceneIndex + _scenes.Length - 1) % _scenes.Length;
 
-                if (KeyPushed(keyboard, Keys.Up) || KeyPushed(keyboard, Keys.Down))
-                    _renderer = _renderer == RendererKind.Skia ? RendererKind.AposShapes : RendererKind.Skia;
+                var renderers = _scenes[_sceneIndex].Renderers;
+                int rendererIndex = Array.IndexOf(renderers, _renderer);
+                if (rendererIndex < 0)
+                    _renderer = renderers[0];
+                else if (KeyPushed(keyboard, Keys.Down))
+                    _renderer = renderers[(rendererIndex + 1) % renderers.Length];
+                else if (KeyPushed(keyboard, Keys.Up))
+                    _renderer = renderers[(rendererIndex + renderers.Length - 1) % renderers.Length];
             }
 
             if (KeyPushed(keyboard, Keys.B) && _benchmark.Phase is BenchmarkPhase.Idle or BenchmarkPhase.Finished)
-                _benchmark.Start(_scenes.Length);
+                _benchmark.Start(_scenes);
 
             if (benchmarkActive)
             {
@@ -147,12 +175,18 @@ namespace Benchmarks.ShapeRendering
 
             var sw = Stopwatch.StartNew();
 
-            if (_renderer == RendererKind.Skia)
+            if (_renderer.UsesSkia())
             {
                 GraphicsDevice.SetRenderTarget(null);
 
                 _skiaCanvas.Begin();
-                ShapeRenderers.DrawSceneSkia(_skiaCanvas.Canvas, scene, t, _fillPaint, _strokePaint, _trianglePath);
+                var grContext = SkiaRenderer.CurrentBackend!.GRContext;
+                if (_renderer == RendererKind.SkiaAtlas)
+                    _spriteRenderers.DrawSkiaAtlas(_skiaCanvas.Canvas, grContext, scene, t);
+                else if (scene.IsSprite)
+                    _spriteRenderers.DrawSkia(_skiaCanvas.Canvas, grContext, scene, t);
+                else
+                    ShapeRenderers.DrawSceneSkia(_skiaCanvas.Canvas, scene, t, _fillPaint, _strokePaint, _trianglePath);
                 // EndWithoutDrawing, not End: this benchmark measures the blit under
                 // BlendState.Opaque/SpriteSortMode.Immediate specifically, not End()'s default
                 // AlphaBlend/Deferred composite, since blend state affects what's being measured.
@@ -171,9 +205,16 @@ namespace Benchmarks.ShapeRendering
                 GraphicsDevice.SetRenderTarget(null);
                 GraphicsDevice.Clear(Color.Black);
 
-                _shapeBatch.Begin();
-                ShapeRenderers.DrawSceneApos(_shapeBatch, scene, t);
-                _shapeBatch.End();
+                if (_renderer == RendererKind.SpriteBatch)
+                {
+                    _spriteRenderers.DrawSpriteBatch(_spriteBatch, scene, t);
+                }
+                else
+                {
+                    _shapeBatch.Begin();
+                    ShapeRenderers.DrawSceneApos(_shapeBatch, scene, t);
+                    _shapeBatch.End();
+                }
                 _lastRenderMs = sw.Elapsed.TotalMilliseconds;
                 _lastBlitMs = 0;
             }
@@ -192,8 +233,8 @@ namespace Benchmarks.ShapeRendering
 
         private void DrawHud(Scene scene)
         {
-            string rendererName = _renderer == RendererKind.Skia ? "Skia (SkiaGameRendering)" : "Apos.Shapes";
-            string blitLine = _renderer == RendererKind.Skia ? $"Blit (CPU submit):   {_lastBlitMs:0.000} ms\n" : "";
+            string rendererName = _renderer.Label();
+            string blitLine = _renderer.UsesSkia() ? $"Blit (CPU submit):   {_lastBlitMs:0.000} ms\n" : "";
 
             string text =
                 $"Renderer: {rendererName}\n" +
@@ -203,7 +244,7 @@ namespace Benchmarks.ShapeRendering
                 $"Draw (CPU submit):   {_lastRenderMs:0.000} ms\n" +
                 blitLine +
                 "\n" +
-                "1-8 scene | Up/Down renderer | B auto-benchmark | Esc quit\n" +
+                "1-9/Left/Right scene | Up/Down renderer | B auto-benchmark | Esc quit\n" +
                 _benchmark.StatusLine;
 
             _spriteBatch.Begin();

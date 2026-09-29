@@ -14,6 +14,7 @@ namespace Benchmarks.ShapeRendering
     {
         public string SceneName = "";
         public string RendererName = "";
+        public bool UsesSkia;
         public int ShapeCount;
         public double AvgFps;
         public double AvgFrameMs;
@@ -47,14 +48,14 @@ namespace Benchmarks.ShapeRendering
         public List<AutoBenchmarkResult> Results { get; } = new();
         public string StatusLine { get; private set; } = "";
 
-        public void Start(int sceneCount)
+        public void Start(Scene[] scenes)
         {
             _queue.Clear();
             Results.Clear();
-            for (int s = 0; s < sceneCount; s++)
+            for (int s = 0; s < scenes.Length; s++)
             {
-                _queue.Enqueue((s, RendererKind.Skia));
-                _queue.Enqueue((s, RendererKind.AposShapes));
+                foreach (var renderer in scenes[s].Renderers)
+                    _queue.Enqueue((s, renderer));
             }
             AdvanceToNext();
         }
@@ -86,7 +87,7 @@ namespace Benchmarks.ShapeRendering
 
             if (Phase == BenchmarkPhase.Warmup)
             {
-                StatusLine = $"Benchmarking {sceneName} / {RendererLabel(Renderer)} - warming up ({_phaseElapsed:0.0}s / {WarmupSeconds:0.0}s)";
+                StatusLine = $"Benchmarking {sceneName} / {Renderer.Label()} - warming up ({_phaseElapsed:0.0}s / {WarmupSeconds:0.0}s)";
                 if (_phaseElapsed >= WarmupSeconds)
                 {
                     Phase = BenchmarkPhase.Measuring;
@@ -98,7 +99,7 @@ namespace Benchmarks.ShapeRendering
             _frameMs.Add(frameMs);
             _renderMs.Add(renderMs);
             _blitMs.Add(blitMs);
-            StatusLine = $"Benchmarking {sceneName} / {RendererLabel(Renderer)} - measuring ({_phaseElapsed:0.0}s / {MeasureSeconds:0.0}s)";
+            StatusLine = $"Benchmarking {sceneName} / {Renderer.Label()} - measuring ({_phaseElapsed:0.0}s / {MeasureSeconds:0.0}s)";
 
             if (_phaseElapsed >= MeasureSeconds)
             {
@@ -106,7 +107,8 @@ namespace Benchmarks.ShapeRendering
                 Results.Add(new AutoBenchmarkResult
                 {
                     SceneName = sceneName,
-                    RendererName = RendererLabel(Renderer),
+                    RendererName = Renderer.Label(),
+                    UsesSkia = Renderer.UsesSkia(),
                     ShapeCount = shapeCount,
                     AvgFrameMs = avgFrame,
                     AvgFps = avgFrame > 0 ? 1000.0 / avgFrame : 0,
@@ -116,9 +118,6 @@ namespace Benchmarks.ShapeRendering
                 AdvanceToNext();
             }
         }
-
-        private static string RendererLabel(RendererKind renderer) =>
-            renderer == RendererKind.Skia ? "Skia" : "Apos.Shapes";
 
         private static double Average(List<double> values)
         {
@@ -134,11 +133,11 @@ namespace Benchmarks.ShapeRendering
         public string ToMarkdownTable()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("| Scene | Shapes | Renderer | Avg FPS | Frame ms (real) | Draw ms (CPU submit) | Blit ms (CPU submit) |");
+            sb.AppendLine("| Scene | Count | Renderer | Avg FPS | Frame ms (real) | Draw ms (CPU submit) | Blit ms (CPU submit) |");
             sb.AppendLine("|---|---:|---|---:|---:|---:|---:|");
             foreach (var r in Results)
             {
-                string blit = r.RendererName == "Skia" ? r.AvgBlitMs.ToString("0.000") : "-";
+                string blit = r.UsesSkia ? r.AvgBlitMs.ToString("0.000") : "-";
                 sb.AppendLine($"| {r.SceneName} | {r.ShapeCount} | {r.RendererName} | {r.AvgFps:0.0} | {r.AvgFrameMs:0.000} | {r.AvgRenderMs:0.000} | {blit} |");
             }
             return sb.ToString();
