@@ -154,6 +154,12 @@ runs today.
   the native writes never make it back into the managed array. An `IntPtr[]` (as used for
   `vkEnumeratePhysicalDevices`) round-trips fine without the attribute; a custom struct array does not.
 
+## Metal - the real device
+
+`tests/Tests.Core.Metal/MetalTestDevice.cs` uses `MTLCreateSystemDefaultDevice`; `macos-latest` has
+a virtualized Metal device, so nothing is vendored. It runs in `master.yml`'s `core-metal-macos` job
+and skips elsewhere via `MacOnlyFactAttribute`.
+
 ## Godot - a real window or nothing
 
 Godot's `--headless` gives the dummy driver, so `src/SkiaGameRendering.Godot`
