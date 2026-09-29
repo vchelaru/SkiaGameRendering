@@ -209,6 +209,32 @@ SkiaRenderer.Dispose();
 ```
 Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or dispose them for you.
 
+## Performance
+
+Skia is a general-purpose vector renderer. It is not a sprite batcher, so draw sprites with the
+engine's own `SpriteBatch` and use Skia for vectors, SVG and text. The two interleave freely.
+
+- **If sprites must go through Skia, use `SKCanvas.DrawAtlas`.** One `DrawAtlas` call per texture
+  sheet costs about the same as `SpriteBatch`. One `DrawImage` per sprite is several times slower.
+- **Upload sprite images once** with `SKImage.ToTextureImage(SkiaRenderer.CurrentBackend.GRContext)`,
+  called between `Begin()` and `End()` when Skia's GPU context is current, and reuse the result.
+- **Use few, large targets.** Every `Begin()`/`End()` pair switches GPU context and flushes Skia. On
+  WindowsDX and KNI WindowsDX, `End()` also calls `glFinish`, which stalls the CPU until the GPU
+  finishes. One screen-sized target per frame beats one per element.
+
+Measured with `benchmarks/Benchmarks.ShapeRendering.DesktopGL` (MonoGame DesktopGL, macOS, Apple
+Silicon), frame time in ms:
+
+| Sprites | Skia `DrawImage` | Skia `DrawAtlas` | `SpriteBatch` |
+|---:|---:|---:|---:|
+| 0 | 0.186 | 0.185 | 0.150 |
+| 500 | 0.462 | 0.229 | 0.170 |
+| 2k | 1.002 | 0.281 | 0.218 |
+| 10k | 3.827 | 0.621 | 0.550 |
+
+WindowsDX has not been measured yet. To measure your own hardware, run either
+`Benchmarks.ShapeRendering` project and press B. It writes `benchmark-results.md` next to the exe.
+
 ## Sample Projects
 
 - `samples/Sample.MonoGame.DesktopGL/` — DesktopGL sample (cross-platform: Windows, Linux, macOS)
