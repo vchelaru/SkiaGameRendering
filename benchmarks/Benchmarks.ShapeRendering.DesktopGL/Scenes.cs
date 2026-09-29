@@ -15,6 +15,8 @@ namespace Benchmarks.ShapeRendering
         Mixed,
         // Appended after Mixed so Mixed's `(ShapeKind)(i % 4)` round-robin (Circle..Triangle) is unaffected.
         Gradient,
+        // Textured quads, compared against SpriteBatch instead of Apos.Shapes.
+        Sprite,
     }
 
     /// <summary>
@@ -53,6 +55,15 @@ namespace Benchmarks.ShapeRendering
         public ShapeInstance[] Shapes { get; }
         public int Count => Shapes.Length;
 
+        /// <summary>
+        /// The renderers this scene is compared across. Sprite scenes pit Skia's two textured-quad
+        /// APIs against SpriteBatch; every other scene is Skia vs Apos.Shapes.
+        /// </summary>
+        public RendererKind[] Renderers => Kind == ShapeKind.Sprite ? SpriteSceneRenderers : ShapeSceneRenderers;
+
+        private static readonly RendererKind[] SpriteSceneRenderers = { RendererKind.Skia, RendererKind.SkiaAtlas, RendererKind.SpriteBatch };
+        private static readonly RendererKind[] ShapeSceneRenderers = { RendererKind.Skia, RendererKind.AposShapes };
+
         private int[]? _allIndices;
         private readonly Dictionary<ShapeKind, int[]> _kindIndices = new();
 
@@ -87,6 +98,12 @@ namespace Benchmarks.ShapeRendering
             Generate("Transparency: overlapping translucent circles", ShapeKind.Circle, 1500, viewportWidth, viewportHeight, minSize: 40f, maxSize: 90f, translucent: true),
             Generate("Fillrate: large overlapping circles", ShapeKind.Circle, 800, viewportWidth, viewportHeight, minSize: 120f, maxSize: 220f),
             Generate("Draw-call bound: 50k tiny particles", ShapeKind.Circle, 50000, viewportWidth, viewportHeight, minSize: 2f, maxSize: 6f),
+            // The sprite count sweep separates the fixed per-frame cost (the 0-sprite row: Skia
+            // target switch, flush and blit) from the per-sprite cost (how the rows grow with count).
+            Generate("Sprites: 0 (fixed per-frame cost)", ShapeKind.Sprite, 0, viewportWidth, viewportHeight),
+            Generate("Sprites: 500", ShapeKind.Sprite, 500, viewportWidth, viewportHeight, minSize: 8f, maxSize: 24f),
+            Generate("Sprites: 2k", ShapeKind.Sprite, 2000, viewportWidth, viewportHeight, minSize: 8f, maxSize: 24f),
+            Generate("Sprites: 10k", ShapeKind.Sprite, 10000, viewportWidth, viewportHeight, minSize: 8f, maxSize: 24f),
         };
 
         private static Scene Generate(string name, ShapeKind kind, int count, int width, int height,

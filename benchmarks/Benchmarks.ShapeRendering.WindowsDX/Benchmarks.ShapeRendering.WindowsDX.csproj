@@ -27,6 +27,7 @@
     <Compile Include="..\Benchmarks.ShapeRendering.DesktopGL\ShapeRenderers.cs" Link="ShapeRenderers.cs" />
     <Compile Include="..\Benchmarks.ShapeRendering.DesktopGL\FrameStats.cs" Link="FrameStats.cs" />
     <Compile Include="..\Benchmarks.ShapeRendering.DesktopGL\AutoBenchmark.cs" Link="AutoBenchmark.cs" />
+    <Compile Include="..\Benchmarks.ShapeRendering.DesktopGL\SpriteRenderers.cs" Link="SpriteRenderers.cs" />
   </ItemGroup>
   <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
     <Message Text="Restoring dotnet tools" Importance="High" />
