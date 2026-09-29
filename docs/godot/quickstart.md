@@ -14,12 +14,12 @@ for how it is structured.
 - Godot 4.7 or newer, the .NET build (this package references `GodotSharp` 4.7.2 as a floor; a
   newer editor's own `Godot.NET.Sdk` unifies it upward)
 - A C# Godot project targeting .NET 8 or newer
-- Windows or Linux. macOS is not supported: there is no Metal interop here, and SkiaSharp's macOS
-  native library is built without Vulkan, so MoltenVK is not an option either.
-- One of: the **Forward+** or **Mobile** renderer on the **Vulkan** driver (Windows, Linux) or the
-  **D3D12** driver (Windows); or the **Compatibility** renderer on the native
-  `opengl3` driver (Windows; Linux X11). Metal, and the Compatibility renderer's ANGLE/Android/
-  Wayland/macOS flavors, are not supported yet (see "Known limitations").
+- Windows, Linux or macOS.
+- One of: the **Forward+** or **Mobile** renderer on the **Vulkan** driver (Windows, Linux), the
+  **D3D12** driver (Windows) or the **Metal** driver (macOS, Godot's default there); or the
+  **Compatibility** renderer on the native `opengl3` driver (Windows; Linux X11). Vulkan on macOS
+  (MoltenVK) and the Compatibility renderer's ANGLE/Android/Wayland/macOS flavors are not supported
+  (see "Known limitations").
 
 ## Add the package
 
@@ -137,7 +137,8 @@ to the Godot executable to enable that test; it skips otherwise).
   only.** Godot's `opengl3_angle` (ANGLE on Windows/macOS), `opengl3_es` (Android), Wayland and
   macOS native GL use EGL or NSOpenGL contexts this library has no platform code for; web exports
   cannot P/Invoke GL at all. `TextureRid` is invalid there (no RenderingDevice).
-- **Metal is not supported** (no Metal interop in this library yet).
+- **macOS runs on Metal only.** SkiaSharp's macOS native library is built without Vulkan, so the
+  `vulkan` driver (MoltenVK) is rejected. Metal is zero-copy, like Vulkan.
 - **HDR 2D** (`rendering/viewport/hdr_2d`) is not compensated for: the texture is a plain UNORM
   format holding Skia's sRGB-encoded bytes, which is exactly right for Godot's default gamma-space
   2D pipeline.
@@ -162,5 +163,5 @@ to the Godot executable to enable that test; it skips otherwise).
   barriers; the legacy state-tracking path (older D3D12 runtimes) is implemented from Godot's source
   but has not been exercised. Linux is expected to work identically on Vulkan (same public API,
   same Skia Vulkan path Stride uses there) and on X11 OpenGL (the raylib adapter's GLX code), but
-  has not been run. On macOS, Godot 4.7.2 on MoltenVK reaches Skia and fails there:
-  `GRContext.CreateVulkan` returns null because SkiaSharp's macOS build has no Vulkan backend.
+  has not been run. On macOS, the Metal driver is verified on Apple silicon; Intel Macs have not
+  been run.

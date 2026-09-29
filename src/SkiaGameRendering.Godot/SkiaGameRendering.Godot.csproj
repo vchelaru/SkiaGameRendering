@@ -15,12 +15,12 @@
     <Version>$(LibraryVersion)</Version>
     <!--
       One package for every Godot rendering driver rather than one per graphics API like the
-      other engines here: Godot picks Vulkan, D3D12 or OpenGL at run time (a project setting, a command-line
+      other engines here: Godot picks Vulkan, D3D12, Metal or OpenGL at run time (a project setting, a command-line
       switch, or an automatic fallback when the preferred driver is unavailable), so a game cannot
       choose a graphics-API-specific package at build time. The backend is selected from
       RenderingServer.GetCurrentRenderingDriverName() when the renderer initializes.
     -->
-    <Description>GPU SkiaSharp rendering into Godot 4 textures on the Vulkan and D3D12 RenderingDevice drivers (Forward+ and Mobile renderers) and the Compatibility renderer's native OpenGL driver, with zero-copy GPU texture sharing on Vulkan and OpenGL.</Description>
+    <Description>GPU SkiaSharp rendering into Godot 4 textures on the Vulkan, D3D12 and Metal RenderingDevice drivers (Forward+ and Mobile renderers) and the Compatibility renderer's native OpenGL driver, with zero-copy GPU texture sharing on Vulkan, Metal and OpenGL.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
@@ -49,6 +49,8 @@
     <ProjectReference Include="..\SkiaGameRendering.Core.VK\SkiaGameRendering.Core.VK.csproj" />
     <!-- Only touched when Godot reports the d3d12 driver; compiles everywhere, runs on Windows. -->
     <ProjectReference Include="..\SkiaGameRendering.Core.D3D12\SkiaGameRendering.Core.D3D12.csproj" />
+    <!-- Only touched when Godot reports the metal driver (macOS). -->
+    <ProjectReference Include="..\SkiaGameRendering.Core.Metal\SkiaGameRendering.Core.Metal.csproj" />
     <!-- The Compatibility (OpenGL) renderer: FBO-wrapping a GL texture, like the raylib adapter. -->
     <ProjectReference Include="..\SkiaGameRendering.Core.OGL\SkiaGameRendering.Core.OGL.csproj" />
   </ItemGroup>

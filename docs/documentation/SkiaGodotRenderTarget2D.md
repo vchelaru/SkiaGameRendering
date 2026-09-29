@@ -4,7 +4,8 @@
 
 `SkiaGodotRenderTarget2D` is a GPU texture that SkiaSharp renders into and Godot displays like any
 other `Texture2D`. It mirrors the other engines' Begin/Canvas/End shape, over `SkiaGameRendering.Core.VK`
-when Godot runs on Vulkan, `SkiaGameRendering.Core.D3D12` on D3D12, and `SkiaGameRendering.Core.OGL`
+when Godot runs on Vulkan, `SkiaGameRendering.Core.D3D12` on D3D12, `SkiaGameRendering.Core.Metal` on
+Metal, and `SkiaGameRendering.Core.OGL`
 on the Compatibility renderer (the backend is chosen at run time from
 `RenderingServer.GetCurrentRenderingDriverName()`). Like the raylib and
 Stride adapters it is a standalone class: it does **not** go through `SkiaBackend`/`SkiaRenderer`,

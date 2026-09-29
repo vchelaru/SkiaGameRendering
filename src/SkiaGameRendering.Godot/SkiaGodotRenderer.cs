@@ -3,12 +3,12 @@ using Godot;
 namespace SkiaGameRendering.Godot
 {
     /// <summary>
-    /// Holds the shared backend (<see cref="VulkanGodotBackend"/>, <see cref="D3D12GodotBackend"/> or
-    /// <see cref="GlCompatibilityGodotBackend"/>, chosen from
+    /// Holds the shared backend (<see cref="VulkanGodotBackend"/>, <see cref="D3D12GodotBackend"/>,
+    /// <see cref="MetalGodotBackend"/> or <see cref="GlCompatibilityGodotBackend"/>, chosen from
     /// <see cref="RenderingServer.GetCurrentRenderingDriverName"/>). Godot analog of <c>SkiaRaylibRenderer</c>/<c>SkiaStrideVulkanRenderer</c>.
     /// Most code never calls this directly - constructing a <see cref="SkiaGodotRenderTarget2D"/>
     /// auto-initializes it. Call <see cref="Initialize"/> explicitly only to make initialization (and
-    /// any failure, such as the project running on the Metal driver) happen at a known point rather
+    /// any failure, such as the project running on an unsupported driver) happen at a known point rather
     /// than lazily on first render target construction.
     /// </summary>
     public static class SkiaGodotRenderer
@@ -18,14 +18,14 @@ namespace SkiaGameRendering.Godot
         public static bool IsInitialized => _backend != null;
 
         /// <summary>
-        /// The Godot rendering driver the initialized backend runs on - <c>"vulkan"</c>, <c>"d3d12"</c>
-        /// or <c>"opengl3"</c> - or <c>null</c> before <see cref="Initialize"/>. Same values as
+        /// The Godot rendering driver the initialized backend runs on - <c>"vulkan"</c>, <c>"d3d12"</c>,
+        /// <c>"metal"</c> or <c>"opengl3"</c> - or <c>null</c> before <see cref="Initialize"/>. Same values as
         /// <see cref="RenderingServer.GetCurrentRenderingDriverName"/>.
         /// </summary>
         public static string? Driver => _backend?.DriverName;
 
         /// <summary>
-        /// <c>true</c> when Skia draws straight into Godot's texture (Vulkan, Compatibility); <c>false</c>
+        /// <c>true</c> when Skia draws straight into Godot's texture (Vulkan, Metal, Compatibility); <c>false</c>
         /// when the backend copies Skia's own resource into it each frame (D3D12 - see
         /// <see cref="D3D12GodotBackend"/> for why). <c>null</c> before <see cref="Initialize"/>.
         /// </summary>
@@ -55,15 +55,17 @@ namespace SkiaGameRendering.Godot
             RequireRenderThread("SkiaGodotRenderer.Initialize");
 
             var driverName = RenderingServer.GetCurrentRenderingDriverName();
-            if (OperatingSystem.IsMacOS())
+            if (OperatingSystem.IsMacOS() && driverName != "metal")
                 throw new PlatformNotSupportedException(
-                    $"SkiaGameRendering.Godot does not support macOS yet (driver '{driverName}'): this library has no Metal interop, " +
-                    "SkiaSharp's macOS native library is built without Vulkan, and Godot's macOS OpenGL is an NSOpenGL context.");
+                    $"SkiaGameRendering.Godot supports only the metal driver on macOS, not '{driverName}': SkiaSharp's macOS native " +
+                    "library is built without Vulkan, and Godot's macOS OpenGL is an NSOpenGL context. Use the Forward+ or Mobile " +
+                    "renderer with rendering/rendering_device/driver.macos set to metal (the default).");
 
             SkiaGodotBackend backend = driverName switch
             {
                 "vulkan" => new VulkanGodotBackend(),
                 "d3d12" => new D3D12GodotBackend(),
+                "metal" => new MetalGodotBackend(),
                 "opengl3" => new GlCompatibilityGodotBackend(),
                 "opengl3_angle" or "opengl3_es" => throw new NotSupportedException(
                     $"SkiaGameRendering.Godot supports Godot's Compatibility renderer only on the native 'opengl3' driver (Windows WGL, " +
@@ -72,7 +74,7 @@ namespace SkiaGameRendering.Godot
                 "dummy" => throw new InvalidOperationException(
                     "Godot is running headless (the dummy rendering driver); there is no GPU device for Skia to share."),
                 _ => throw new NotSupportedException(
-                    $"SkiaGameRendering.Godot does not support Godot's '{driverName}' rendering driver. Supported: vulkan, d3d12, opengl3 " +
+                    $"SkiaGameRendering.Godot does not support Godot's '{driverName}' rendering driver. Supported: vulkan, d3d12, metal, opengl3 " +
                     "(project settings rendering/rendering_device/driver and rendering/gl_compatibility/driver, with their per-platform overrides)."),
             };
 
