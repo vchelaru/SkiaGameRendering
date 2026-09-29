@@ -183,7 +183,7 @@ namespace Benchmarks.ShapeRendering
                 var grContext = SkiaRenderer.CurrentBackend!.GRContext;
                 if (_renderer == RendererKind.SkiaAtlas)
                     _spriteRenderers.DrawSkiaAtlas(_skiaCanvas.Canvas, grContext, scene, t);
-                else if (scene.Kind == ShapeKind.Sprite)
+                else if (scene.IsSprite)
                     _spriteRenderers.DrawSkia(_skiaCanvas.Canvas, grContext, scene, t);
                 else
                     ShapeRenderers.DrawSceneSkia(_skiaCanvas.Canvas, scene, t, _fillPaint, _strokePaint, _trianglePath);

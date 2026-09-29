@@ -17,6 +17,8 @@ namespace Benchmarks.ShapeRendering
         Gradient,
         // Textured quads, compared against SpriteBatch instead of Apos.Shapes.
         Sprite,
+        // Sprites with a per-sprite color tint (SpriteBatch.Draw's color parameter).
+        TintedSprite,
     }
 
     /// <summary>
@@ -59,7 +61,9 @@ namespace Benchmarks.ShapeRendering
         /// The renderers this scene is compared across. Sprite scenes pit Skia's two textured-quad
         /// APIs against SpriteBatch; every other scene is Skia vs Apos.Shapes.
         /// </summary>
-        public RendererKind[] Renderers => Kind == ShapeKind.Sprite ? SpriteSceneRenderers : ShapeSceneRenderers;
+        public bool IsSprite => Kind is ShapeKind.Sprite or ShapeKind.TintedSprite;
+
+        public RendererKind[] Renderers => IsSprite ? SpriteSceneRenderers : ShapeSceneRenderers;
 
         private static readonly RendererKind[] SpriteSceneRenderers = { RendererKind.Skia, RendererKind.SkiaAtlas, RendererKind.SpriteBatch };
         private static readonly RendererKind[] ShapeSceneRenderers = { RendererKind.Skia, RendererKind.AposShapes };
@@ -104,6 +108,8 @@ namespace Benchmarks.ShapeRendering
             Generate("Sprites: 500", ShapeKind.Sprite, 500, viewportWidth, viewportHeight, minSize: 8f, maxSize: 24f),
             Generate("Sprites: 2k", ShapeKind.Sprite, 2000, viewportWidth, viewportHeight, minSize: 8f, maxSize: 24f),
             Generate("Sprites: 10k", ShapeKind.Sprite, 10000, viewportWidth, viewportHeight, minSize: 8f, maxSize: 24f),
+            Generate("Tinted sprites: 500", ShapeKind.TintedSprite, 500, viewportWidth, viewportHeight, minSize: 8f, maxSize: 24f),
+            Generate("Tinted sprites: 10k", ShapeKind.TintedSprite, 10000, viewportWidth, viewportHeight, minSize: 8f, maxSize: 24f),
         };
 
         private static Scene Generate(string name, ShapeKind kind, int count, int width, int height,
