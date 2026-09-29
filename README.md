@@ -25,7 +25,7 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, and Godot applications u
 | Godot 4.7+ (Vulkan) | Vulkan | Source only for now (`src/SkiaGameRendering.Godot`) | Skia's Vulkan backend on the handles Godot's `RenderingDevice.GetDriverResource` exposes publicly; drawn straight into an RD texture shown via `Texture2DRD`. No reflection. |
 | Godot 4.7+ (D3D12) | D3D12 | Same package, backend picked at runtime (Windows) | Skia's D3D12 backend on Godot's `ID3D12Device`/queue; Skia draws into a typed resource this library owns and one GPU `CopyResource` per frame lands it in Godot's (typeless) texture - no CPU readback, but not zero-copy |
 | Godot 4.7+ (Compatibility) | OpenGL 3.3 | Same package (Windows native WGL; Linux X11/GLX unrun) | Second GL context sharing Godot's, Skia draws into an FBO around an ordinary `ImageTexture`'s GL texture - zero-copy, the raylib adapter's shape |
-| Godot 4 (macOS; Compatibility on ANGLE/EGL/Wayland) | Metal / Vulkan / OpenGL | Not started | Metal has no Core library here, SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet - see `TODO.md` |
+| Godot 4 (macOS; Compatibility on ANGLE/EGL/Wayland) | Metal / Vulkan / OpenGL | Not started | `Core.Metal` exists but no Godot backend uses it yet ([#92](https://github.com/vchelaru/SkiaGameRendering/issues/92)), SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet - see `TODO.md` |
 
 MonoGame 3.8.5 ships the legacy `WindowsDX` (D3D11) project unchanged alongside the two new native
 platforms above — only `WindowsDX12` and `DesktopVK` are blocked; D3D11 is expected to keep working
@@ -242,6 +242,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Raylib.OGL/` — raylib library (shared `Core.OGL` + `SkiaRaylibRenderTarget2D`)
 - `src/SkiaGameRendering.Stride.D3D11/` — Stride library (shared `Core.ANGLE` + `SkiaStrideRenderTarget2D`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Core.VK/` — engine-agnostic Vulkan/Skia interop shared by Vulkan-based backends
+- `src/SkiaGameRendering.Core.Metal/`: engine-agnostic Metal/Skia interop (macOS), no host engine wired up yet
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaStrideVulkanRenderTarget2D`, Windows/Linux/macOS)
 - `src/SkiaGameRendering.Godot/` — Godot library (`Core.VK`, `Core.D3D12` and `Core.OGL` behind one `SkiaGodotRenderTarget2D`, backend chosen from the running driver; no reflection, all public Godot API)
 

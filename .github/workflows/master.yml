@@ -214,6 +214,24 @@ jobs:
           path: tests/**/golden-failures/*.png
           if-no-files-found: ignore
 
+  # macos-latest is an Apple silicon VM with a paravirtualized Metal device, so Core.Metal runs on
+  # real Metal here with nothing to vendor. Its tests skip in desktop-and-core (no Metal on Windows).
+  core-metal-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test tests/Tests.Core.Metal/Tests.Core.Metal.csproj --logger "console;verbosity=normal"
+      - name: Upload golden-image diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-image-diffs-core-metal-macos
+          path: tests/**/golden-failures/*.png
+          if-no-files-found: ignore
+
   # NativeAOT publish of the MonoGame DesktopGL sample, then a run of the native exe that checks the
   # back buffer for the scene. The build half is the trim/AOT analyzer (IsAotCompatible on the
   # library, warnings as errors); the run half catches what the analyzer can't see, such as a
