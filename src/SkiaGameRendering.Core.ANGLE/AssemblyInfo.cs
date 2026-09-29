@@ -9,3 +9,7 @@ using System.Runtime.CompilerServices;
 // the ID3D11Resource* out of an FNA3D-internal struct and sanity-checks it before use - see
 // SkiaFnaAngleBackend.CaptureTextureHandle.
 [assembly: InternalsVisibleTo("SkiaGameRendering.Fna.WindowsDX")]
+// The Unity adapter (unity/com.vchelaru.skiagamerendering, compiled by Unity from an asmdef of this
+// name) needs D3D11Com.GetDevice/GetImmediateContext/Release: Unity exposes a texture's native
+// pointer but not the device, so it asks the texture - see SkiaUnityRenderThread.
+[assembly: InternalsVisibleTo("SkiaGameRendering.Unity")]
