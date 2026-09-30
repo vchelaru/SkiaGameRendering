@@ -17,6 +17,17 @@ with every Windows install (including GitHub's `windows-latest` runners) - no ve
 `WarpDevice.cs` is the reusable helper; `D3D11StateSwapTests.cs` and `AngleSkiaPixelReadbackTests.cs`
 are the usage examples (a state-swap round-trip, and a full draw-then-read-pixels-back test).
 
+## D3D12 - WARP
+
+WARP has a D3D12 device too; `tests/Tests.Core.D3D12` and `tests/Tests.Stride.D3D12` use it
+(`STRIDE_GRAPHICS_SOFTWARE_RENDERING=1` makes Stride pick it, see `WarpStrideDevice.cs`).
+
+**WARP renders correct pixels even when resource barriers are wrong, so pixel tests cannot catch a
+broken state handoff.** Only the D3D12 debug layer with GPU-based validation reports it;
+`tests/Tests.Stride.D3D12/StrideD3D12BarrierValidationTests.cs` is the pattern. A resource moving
+between an engine using enhanced barriers and Skia's legacy barriers must be in the COMMON layout
+when it crosses (see `SkiaStrideD3D12Context`).
+
 ## OpenGL - WGL context + llvmpipe
 
 Windows has nothing like WARP for OpenGL. `tests/Tests.Core.OGL/WglContext.cs` gets a real context
