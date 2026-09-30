@@ -6,10 +6,11 @@
     <LibraryVersion>0.1.1</LibraryVersion>
     <!-- Must match whatever nkast.Wasm.* version the pinned KniVersion actually depends on (check
          that KNI package's own nuspec - it changes between KNI releases, e.g. 4.2.9001 -> 8.0.11,
-         4.3.9001 -> 10.0.3). samples/Sample.Kni.WebGL/wwwroot/index.html hardcodes this same
-         version in its <script> tags and must be updated in lockstep - a mismatch 404s at runtime
-         instead of failing the build, and KNI's own bootstrap crashes when it calls into the JS
-         interop globals those scripts were supposed to define. See repo issue #14. -->
+         4.3.9001 -> 10.0.3). samples/Sample.Kni.WebGL/wwwroot/index.html and
+         samples/Sample.Gum.Kni.WebGL/wwwroot/index.html hardcode this same version in their
+         <script> tags and must be updated in lockstep - a mismatch 404s at runtime instead of
+         failing the build, and KNI's own bootstrap crashes when it calls into the JS interop
+         globals those scripts were supposed to define. See repo issue #14. -->
     <NkastWasmCanvasVersion>10.0.3</NkastWasmCanvasVersion>
     <SkiaSharpVersion>3.119.4</SkiaSharpVersion>
     <!-- 4.4.0-beta5 is a prerelease, pinned deliberately: it's the first Stride version whose D3D11

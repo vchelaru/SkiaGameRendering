@@ -285,7 +285,8 @@ and hardware, see [docs/performance.md](docs/performance.md).
 - `samples/Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
 - `samples/Sample.Kni.DesktopGL/` — KNI DesktopGL sample (cross-platform: Windows, Linux, macOS)
 - `samples/Sample.Kni.WindowsDX/` — KNI WindowsDX sample (Windows only)
-- `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample using the patched canvas-upload API
+- `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample
+- `samples/Sample.Gum.Kni.WebGL/` — KNI Blazor WebAssembly sample of Gum UI interleaved with SpriteBatch, render targets, shaders, and browser input
 - `samples/Sample.Raylib.OGL/` — raylib sample (Windows + Linux)
 - `samples/Sample.Fna.WindowsDX/`: FNA sample (Windows, D3D11 only; builds against the `external/FNA` submodule and the vendored `external/fnalibs`)
 - `samples/Sample.Fna.OGL/`: FNA sample on FNA3D's OpenGL driver (same setup; the vendored fnalibs are Windows x64 only, so on Linux/macOS drop in your own)
@@ -359,7 +360,7 @@ dotnet build samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
 dotnet run --project samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
 ```
 
-The sample proves SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum/Skia content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation. See `docs/webgl/quickstart.md`, `docs/webgl/validated-baseline.md`, and `docs/documentation/SkiaWebGlBackend.md` for the exact contract and support status.
+`Sample.Kni.WebGL` draws the shared scene like every other sample. `Sample.Gum.Kni.WebGL` (same commands, different project) covers SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation. See `docs/webgl/quickstart.md`, `docs/webgl/validated-baseline.md`, and `docs/documentation/SkiaWebGlBackend.md` for the exact contract and support status.
 
 ### Firefox is not usable yet
 

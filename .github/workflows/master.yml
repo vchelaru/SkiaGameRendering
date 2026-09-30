@@ -106,8 +106,8 @@ jobs:
           if-no-files-found: ignore
       # Every src/ project builds here so warnings-as-errors (Directory.Build.props) has something
       # to fire on. Each package's sample builds too, since a sample is the only thing that compiles
-      # against the package's public API the way a consumer does. Sample.Kni.WebGL is the exception -
-      # it needs the wasm workload, and the webgl-functional job below builds it.
+      # against the package's public API the way a consumer does. The two KNI WebGL samples are the
+      # exception - they need the wasm workload, and the webgl-functional job below builds them.
       - run: dotnet build src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.MonoGame.DesktopGL/Sample.MonoGame.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
@@ -164,7 +164,9 @@ jobs:
       - name: Install WASM toolchain
         run: dotnet workload install wasm-tools-net8
       - name: Build native WASM Release
-        run: dotnet build samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release
+        run: |
+          dotnet build samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release
+          dotnet build samples/Sample.Gum.Kni.WebGL/Sample.Gum.Kni.WebGL.csproj -c Release
       - name: Install browser tests
         working-directory: tests/Tests.Kni.WebGL
         run: |
@@ -184,7 +186,9 @@ jobs:
       # per-PR iteration.
       - name: Publish trimmed WASM AOT
         if: github.event_name == 'push'
-        run: dotnet publish samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
+        run: |
+          dotnet publish samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
+          dotnet publish samples/Sample.Gum.Kni.WebGL/Sample.Gum.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
       - name: Pack WebGL library
         if: github.event_name == 'push'
         run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -o .artifacts/packages

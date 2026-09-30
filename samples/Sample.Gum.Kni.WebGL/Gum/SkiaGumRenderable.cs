@@ -9,7 +9,7 @@ using SkiaGameRendering;
 using SkiaSharp;
 using Topten.RichTextKit;
 
-namespace Sample.Kni.WebGL.Gum;
+namespace Sample.Gum.Kni.WebGL.Gum;
 
 internal sealed class SkiaGumRenderable : IDisposable
 {

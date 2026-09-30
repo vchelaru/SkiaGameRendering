@@ -1,10 +1,11 @@
 using Microsoft.JSInterop;
+using Microsoft.Xna.Framework;
 using System.Runtime.Versioning;
 using SkiaGameRendering;
 using SkiaGameRendering.Kni.WebGL;
 using SkiaGameRendering.Kni.WebGL.Components;
 
-namespace Sample.Kni.WebGL.Pages;
+namespace Sample.Gum.Kni.WebGL.Pages;
 
 [SupportedOSPlatform("browser")]
 public partial class Index
@@ -20,8 +21,12 @@ public partial class Index
         if (!firstRender)
             return;
 
-        // Attach once, page-lifetime. This is the only place a WebGL-specific type gets named;
-        // Game1 polls SkiaRenderer.IsReady before calling SkiaRenderer.Initialize(GraphicsDevice).
+        // Attach once, page-lifetime. Game1 itself never awaits anything or takes a constructor
+        // argument - it just polls SkiaRenderer.IsReady from Update() before calling
+        // SkiaRenderer.Initialize(GraphicsDevice). This is the one and only place a WebGL-specific
+        // type gets named; everything Game1 touches is on SkiaRenderer's shared, platform-agnostic
+        // surface, so the same Game1 code is what a host that constructs Game itself (with no
+        // constructor hook - e.g. an in-browser fiddle) would also write.
         SkiaRenderer.AttachHost(_skiaHost!, new SkiaWebGlOptions
         {
             RequireWebGl2 = true,
@@ -39,7 +44,17 @@ public partial class Index
     }
 
     [JSInvokable]
-    public string? Tick(int physicalWidth, int physicalHeight, bool diagnosticTexImage)
+    public string? Tick(
+        double devicePixelRatio,
+        int physicalWidth,
+        int physicalHeight,
+        float pointerX,
+        float pointerY,
+        bool pointerDown,
+        float wheelDelta,
+        string textInput,
+        string pointerType,
+        bool diagnosticTexImage)
     {
         if (_game == null)
         {
@@ -47,7 +62,10 @@ public partial class Index
             _game.Run();
         }
 
-        _game.SetBrowserState(physicalWidth, physicalHeight, diagnosticTexImage);
+        _game.DevicePixelRatio = devicePixelRatio;
+        _game.SetBrowserState(
+            physicalWidth, physicalHeight, pointerX, pointerY, pointerDown,
+            wheelDelta, textInput, pointerType, diagnosticTexImage);
         _game.Tick();
         return ++_frame % 30 == 0 ? _game.GetDiagnostics() : null;
     }

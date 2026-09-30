@@ -1,0 +1,19 @@
+@page "/"
+@page "/index.html"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<PageTitle>Skia + Gum + KNI WebGL</PageTitle>
+
+<main id="game-shell">
+    <canvas id="theCanvas" tabindex="0" aria-label="Skia Gum KNI WebGL sample"></canvas>
+    <aside id="diagnostics" aria-live="polite">
+        <span id="diagnostic-text">@_status</span>
+        <select id="upload-mode" aria-label="Upload path">
+            <option value="sub">texSubImage2D</option>
+            <option value="image">texImage2D diagnostic</option>
+        </select>
+    </aside>
+</main>
+
+<SkiaGameWebGlHost @ref="_skiaHost" RequireWebGl2="true" />

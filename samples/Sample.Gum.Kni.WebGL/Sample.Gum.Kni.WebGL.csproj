@@ -15,9 +15,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Gum.SkiaSharp" Version="2026.5.31.1" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="[7.3.0.2]" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.27" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.27" PrivateAssets="all" />
   </ItemGroup>
 
-  <Import Project="..\Shared\Scene.props" />
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\NotoSans.ttf" LogicalName="NotoSans.ttf" />
+    <!-- HarfBuzz 7.3 only wires its WebAssembly archive into Uno builds. -->
+    <NativeFileReference Include="$(HarfBuzzSharpStaticLibraryPath)\3.1.34\st\*.a" />
+  </ItemGroup>
 </Project>
