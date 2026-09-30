@@ -45,12 +45,20 @@ public class GodotSampleTests
         var screenshot = Path.Combine(Path.GetTempPath(), $"skiagamerendering-godot-{renderingDriver}-{Guid.NewGuid():N}.png");
         try
         {
-            bool gpuValidation = renderingDriver == "vulkan" && Environment.GetEnvironmentVariable(GpuValidationVariable) == "1";
-            var (exitCode, output) = RunGodot(godot, sampleDir, renderingDriver, screenshot, gpuValidation);
+            bool vulkanValidation = renderingDriver == "vulkan" && Environment.GetEnvironmentVariable(GpuValidationVariable) == "1";
+            bool d3d12Validation = renderingDriver == "d3d12" && D3D12DebugLayerInstalled;
+            var (exitCode, output) = RunGodot(godot, sampleDir, renderingDriver, screenshot, vulkanValidation || d3d12Validation);
             Assert.True(exitCode == 0, $"Godot exited with {exitCode}.\n{output}");
             Assert.True(File.Exists(screenshot), $"Godot did not write {screenshot}.\n{output}");
             Assert.Contains($"SkiaGameRendering.Godot on {renderingDriver}", output);
-            if (gpuValidation)
+            if (d3d12Validation)
+            {
+                // Printed by the sample from the debug layer's own queue (Godot does not print the
+                // layer's messages). WARP renders the right pixels whatever the barriers say, so this
+                // is what catches a handoff that leaves Godot's texture in the wrong layout.
+                Assert.True(output.Contains("D3D12 debug layer: 0 error(s)"), "D3D12 debug layer errors:\n" + output);
+            }
+            if (vulkanValidation)
             {
                 // Godot enables the layer silently and skips it silently when it is missing, so a
                 // clean run proves nothing without this: the Vulkan loader's own log line, printed
@@ -98,6 +106,16 @@ public class GodotSampleTests
     /// the <c>godot-linux</c> CI job sets all three.
     /// </summary>
     const string GpuValidationVariable = "SKIAGAMERENDERING_GODOT_GPU_VALIDATION";
+
+    /// <summary>
+    /// Whether the D3D12 debug layer (<c>d3d12SDKLayers.dll</c>, the Windows "Graphics Tools" optional
+    /// feature) is installed. When it is, the d3d12 case always runs under <c>--gpu-validation</c>,
+    /// which on D3D12 is the plain debug layer: cheap, and it catches a barrier that mixes Godot's
+    /// enhanced barriers with legacy ones. GPU-based validation is not an option: Godot's renderers
+    /// fail to create their root signatures under it (E_OUTOFMEMORY) and never draw a frame.
+    /// </summary>
+    static bool D3D12DebugLayerInstalled =>
+        OperatingSystem.IsWindows() && File.Exists(Path.Combine(Environment.SystemDirectory, "d3d12SDKLayers.dll"));
 
     static (int exitCode, string output) RunGodot(string godot, string sampleDir, string renderingDriver, string screenshot, bool gpuValidation)
     {

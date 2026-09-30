@@ -85,6 +85,59 @@ namespace SkiaGameRendering.Core.D3D12
             };
         }
 
+        internal static readonly Guid IID_ID3D12GraphicsCommandList7 = new("dd171223-8b61-4769-90e3-160ccde4e2c1");
+
+        internal const uint D3D12_BARRIER_SYNC_NONE = 0;
+        internal const uint D3D12_BARRIER_SYNC_COPY = 0x200;
+        internal const uint D3D12_BARRIER_ACCESS_COPY_DEST = 0x400;
+        internal const uint D3D12_BARRIER_ACCESS_NO_ACCESS = 0x80000000;
+        const int D3D12_BARRIER_TYPE_TEXTURE = 1;
+
+        /// <summary>
+        /// <c>D3D12_TEXTURE_BARRIER</c> (64 bytes: six 32-bit fields, the resource pointer at 24, the
+        /// six-field subresource range, the flags). Layout and constants from the Windows SDK
+        /// 10.0.26100 <c>d3d12.h</c>.
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct D3D12_TEXTURE_BARRIER
+        {
+            internal uint SyncBefore;
+            internal uint SyncAfter;
+            internal uint AccessBefore;
+            internal uint AccessAfter;
+            internal uint LayoutBefore;
+            internal uint LayoutAfter;
+            internal IntPtr Resource;
+            internal uint IndexOrFirstMipLevel;
+            internal uint NumMipLevels;
+            internal uint FirstArraySlice;
+            internal uint NumArraySlices;
+            internal uint FirstPlane;
+            internal uint NumPlanes;
+            internal uint Flags;
+
+            /// <summary>Every subresource of <paramref name="resource"/> (<c>IndexOrFirstMipLevel = 0xFFFFFFFF</c>, <c>NumMipLevels = 0</c>).</summary>
+            internal static D3D12_TEXTURE_BARRIER WholeResource(IntPtr resource, uint syncBefore, uint syncAfter, uint accessBefore, uint accessAfter, uint layoutBefore, uint layoutAfter) => new()
+            {
+                SyncBefore = syncBefore,
+                SyncAfter = syncAfter,
+                AccessBefore = accessBefore,
+                AccessAfter = accessAfter,
+                LayoutBefore = layoutBefore,
+                LayoutAfter = layoutAfter,
+                Resource = resource,
+                IndexOrFirstMipLevel = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+            };
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct D3D12_BARRIER_GROUP
+        {
+            internal int Type;
+            internal uint NumBarriers;
+            internal D3D12_TEXTURE_BARRIER* TextureBarriers;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         struct D3D12_FEATURE_DATA_D3D12_OPTIONS12
         {
@@ -203,6 +256,32 @@ namespace SkiaGameRendering.Core.D3D12
             var fn = (delegate* unmanaged[MemberFunction]<IntPtr, uint, D3D12_RESOURCE_BARRIER*, void>)(*(void***)list)[26];
             fixed (D3D12_RESOURCE_BARRIER* ptr = barriers)
                 fn(list, (uint)barriers.Length, ptr);
+        }
+
+        /// <summary>
+        /// One enhanced texture barrier via <c>ID3D12GraphicsCommandList7::Barrier</c>, vtable slot 80
+        /// (counted in the SDK's <c>ID3D12GraphicsCommandList7Vtbl</c>). Throws if the list is not a
+        /// <c>ID3D12GraphicsCommandList7</c>, which a device with enhanced barriers always provides.
+        /// </summary>
+        internal static void TextureBarrier(IntPtr list, in D3D12_TEXTURE_BARRIER barrier)
+        {
+            var queryInterface = (delegate* unmanaged[MemberFunction]<IntPtr, Guid*, void**, int>)(*(void***)list)[0];
+            void* list7;
+            fixed (Guid* iid = &IID_ID3D12GraphicsCommandList7)
+                Check(queryInterface(list, iid, &list7), "QueryInterface(ID3D12GraphicsCommandList7)");
+            try
+            {
+                var fn = (delegate* unmanaged[MemberFunction]<void*, uint, D3D12_BARRIER_GROUP*, void>)(*(void***)list7)[80];
+                fixed (D3D12_TEXTURE_BARRIER* barrierPtr = &barrier)
+                {
+                    var group = new D3D12_BARRIER_GROUP { Type = D3D12_BARRIER_TYPE_TEXTURE, NumBarriers = 1, TextureBarriers = barrierPtr };
+                    fn(list7, 1, &group);
+                }
+            }
+            finally
+            {
+                Release((IntPtr)list7);
+            }
         }
 
         /// <summary>ID3D12CommandQueue::ExecuteCommandLists, vtable slot 10.</summary>

@@ -63,6 +63,7 @@ public partial class Main : Node2D
             var image = GetViewport().GetTexture().GetImage();
             var error = image.SavePng(_screenshotPath);
             GD.Print(error == Error.Ok ? $"Saved screenshot to {_screenshotPath}" : $"SavePng failed: {error}");
+            D3D12DebugMessages.Print();
             GetTree().Quit(error == Error.Ok ? 0 : 1);
         }
     }

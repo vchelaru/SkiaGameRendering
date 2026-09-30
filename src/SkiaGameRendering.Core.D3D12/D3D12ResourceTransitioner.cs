@@ -133,6 +133,51 @@ namespace SkiaGameRendering.Core.D3D12
             Submit(index);
         }
 
+        /// <summary>
+        /// <see cref="CopyWithTransitions"/> for a destination the host tracks with enhanced barriers
+        /// (a <c>D3D12_BARRIER_LAYOUT</c>, not a resource state). The D3D12 debug layer rejects a legacy
+        /// <c>ResourceBarrier</c> on a texture an enhanced <c>Barrier</c> left in any layout but
+        /// <c>COMMON</c> ("does not support barrier interop"), so the destination is moved with enhanced
+        /// barriers only: <paramref name="destinationLayout"/> to <c>COPY_DEST</c> and back. The source,
+        /// Skia's own resource, keeps legacy barriers, as Skia uses. Nothing in the list precedes or
+        /// follows the copy, and <c>ExecuteCommandLists</c> boundaries already order it against the
+        /// host's work, so the destination barriers sync with nothing outside the copy itself.
+        /// </summary>
+        public void CopyIntoEnhancedBarrierTexture(
+            IntPtr destination, uint destinationLayout,
+            IntPtr source, uint sourceStateBefore, uint sourceStateAfter)
+        {
+            if (destination == IntPtr.Zero)
+                throw new ArgumentException("Destination ID3D12Resource handle is null.", nameof(destination));
+            if (source == IntPtr.Zero)
+                throw new ArgumentException("Source ID3D12Resource handle is null.", nameof(source));
+
+            var index = BeginRecording();
+            var list = _slots[index].CommandList;
+            try
+            {
+                TextureBarrier(list, D3D12_TEXTURE_BARRIER.WholeResource(destination,
+                    D3D12_BARRIER_SYNC_NONE, D3D12_BARRIER_SYNC_COPY,
+                    D3D12_BARRIER_ACCESS_NO_ACCESS, D3D12_BARRIER_ACCESS_COPY_DEST,
+                    destinationLayout, D3D12Constants.BarrierLayoutCopyDest));
+                Span<D3D12_RESOURCE_BARRIER> sourceBefore = [D3D12_RESOURCE_BARRIER.Transition(source, sourceStateBefore, D3D12Constants.ResourceStateCopySource)];
+                ResourceBarrier(list, sourceBefore);
+                CopyResource(list, destination, source);
+                TextureBarrier(list, D3D12_TEXTURE_BARRIER.WholeResource(destination,
+                    D3D12_BARRIER_SYNC_COPY, D3D12_BARRIER_SYNC_NONE,
+                    D3D12_BARRIER_ACCESS_COPY_DEST, D3D12_BARRIER_ACCESS_NO_ACCESS,
+                    D3D12Constants.BarrierLayoutCopyDest, destinationLayout));
+                Span<D3D12_RESOURCE_BARRIER> sourceAfter = [D3D12_RESOURCE_BARRIER.Transition(source, D3D12Constants.ResourceStateCopySource, sourceStateAfter)];
+                ResourceBarrier(list, sourceAfter);
+            }
+            catch
+            {
+                Close(list);
+                throw;
+            }
+            Submit(index);
+        }
+
         /// <summary>How many allocator/list pairs the ring holds right now.</summary>
         public int SlotCount => _slots.Count;
 
