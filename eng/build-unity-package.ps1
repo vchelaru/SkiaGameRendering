@@ -1,6 +1,8 @@
 # Fills unity/com.vchelaru.skiagamerendering/Plugins/ with the binaries the Unity package needs:
 # Core.ANGLE's netstandard2.1 build, SkiaSharp's managed and native libraries, and ANGLE. Unity
-# doesn't consume NuGet, so these are copied out of the NuGet cache instead. Windows x64 only.
+# doesn't consume NuGet, so these are copied out of the NuGet cache instead. SkiaSharp's natives
+# cover Windows x64, macOS (x64 + arm64), Linux x64, Android (arm64-v8a, armeabi-v7a, x86_64) and
+# iOS; ANGLE, which only the D3D11 GPU path uses, is Windows x64 only.
 # Unless -PackageOnly is passed, also fills samples/Sample.Unity/Assets/Plugins/Scene (see the end).
 param([switch]$PackageOnly)
 $ErrorActionPreference = 'Stop'
@@ -28,6 +30,25 @@ Copy-Item (Join-Path $nuget "skiasharp.nativeassets.win32/$skiaVersion/runtimes/
 $angleNative = Join-Path $repo 'src/SkiaGameRendering.Core.ANGLE/runtimes/win-x64/native'
 foreach ($dll in 'libEGL.dll', 'libGLESv2.dll', 'z.dll') {
     Copy-Item (Join-Path $angleNative $dll) $native
+}
+
+# SkiaSharp's natives for the other player platforms, which eng/unity-natives downloads. Off Windows
+# D3D11 there is no GPU path, but SkiaSharp still draws on the CPU (raster surfaces), which is what
+# packages built on this one (e.g. Gum's) fall back to.
+dotnet restore (Join-Path $repo 'eng/unity-natives/UnityNatives.csproj')
+if ($LASTEXITCODE -ne 0) { throw "eng/unity-natives restore failed." }
+$otherNatives = @(
+    @{ Package = 'skiasharp.nativeassets.macos'; Source = 'runtimes/osx/native/libSkiaSharp.dylib'; Dest = 'macOS' },
+    @{ Package = 'skiasharp.nativeassets.linux'; Source = 'runtimes/linux-x64/native/libSkiaSharp.so'; Dest = 'Linux/x86_64' },
+    @{ Package = 'skiasharp.nativeassets.android'; Source = 'runtimes/android-arm64/native/libSkiaSharp.so'; Dest = 'Android/arm64-v8a' },
+    @{ Package = 'skiasharp.nativeassets.android'; Source = 'runtimes/android-arm/native/libSkiaSharp.so'; Dest = 'Android/armeabi-v7a' },
+    @{ Package = 'skiasharp.nativeassets.android'; Source = 'runtimes/android-x64/native/libSkiaSharp.so'; Dest = 'Android/x86_64' },
+    @{ Package = 'skiasharp.nativeassets.ios'; Source = 'runtimes/ios/native/libSkiaSharp.framework'; Dest = 'iOS' }
+)
+foreach ($entry in $otherNatives) {
+    $destination = Join-Path $plugins $entry.Dest
+    New-Item -ItemType Directory -Force $destination | Out-Null
+    Copy-Item (Join-Path $nuget "$($entry.Package)/$skiaVersion/$($entry.Source)") $destination -Recurse
 }
 
 # A package installed from git is read-only, so Unity can't write .meta files for it and ignores any

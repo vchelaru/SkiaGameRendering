@@ -21,6 +21,18 @@ PluginImporter:
     Win64:
       enabled: 1
       settings: {}
+    OSXUniversal:
+      enabled: 1
+      settings: {}
+    Linux64:
+      enabled: 1
+      settings: {}
+    Android:
+      enabled: 1
+      settings: {}
+    iOS:
+      enabled: 1
+      settings: {}
     WindowsStoreApps:
       enabled: 0
       settings:

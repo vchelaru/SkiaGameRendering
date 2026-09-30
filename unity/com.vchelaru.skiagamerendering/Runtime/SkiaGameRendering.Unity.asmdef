@@ -4,7 +4,11 @@
     "references": [],
     "includePlatforms": [
         "Editor",
-        "WindowsStandalone64"
+        "WindowsStandalone64",
+        "macOSStandalone",
+        "LinuxStandalone64",
+        "Android",
+        "iOS"
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

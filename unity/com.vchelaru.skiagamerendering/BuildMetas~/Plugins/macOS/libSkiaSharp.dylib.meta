@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 5340f373de75fe0449914b5c0f633f83
+guid: 39aa786b0c5e47b5975ad866370f5cc9
 PluginImporter:
   externalObjects: {}
   serializedVersion: 3
@@ -17,24 +17,11 @@ PluginImporter:
     Editor:
       enabled: 1
       settings:
+        CPU: AnyCPU
         DefaultValueInitialized: true
-    Win64:
-      enabled: 1
-      settings: {}
+        OS: OSX
     OSXUniversal:
       enabled: 1
-      settings: {}
-    Linux64:
-      enabled: 1
-      settings: {}
-    Android:
-      enabled: 1
-      settings: {}
-    iOS:
-      enabled: 1
-      settings: {}
-    WindowsStoreApps:
-      enabled: 0
       settings:
         CPU: AnyCPU
   userData: 

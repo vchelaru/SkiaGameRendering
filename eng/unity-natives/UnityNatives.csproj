@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Restore-only: downloads SkiaSharp's natives for the Unity package's non-Windows player
+       platforms, which eng/build-unity-package.ps1 copies into Plugins/. Never built. -->
+  <Import Project="..\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageDownload Include="SkiaSharp.NativeAssets.macOS" Version="[$(SkiaSharpVersion)]" />
+    <PackageDownload Include="SkiaSharp.NativeAssets.Linux" Version="[$(SkiaSharpVersion)]" />
+    <PackageDownload Include="SkiaSharp.NativeAssets.Android" Version="[$(SkiaSharpVersion)]" />
+    <PackageDownload Include="SkiaSharp.NativeAssets.iOS" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+</Project>

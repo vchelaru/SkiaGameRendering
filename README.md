@@ -27,7 +27,7 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 | Godot 4.7+ (D3D12) | D3D12 | Same package, backend picked at runtime (Windows) | Skia's D3D12 backend on Godot's `ID3D12Device`/queue; Skia draws into a typed resource this library owns and one GPU `CopyResource` per frame lands it in Godot's (typeless) texture - no CPU readback, but not zero-copy |
 | Godot 4.7+ (Compatibility) | OpenGL 3.3 | Same package (Windows native WGL; Linux X11/GLX unrun) | Second GL context sharing Godot's, Skia draws into an FBO around an ordinary `ImageTexture`'s GL texture - zero-copy, the raylib adapter's shape |
 | Godot 4.7+ (Metal) | Metal | Same package (macOS) | Skia's Metal backend on Godot's `MTLDevice`/queue, drawn straight into the RD texture's `MTLTexture` - zero-copy |
-| Unity 6 (D3D11) | D3D11 | UPM git URL `https://github.com/vchelaru/SkiaGameRendering.git#upm` (Windows x64, Mono and IL2CPP) | ANGLE on the device Unity's `RenderTexture` belongs to; draws are recorded to an `SKPicture` on the main thread and played back on Unity's render thread |
+| Unity 6 (D3D11) | D3D11 | UPM git URL `https://github.com/vchelaru/SkiaGameRendering.git#upm` (Windows x64, Mono and IL2CPP; SkiaSharp alone on macOS, Linux x64, Android and iOS) | ANGLE on the device Unity's `RenderTexture` belongs to; draws are recorded to an `SKPicture` on the main thread and played back on Unity's render thread |
 | Godot 4 (Vulkan on macOS; Compatibility on ANGLE/EGL/Wayland) | Vulkan / OpenGL | Not started | SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet - see `TODO.md` |
 
 MonoGame 3.8.5 ships the legacy `WindowsDX` (D3D11) project unchanged alongside the two new native
@@ -181,10 +181,13 @@ so draw `Texture` with `SkiaUnityRenderTarget.PremultipliedMaterial` (a `RawImag
 a copy on a mesh) or, for `Graphics.DrawTexture` in `OnGUI`, `PremultipliedGuiMaterial`; Unity's
 default blending darkens its edges. Both work in Gamma and Linear color space projects, but only
 with the right one for where you draw, since IMGUI stays in gamma in a Linear project. Only Direct3D 11 is supported so far: set Player Settings > Other Settings > Graphics
-APIs for Windows to Direct3D11. The package only compiles for the Editor and Windows x64 players,
-so code that uses it needs the same limits, or the project's other platform builds fail to compile.
-Put that code in an asmdef limited to Editor and Windows 64-bit, or inside
-`#if UNITY_EDITOR_WIN || (UNITY_STANDALONE_WIN && UNITY_64)`.
+APIs for Windows to Direct3D11. Anywhere else `SkiaUnityRenderTarget` throws `NotSupportedException`.
+
+The package also supplies SkiaSharp itself, managed and native, for the Editor and Windows x64,
+macOS, Linux x64, Android (arm64-v8a, armeabi-v7a, x86_64) and iOS players, so SkiaSharp's CPU
+raster surfaces work on all of them. It compiles only for those platforms, so code that uses it
+needs the same limits, or the project's other platform builds (such as WebGL) fail to compile. Put
+that code in an asmdef limited to the same platforms.
 
 ```csharp
 var target = new SkiaUnityRenderTarget(512, 512);
@@ -319,7 +322,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaStrideVulkanRenderTarget2D`, Windows/Linux/macOS)
 - `src/SkiaGameRendering.Core.D3D12/`: engine-agnostic D3D12/Skia interop shared by D3D12-based backends
 - `src/SkiaGameRendering.Stride.D3D12/`: Stride library (shared `Core.D3D12` + `SkiaStrideD3D12RenderTarget2D`, Windows/D3D12 only)
-- `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s netstandard2.1 build + `SkiaUnityRenderTarget`, Windows/D3D11 only)
+- `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s netstandard2.1 build + `SkiaUnityRenderTarget`, Windows/D3D11 only, plus SkiaSharp for Windows, macOS, Linux, Android and iOS)
 - `src/SkiaGameRendering.Godot/` — Godot library (`Core.VK`, `Core.D3D12`, `Core.Metal` and `Core.OGL` behind one `SkiaGodotRenderTarget2D`, backend chosen from the running driver; no reflection, all public Godot API)
 
 See `SkiaGameRendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
