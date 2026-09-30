@@ -207,7 +207,10 @@ DesktopGL has no such shortcut: MonoGame's GL `PlatformSetup` takes its context 
 `SdlGameWindow.Instance`, which only a running `Game` creates. So `tests/Shared/OneFrameGame.cs` pays
 for a real game loop, running `Game.RunOneFrame()` and reading back inside `Draw`, on llvmpipe. Skia
 resources have to be created and disposed inside that one frame - the backend's `GRContext` belongs
-to the GL context the window owns and cannot outlive it.
+to the GL context the window owns and cannot outlive it. **Every game in a test process must run on
+the same thread:** MonoGame fixes its UI thread once per process and throws `NoSuitableGraphicsDeviceException`
+("Operation not called on UI thread") on any other, so `OneFrameGame.Render` queues all games onto one
+dedicated thread. That thread is not the process main thread, which macOS's SDL requires, so these tests only run on Windows.
 
 ## Per-frame leak checks
 

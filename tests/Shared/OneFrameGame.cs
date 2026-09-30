@@ -40,7 +40,7 @@ sealed class OneFrameGame : Game
     /// <param name="backendFactory">The engine's own <see cref="SkiaBackend"/>, constructed once the device exists.</param>
     /// <param name="readback">Runs inside <see cref="Draw"/>, with the Skia backend initialized and the GL context current.</param>
     internal static TResult Render<TResult>(Func<SkiaBackend> backendFactory, Func<GraphicsDevice, TResult> readback)
-        where TResult : class
+        where TResult : class => GameThread.Run(() =>
     {
         VendoredOpenGl.PreloadIfPresent();
 
@@ -54,6 +54,36 @@ sealed class OneFrameGame : Game
 
         return (TResult?)game._result
             ?? throw new InvalidOperationException("The one-frame game never reached Draw.");
+    });
+
+    /// <summary>
+    /// The one thread every game in the test process runs on. The engine records its UI thread once
+    /// per process, as whichever thread first touches it, and throws from every later device call on
+    /// any other thread. xUnit runs test classes on whatever thread it likes, so without this, the
+    /// second game fails whenever it lands on a different thread than the first.
+    /// </summary>
+    static class GameThread
+    {
+        static readonly System.Collections.Concurrent.BlockingCollection<Action> Work = new();
+
+        static GameThread() =>
+            new Thread(() =>
+            {
+                foreach (var work in Work.GetConsumingEnumerable())
+                    work();
+            })
+            { IsBackground = true, Name = "OneFrameGame" }.Start();
+
+        internal static T Run<T>(Func<T> work)
+        {
+            var completion = new TaskCompletionSource<T>();
+            Work.Add(() =>
+            {
+                try { completion.SetResult(work()); }
+                catch (Exception exception) { completion.SetException(exception); }
+            });
+            return completion.Task.GetAwaiter().GetResult();
+        }
     }
 
     /// <summary>
