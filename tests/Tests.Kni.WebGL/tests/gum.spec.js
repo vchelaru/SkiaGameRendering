@@ -2,26 +2,56 @@ const { test, expect } = require("@playwright/test");
 
 // Sample.Gum.Kni.WebGL: Gum interleaved with SpriteBatch, render targets, and shader sampling, plus
 // browser input driving a Gum button that recreates the backend.
-test("renders current-frame Gum through KNI without a blank canvas", async ({ page }) => {
+// Game1 lays the scene out in 1280x720 logical units scaled to the canvas's physical size. Each point
+// sits on one element and clear of the others: the screen SpriteBatch background and blue bar, the
+// Gum texture blitted straight to the screen, and the same texture drawn through BasicEffect.
+async function readGumPixels(canvas) {
+  return canvas.evaluate(element => new Promise(resolve => {
+    requestAnimationFrame(() => {
+      const gl = element.getContext("webgl2");
+      const read = (x, y) => {
+        const pixel = new Uint8Array(4);
+        const px = Math.floor(x * element.width / 1280);
+        const py = Math.floor(y * element.height / 720);
+        // readPixels counts rows from the bottom.
+        gl.readPixels(px, element.height - 1 - py, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+        return Array.from(pixel);
+      };
+      resolve({
+        background: read(200, 560),
+        blueBar: read(100, 89),
+        directPanel: read(375, 174),
+        shaderPanel: read(1185, 96),
+      });
+    });
+  }));
+}
+
+function expectNear(actual, expected, label) {
+  for (let i = 0; i < 3; i++)
+    expect(Math.abs(actual[i] - expected[i]), `${label} ${actual}`).toBeLessThanOrEqual(12);
+}
+
+function expectPanel(actual, label) {
+  for (let i = 0; i < 3; i++)
+    expect(actual[i], `${label} ${actual}`).toBeGreaterThan(200);
+}
+
+test("draws SpriteBatch and current-frame Gum through KNI", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/");
   await expect(page.locator("#diagnostics")).toContainText("WebGL 2");
-  await page.waitForTimeout(3000);
+  await expect(page.locator("#diagnostic-text")).toContainText("frames");
+  await page.waitForTimeout(2000);
 
   const canvas = page.locator("#theCanvas");
   await test.info().attach("gum-scene", { body: await canvas.screenshot(), contentType: "image/png" });
-  const variation = await canvas.evaluate(element => new Promise(resolve => {
-    requestAnimationFrame(() => {
-      const context = element.getContext("webgl2");
-      const pixels = new Uint8Array(element.width * element.height * 4);
-      context.readPixels(0, 0, element.width, element.height, context.RGBA, context.UNSIGNED_BYTE, pixels);
-      let min = 255, max = 0;
-      for (const value of pixels) { min = Math.min(min, value); max = Math.max(max, value); }
-      resolve(max - min);
-    });
-  }));
-  expect(variation).toBeGreaterThan(20);
+  const { background, blueBar, directPanel, shaderPanel } = await readGumPixels(canvas);
+  expectNear(background, [25, 29, 35], "background");
+  expectNear(blueBar, [54, 122, 178], "blue bar");
+  expectPanel(directPanel, "direct panel");
+  expectPanel(shaderPanel, "shader panel");
   expect(errors).toEqual([]);
 });
 
