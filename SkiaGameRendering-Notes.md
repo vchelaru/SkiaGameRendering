@@ -222,7 +222,7 @@ Full discussion is in a dedicated document: **`WebGL-KNI-Integration.md`** at th
 - Option A reconsidered with a KNI-side `InvalidateStateCache()` patch reducing its implementation cost significantly.
 - Spike v0 findings (spike since concluded and removed from the repo): initial results (Chrome/Edge ~0.25 ms, Firefox ~25 ms), four alternative upload paths identified to test whether any rescue Firefox.
 - KNI-side changes worth making if forking KNI, and which of them are upstreamable to KNI vs better kept downstream.
-- Where to pick up: the Firefox upload-path question is now tracked in [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5) alongside the rest of the WebGL hardware-acceptance benchmark work; v1 (real KNI canvas) and v2 (full interleaving demo) followed and are done — see the integrated `Sample.Kni.WebGL`.
+- Where to pick up: the Firefox upload-path question is now tracked in [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5) alongside the rest of the WebGL hardware-acceptance benchmark work; v1 (real KNI canvas) and v2 (full interleaving demo) followed and are done — see the integrated `Sample.Gum.Kni.WebGL`.
 
 Short version of the recommendation: **build Option D**, which on Chrome/Edge measures ~0.25 ms upload at 1080p; Firefox unknown pending alternative-path measurement; fall back to Option A (with the KNI-fork state-cache patch) only if Firefox can't be rescued.
 

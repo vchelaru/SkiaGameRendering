@@ -116,7 +116,7 @@ current as soon as `End()` returns and can immediately be sampled by another `Sp
 - Dispose your `SkiaRenderTarget2D` instances, then `SkiaRenderer`, before disposing the host or replacing the backend/graphics device.
 - `canvas.End()` composites the whole surface at its native size and the origin. If you need to
   draw the result more than once, at a different size, or sample it in a shader (as the WebGL
-  sample's Gum panel does — see `samples/Sample.Kni.WebGL/Gum/SkiaGumRenderable.cs`), call
+  Gum sample's panel does — see `samples/Sample.Gum.Kni.WebGL/Gum/SkiaGumRenderable.cs`), call
   `canvas.EndWithoutDrawing()` instead and composite `canvas.Texture` yourself. See
   [SkiaRenderTarget2D](SkiaRenderTarget2D.md).
 

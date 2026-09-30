@@ -100,7 +100,7 @@ dotnet build samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
 dotnet run --project samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
 ```
 
-The sample proves SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum/Skia content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation.
+That sample draws the shared scene every other sample draws. `samples\Sample.Gum.Kni.WebGL` (same commands) covers SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation.
 
 ## Packages
 

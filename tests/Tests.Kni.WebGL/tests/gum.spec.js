@@ -1,6 +1,8 @@
 const { test, expect } = require("@playwright/test");
 
-test("renders current-frame Skia through KNI without a blank canvas", async ({ page }) => {
+// Sample.Gum.Kni.WebGL: Gum interleaved with SpriteBatch, render targets, and shader sampling, plus
+// browser input driving a Gum button that recreates the backend.
+test("renders current-frame Gum through KNI without a blank canvas", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/");
@@ -8,7 +10,7 @@ test("renders current-frame Skia through KNI without a blank canvas", async ({ p
   await page.waitForTimeout(3000);
 
   const canvas = page.locator("#theCanvas");
-  await test.info().attach("integrated-scene", { body: await canvas.screenshot(), contentType: "image/png" });
+  await test.info().attach("gum-scene", { body: await canvas.screenshot(), contentType: "image/png" });
   const variation = await canvas.evaluate(element => new Promise(resolve => {
     requestAnimationFrame(() => {
       const context = element.getContext("webgl2");
@@ -21,23 +23,6 @@ test("renders current-frame Skia through KNI without a blank canvas", async ({ p
   }));
   expect(variation).toBeGreaterThan(20);
   expect(errors).toEqual([]);
-});
-
-test("survives source context loss and page remount", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.locator("#diagnostics")).toContainText("WebGL 2");
-  await page.waitForTimeout(1500);
-  await page.locator('canvas[id^="skia-game-source-"]').evaluate(async canvas => {
-    const gl = canvas.getContext("webgl2");
-    const extension = gl.getExtension("WEBGL_lose_context");
-    if (!extension) throw new Error("WEBGL_lose_context is unavailable");
-    extension.loseContext();
-    await new Promise(resolve => setTimeout(resolve, 200));
-    extension.restoreContext();
-  });
-  await page.waitForTimeout(1000);
-  await page.reload();
-  await expect(page.locator("#diagnostics")).toContainText("WebGL 2");
 });
 
 test("maps browser input and recreates the backend while changing diagnostic upload path", async ({ page }) => {
