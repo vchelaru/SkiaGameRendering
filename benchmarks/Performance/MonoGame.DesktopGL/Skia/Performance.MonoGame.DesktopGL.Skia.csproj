@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RollForward>Major</RollForward>
+    <ApplicationManifest>..\..\app.manifest</ApplicationManifest>
+    <RootNamespace>Performance</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\SkiaGameRendering\SkiaGameRendering.csproj" />
+  </ItemGroup>
+  <!-- The Raw and Skia apps share everything except how the scene is drawn. -->
+  <ItemGroup>
+    <Compile Include="..\..\Shared\PerfGame.cs" Link="Shared\PerfGame.cs" />
+    <Compile Include="..\..\Shared\SpriteScene.cs" Link="Shared\SpriteScene.cs" />
+    <Compile Include="..\..\Shared\SpriteTexture.cs" Link="Shared\SpriteTexture.cs" />
+    <Compile Include="..\..\Shared\MachineInfo.cs" Link="Shared\MachineInfo.cs" />
+    <Compile Include="..\..\Shared\SkiaSpriteGame.cs" Link="Shared\SkiaSpriteGame.cs" />
+    <Compile Include="..\GpuInfo.cs" Link="GpuInfo.cs" />
+  </ItemGroup>
+</Project>

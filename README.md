@@ -263,8 +263,8 @@ Silicon), frame time in ms:
 | 500 tinted | 0.836 | 0.250 | 0.174 |
 | 10k tinted | 10.794 | 0.658 | 0.585 |
 
-WindowsDX has not been measured yet. To measure your own hardware, run either
-`Benchmarks.ShapeRendering` project and press B. It writes `benchmark-results.md` next to the exe.
+For whole-frame FPS of a plain MonoGame app against the same scene drawn through Skia, by platform
+and hardware, see [docs/performance.md](docs/performance.md).
 
 ## Sample Projects
 

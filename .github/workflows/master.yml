@@ -135,6 +135,8 @@ jobs:
       - run: dotnet build samples/Sample.Godot/Sample.Godot.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.DesktopGL/Benchmarks.ShapeRendering.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.WindowsDX/Benchmarks.ShapeRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build benchmarks/Performance/MonoGame.DesktopGL/Performance.MonoGame.DesktopGL.sln -c ${{ matrix.configuration }}
+      - run: dotnet build benchmarks/Performance/MonoGame.WindowsDX/Performance.MonoGame.WindowsDX.sln -c ${{ matrix.configuration }}
       - run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
       # Packs the Unity package the way publish.yml does, without pushing, so a missing file or
       # .meta fails here instead of at release. Compiling it needs Unity (issue #99).
