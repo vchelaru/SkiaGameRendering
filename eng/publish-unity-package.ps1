@@ -38,6 +38,15 @@ if (-not $Push) { return }
 $branch = 'upm'
 $tag = "upm/v$Version"
 $tree = Join-Path $out 'upm-branch'
+
+# A published version is never overwritten, so re-running a release (e.g. to push a NuGet package
+# that was missing from it) leaves the Unity package alone instead of failing on the existing tag.
+git -C $repo ls-remote --exit-code --tags origin "refs/tags/$tag" | Out-Null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "$tag is already published; skipping the push."
+    return
+}
+
 git -C $repo fetch origin $branch 2>$null
 if ($LASTEXITCODE -eq 0) {
     git -C $repo worktree add -B $branch $tree FETCH_HEAD
