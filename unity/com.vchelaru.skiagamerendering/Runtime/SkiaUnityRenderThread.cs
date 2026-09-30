@@ -1,7 +1,9 @@
 #nullable enable
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading;
 using AOT;
 using SkiaGameRendering.Core.ANGLE;
 using SkiaSharp;
@@ -20,12 +22,19 @@ namespace SkiaGameRendering.Unity
     ///   reverse P/Invoke stub for it, and the delegate is kept in a static field so it is never
     ///   collected while Unity holds its pointer.
     /// - Commands and plugin events are 1:1, so each callback dequeues exactly one command.
+    /// - A domain reload (every script reload in the Editor, and entering play mode unless disabled)
+    ///   resets this class but not the native side: Unity would still call the old callback
+    ///   pointer for any event queued before the reload, and the old domain's ANGLE display, GL
+    ///   context and D3D11 state objects would leak, each holding a reference to Unity's device.
+    ///   So before a reload, <see cref="ReleaseAll"/> releases all of it on the render thread and
+    ///   waits for that, which also drains every earlier event, and this domain issues no more.
     /// </summary>
     internal static class SkiaUnityRenderThread
     {
         internal sealed class Command
         {
-            internal SkiaUnityRenderTarget.RenderState Target = null!;
+            // null means "release every target and the factory" (see ReleaseAll).
+            internal SkiaUnityRenderTarget.RenderState? Target;
             // null means "dispose the target's render-thread state".
             internal SKPicture? Picture;
         }
@@ -37,11 +46,48 @@ namespace SkiaGameRendering.Unity
         static readonly ConcurrentQueue<Command> Commands = new ConcurrentQueue<Command>();
 
         static AngleSkiaSurfaceFactory? _factory;
+        // Targets with render-thread state, so ReleaseAll can reach the ones never disposed.
+        static readonly HashSet<SkiaUnityRenderTarget.RenderState> LiveTargets = new HashSet<SkiaUnityRenderTarget.RenderState>();
+        static readonly ManualResetEventSlim Released = new ManualResetEventSlim();
+        // Main thread only.
+        static bool _anyIssued;
+        static bool _releasing;
+
+#if UNITY_EDITOR
+        static SkiaUnityRenderThread()
+        {
+            UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += ReleaseAll;
+        }
+#endif
 
         internal static void Issue(Command command)
         {
+            // After ReleaseAll, nothing this domain queues may reach the render thread, and the
+            // target it names has already been released.
+            if (_releasing)
+            {
+                command.Picture?.Dispose();
+                return;
+            }
+            _anyIssued = true;
             Commands.Enqueue(command);
             GL.IssuePluginEvent(CallbackPtr, 0);
+        }
+
+        /// <summary>
+        /// Releases every target's render-thread state and the ANGLE factory on the render thread,
+        /// and blocks until that has run. Called before a domain reload; see the class notes.
+        /// </summary>
+        internal static void ReleaseAll()
+        {
+            if (_releasing)
+                return;
+            bool anyIssued = _anyIssued;
+            if (anyIssued)
+                Issue(new Command());
+            _releasing = true;
+            if (anyIssued && !Released.Wait(TimeSpan.FromSeconds(10)))
+                Debug.LogError("SkiaGameRendering: the render thread did not release Skia's resources before the domain reload.");
         }
 
         [MonoPInvokeCallback(typeof(RenderEventDelegate))]
@@ -52,7 +98,9 @@ namespace SkiaGameRendering.Unity
 
             try
             {
-                if (command.Picture == null)
+                if (command.Target == null)
+                    ReleaseOnRenderThread();
+                else if (command.Picture == null)
                     DisposeTarget(command.Target);
                 else
                     Draw(command.Target, command.Picture);
@@ -65,7 +113,17 @@ namespace SkiaGameRendering.Unity
             finally
             {
                 command.Picture?.Dispose();
+                if (command.Target == null)
+                    Released.Set();
             }
+        }
+
+        static void ReleaseOnRenderThread()
+        {
+            foreach (var target in new List<SkiaUnityRenderTarget.RenderState>(LiveTargets))
+                DisposeTarget(target);
+            _factory?.Dispose();
+            _factory = null;
         }
 
         static void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture)
@@ -78,6 +136,7 @@ namespace SkiaGameRendering.Unity
                 if (target.Surface == null)
                 {
                     target.TextureState = factory.CreateTextureState(target.NativeTexture);
+                    LiveTargets.Add(target);
                     (target.Surface, target.BackendRenderTarget) = factory.CreateSurface(
                         target.TextureState, target.Width, target.Height, SKColorType.Rgba8888);
                 }
@@ -106,6 +165,7 @@ namespace SkiaGameRendering.Unity
 
         static void DisposeTarget(SkiaUnityRenderTarget.RenderState target)
         {
+            LiveTargets.Remove(target);
             target.Surface?.Dispose();
             target.Surface = null;
             target.BackendRenderTarget?.Dispose();

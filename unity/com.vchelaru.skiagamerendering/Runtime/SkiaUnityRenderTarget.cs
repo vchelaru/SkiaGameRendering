@@ -150,7 +150,11 @@ namespace SkiaGameRendering.Unity
             _recorder?.Dispose();
             _recorder = null;
             _texture.Release();
-            UnityEngine.Object.Destroy(_texture);
+            // Destroy is an error outside play mode, e.g. from an [ExecuteAlways] component.
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(_texture);
+            else
+                UnityEngine.Object.DestroyImmediate(_texture);
             _texture = null;
         }
     }

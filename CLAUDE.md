@@ -39,6 +39,9 @@ authoritative list of what CI builds and in what order; mirror it when deciding 
   pixels are right. Unity locks a project that is open in the editor, so the batch build fails then.
   Add `-linear` to build a Linear color space player into `Build/Mono-Linear`; the committed project
   is Gamma, so revert the `ProjectSettings/` changes that build saves.
+- The Unity Editor tests (the package's `Tests/Editor`, which reload the domain and enter play mode)
+  run with `Unity.exe -batchmode -projectPath samples/Sample.Unity -runTests -testPlatform EditMode
+  -testResults <path>.xml`, without `-quit` or `-nographics`; exit code 0 means they passed.
 - WindowsDX and KNI WindowsDX need Windows; the WebGL sample needs `dotnet workload install wasm-tools-net8`.
 
 `Directory.Build.props` sets `TreatWarningsAsErrors`, so a new C# warning fails the build. MSBuild

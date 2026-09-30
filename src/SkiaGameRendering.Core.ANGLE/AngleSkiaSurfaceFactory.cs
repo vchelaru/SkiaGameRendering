@@ -147,7 +147,10 @@ namespace SkiaGameRendering.Core.ANGLE
             // Restore the engine's D3D11 state
             if (_savedState != IntPtr.Zero)
             {
-                D3D11Com.SwapDeviceContextState(_context1, _savedState);
+                // The swap hands back _emptyState AddRef'd, like any previous state it returns.
+                var emptyState = D3D11Com.SwapDeviceContextState(_context1, _savedState);
+                if (emptyState != IntPtr.Zero)
+                    D3D11Com.Release(emptyState);
                 D3D11Com.Release(_savedState);
                 _savedState = IntPtr.Zero;
             }
