@@ -2,7 +2,7 @@
 
 [![Join the chat](https://img.shields.io/discord/586997072373481494)](https://discord.gg/tG5RBgw)
 
-A library that lets MonoGame, KNI, FNA, raylib, Stride, and Godot applications use SkiaSharp's GPU rendering to produce game-engine textures — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into game-engine textures without any CPU readback.
+A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applications use SkiaSharp's GPU rendering to produce game-engine textures — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into game-engine textures without any CPU readback.
 
 ## Platform Support
 
@@ -26,7 +26,7 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, and Godot applications u
 | Godot 4.7+ (D3D12) | D3D12 | Same package, backend picked at runtime (Windows) | Skia's D3D12 backend on Godot's `ID3D12Device`/queue; Skia draws into a typed resource this library owns and one GPU `CopyResource` per frame lands it in Godot's (typeless) texture - no CPU readback, but not zero-copy |
 | Godot 4.7+ (Compatibility) | OpenGL 3.3 | Same package (Windows native WGL; Linux X11/GLX unrun) | Second GL context sharing Godot's, Skia draws into an FBO around an ordinary `ImageTexture`'s GL texture - zero-copy, the raylib adapter's shape |
 | Godot 4.7+ (Metal) | Metal | Same package (macOS) | Skia's Metal backend on Godot's `MTLDevice`/queue, drawn straight into the RD texture's `MTLTexture` - zero-copy |
-| Unity 6 (D3D11) | D3D11 | Source only for now (`unity/com.vchelaru.skiagamerendering`, Windows x64, Mono) | ANGLE on the device Unity's `RenderTexture` belongs to; draws are recorded to an `SKPicture` on the main thread and played back on Unity's render thread |
+| Unity 6 (D3D11) | D3D11 | UPM git URL `https://github.com/vchelaru/SkiaGameRendering.git#upm` (Windows x64, Mono and IL2CPP) | ANGLE on the device Unity's `RenderTexture` belongs to; draws are recorded to an `SKPicture` on the main thread and played back on Unity's render thread |
 | Godot 4 (Vulkan on macOS; Compatibility on ANGLE/EGL/Wayland) | Vulkan / OpenGL | Not started | SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet - see `TODO.md` |
 
 MonoGame 3.8.5 ships the legacy `WindowsDX` (D3D11) project unchanged alongside the two new native
@@ -61,6 +61,7 @@ Install the NuGet package for your platform, then follow the setup for your engi
 | Stride (D3D11) | `SkiaGameRendering.Stride.D3D11` | `docs/stride/quickstart.md` |
 | Stride (Vulkan) | `SkiaGameRendering.Stride.VK` | `docs/stride/vulkan-quickstart.md` |
 | Godot (Vulkan, D3D12 or Compatibility) | `SkiaGameRendering.Godot` (not published yet; reference the project from source) | `docs/godot/quickstart.md` |
+| Unity 6 (D3D11) | Not on NuGet: Package Manager > Install package from git URL > `https://github.com/vchelaru/SkiaGameRendering.git#upm` (or `#upm/v<version>` to pin one) | [Unity](#unity) |
 
 ```powershell
 dotnet add package <package from the table>
@@ -166,6 +167,28 @@ For Vulkan, use the `SkiaGameRendering.Stride.VK` namespace and the `SkiaStrideV
 (`SkiaStrideVulkanRenderTarget2D`, `SkiaStrideVulkanSceneRenderer`, `SkiaStrideVulkanRenderer`).
 On Windows, also set `<StrideGraphicsApi>Vulkan</StrideGraphicsApi>` in your project; see
 `docs/stride/vulkan-quickstart.md`.
+
+### Unity
+
+Unity renders on its own thread, so the canvas records your drawing and `End` plays it back on
+Unity's render thread. Call `Begin`/`End` from the main thread and use `Texture` like any
+`RenderTexture`. Only Direct3D 11 is supported so far: set Player Settings > Other Settings > Graphics
+APIs for Windows to Direct3D11. The package only compiles for the Editor and Windows x64 players,
+so code that uses it needs the same limits, or the project's other platform builds fail to compile.
+Put that code in an asmdef limited to Editor and Windows 64-bit, or inside
+`#if UNITY_EDITOR_WIN || (UNITY_STANDALONE_WIN && UNITY_64)`.
+
+```csharp
+var target = new SkiaUnityRenderTarget(512, 512);
+
+void Update()
+{
+    target.Begin();
+    target.Canvas.Clear(SKColors.Black);
+    target.Canvas.DrawCircle(256, 256, 200, paint);
+    target.End();
+}
+```
 
 ## SkiaRenderTarget2D
 

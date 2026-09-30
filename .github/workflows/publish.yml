@@ -66,3 +66,26 @@ jobs:
           Get-ChildItem .artifacts/packages/*.nupkg | ForEach-Object {
             dotnet nuget push $_.FullName --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
           }
+
+  # Unity doesn't read NuGet. Its package, binaries included, goes to the upm branch and a
+  # upm/v<version> tag, which users install as a git URL - see eng/publish-unity-package.ps1.
+  unity:
+    runs-on: windows-latest
+    permissions:
+      contents: write # pushes the upm branch and tag
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build and push the Unity package
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ./eng/build-unity-package.ps1 -PackageOnly
+          ./eng/publish-unity-package.ps1 -Version ${{ inputs.version }} -Push
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unity-package
+          path: .artifacts/unity/*.tgz

@@ -23,6 +23,9 @@ tests/mesa-vendor/
 # the rest. Packages/ is Unity's manifest folder, not NuGet's, so it is un-ignored.
 unity/com.vchelaru.skiagamerendering/Plugins/
 unity/com.vchelaru.skiagamerendering/Plugins.meta
+unity/com.vchelaru.skiagamerendering/LICENSE.md
+unity/com.vchelaru.skiagamerendering/LICENSE.md.meta
+unity/com.vchelaru.skiagamerendering/ThirdPartyNotices~/
 samples/Sample.Unity/Assets/Plugins/
 samples/Sample.Unity/Assets/Plugins.meta
 !samples/Sample.Unity/Packages/

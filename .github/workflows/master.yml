@@ -136,6 +136,13 @@ jobs:
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.DesktopGL/Benchmarks.ShapeRendering.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.WindowsDX/Benchmarks.ShapeRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c ${{ matrix.configuration }}
+      # Packs the Unity package the way publish.yml does, without pushing, so a missing file or
+      # .meta fails here instead of at release. Compiling it needs Unity (issue #99).
+      - name: Pack the Unity package
+        shell: pwsh
+        run: |
+          ./eng/build-unity-package.ps1 -PackageOnly
+          ./eng/publish-unity-package.ps1 -Version 0.0.0-ci
 
   webgl-functional:
     runs-on: ubuntu-latest

@@ -19,7 +19,7 @@ public static class SampleBuild
         bool il2cpp = Array.IndexOf(Environment.GetCommandLineArgs(), "-il2cpp") >= 0;
         var target = NamedBuildTarget.Standalone;
 
-        // Unity 6 defaults new Windows projects to D3D12; the adapter only supports D3D11 so far.
+        // The adapter only supports D3D11 so far, so pin it rather than rely on Unity's default list.
         PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
         PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64, new[] { GraphicsDeviceType.Direct3D11 });
         PlayerSettings.SetScriptingBackend(target, il2cpp ? ScriptingImplementation.IL2CPP : ScriptingImplementation.Mono2x);
