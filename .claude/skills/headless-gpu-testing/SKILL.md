@@ -82,10 +82,9 @@ path - `ubuntu-latest` ships Mesa already, so no vendoring step like `MesaVendor
 `LinuxOnlyFactAttribute` skips the test on Windows for now (build-only there; see its doc comment for
 what real Windows coverage would need).
 
-**`SkiaRaylibContext.CreateSurface` uses `GRSurfaceOrigin.BottomLeft`** (matching raylib's own
-texture-sampling convention), so a tightly-packed `glGetTexImage`/`LoadImageFromTexture` readback
-comes back with row 0 as the canvas's *bottom* row, not its top - flip vertically before comparing
-against a `GoldenImage`, which expects top-down.
+**The GLX golden test is the one place raylib runs, and it cannot see a vertical flip on screen.**
+It reads the texture back, so it only checks which texel row canvas row 0 went into; raylib draws
+texel row 0 at the top, which is why `SkiaRaylibContext.CreateSurface` uses `TopLeft`.
 
 ## Vulkan - lavapipe
 

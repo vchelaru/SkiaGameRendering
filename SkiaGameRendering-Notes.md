@@ -482,8 +482,7 @@ exactly the raylib adapter's situation, and the backend is that adapter's shape:
 namespace off the context current on the render thread, Skia gets its own `GRContext` on it, and
 `Core.OGL`'s `GlSkiaSurfaceFactory` wraps the texture in an FBO with `GRSurfaceOrigin.TopLeft`:
 Godot uploads image row 0 to texel row 0 and samples v=0 as the top, so Skia must write canvas row 0
-into texel row 0 - the opposite of the raylib adapter's `BottomLeft`, which renders everything
-upside down here. A symmetric test image such as the sample circle cannot show the difference. Separate contexts keep
+into texel row 0, as the raylib adapter does too; `BottomLeft` renders everything upside down. A symmetric test image such as the sample circle cannot show the difference. Separate contexts keep
 Godot's cached GL state and Skia's apart; cross-context visibility is GL's shared-object rule
 (Skia's flush ends in `glFlush`, Godot's canvas binds the texture per draw). Zero-copy, a
 persistent surface, no priming or hand-back. Limits: Godot's `Image.Format` has no BGRA/10-bit

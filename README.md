@@ -16,7 +16,7 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 | KNI WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |
 | KNI WebGL (Blazor) | WebGL2 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WebGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
-| raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
+| raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) (Windows, Linux, macOS) | Second WGL (Windows), GLX (Linux) or CGL (macOS) context shares rlgl's GL namespace |
 | FNA (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) (Windows) | ANGLE (GL ES → D3D11 translation) on the device FNA3D's D3D11 driver exposes through `FNA3D_GetSysRendererEXT`; needs `FNA3D_FORCE_DRIVER=D3D11` |
 | FNA (OpenGL) | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Fna.OGL) (Windows, Linux, macOS) | Second SDL GL context shared with FNA3D's; needs `FNA3D_FORCE_DRIVER=OpenGL` |
 | FNA (SDL_GPU) | Vulkan/D3D12/Metal | Blocked: FNA3D's default driver exposes no native device (see the FNA section below) | |
@@ -287,7 +287,7 @@ and hardware, see [docs/performance.md](docs/performance.md).
 - `samples/Sample.Kni.WindowsDX/` — KNI WindowsDX sample (Windows only)
 - `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample
 - `samples/Sample.Gum.Kni.WebGL/` — KNI Blazor WebAssembly sample of Gum UI interleaved with SpriteBatch, render targets, shaders, and browser input
-- `samples/Sample.Raylib.OGL/` — raylib sample (Windows + Linux)
+- `samples/Sample.Raylib.OGL/` — raylib sample (Windows, Linux, macOS)
 - `samples/Sample.Fna.WindowsDX/`: FNA sample (Windows, D3D11 only; builds against the `external/FNA` submodule and the vendored `external/fnalibs`)
 - `samples/Sample.Fna.OGL/`: FNA sample on FNA3D's OpenGL driver (same setup; the vendored fnalibs are Windows x64 only, so on Linux/macOS drop in your own)
 - `samples/Sample.Stride.D3D11/` — Stride sample (Windows, D3D11 only)

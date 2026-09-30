@@ -19,9 +19,8 @@ namespace SkiaGameRendering.Raylib.OGL
     /// canvas.End();
     /// Raylib.EndDrawing();
     /// </code>
-    /// The underlying Skia surface is created with a bottom-left origin (see
-    /// <see cref="SkiaRaylibContext.CreateSurface"/>) so <see cref="Texture"/> already matches
-    /// raylib's own texture-sampling convention - callers never need to flip it themselves.
+    /// <see cref="Texture"/> stores canvas row 0 in texel row 0, the way raylib draws any texture
+    /// loaded from an image, so callers never need to flip it themselves.
     /// </summary>
     public sealed class SkiaRaylibRenderTarget2D : IDisposable
     {
