@@ -36,6 +36,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Core.ANGLE/SkiaGameRendering.Core.ANGLE.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Core.VK
         run: dotnet pack src/SkiaGameRendering.Core.VK/SkiaGameRendering.Core.VK.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Core.D3D12
+        run: dotnet pack src/SkiaGameRendering.Core.D3D12/SkiaGameRendering.Core.D3D12.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering
         run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.WindowsDX
@@ -56,6 +58,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Stride.D3D11/SkiaGameRendering.Stride.D3D11.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Stride.VK
         run: dotnet pack src/SkiaGameRendering.Stride.VK/SkiaGameRendering.Stride.VK.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Stride.D3D12
+        run: dotnet pack src/SkiaGameRendering.Stride.D3D12/SkiaGameRendering.Stride.D3D12.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
 
       - uses: actions/upload-artifact@v4
         with:

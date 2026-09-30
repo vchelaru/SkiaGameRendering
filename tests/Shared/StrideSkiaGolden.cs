@@ -7,8 +7,8 @@ namespace Tests.Shared;
 /// Stride's counterpart to <see cref="EngineSkiaGolden"/>: draws <see cref="GoldenScene"/> through
 /// the backend's own render-target type and reads the result back as tightly packed RGBA.
 /// <para>
-/// The two Stride backends expose the same members under different type names
-/// (<c>SkiaStrideRenderTarget2D</c> against <c>SkiaStrideVulkanRenderTarget2D</c>), so each test
+/// The Stride backends expose the same members under different type names
+/// (<c>SkiaStrideRenderTarget2D</c>, <c>SkiaStrideVulkanRenderTarget2D</c>, <c>SkiaStrideD3D12RenderTarget2D</c>), so each test
 /// project aliases its own to <c>SkiaStrideCanvas</c> in its csproj and this one file serves both.
 /// Everything else here is <c>Stride.Graphics</c>, whose type names are identical in the D3D11 and
 /// Vulkan builds of the assembly. What genuinely differs - how a command list is obtained and
