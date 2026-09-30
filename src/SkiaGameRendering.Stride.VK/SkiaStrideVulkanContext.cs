@@ -67,6 +67,8 @@ namespace SkiaGameRendering.Stride.VK
         const BindingFlags NonPublicInstance = BindingFlags.NonPublic | BindingFlags.Instance;
 
         readonly VkSkiaSurfaceFactory _factory = new();
+        CommandList? _handoffCommandList;
+        GraphicsDevice? _graphicsDevice;
 
         static PropertyInfo? _nativeInstanceProperty;
         static PropertyInfo? _nativePhysicalDeviceProperty;
@@ -115,6 +117,9 @@ namespace SkiaGameRendering.Stride.VK
                 instanceExtensions: [],
                 deviceExtensions: [],
                 acquireQueueLock: () => AcquireQueueLock(queueLock));
+
+            _graphicsDevice = graphicsDevice;
+            _handoffCommandList = CommandList.New(graphicsDevice);
         }
 
         static IDisposable AcquireQueueLock(object queueLock)
@@ -131,6 +136,22 @@ namespace SkiaGameRendering.Stride.VK
         internal void BeginDraw() => _factory.BeginDraw();
 
         internal void EndDraw() => _factory.EndDraw();
+
+        /// <summary>
+        /// Moves <paramref name="texture"/> back to <c>COLOR_ATTACHMENT_OPTIMAL</c> through Stride's own
+        /// barrier, so Stride's layout tracking and Skia's belief agree before Skia draws. Skia keeps
+        /// believing the image is in the layout it left it in (<c>COLOR_ATTACHMENT_OPTIMAL</c>, see
+        /// <see cref="VkSkiaSurfaceFactory.EndDraw(bool)"/>), while the composite moves it to
+        /// <c>SHADER_READ_ONLY_OPTIMAL</c>. Submitted immediately, so call after <see cref="BeginDraw"/>
+        /// and before Skia records anything.
+        /// </summary>
+        internal void AcquireForSkia(Texture texture)
+        {
+            var commandList = _handoffCommandList!;
+            commandList.Reset();
+            commandList.ResourceBarrierTransition(texture, BarrierLayout.RenderTarget);
+            _graphicsDevice!.ExecuteCommandList(commandList.Close());
+        }
 
         internal VkTextureState CreateTextureState(Texture texture)
         {
@@ -177,6 +198,11 @@ namespace SkiaGameRendering.Stride.VK
             VkTextureState state, int width, int height, SKColorType colorType, SKColorSpace? colorSpace = null) =>
             _factory.CreateSurface(state, width, height, colorType, colorSpace);
 
-        public void Dispose() => _factory.Dispose();
+        public void Dispose()
+        {
+            _handoffCommandList?.Dispose();
+            _handoffCommandList = null;
+            _factory.Dispose();
+        }
     }
 }

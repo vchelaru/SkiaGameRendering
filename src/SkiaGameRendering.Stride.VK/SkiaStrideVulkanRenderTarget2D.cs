@@ -54,8 +54,9 @@ namespace SkiaGameRendering.Stride.VK
         /// <summary>
         /// Begins a render pass: acquires Stride's Vulkan queue lock (see
         /// <see cref="SkiaStrideVulkanContext"/>) so Skia's and Stride's <c>vkQueueSubmit</c> calls
-        /// stay externally synchronized. Throws if a previous <see cref="Begin"/> hasn't been closed
-        /// with <see cref="End"/> yet.
+        /// stay externally synchronized, and moves the texture back to <c>COLOR_ATTACHMENT_OPTIMAL</c>,
+        /// the layout Skia assumes it is in, from wherever Stride left it. Throws if a previous
+        /// <see cref="Begin"/> hasn't been closed with <see cref="End"/> yet.
         /// </summary>
         public void Begin(bool clear = true)
         {
@@ -65,6 +66,15 @@ namespace SkiaGameRendering.Stride.VK
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 
             _context.BeginDraw();
+            try
+            {
+                _context.AcquireForSkia(_target.Texture);
+            }
+            catch
+            {
+                _context.EndDraw();
+                throw;
+            }
             _hasBegun = true;
 
             if (clear)
@@ -92,7 +102,9 @@ namespace SkiaGameRendering.Stride.VK
         /// Same as <see cref="End"/>, but skips the composite - use this only when you need the raw
         /// <see cref="Texture"/> for something the composite can't express (e.g. drawing it more than
         /// once, or at a different size), or when no <see cref="GraphicsContext"/> is available at the
-        /// call site. You're then responsible for drawing <see cref="Texture"/> yourself.
+        /// call site. You're then responsible for drawing <see cref="Texture"/> yourself. It is left in
+        /// <c>COLOR_ATTACHMENT_OPTIMAL</c>, so before sampling it call
+        /// <c>CommandList.ResourceBarrierTransition(Texture, BarrierLayout.ShaderResource)</c>.
         /// </summary>
         public void EndWithoutDrawing() => EndCore(graphicsContext: null);
 
@@ -113,6 +125,9 @@ namespace SkiaGameRendering.Stride.VK
 
             if (graphicsContext != null)
             {
+                // Stride's Vulkan SpriteBatch samples through a descriptor declaring
+                // SHADER_READ_ONLY_OPTIMAL but does not move the image there; its callers do.
+                graphicsContext.CommandList.ResourceBarrierTransition(Texture, BarrierLayout.ShaderResource);
                 _spriteBatch ??= new SpriteBatch(_graphicsDevice);
                 _spriteBatch.Begin(graphicsContext);
                 _spriteBatch.Draw(Texture, Vector2.Zero);
