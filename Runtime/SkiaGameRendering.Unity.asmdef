@@ -1,0 +1,14 @@
+{
+    "name": "SkiaGameRendering.Unity",
+    "rootNamespace": "SkiaGameRendering.Unity",
+    "references": [],
+    "includePlatforms": [
+        "Editor",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "autoReferenced": true,
+    "noEngineReferences": false
+}
