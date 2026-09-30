@@ -10,7 +10,7 @@ namespace SkiaGameRendering.Unity
     /// <summary>
     /// A <see cref="RenderTexture"/> that SkiaSharp draws into on the GPU, with the Begin/Canvas/End
     /// shape of the other engine adapters. Call Begin/End from the main thread (e.g. in
-    /// <c>Update</c>) and sample <see cref="Texture"/> like any other texture.
+    /// <c>Update</c>) and draw <see cref="Texture"/> with <see cref="PremultipliedMaterial"/>.
     /// <code>
     /// var target = new SkiaUnityRenderTarget(512, 512);
     /// target.Begin();
@@ -69,7 +69,25 @@ namespace SkiaGameRendering.Unity
             };
         }
 
+        static Material? _premultipliedMaterial;
+
         public RenderTexture Texture => _texture ?? throw new ObjectDisposedException(nameof(SkiaUnityRenderTarget));
+
+        /// <summary>
+        /// A material that draws <see cref="Texture"/> correctly over other content. Skia writes
+        /// premultiplied alpha, and Unity's default blending expects straight alpha, which darkens
+        /// edges and anything translucent. Use it with <c>Graphics.DrawTexture</c>, as a
+        /// <c>RawImage</c>'s material, or copy it for a mesh (set its <c>mainTexture</c>). Its
+        /// <c>_Color</c> property tints the texture.
+        /// </summary>
+        public static Material PremultipliedMaterial => _premultipliedMaterial != null
+            ? _premultipliedMaterial
+            : _premultipliedMaterial = new Material(
+                Resources.Load<Shader>("SkiaGameRendering-Premultiplied")
+                    ?? throw new InvalidOperationException("SkiaGameRendering-Premultiplied shader is missing from the package's Resources."))
+            {
+                name = "SkiaGameRendering Premultiplied",
+            };
 
         /// <summary>The canvas to draw on. Only valid between <see cref="Begin"/> and <see cref="End"/>.</summary>
         public SKCanvas Canvas => _canvas ?? throw new InvalidOperationException("Begin must be called before accessing Canvas.");
