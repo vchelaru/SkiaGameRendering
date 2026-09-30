@@ -29,14 +29,23 @@ namespace SkiaGameRendering.Godot
     /// <b>Godot's D3D12 driver tracks resource state two different ways</b>, chosen by
     /// <c>D3D12_FEATURE_D3D12_OPTIONS12.EnhancedBarriersSupported</c> at device creation. With
     /// enhanced barriers it uses the render graph's usage tracking (like Vulkan) and
-    /// <c>D3D12_BARRIER_LAYOUT_SHADER_RESOURCE</c> for a sampled texture, whose legacy-state
-    /// equivalent is <c>ALL_SHADER_RESOURCE</c>. Without them it keeps legacy per-subresource states
-    /// and, when a uniform set is prepared for a draw, narrows a fragment-only sampled texture to
-    /// <c>PIXEL_SHADER_RESOURCE</c> (<c>command_uniform_set_prepare_for_use</c>). <see cref="_restingState"/>
-    /// is queried the same way Godot decides, so the per-frame copy returns Godot's texture to the
-    /// exact state Godot believes it is in, and Godot's "is this transition redundant" check
-    /// (<c>_resource_transition_batch</c>: redundant when the current state already has every bit of
-    /// the wanted one) keeps it from ever emitting a barrier of its own again for canvas sampling.
+    /// <c>D3D12_BARRIER_LAYOUT_SHADER_RESOURCE</c> for a sampled texture. Without them it keeps legacy
+    /// per-subresource states and, when a uniform set is prepared for a draw, narrows a fragment-only
+    /// sampled texture to <c>PIXEL_SHADER_RESOURCE</c> (<c>command_uniform_set_prepare_for_use</c>).
+    /// <see cref="EnhancedBarriers"/> is queried the same way Godot decides, and the per-frame copy
+    /// moves Godot's texture with the same kind of barrier Godot uses and returns it to the exact
+    /// layout or state Godot believes it is in, so Godot never emits a barrier of its own again for
+    /// canvas sampling (on the legacy path, <c>_resource_transition_batch</c> finds the transition
+    /// redundant).
+    /// </item>
+    /// <item>
+    /// <b>Enhanced barriers on Godot's texture, never legacy ones.</b> The D3D12 debug layer rejects a
+    /// legacy <c>ResourceBarrier</c> on a texture an enhanced <c>Barrier</c> left in any layout but
+    /// <c>COMMON</c> ("does not support barrier interop"), and Godot leaves it in
+    /// <c>SHADER_RESOURCE</c>. The Stride adapter hands off at <c>COMMON</c> instead, because it can
+    /// make Stride move the texture there; Godot has no API for that, so
+    /// <see cref="D3D12ResourceTransitioner.CopyIntoEnhancedBarrierTexture"/> moves it with enhanced
+    /// barriers. Skia's own resource keeps legacy ones.
     /// </item>
     /// <item>
     /// <b>Sampling only, from fragment shaders, on the legacy path.</b> If a project also samples the
@@ -57,7 +66,6 @@ namespace SkiaGameRendering.Godot
         readonly D3D12SkiaSurfaceFactory _factory = new();
         D3D12ResourceTransitioner? _transitioner;
         IntPtr _device;
-        uint _restingState;
 
         internal override string DriverName => "d3d12";
 
@@ -82,9 +90,6 @@ namespace SkiaGameRendering.Godot
 
             _device = device;
             EnhancedBarriers = D3D12SkiaSurfaceFactory.QueryEnhancedBarriersSupported(device);
-            _restingState = EnhancedBarriers
-                ? D3D12Constants.ResourceStateAllShaderResource
-                : D3D12Constants.ResourceStatePixelShaderResource;
 
             _factory.InitializeFromNative(adapter, device, queue, acquireQueueLock: null);
             _transitioner = new D3D12ResourceTransitioner(device, queue);
@@ -173,14 +178,27 @@ namespace SkiaGameRendering.Godot
                 }
 
                 // Skia left its resource in RENDER_TARGET (its own belief, restored below); Godot's
-                // texture sits in the resting state Godot believes - both restored after the copy.
-                _backend._transitioner!.CopyWithTransitions(
-                    destination: _godotResource,
-                    destinationStateBefore: _backend._restingState,
-                    destinationStateAfter: _backend._restingState,
-                    source: _skiaResource,
-                    sourceStateBefore: D3D12Constants.ResourceStateRenderTarget,
-                    sourceStateAfter: D3D12Constants.ResourceStateRenderTarget);
+                // texture sits in the layout or state Godot believes - also restored after the copy.
+                var transitioner = _backend._transitioner!;
+                if (_backend.EnhancedBarriers)
+                {
+                    transitioner.CopyIntoEnhancedBarrierTexture(
+                        destination: _godotResource,
+                        destinationLayout: D3D12Constants.BarrierLayoutShaderResource,
+                        source: _skiaResource,
+                        sourceStateBefore: D3D12Constants.ResourceStateRenderTarget,
+                        sourceStateAfter: D3D12Constants.ResourceStateRenderTarget);
+                }
+                else
+                {
+                    transitioner.CopyWithTransitions(
+                        destination: _godotResource,
+                        destinationStateBefore: D3D12Constants.ResourceStatePixelShaderResource,
+                        destinationStateAfter: D3D12Constants.ResourceStatePixelShaderResource,
+                        source: _skiaResource,
+                        sourceStateBefore: D3D12Constants.ResourceStateRenderTarget,
+                        sourceStateAfter: D3D12Constants.ResourceStateRenderTarget);
+                }
             }
 
             public override void Dispose()

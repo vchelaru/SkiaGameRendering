@@ -17,6 +17,11 @@ namespace SkiaGameRendering.Core.D3D12
         public const uint ResourceStateCopyDest = 0x400;
         public const uint ResourceStateCopySource = 0x800;
 
+        /// <summary><c>D3D12_BARRIER_LAYOUT_SHADER_RESOURCE</c>, for a host that tracks textures with enhanced barriers.</summary>
+        public const uint BarrierLayoutShaderResource = 6;
+        /// <summary><c>D3D12_BARRIER_LAYOUT_COPY_DEST</c>.</summary>
+        public const uint BarrierLayoutCopyDest = 8;
+
         public const uint FormatR16G16B16A16Unorm = 11;
         public const uint FormatR10G10B10A2Unorm = 24;
         public const uint FormatR8G8B8A8Unorm = 28;
