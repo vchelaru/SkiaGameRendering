@@ -7,6 +7,8 @@ namespace SkiaGameRendering.Core.ANGLE
         private const string LibEGL = "libEGL";
         private const string LibGLESv2 = "libGLESv2";
 
+#if NET
+        // netstandard2.1 (Unity) has no NativeLibrary; there the host loads libEGL/libGLESv2 itself.
         static AngleEgl()
         {
             NativeLibrary.SetDllImportResolver(typeof(AngleEgl).Assembly, (name, _, _) =>
@@ -71,6 +73,7 @@ namespace SkiaGameRendering.Core.ANGLE
                 return false;
             }
         }
+#endif
 
         /// <summary>
         /// Maps the current process architecture to the RID Core.ANGLE vendors ANGLE under

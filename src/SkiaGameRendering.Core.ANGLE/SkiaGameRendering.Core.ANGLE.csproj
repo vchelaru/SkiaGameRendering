@@ -1,11 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- netstandard2.1 is for Unity, whose Mono runtime can't load a net8.0 assembly (issue #95).
+         It has no NativeLibrary, so AngleEgl skips its resolver there and leaves loading libEGL/
+         libGLESv2 to the host (Unity's native plugin import settings). -->
+    <TargetFrameworks>net8.0-windows;netstandard2.1</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <IsAotCompatible>true</IsAotCompatible>
+    <IsAotCompatible Condition="'$(TargetFramework)' == 'net8.0-windows'">true</IsAotCompatible>
     <PackageId>SkiaGameRendering.Core.ANGLE</PackageId>
     <Version>$(LibraryVersion)</Version>
     <Description>Engine-agnostic ANGLE/D3D11-Skia interop shared by D3D11-based SkiaGameRendering backends (MonoGame WindowsDX, KNI WindowsDX). Not meant to be referenced directly - installed automatically as a dependency of those backends.</Description>

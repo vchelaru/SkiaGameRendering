@@ -33,6 +33,10 @@ projects share core source via linked includes, so a change in `src/SkiaGameRend
 authoritative list of what CI builds and in what order; mirror it when deciding what to verify.
 
 - Unit tests: `dotnet test tests/Tests.proj`, which runs every test project under `tests/`.
+- The Unity sample needs no editor window. First run `eng/build-unity-package.ps1`, then
+  `Unity.exe -batchmode -quit -projectPath samples/Sample.Unity -executeMethod SampleBuild.Build`,
+  then `samples/Sample.Unity/Build/Mono/Sample.Unity.exe --smoke-test`, which exits 0 only if the
+  pixels are right. Unity locks a project that is open in the editor, so the batch build fails then.
 - WindowsDX and KNI WindowsDX need Windows; the WebGL sample needs `dotnet workload install wasm-tools-net8`.
 
 `Directory.Build.props` sets `TreatWarningsAsErrors`, so a new C# warning fails the build. MSBuild

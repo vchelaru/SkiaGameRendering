@@ -19,6 +19,20 @@ tests/mesa-vendor/
 # Godot's per-project cache/import directory (created by the editor or --import; never checked in)
 **/.godot/
 
+# Unity: the package's binaries come from eng/build-unity-package.ps1, and the editor regenerates
+# the rest. Packages/ is Unity's manifest folder, not NuGet's, so it is un-ignored.
+unity/com.vchelaru.skiagamerendering/Plugins/
+unity/com.vchelaru.skiagamerendering/Plugins.meta
+!samples/Sample.Unity/Packages/
+samples/Sample.Unity/[Ll]ibrary/
+samples/Sample.Unity/[Tt]emp/
+samples/Sample.Unity/[Ll]ogs/
+samples/Sample.Unity/[Uu]ser[Ss]ettings/
+samples/Sample.Unity/[Bb]uild/
+samples/Sample.Unity/*.csproj
+samples/Sample.Unity/*.sln
+samples/Sample.Unity/*.slnx
+
 ## Claude
 .claude/settings.local.json
 CLAUDE.local.md

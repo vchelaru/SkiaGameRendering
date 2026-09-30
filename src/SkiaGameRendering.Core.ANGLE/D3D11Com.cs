@@ -14,6 +14,10 @@ namespace SkiaGameRendering.Core.ANGLE
     /// cross-checked against github.com/terrafx/terrafx.interop.windows (headers auto-generated
     /// from the Windows SDK) before use. <c>tests/Tests.Core.ANGLE/D3D11StateSwapTests.cs</c> pins
     /// the two D3D11.1 calls against WARP.
+    ///
+    /// Calls are <c>unmanaged[Stdcall]</c> rather than <c>unmanaged[MemberFunction]</c> because the
+    /// netstandard2.1 (Unity) build has no <c>CallConvMemberFunction</c>. COM methods are __stdcall,
+    /// and the two conventions only differ for methods returning a struct by value, which none here do.
     /// </summary>
     internal static unsafe class D3D11Com
     {
@@ -29,7 +33,7 @@ namespace SkiaGameRendering.Core.ANGLE
         /// <summary>IUnknown::QueryInterface, vtable slot 0. AddRefs on success.</summary>
         internal static IntPtr QueryInterface(IntPtr unknown, in Guid iid)
         {
-            var fn = (delegate* unmanaged[MemberFunction]<IntPtr, Guid*, void**, int>)(*(void***)unknown)[0];
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, Guid*, void**, int>)(*(void***)unknown)[0];
             void* result;
             fixed (Guid* iidPtr = &iid)
             {
@@ -43,7 +47,7 @@ namespace SkiaGameRendering.Core.ANGLE
         /// <summary>IUnknown::Release, vtable slot 2.</summary>
         internal static uint Release(IntPtr unknown)
         {
-            var fn = (delegate* unmanaged[MemberFunction]<IntPtr, uint>)(*(void***)unknown)[2];
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, uint>)(*(void***)unknown)[2];
             return fn(unknown);
         }
 
@@ -57,7 +61,7 @@ namespace SkiaGameRendering.Core.ANGLE
         /// </summary>
         internal static IntPtr CreateDeviceContextState(IntPtr device1)
         {
-            var fn = (delegate* unmanaged[MemberFunction]<IntPtr, uint, int*, uint, uint, Guid*, int*, void**, int>)
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, uint, int*, uint, uint, Guid*, int*, void**, int>)
                 (*(void***)device1)[47];
 
             int featureLevel = D3D_FEATURE_LEVEL_11_0;
@@ -78,7 +82,7 @@ namespace SkiaGameRendering.Core.ANGLE
         /// </summary>
         internal static IntPtr SwapDeviceContextState(IntPtr context1, IntPtr newState)
         {
-            var fn = (delegate* unmanaged[MemberFunction]<IntPtr, IntPtr, void**, void>)(*(void***)context1)[131];
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, void**, void>)(*(void***)context1)[131];
             void* previous;
             fn(context1, newState, &previous);
             return (IntPtr)previous;
@@ -99,10 +103,26 @@ namespace SkiaGameRendering.Core.ANGLE
         /// </summary>
         internal static IntPtr GetImmediateContext(IntPtr device)
         {
-            var fn = (delegate* unmanaged[MemberFunction]<IntPtr, void**, void>)(*(void***)device)[40];
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, void**, void>)(*(void***)device)[40];
             void* context;
             fn(device, &context);
             return (IntPtr)context;
+        }
+
+        /// <summary>
+        /// ID3D11DeviceChild::GetDevice, vtable slot 3: IUnknown (0-2) + GetDevice (3). Every D3D11
+        /// resource is a device child. Returns void and AddRefs the device, like
+        /// <see cref="GetImmediateContext"/>.
+        ///
+        /// Added for the Unity adapter: Unity's C# API exposes a texture's native pointer
+        /// (<c>Texture.GetNativeTexturePtr</c>) but not the device, so the adapter asks the texture.
+        /// </summary>
+        internal static IntPtr GetDevice(IntPtr deviceChild)
+        {
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, void**, void>)(*(void***)deviceChild)[3];
+            void* device;
+            fn(deviceChild, &device);
+            return (IntPtr)device;
         }
     }
 }

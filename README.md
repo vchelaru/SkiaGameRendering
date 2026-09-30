@@ -26,6 +26,7 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, and Godot applications u
 | Godot 4.7+ (D3D12) | D3D12 | Same package, backend picked at runtime (Windows) | Skia's D3D12 backend on Godot's `ID3D12Device`/queue; Skia draws into a typed resource this library owns and one GPU `CopyResource` per frame lands it in Godot's (typeless) texture - no CPU readback, but not zero-copy |
 | Godot 4.7+ (Compatibility) | OpenGL 3.3 | Same package (Windows native WGL; Linux X11/GLX unrun) | Second GL context sharing Godot's, Skia draws into an FBO around an ordinary `ImageTexture`'s GL texture - zero-copy, the raylib adapter's shape |
 | Godot 4.7+ (Metal) | Metal | Same package (macOS) | Skia's Metal backend on Godot's `MTLDevice`/queue, drawn straight into the RD texture's `MTLTexture` - zero-copy |
+| Unity 6 (D3D11) | D3D11 | Source only for now (`unity/com.vchelaru.skiagamerendering`, Windows x64, Mono) | ANGLE on the device Unity's `RenderTexture` belongs to; draws are recorded to an `SKPicture` on the main thread and played back on Unity's render thread |
 | Godot 4 (Vulkan on macOS; Compatibility on ANGLE/EGL/Wayland) | Vulkan / OpenGL | Not started | SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet - see `TODO.md` |
 
 MonoGame 3.8.5 ships the legacy `WindowsDX` (D3D11) project unchanged alongside the two new native
@@ -255,6 +256,7 @@ WindowsDX has not been measured yet. To measure your own hardware, run either
 - `samples/Sample.Stride.D3D11/` — Stride sample (Windows, D3D11 only)
 - `samples/Sample.Stride.VK/` — Stride sample (Vulkan; builds on Windows via `StrideGraphicsApi=Vulkan`, runs on Windows/Linux/macOS)
 - `samples/Sample.Godot/` — Godot 4.7 project (Vulkan, D3D12 or Compatibility via `--rendering-driver`; `dotnet build` it, then open or run it with a Godot .NET editor binary - not shipped here)
+- `samples/Sample.Unity/`: Unity 6 project (Windows, D3D11). Run `eng/build-unity-package.ps1` first to fill the package's `Plugins/`; `--smoke-test` checks the rendered pixels and exits
 - `samples/Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
 DesktopGL, WindowsDX, KNI WindowsDX, and both FNA samples share the same `Game1.cs` via a linked file include; KNI DesktopGL has its own copy.
@@ -277,6 +279,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Core.VK/` — engine-agnostic Vulkan/Skia interop shared by Vulkan-based backends
 - `src/SkiaGameRendering.Core.Metal/`: engine-agnostic Metal/Skia interop shared by Metal-based backends (Godot on macOS today)
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaStrideVulkanRenderTarget2D`, Windows/Linux/macOS)
+- `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s netstandard2.1 build + `SkiaUnityRenderTarget`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Godot/` — Godot library (`Core.VK`, `Core.D3D12`, `Core.Metal` and `Core.OGL` behind one `SkiaGodotRenderTarget2D`, backend chosen from the running driver; no reflection, all public Godot API)
 
 See `SkiaGameRendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
