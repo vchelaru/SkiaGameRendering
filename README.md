@@ -173,7 +173,10 @@ On Windows, also set `<StrideGraphicsApi>Vulkan</StrideGraphicsApi>` in your pro
 Unity renders on its own thread, so the canvas records your drawing and `End` plays it back on
 Unity's render thread. Call `Begin`/`End` from the main thread and use `Texture` like any
 `RenderTexture`. Only Direct3D 11 is supported so far: set Player Settings > Other Settings > Graphics
-APIs for Windows to Direct3D11.
+APIs for Windows to Direct3D11. The package only compiles for the Editor and Windows x64 players,
+so code that uses it needs the same limits, or the project's other platform builds fail to compile.
+Put that code in an asmdef limited to Editor and Windows 64-bit, or inside
+`#if UNITY_EDITOR_WIN || (UNITY_STANDALONE_WIN && UNITY_64)`.
 
 ```csharp
 var target = new SkiaUnityRenderTarget(512, 512);
