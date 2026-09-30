@@ -209,6 +209,18 @@ for a real game loop, running `Game.RunOneFrame()` and reading back inside `Draw
 resources have to be created and disposed inside that one frame - the backend's `GRContext` belongs
 to the GL context the window owns and cannot outlive it.
 
+## Per-frame leak checks
+
+`tests/Shared/FrameLeakCheck.cs` (and `EngineFrameLeak.cs` for MonoGame/KNI/FNA) warms up, then
+compares two equal frame windows: private memory, handles, and exact reference counts where the API
+exposes them. `SKIAGAMERENDERING_LEAK_FRAMES=N` runs longer windows locally. The leak tests share one
+xUnit collection that runs after the parallel tests, so other devices can't move the numbers.
+
+- **Stride grows ~240 KB a frame on its own without `GraphicsDevice.Begin/End` each frame**, with no
+  Skia code running. A leak harness must call them, the way a `Game` does.
+- **Vulkan and D3D12 grow when the CPU never waits for the GPU**, because Skia keeps queuing work.
+  That's a harness artifact, not a leak; wait for the GPU every few frames.
+
 ## Golden images
 
 `tests/Shared/GoldenScene.cs` (one scene, drawn by every backend) and `tests/Shared/GoldenImage.cs`
