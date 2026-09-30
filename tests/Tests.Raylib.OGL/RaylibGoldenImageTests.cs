@@ -88,15 +88,9 @@ public sealed class RaylibGoldenImageTests
 
     /// <summary>
     /// Reads <paramref name="texture"/> back via <c>Raylib_cs.Raylib.LoadImageFromTexture</c> (rlgl's
-    /// <c>rlReadTexturePixels</c>, i.e. <c>glGetTexImage</c>) and flips it into the top-down,
-    /// tightly-packed RGBA8888 layout <see cref="GoldenImage"/> expects.
-    /// <para>
-    /// The flip is required, not optional: <c>SkiaRaylibContext.CreateSurface</c> creates the
-    /// Skia surface with <c>GRSurfaceOrigin.BottomLeft</c> so the texture matches raylib's own
-    /// v=0-at-the-bottom sampling convention with no per-draw flip. That means GL texture row 0
-    /// (what a tightly-packed <c>glGetTexImage</c> readback puts first) is the canvas's *bottom* row,
-    /// not its top - the opposite of what <see cref="GoldenImage.AssertMatchesGolden"/> assumes.
-    /// </para>
+    /// <c>rlReadTexturePixels</c>, i.e. <c>glGetTexImage</c>), which puts texel row 0 first. That
+    /// is already the top-down layout <see cref="GoldenImage"/> expects, because raylib draws texel
+    /// row 0 at the top and the adapter writes canvas row 0 there.
     /// </summary>
     static unsafe byte[] ReadTopDownRgba(Texture2D texture)
     {
@@ -107,15 +101,8 @@ public sealed class RaylibGoldenImageTests
             Assert.Equal(GoldenScene.Height, image.Height);
             Assert.Equal(PixelFormat.UncompressedR8G8B8A8, image.Format);
 
-            var rowBytes = image.Width * 4;
             var rgba = new byte[image.Width * image.Height * 4];
-            var source = (byte*)image.Data;
-            for (var y = 0; y < image.Height; y++)
-            {
-                var sourceRow = source + (long)(image.Height - 1 - y) * rowBytes;
-                Marshal.Copy((IntPtr)sourceRow, rgba, y * rowBytes, rowBytes);
-            }
-
+            Marshal.Copy((IntPtr)image.Data, rgba, 0, rgba.Length);
             return rgba;
         }
         finally

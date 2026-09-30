@@ -5,7 +5,7 @@ namespace SkiaGameRendering.Raylib.OGL
 {
     /// <summary>
     /// Owns the Skia-dedicated GL context (see <see cref="ISharedGlContext"/>: <see cref="WglSharedContext"/>
-    /// on Windows, <see cref="GlxSharedContext"/> on Linux) for one raylib window, plus the
+    /// on Windows, <see cref="GlxSharedContext"/> on Linux, <see cref="CglSharedContext"/> on macOS) for one raylib window, plus the
     /// <see cref="GRContext"/>/<see cref="GlFunctions"/> loaded against it. Callers are responsible
     /// for bracketing any Skia GL work with <see cref="BeginDraw"/>/<see cref="EndDraw"/> - the
     /// other members assume the Skia context is already current, mirroring how
@@ -23,9 +23,11 @@ namespace SkiaGameRendering.Raylib.OGL
                 return new WglSharedContext();
             if (OperatingSystem.IsLinux())
                 return new GlxSharedContext();
+            if (OperatingSystem.IsMacOS())
+                return new CglSharedContext();
 
             throw new PlatformNotSupportedException(
-                "SkiaGameRendering.Raylib.OGL requires Windows (WGL) or Linux (GLX). macOS is not implemented (see issue #10).");
+                "SkiaGameRendering.Raylib.OGL requires Windows (WGL), Linux (GLX), or macOS (CGL).");
         }
 
         public void Initialize()
@@ -64,12 +66,10 @@ namespace SkiaGameRendering.Raylib.OGL
         internal (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
             int glTextureId, int width, int height, SKColorType colorType, out GlFramebufferState renderState)
         {
-            // BottomLeft matches raylib/rlgl's own texture sampling convention (v=0 at the bottom),
-            // so the resulting texture can be handed straight to Raylib.DrawTexture* with no
-            // per-draw flip - unlike the MonoGame backend (TopLeft, the Core.OGL default), which
-            // relies on MonoGame's own render-target sampling convention instead.
+            // TopLeft (Core.OGL's default): Raylib.DrawTexture draws texel row 0 at the top, so Skia
+            // must write canvas row 0 there. BottomLeft shows the texture upside down.
             return GlSkiaSurfaceFactory.CreateSurface(
-                GrContext, Gl, glTextureId, width, height, colorType, out renderState, GRSurfaceOrigin.BottomLeft);
+                GrContext, Gl, glTextureId, width, height, colorType, out renderState);
         }
 
         internal void BindForDrawing(GlFramebufferState renderState) =>

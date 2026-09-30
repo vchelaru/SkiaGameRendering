@@ -24,9 +24,8 @@ while (!Raylib.WindowShouldClose())
     Raylib.BeginDrawing();
     Raylib.ClearBackground(Color.Black);
 
-    // canvas.End() composites the whole surface itself via Raylib.DrawTexture - no manual flip or
-    // draw call needed here. SkiaRaylibRenderTarget2D bakes the bottom-left-origin flip into the
-    // Skia surface itself (see SkiaRaylibContext.CreateSurface), so it samples correctly.
+    // canvas.End() composites the whole surface itself via Raylib.DrawTexture, with no manual flip
+    // or draw call needed here.
     canvas.Begin();
     canvas.Canvas.Clear(SKColors.CornflowerBlue);
     Scene.Draw(canvas.Canvas, Width, Height);

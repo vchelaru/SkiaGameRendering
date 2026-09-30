@@ -19,7 +19,7 @@ namespace SkiaGameRendering.Core.OGL
         {
             var procAddress = _context.GetProcAddress(nativeName);
             if (procAddress == IntPtr.Zero)
-                throw new InvalidOperationException($"GetProcAddress returned null for '{nativeName}'.");
+                throw new EntryPointNotFoundException($"GetProcAddress returned null for '{nativeName}'.");
 
             return Marshal.GetDelegateForFunctionPointer<T>(procAddress);
         }

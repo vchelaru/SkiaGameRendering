@@ -34,10 +34,9 @@ namespace SkiaGameRendering.Godot
     /// <item>
     /// <b>Texture orientation.</b> Godot uploads image row 0 (the top) to GL texel row 0 and its
     /// canvas samples <c>v = 0</c> as the top, so Skia must write canvas row 0 into texel row 0:
-    /// <see cref="GRSurfaceOrigin.TopLeft"/> (Core.OGL's default, as the MonoGame backend uses). NOT
-    /// the raylib adapter's <c>BottomLeft</c>, which puts canvas row 0 in the last texel row for hosts
-    /// that sample the other way up and shows every texture upside down here. A symmetric test image
-    /// hides the difference.
+    /// <see cref="GRSurfaceOrigin.TopLeft"/> (Core.OGL's default, as the MonoGame and raylib backends
+    /// use). <c>BottomLeft</c> puts canvas row 0 in the last texel row and shows every texture upside
+    /// down here. A symmetric test image hides the difference.
     /// </item>
     /// <item>
     /// <b>Synchronization</b> is GL's shared-object rule: the writing context flushes (Skia's
