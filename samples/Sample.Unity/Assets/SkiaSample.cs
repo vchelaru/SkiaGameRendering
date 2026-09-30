@@ -39,9 +39,13 @@ public sealed class SkiaSample : MonoBehaviour
     // Translucent, and with a channel between 0 and 255, where Gamma and Linear blending disagree.
     static readonly Color32 Translucent = new Color32(255, 128, 0, 128);
 
+    // Recreated in OnEnable, since a script reload in play mode loses them (see OnDisable).
     SkiaUnityRenderTarget _target;
     SKPaint _translucent;
     SKPaint _grey;
+    // Unity objects, so they survive a script reload and OnEnable can point them at a new texture.
+    Material _quadMaterial;
+    RawImage _rawImage;
     Texture2D _greyReference;
     Texture2D _translucentReference;
     bool _smokeTest;
@@ -58,9 +62,6 @@ public sealed class SkiaSample : MonoBehaviour
             Application.runInBackground = true;
         // Room for every copy; the default window can be smaller.
         Screen.SetResolution(2 * Width, 2 * Height, FullScreenMode.Windowed);
-        _target = new SkiaUnityRenderTarget(Width, Height);
-        _translucent = new SKPaint { Color = new SKColor(Translucent.r, Translucent.g, Translucent.b, Translucent.a) };
-        _grey = new SKPaint { Color = new SKColor(Grey.r, Grey.g, Grey.b, Grey.a) };
         _greyReference = SolidTexture(Grey);
         _translucentReference = SolidTexture(Translucent);
 
@@ -77,19 +78,19 @@ public sealed class SkiaSample : MonoBehaviour
             uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) },
             triangles = new[] { 0, 2, 1, 2, 3, 1 },
         };
-        quad.AddComponent<MeshRenderer>().material = new Material(SkiaUnityRenderTarget.PremultipliedMaterial) { mainTexture = _target.Texture };
+        quad.AddComponent<MeshRenderer>().material = _quadMaterial = new Material(SkiaUnityRenderTarget.PremultipliedMaterial) { mainTexture = _target.Texture };
         Place(quad.transform, QuadX, 0, Width, Height, 0);
         AddSprite(_translucentReference, QuadX + 2 * Cell);
         AddSprite(_greyReference, QuadX + 3 * Cell);
 
         var canvas = new GameObject("Canvas").AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        AddRawImage(canvas, _target.Texture, SkiaUnityRenderTarget.PremultipliedMaterial, 0, UiY, Width, Height);
+        _rawImage = AddRawImage(canvas, _target.Texture, SkiaUnityRenderTarget.PremultipliedMaterial, 0, UiY, Width, Height);
         AddRawImage(canvas, _translucentReference, null, 2 * Cell, UiY + Cell, Cell, Cell);
         AddRawImage(canvas, _greyReference, null, 3 * Cell, UiY + Cell, Cell, Cell);
     }
 
-    static void AddRawImage(Canvas canvas, Texture texture, Material material, float x, float y, float width, float height)
+    static RawImage AddRawImage(Canvas canvas, Texture texture, Material material, float x, float y, float width, float height)
     {
         var image = new GameObject("RawImage").AddComponent<RawImage>();
         image.transform.SetParent(canvas.transform, false);
@@ -99,6 +100,7 @@ public sealed class SkiaSample : MonoBehaviour
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1);
         rect.anchoredPosition = new Vector2(x, -y);
         rect.sizeDelta = new Vector2(width, height);
+        return image;
     }
 
     static void AddSprite(Texture2D texture, int x)
@@ -152,11 +154,29 @@ public sealed class SkiaSample : MonoBehaviour
         return texture;
     }
 
-    void OnDestroy()
+    void OnEnable()
+    {
+        _target = new SkiaUnityRenderTarget(Width, Height);
+        _translucent = new SKPaint { Color = new SKColor(Translucent.r, Translucent.g, Translucent.b, Translucent.a) };
+        _grey = new SKPaint { Color = new SKColor(Grey.r, Grey.g, Grey.b, Grey.a) };
+        if (_quadMaterial != null)
+            _quadMaterial.mainTexture = _target.Texture;
+        if (_rawImage != null)
+            _rawImage.texture = _target.Texture;
+    }
+
+    // Also runs before a script reload in play mode, which drops every field that isn't a Unity
+    // object or serializable, so the Skia objects are released here and recreated in OnEnable.
+    void OnDisable()
     {
         _target?.Dispose();
+        _target = null;
         _translucent?.Dispose();
         _grey?.Dispose();
+    }
+
+    void OnDestroy()
+    {
         Destroy(_greyReference);
         Destroy(_translucentReference);
     }

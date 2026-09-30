@@ -5,5 +5,8 @@
     "com.unity.modules.imgui": "1.0.0",
     "com.unity.ugui": "2.6.0",
     "com.vchelaru.skiagamerendering": "file:../../../unity/com.vchelaru.skiagamerendering"
-  }
+  },
+  "testables": [
+    "com.vchelaru.skiagamerendering"
+  ]
 }
