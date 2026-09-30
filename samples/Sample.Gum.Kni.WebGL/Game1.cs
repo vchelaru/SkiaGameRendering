@@ -102,6 +102,11 @@ internal sealed class Game1 : Game
         if (!SkiaRenderer.IsInitialized && SkiaRenderer.IsReady)
             SkiaRenderer.Initialize(GraphicsDevice);
 
+        var gumTexture = SkiaRenderer.IsInitialized ? DrawOffscreen() : null;
+
+        // The back buffer is DiscardContents (the XNA default), so KNI clears it to DiscardColor
+        // (purple) each time it becomes the target again. Every offscreen pass has to finish above,
+        // before the first screen draw, or it wipes everything drawn to the screen so far.
         GraphicsDevice.SetRenderTarget(null);
         GraphicsDevice.Clear(new Color(19, 22, 27));
 
@@ -110,37 +115,42 @@ internal sealed class Game1 : Game
         _batch.Draw(_pixel!, new Rectangle(24, 84, 520, 10), new Color(54, 122, 178));
         _batch.End();
 
-        if (SkiaRenderer.IsInitialized)
+        if (gumTexture != null)
         {
-            var host = Host;
-            if (host?.IsContextLost != true)
-                _gum!.Draw();
+            BeginScreenBatch(BlendState.AlphaBlend, SamplerState.LinearClamp);
+            _batch.Draw(gumTexture, new Rectangle(40, 100, 394, 246), Color.White);
+            _batch.End();
 
-            if (_gum!.Texture != null)
-            {
-                BeginScreenBatch(BlendState.AlphaBlend, SamplerState.LinearClamp);
-                _batch.Draw(_gum.Texture, new Rectangle(40, 100, 394, 246), Color.White);
-                _batch.End();
+            BeginScreenBatch(BlendState.AlphaBlend, SamplerState.LinearClamp);
+            _batch.Draw(_uiTarget!, new Vector2(770, 350), null, Color.White, -0.08f,
+                new Vector2(240, 150), 0.72f, SpriteEffects.None, 0);
+            _batch.Draw(_pixel!, new Rectangle(300, 210, 250, 12), new Color(238, 84, 74, 220));
+            _batch.End();
 
-                GraphicsDevice.SetRenderTarget(_uiTarget);
-                GraphicsDevice.Clear(Color.Transparent);
-                _batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
-                _batch.Draw(_gum.Texture, new Rectangle(0, 0, 480, 300), Color.White);
-                _batch.Draw(_pixel!, new Rectangle(350, 245, 120, 36), new Color(240, 190, 64, 210));
-                _batch.End();
-                GraphicsDevice.SetRenderTarget(null);
-
-                BeginScreenBatch(BlendState.AlphaBlend, SamplerState.LinearClamp);
-                _batch.Draw(_uiTarget!, new Vector2(770, 350), null, Color.White, -0.08f,
-                    new Vector2(240, 150), 0.72f, SpriteEffects.None, 0);
-                _batch.Draw(_pixel!, new Rectangle(300, 210, 250, 12), new Color(238, 84, 74, 220));
-                _batch.End();
-
-                DrawWithShader(_gum.Texture);
-            }
+            DrawWithShader(gumTexture);
         }
 
         base.Draw(gameTime);
+    }
+
+    // Draws Gum through Skia, then composites it into _uiTarget. Returns the Gum texture, or null if
+    // there isn't one yet.
+    private Texture2D? DrawOffscreen()
+    {
+        if (Host?.IsContextLost != true)
+            _gum!.Draw();
+
+        var gumTexture = _gum!.Texture;
+        if (gumTexture == null)
+            return null;
+
+        GraphicsDevice.SetRenderTarget(_uiTarget);
+        GraphicsDevice.Clear(Color.Transparent);
+        _batch!.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
+        _batch.Draw(gumTexture, new Rectangle(0, 0, 480, 300), Color.White);
+        _batch.Draw(_pixel!, new Rectangle(350, 245, 120, 36), new Color(240, 190, 64, 210));
+        _batch.End();
+        return gumTexture;
     }
 
     public void SetBrowserState(
