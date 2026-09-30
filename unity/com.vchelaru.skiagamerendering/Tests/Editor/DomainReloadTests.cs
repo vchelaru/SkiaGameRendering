@@ -23,10 +23,10 @@ namespace SkiaGameRendering.Unity.Tests
     /// </summary>
     public sealed class DomainReloadTests
     {
-        const int Size = 64;
+        internal const int Size = 64;
         const int Cycles = 5;
         // Unity's own count wanders by one between otherwise identical cycles.
-        const int AllowedGrowth = 2;
+        internal const int AllowedGrowth = 2;
         const string CycleKey = "SkiaGameRendering.Tests.Cycle";
         const string BaselineKey = "SkiaGameRendering.Tests.DeviceRefs";
 
@@ -99,7 +99,7 @@ namespace SkiaGameRendering.Unity.Tests
         }
 
         // Red over the top half, transparent below, so the check also catches a flipped texture.
-        static void Draw(SkiaUnityRenderTarget target)
+        internal static void Draw(SkiaUnityRenderTarget target)
         {
             using var paint = new SKPaint { Color = SKColors.Red };
             target.Begin();
@@ -134,7 +134,7 @@ namespace SkiaGameRendering.Unity.Tests
 
         // Unity's ID3D11Device, reached through a texture: ID3D11DeviceChild::GetDevice is vtable
         // slot 3, and AddRefs the device, which the Release below gives back.
-        static int DeviceRefCount()
+        internal static int DeviceRefCount()
         {
             var texture = new RenderTexture(4, 4, 0);
             texture.Create();

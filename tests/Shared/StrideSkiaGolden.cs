@@ -74,6 +74,58 @@ static partial class StrideSkiaGolden
     }
 
     /// <summary>
+    /// <see cref="FrameLeakCheck"/> over <see cref="RenderSceneCompositedByEngine"/>'s round trip,
+    /// with the canvas, target and command list kept across frames the way a game keeps them. Stride
+    /// only waits for the GPU when it presents, which a headless device never does, so every other
+    /// frame waits here instead, holding the CPU to a couple of frames ahead as presenting would.
+    /// </summary>
+    internal static void AssertNoPerFrameGrowth(GraphicsDevice graphicsDevice, Xunit.Abstractions.ITestOutputHelper output)
+    {
+        using var compositeTarget = Texture.New2D(
+            graphicsDevice, GoldenScene.Width, GoldenScene.Height, PixelFormat.R8G8B8A8_UNorm,
+            TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+        using var canvas = new SkiaStrideCanvas(graphicsDevice, GoldenScene.Width, GoldenScene.Height);
+        using var frames = BeginFrames(graphicsDevice, out var runFrame);
+
+        int frame = 0;
+        FrameLeakCheck.AssertNoPerFrameGrowth(() =>
+        {
+            // What Game.BeginDraw/EndDraw call. Without them Stride's D3D12 and Vulkan devices never
+            // recycle their per-frame allocations, and grow by ~240 KB a frame with no Skia involved.
+            graphicsDevice.Begin();
+            runFrame(compositeTarget, graphicsContext =>
+            {
+                canvas.Begin();
+                GoldenScene.Draw(canvas.Canvas);
+                canvas.End(graphicsContext);
+            });
+            graphicsDevice.End();
+            if (++frame % 2 == 0)
+                WaitForGpu(graphicsDevice);
+        }, output);
+    }
+
+    /// <summary>
+    /// Stride's own wait-for-idle, <c>GraphicsDevice.WaitForGpuIdle</c>, which it keeps internal.
+    /// </summary>
+    static void WaitForGpu(GraphicsDevice graphicsDevice)
+    {
+        _waitForGpuIdle ??= typeof(GraphicsDevice).GetMethod("WaitForGpuIdle",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.NonPublic, Type.EmptyTypes)
+            ?? throw new MissingMethodException(nameof(GraphicsDevice), "WaitForGpuIdle");
+        _waitForGpuIdle.Invoke(graphicsDevice, null);
+    }
+
+    static System.Reflection.MethodInfo? _waitForGpuIdle;
+
+    /// <summary>
+    /// <see cref="Composite"/>, split so one command list serves every frame: returns what owns it,
+    /// and a <paramref name="runFrame"/> that records and submits one frame into it.
+    /// </summary>
+    private static partial IDisposable BeginFrames(GraphicsDevice graphicsDevice, out Action<Texture, Action<GraphicsContext>> runFrame);
+
+    /// <summary>
     /// Binds <paramref name="target"/> as the render target, clears it, then runs
     /// <paramref name="draw"/> against a <see cref="GraphicsContext"/> wrapping the same command
     /// list, and submits whatever that recorded. Real <c>GraphicsCompositor</c>/

@@ -59,6 +59,36 @@ test("survives source context loss and page remount", async ({ page }) => {
   await expect(page.locator("#diagnostics")).toContainText("WebGL 2");
 });
 
+// The WebAssembly heap holds both Skia's native allocations and .NET's managed heap, and it only ever
+// grows, so after a warm-up any growth over hundreds of frames is a leak (or a cache still filling,
+// which the first measured window absorbs).
+test("draws hundreds of frames without growing the WebAssembly heap", async ({ page }) => {
+  test.skip(test.info().project.name !== "scene-chromium", "One browser is enough; the heap is the runtime's, not the browser's.");
+  const frames = async () => Number((await page.locator("#diagnostic-text").textContent()).match(/frames (\d+)/)?.[1] ?? 0);
+  const heapBytes = () => page.evaluate(() => {
+    const runtime = globalThis.getDotnetRuntime?.(0) ?? globalThis.Blazor?.runtime;
+    return runtime?.Module?.HEAPU8?.byteLength ?? null;
+  });
+  const waitForFrames = async count => {
+    const target = (await frames()) + count;
+    await expect.poll(frames, { timeout: 60000 }).toBeGreaterThanOrEqual(target);
+  };
+
+  await page.goto("/");
+  await expect(page.locator("#diagnostics")).toContainText("WebGL 2");
+  await waitForFrames(120);
+  const start = await heapBytes();
+  expect(start, "the .NET runtime's WebAssembly heap should be reachable").not.toBeNull();
+  await waitForFrames(300);
+  const middle = await heapBytes();
+  await waitForFrames(300);
+  const end = await heapBytes();
+
+  const mb = bytes => (bytes / (1024 * 1024)).toFixed(1);
+  console.log(`WebAssembly heap over 600 frames: ${mb(start)} -> ${mb(middle)} -> ${mb(end)} MB`);
+  expect(end - middle, `heap grew from ${mb(middle)} to ${mb(end)} MB over the last 300 frames`).toBe(0);
+});
+
 test("switches the upload path and keeps drawing the Scene", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("#diagnostics")).toContainText("WebGL 2");
