@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\..\eng\Versions.props" />
+  <!--
+    Builds samples/Shared/Scene.cs (and its embedded Drop.svg) into a DLL Unity can load, since Unity
+    compiles its own scripts and can't embed a resource. eng/build-unity-package.ps1 copies this
+    output, with Svg.Skia's dependencies, into the sample's Assets/Plugins/Scene.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <Import Project="..\..\Shared\Scene.props" />
+</Project>
