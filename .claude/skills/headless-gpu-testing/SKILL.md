@@ -224,6 +224,12 @@ xUnit collection that runs after the parallel tests, so other devices can't move
 - **Vulkan and D3D12 grow when the CPU never waits for the GPU**, because Skia keeps queuing work.
   That's a harness artifact, not a leak; wait for the GPU every few frames.
 
+## Native crashes
+
+**A native crash in the test host leaves a managed stack that stops at the P/Invoke.** The Windows
+Application event log's "Application Error" entry names the faulting module and offset (e.g.
+`libGLESv2.dll+0x2B973A`), which is what actually locates the crash.
+
 ## Golden images
 
 `tests/Shared/GoldenScene.cs` (one scene, drawn by every backend) and `tests/Shared/GoldenImage.cs`
