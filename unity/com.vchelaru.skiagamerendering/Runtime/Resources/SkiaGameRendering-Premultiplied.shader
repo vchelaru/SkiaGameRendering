@@ -2,12 +2,20 @@
 // default blending (SrcAlpha, OneMinusSrcAlpha) would multiply color by alpha a second time and
 // darken every edge and translucent area. Lives in Resources so builds always include it; see
 // SkiaUnityRenderTarget.PremultipliedMaterial.
+//
+// Skia's bytes are sRGB-encoded, but the texture is UNorm (ANGLE renders into it), so in a Linear
+// project nothing decodes them on sampling. This shader does, the way an sRGB texture holding the
+// straight colors would: unpremultiply, decode, premultiply again. Decoding the premultiplied values
+// directly, as an sRGB texture format would, darkens everything translucent. IMGUI is the exception:
+// it writes gamma values even in a Linear project, so _GammaOutput (PremultipliedGuiMaterial) skips
+// the decode there.
 Shader "SkiaGameRendering/Premultiplied"
 {
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1, 1, 1, 1)
+        [HideInInspector] _GammaOutput ("Output is gamma (IMGUI)", Float) = 0
     }
     SubShader
     {
@@ -26,7 +34,8 @@ Shader "SkiaGameRendering/Premultiplied"
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
-            fixed4 _Color;
+            float4 _Color;
+            float _GammaOutput;
 
             struct appdata
             {
@@ -48,10 +57,24 @@ Shader "SkiaGameRendering/Premultiplied"
                 return o;
             }
 
-            fixed4 frag(v2f i) : SV_Target
+            float4 frag(v2f i) : SV_Target
             {
+                float4 color = tex2D(_MainTex, i.uv);
+                float4 tint = _Color;
+            #ifndef UNITY_COLORSPACE_GAMMA
+                if (_GammaOutput > 0.5)
+                {
+                    // Unity hands material colors over in linear; this output is gamma.
+                    tint.rgb = float3(LinearToGammaSpaceExact(tint.r), LinearToGammaSpaceExact(tint.g), LinearToGammaSpaceExact(tint.b));
+                }
+                else if (color.a > 0)
+                {
+                    float3 straight = saturate(color.rgb / color.a);
+                    color.rgb = float3(GammaToLinearSpaceExact(straight.r), GammaToLinearSpaceExact(straight.g), GammaToLinearSpaceExact(straight.b)) * color.a;
+                }
+            #endif
                 // The tint's alpha has to scale color too, or the result stops being premultiplied.
-                return tex2D(_MainTex, i.uv) * fixed4(_Color.rgb * _Color.a, _Color.a);
+                return color * float4(tint.rgb * tint.a, tint.a);
             }
             ENDCG
         }
