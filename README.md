@@ -22,6 +22,7 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 | FNA (SDL_GPU) | Vulkan/D3D12/Metal | Blocked: FNA3D's default driver exposes no native device (see the FNA section below) | |
 | Stride (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D11)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) (Windows) | ANGLE (GL ES → D3D11 translation) on shared device |
 | Stride (Vulkan) | Vulkan | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.VK)](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) (Linux, macOS, Windows) | Skia's Vulkan backend on Stride's shared `VkDevice`/`VkQueue`, no separate context |
+| Stride (D3D12) | D3D12 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D12)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D12) (Windows) | Skia's D3D12 backend on Stride's shared `ID3D12Device`/queue, drawing straight into the Stride texture |
 | Godot 4.7+ (Vulkan) | Vulkan | Source only for now (`src/SkiaGameRendering.Godot`) | Skia's Vulkan backend on the handles Godot's `RenderingDevice.GetDriverResource` exposes publicly; drawn straight into an RD texture shown via `Texture2DRD`. No reflection. |
 | Godot 4.7+ (D3D12) | D3D12 | Same package, backend picked at runtime (Windows) | Skia's D3D12 backend on Godot's `ID3D12Device`/queue; Skia draws into a typed resource this library owns and one GPU `CopyResource` per frame lands it in Godot's (typeless) texture - no CPU readback, but not zero-copy |
 | Godot 4.7+ (Compatibility) | OpenGL 3.3 | Same package (Windows native WGL; Linux X11/GLX unrun) | Second GL context sharing Godot's, Skia draws into an FBO around an ordinary `ImageTexture`'s GL texture - zero-copy, the raylib adapter's shape |
@@ -37,7 +38,7 @@ on 3.8.5 the same as it does on 3.8.4 (see `SkiaGameRendering-Notes.md` section 
 
 - .NET 8 (.NET 10 for the Stride backend)
 - Visual Studio 2022
-- MonoGame 3.8.4.1+ (DesktopGL or WindowsDX; samples use 3.8.5.1), KNI (DesktopGL, WindowsDX, or WebGL/Blazor), FNA 26.09+ (D3D11 on Windows, or OpenGL anywhere), raylib, Stride 4.4.0-beta5+ (D3D11 on Windows, or Vulkan on Windows/Linux/macOS; prerelease), or Godot 4.7+ .NET (Forward+/Mobile on Vulkan, D3D12 or Metal, or Compatibility on native OpenGL)
+- MonoGame 3.8.4.1+ (DesktopGL or WindowsDX; samples use 3.8.5.1), KNI (DesktopGL, WindowsDX, or WebGL/Blazor), FNA 26.09+ (D3D11 on Windows, or OpenGL anywhere), raylib, Stride 4.4.0-beta5+ (D3D11 or D3D12 on Windows, or Vulkan on Windows/Linux/macOS; prerelease), or Godot 4.7+ .NET (Forward+/Mobile on Vulkan, D3D12 or Metal, or Compatibility on native OpenGL)
 - SkiaSharp 3.119.4 for WebGL and the KNI desktop backends; 3.119.2 for the MonoGame desktop projects
 
 The MonoGame DesktopGL (`SkiaGameRendering`) and WindowsDX (`SkiaGameRendering.WindowsDX`) packages
@@ -60,6 +61,7 @@ Install the NuGet package for your platform, then follow the setup for your engi
 | raylib | `SkiaGameRendering.Raylib.OGL` | `docs/raylib/quickstart.md` |
 | Stride (D3D11) | `SkiaGameRendering.Stride.D3D11` | `docs/stride/quickstart.md` |
 | Stride (Vulkan) | `SkiaGameRendering.Stride.VK` | `docs/stride/vulkan-quickstart.md` |
+| Stride (D3D12) | `SkiaGameRendering.Stride.D3D12` | `docs/stride/d3d12-quickstart.md` |
 | Godot (Vulkan, D3D12 or Compatibility) | `SkiaGameRendering.Godot` (not published yet; reference the project from source) | `docs/godot/quickstart.md` |
 | Unity 6 (D3D11) | Not on NuGet: Package Manager > Install package from git URL > `https://github.com/vchelaru/SkiaGameRendering.git#upm` (or `#upm/v<version>` to pin one) | [Unity](#unity) |
 
@@ -167,6 +169,9 @@ For Vulkan, use the `SkiaGameRendering.Stride.VK` namespace and the `SkiaStrideV
 (`SkiaStrideVulkanRenderTarget2D`, `SkiaStrideVulkanSceneRenderer`, `SkiaStrideVulkanRenderer`).
 On Windows, also set `<StrideGraphicsApi>Vulkan</StrideGraphicsApi>` in your project; see
 `docs/stride/vulkan-quickstart.md`.
+
+For Direct3D 12, use the `SkiaGameRendering.Stride.D3D12` namespace and the `SkiaStrideD3D12*` types,
+and set `<StrideGraphicsApi>Direct3D12</StrideGraphicsApi>`; see `docs/stride/d3d12-quickstart.md`.
 
 ### Unity
 
@@ -284,6 +289,7 @@ and hardware, see [docs/performance.md](docs/performance.md).
 - `samples/Sample.Fna.OGL/`: FNA sample on FNA3D's OpenGL driver (same setup; the vendored fnalibs are Windows x64 only, so on Linux/macOS drop in your own)
 - `samples/Sample.Stride.D3D11/` — Stride sample (Windows, D3D11 only)
 - `samples/Sample.Stride.VK/` — Stride sample (Vulkan; builds on Windows via `StrideGraphicsApi=Vulkan`, runs on Windows/Linux/macOS)
+- `samples/Sample.Stride.D3D12/`: Stride sample (Windows, D3D12 via `StrideGraphicsApi=Direct3D12`)
 - `samples/Sample.Godot/` — Godot 4.7 project (Vulkan, D3D12 or Compatibility via `--rendering-driver`; `dotnet build` it, then open or run it with a Godot .NET editor binary - not shipped here)
 - `samples/Sample.Unity/`: Unity 6 project (Windows, D3D11). Run `eng/build-unity-package.ps1` first to fill the package's `Plugins/`; `--smoke-test` checks the rendered pixels and exits
 - `samples/Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
@@ -308,6 +314,8 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Core.VK/` — engine-agnostic Vulkan/Skia interop shared by Vulkan-based backends
 - `src/SkiaGameRendering.Core.Metal/`: engine-agnostic Metal/Skia interop shared by Metal-based backends (Godot on macOS today)
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaStrideVulkanRenderTarget2D`, Windows/Linux/macOS)
+- `src/SkiaGameRendering.Core.D3D12/`: engine-agnostic D3D12/Skia interop shared by D3D12-based backends
+- `src/SkiaGameRendering.Stride.D3D12/`: Stride library (shared `Core.D3D12` + `SkiaStrideD3D12RenderTarget2D`, Windows/D3D12 only)
 - `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s netstandard2.1 build + `SkiaUnityRenderTarget`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Godot/` — Godot library (`Core.VK`, `Core.D3D12`, `Core.Metal` and `Core.OGL` behind one `SkiaGodotRenderTarget2D`, backend chosen from the running driver; no reflection, all public Godot API)
 

@@ -129,6 +129,9 @@ jobs:
       # exercises the Vulkan variant of Stride.Graphics.dll on windows-latest with no Linux/macOS
       # hardware needed to build - repo issue #54's "force GraphicsPlatform: Vulkan" trick.
       - run: dotnet build samples/Sample.Stride.VK/Sample.Stride.VK.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Stride.D3D12/SkiaGameRendering.Stride.D3D12.csproj -c ${{ matrix.configuration }}
+      # Sample.Stride.D3D12.csproj forces StrideGraphicsApi=Direct3D12, the same trick as Sample.Stride.VK.
+      - run: dotnet build samples/Sample.Stride.D3D12/Sample.Stride.D3D12.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Godot/SkiaGameRendering.Godot.csproj -c ${{ matrix.configuration }}
       # A Godot.NET.Sdk project builds with the plain .NET SDK (GodotSharp comes from NuGet); no
       # Godot binary is needed to compile it. Running it is tests/Tests.Godot's job, above.
