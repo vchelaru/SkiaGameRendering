@@ -164,6 +164,12 @@ runs today.
   it, the call appears to succeed (no exception, correct count) but every element comes back zeroed -
   the native writes never make it back into the managed array. An `IntPtr[]` (as used for
   `vkEnumeratePhysicalDevices`) round-trips fine without the attribute; a custom struct array does not.
+- **Lavapipe, like WARP, renders correct pixels with wrong image layouts, so pixel tests cannot catch a
+  broken handoff.** Only `VK_LAYER_KHRONOS_validation` reports it;
+  `tests/Tests.Stride.VK/StrideVulkanLayoutValidationTests.cs` is the pattern, and skips when the layer
+  is absent (as on CI's Windows runner). On a dev box the Vulkan SDK installs without admin via
+  `vulkansdk.exe --root <dir> --accept-licenses --default-answer --confirm-command install copy_only=1`;
+  then set `VK_ADD_LAYER_PATH=<dir>\Bin`.
 
 ## Metal - the real device
 
