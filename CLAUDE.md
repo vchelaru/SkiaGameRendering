@@ -54,6 +54,11 @@ done. Prefer a small standalone verification app over the full interactive sampl
 since a sample's camera/controls/gameplay still need a human's subjective judgment. For anything
 needing that subjective read, keep to build-and-test and give the user numbered manual steps instead.
 
+## Releasing
+
+Every package, the NuGet packages and the Unity package alike, ships together at one version from a
+single `publish.yml` run. Never add an option to publish one platform or package on its own.
+
 ## Gotchas
 
 - **`gh` defaults to the wrong repo.** This repo is a fork of `mfigueirido/SkiaMonoGameRendering`,
