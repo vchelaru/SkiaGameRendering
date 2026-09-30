@@ -13,6 +13,7 @@ using SharedScene = Sample.Shared.Scene;
 ///   godot --path . --rendering-driver vulkan     (or d3d12, or opengl3 with --rendering-method gl_compatibility)
 /// Pass `-- --screenshot out.png` to save the fifth rendered frame to a PNG and quit, which is what
 /// tests/Tests.Godot drives, once per driver, for an objective, no-human-in-the-loop pixel check.
+/// Pass `-- --leak-check N` to measure memory growth over N frames instead (see <see cref="LeakCheck"/>).
 /// </summary>
 public partial class Main : Node2D
 {
@@ -39,22 +40,38 @@ public partial class Main : Node2D
         });
 
         var userArgs = OS.GetCmdlineUserArgs();
-        for (int i = 0; i < userArgs.Length - 1; i++)
+        for (int i = 0; i < userArgs.Length; i++)
         {
-            if (userArgs[i] == "--screenshot")
+            if (userArgs[i] == "--screenshot" && i + 1 < userArgs.Length)
                 _screenshotPath = userArgs[i + 1];
+            else if (userArgs[i] == "--leak-check" && i + 1 < userArgs.Length)
+                _leakCheck = new LeakCheck(int.Parse(userArgs[i + 1]));
+            else if (userArgs[i] == "--no-skia")
+                _skiaOff = true;
         }
     }
+
+    LeakCheck? _leakCheck;
+    bool _skiaOff;
 
     public override void _Process(double delta)
     {
         if (_canvas == null)
             return;
 
-        _canvas.Begin();
-        _canvas.Canvas.Clear(SKColors.CornflowerBlue);
-        SharedScene.Draw(_canvas.Canvas, _canvas.Width, _canvas.Height);
-        _canvas.End();
+        if (!_skiaOff)
+        {
+            _canvas.Begin();
+            _canvas.Canvas.Clear(SKColors.CornflowerBlue);
+            SharedScene.Draw(_canvas.Canvas, _canvas.Width, _canvas.Height);
+            _canvas.End();
+        }
+
+        if (_leakCheck != null && _leakCheck.Frame())
+        {
+            GetTree().Quit(0);
+            return;
+        }
 
         if (_screenshotPath != null && ++_framesRendered == 5)
         {

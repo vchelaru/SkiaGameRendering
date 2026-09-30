@@ -36,6 +36,7 @@
     <Compile Include="..\Shared\StrideTestParallelism.cs" Link="StrideTestParallelism.cs" />
     <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
     <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Compile Include="..\Shared\FrameLeakCheck.cs" Link="FrameLeakCheck.cs" />
     <Compile Include="..\Shared\StrideSkiaGolden.cs" Link="StrideSkiaGolden.cs" />
     <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

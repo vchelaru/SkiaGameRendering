@@ -29,6 +29,8 @@
     <Compile Include="..\Shared\OneFrameGame.cs" Link="OneFrameGame.cs" />
     <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
     <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Compile Include="..\Shared\FrameLeakCheck.cs" Link="FrameLeakCheck.cs" />
+    <Compile Include="..\Shared\EngineFrameLeak.cs" Link="EngineFrameLeak.cs" />
     <Compile Include="..\Shared\EngineSkiaGolden.cs" Link="EngineSkiaGolden.cs" />
     <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

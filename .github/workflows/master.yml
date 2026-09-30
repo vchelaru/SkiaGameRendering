@@ -82,7 +82,9 @@ jobs:
       # Mesa's gallium WGL loader auto-selects a D3D12-backed driver when a D3D12 adapter is
       # enumerable (including WARP) and only falls back to llvmpipe otherwise - forcing the driver
       # here makes the software path deterministic instead of depending on what this runner exposes.
-      - run: dotnet test tests/Tests.proj -c ${{ matrix.configuration }}
+      # Detailed logging shows passing tests' output too, which is where the frame leak checks print
+      # their numbers.
+      - run: dotnet test tests/Tests.proj -c ${{ matrix.configuration }} --logger "console;verbosity=detailed"
         env:
           GALLIUM_DRIVER: llvmpipe
           # Tells every OpenGL and Vulkan golden-image test that this run is on the pinned Mesa
@@ -215,7 +217,7 @@ jobs:
         # Real window/display needed even headless - see webgl-functional's xvfb-run step above and
         # issue #12 for why a bare headless process isn't enough for a real GL context (GLX here,
         # rather than that job's WebGL/EGL case, but the same underlying need for an X display).
-        run: xvfb-run --auto-servernum -- dotnet test tests/Tests.Raylib.OGL/Tests.Raylib.OGL.csproj
+        run: xvfb-run --auto-servernum -- dotnet test tests/Tests.Raylib.OGL/Tests.Raylib.OGL.csproj --logger "console;verbosity=detailed"
         env:
           LIBGL_ALWAYS_SOFTWARE: 1
           GALLIUM_DRIVER: llvmpipe
@@ -239,7 +241,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - run: dotnet test tests/Tests.Core.Metal/Tests.Core.Metal.csproj --logger "console;verbosity=normal"
+      - run: dotnet test tests/Tests.Core.Metal/Tests.Core.Metal.csproj --logger "console;verbosity=detailed"
       - name: Download Godot .NET
         run: |
           version=4.7.2-stable
@@ -248,7 +250,7 @@ jobs:
           rm godot.zip
           echo "GODOT_BIN=$PWD/godot/Godot_mono.app/Contents/MacOS/Godot" >> "$GITHUB_ENV"
       # The runner has a logged-in GUI session, so Godot gets a real window without Xvfb's help.
-      - run: dotnet test tests/Tests.Godot/Tests.Godot.csproj --logger "console;verbosity=normal"
+      - run: dotnet test tests/Tests.Godot/Tests.Godot.csproj --logger "console;verbosity=detailed"
       - name: Upload golden-image diffs
         if: failure()
         uses: actions/upload-artifact@v4
@@ -334,7 +336,7 @@ jobs:
       # The vulkan case runs under --gpu-validation with synchronization validation on and fails on
       # any VUID- or SYNC-HAZARD message (see GodotSampleTests).
       - name: Run the Godot sample on vulkan and opengl3 under Xvfb
-        run: xvfb-run --auto-servernum -s "-screen 0 1280x720x24" -- dotnet test tests/Tests.Godot/Tests.Godot.csproj --logger "console;verbosity=normal"
+        run: xvfb-run --auto-servernum -s "-screen 0 1280x720x24" -- dotnet test tests/Tests.Godot/Tests.Godot.csproj --logger "console;verbosity=detailed"
         env:
           LIBGL_ALWAYS_SOFTWARE: 1
           GALLIUM_DRIVER: llvmpipe
