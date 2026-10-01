@@ -166,9 +166,11 @@ runs today.
 - **Lavapipe, like WARP, renders correct pixels with wrong image layouts, so pixel tests cannot catch a
   broken handoff.** Only `VK_LAYER_KHRONOS_validation` reports it;
   `tests/Tests.Stride.VK/StrideVulkanLayoutValidationTests.cs` is the pattern, and skips when the layer
-  is absent (as on CI's Windows runner). On a dev box the Vulkan SDK installs without admin via
+  is absent unless `SKIAGAMERENDERING_REQUIRE_VK_VALIDATION=1` (CI sets it). On a dev box the Vulkan
+  SDK installs without admin via
   `vulkansdk.exe --root <dir> --accept-licenses --default-answer --confirm-command install copy_only=1`;
-  then set `VK_ADD_LAYER_PATH=<dir>\Bin`.
+  then set `VK_ADD_LAYER_PATH=<dir>\Bin`. CI runs elevated, so `master.yml` registers the layer under
+  `HKLM\SOFTWARE\Khronos\Vulkan\ExplicitLayers` instead, like lavapipe.
 
 ## Metal - the real device
 
