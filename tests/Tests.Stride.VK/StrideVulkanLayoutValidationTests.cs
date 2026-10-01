@@ -12,7 +12,9 @@ namespace Tests.StrideVK;
 /// <summary>
 /// Skips unless the Vulkan loader can see the Khronos validation layer (<c>VK_LAYER_KHRONOS_validation</c>,
 /// from the Vulkan SDK). Stride silently creates its debug instance without the layer when it is
-/// missing, so running anyway would pass without validating anything.
+/// missing, so running anyway would pass without validating anything. CI sets
+/// <c>SKIAGAMERENDERING_REQUIRE_VK_VALIDATION=1</c>, which runs it anyway so a missing layer fails
+/// (on its <c>layerEnabled</c> check) instead of skipping unnoticed.
 /// </summary>
 public sealed class VulkanValidationLayerFactAttribute : FactAttribute
 {
@@ -20,7 +22,7 @@ public sealed class VulkanValidationLayerFactAttribute : FactAttribute
 
     public VulkanValidationLayerFactAttribute()
     {
-        if (!IsLayerAvailable())
+        if (!IsLayerAvailable() && Environment.GetEnvironmentVariable("SKIAGAMERENDERING_REQUIRE_VK_VALIDATION") != "1")
             Skip = $"{LayerName} is not installed (Vulkan SDK), or no Vulkan loader is present.";
     }
 
