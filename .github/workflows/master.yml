@@ -63,6 +63,37 @@ jobs:
           $icdPath = "$PWD\tests\mesa-vendor\lvp_icd.x86_64.json"
           New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
           New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name $icdPath -PropertyType DWord -Value 0 -Force | Out-Null
+      # Tests.Stride.VK's StrideVulkanLayoutValidationTests skip without VK_LAYER_KHRONOS_validation.
+      # Khronos only publishes it prebuilt for Windows inside the 300 MB Vulkan SDK installer, so a
+      # cache miss installs the SDK to a temp folder and keeps just the layer's DLL and JSON.
+      - name: Restore the Vulkan validation layer
+        id: vk-layer-cache
+        uses: actions/cache@v4
+        with:
+          path: tests/vk-layer
+          key: vk-validation-layer-1.4.363.0
+      - name: Download the Vulkan validation layer
+        if: steps.vk-layer-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "1.4.363.0"
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$version/windows/vulkansdk-windows-X64-$version.exe" -OutFile vulkansdk.exe
+          $sdk = "$env:RUNNER_TEMP\VulkanSDK"
+          Start-Process -Wait -FilePath .\vulkansdk.exe -ArgumentList "--root", $sdk, "--accept-licenses", "--default-answer", "--confirm-command", "install", "copy_only=1"
+          New-Item -ItemType Directory -Force -Path tests/vk-layer | Out-Null
+          Copy-Item "$sdk\Bin\VkLayer_khronos_validation.dll", "$sdk\Bin\VkLayer_khronos_validation.json" tests/vk-layer
+          Remove-Item vulkansdk.exe
+      # The loader ignores VK_ADD_LAYER_PATH for elevated processes too, so the layer is registered
+      # the same way as lavapipe above.
+      - name: Register the Vulkan validation layer (registry, not VK_ADD_LAYER_PATH)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $layerPath = "$PWD\tests\vk-layer\VkLayer_khronos_validation.json"
+          if (-not (Test-Path $layerPath)) { throw "$layerPath is missing." }
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\ExplicitLayers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\ExplicitLayers" -Name $layerPath -PropertyType DWord -Value 0 -Force | Out-Null
       # tests/Tests.Godot runs samples/Sample.Godot in the real engine once GODOT_BIN is set: vulkan
       # on the lavapipe ICD registered above, and d3d12 on WARP (Godot takes a software adapter when
       # it is the only one). opengl3 is skipped here (see the test step's env); godot-linux covers
@@ -97,6 +128,8 @@ jobs:
           # not take: GDI's pixel-format calls load System32's copy regardless (the landmine in the
           # headless-gpu-testing skill), Godot fails to create its GL window and then hangs.
           SKIAGAMERENDERING_GODOT_SKIP_DRIVERS: opengl3
+          # The validation layer is registered above, so its test must run, not skip.
+          SKIAGAMERENDERING_REQUIRE_VK_VALIDATION: 1
       # A golden-image failure is a picture, not a number: "2.7% of pixels differ" says nothing about
       # what moved. The tests write the render and a diff next to the test binary on failure.
       - name: Upload golden-image diffs
