@@ -21,8 +21,8 @@ namespace SkiaGameRendering.Unity
     ///
     /// Unity renders on its own thread, so <see cref="Canvas"/> is a recording canvas: <see cref="End"/>
     /// turns the recording into an <see cref="SKPicture"/> and hands it to
-    /// <see cref="SkiaUnityRenderThread"/>, which plays it back onto the texture through ANGLE on the
-    /// render thread. Only Windows on Direct3D 11 is supported so far.
+    /// <see cref="SkiaUnityRenderThread"/>, which plays it back onto the texture on the render thread.
+    /// Supported so far: Direct3D 11 on Windows (through ANGLE) and Metal on macOS.
     /// </summary>
     public sealed class SkiaUnityRenderTarget : IDisposable
     {
@@ -33,7 +33,8 @@ namespace SkiaGameRendering.Unity
             internal IntPtr NativeTexture;
             internal int Width;
             internal int Height;
-            internal Core.ANGLE.AngleTextureState? TextureState;
+            // The backend's per-texture state (AngleTextureState or MetalTextureState).
+            internal object? TextureState;
             internal SKSurface? Surface;
             internal GRBackendRenderTarget? BackendRenderTarget;
         }
@@ -49,10 +50,7 @@ namespace SkiaGameRendering.Unity
                 throw new ArgumentOutOfRangeException(nameof(width));
             if (height <= 0)
                 throw new ArgumentOutOfRangeException(nameof(height));
-            if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Direct3D11)
-                throw new NotSupportedException(
-                    $"SkiaGameRendering.Unity only supports Direct3D11 so far, not {SystemInfo.graphicsDeviceType}. " +
-                    "Set Player Settings > Other Settings > Graphics APIs for Windows to Direct3D11.");
+            SkiaUnityBackend.PrepareOnMainThread();
 
             // An explicit UNorm format, so sampling returns Skia's sRGB-encoded bytes as they are and
             // the premultiplied shader does the Linear-project decode. An sRGB format also imports

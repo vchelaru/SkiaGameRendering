@@ -6,8 +6,8 @@ using UnityEngine;
 namespace SkiaGameRendering.Unity.Tests
 {
     /// <summary>
-    /// Draws one target hundreds of times and fails if anything grows per frame: the D3D11 device's
-    /// references, the references on the empty D3D11 context state every draw swaps in and out (a
+    /// Draws one target hundreds of times and fails if anything grows per frame: the device's
+    /// references, on D3D11 the references on the empty context state every draw swaps in and out (a
     /// missed Release there climbs by one a frame), or the process's private memory. Warms up first,
     /// and holds only the second half of the run to a loose memory limit, since the Editor's own
     /// allocations move that number too. Runs with the other Editor tests (see the repo's CLAUDE.md).
@@ -24,20 +24,34 @@ namespace SkiaGameRendering.Unity.Tests
             var probe = new Texture2D(1, 1, TextureFormat.RGBA32, false);
             try
             {
-                void Run(int count)
+                void Run(int count, bool draw = true)
                 {
                     for (int i = 0; i < count; i++)
                     {
-                        DomainReloadTests.Draw(target);
+                        // On Metal, ReadPixels autoreleases objects that retain the device, and this
+                        // loop never returns to Unity's frame loop to drain them, so drain them here.
+                        var pool = GpuProbe.PushAutoreleasePool();
+                        if (draw)
+                            DomainReloadTests.Draw(target);
                         // Reading a pixel back waits for the render thread to run the queued draw.
                         var previous = RenderTexture.active;
                         RenderTexture.active = target.Texture;
                         probe.ReadPixels(new Rect(0, 0, 1, 1), 0, 0);
                         RenderTexture.active = previous;
+                        GpuProbe.PopAutoreleasePool(pool);
                     }
                 }
 
                 Run(WarmupFrames);
+                // On Metal, Unity's own retains on the device creep up with ReadPixels alone (about 2
+                // per 250 frames), so measure that without Skia and only hold Skia to the excess.
+                int unityDrift = 0;
+                if (GpuProbe.IsMetal)
+                {
+                    int before = GpuProbe.DeviceRefCount();
+                    Run(2 * Frames, draw: false);
+                    unityDrift = GpuProbe.DeviceRefCount() - before;
+                }
                 var emptyState = EmptyStateOfTheFactory();
                 var start = Sample(emptyState);
                 Run(Frames);
@@ -45,11 +59,11 @@ namespace SkiaGameRendering.Unity.Tests
                 Run(Frames);
                 var end = Sample(emptyState);
 
-                Debug.Log($"{WarmupFrames} warm-up + {2 * Frames} frames: " +
+                Debug.Log($"{WarmupFrames} warm-up + {2 * Frames} frames: Unity's own device-ref drift {unityDrift}, " +
                     $"device refs {start.Device} -> {middle.Device} -> {end.Device}, " +
                     $"empty-state refs {start.EmptyState} -> {middle.EmptyState} -> {end.EmptyState}, " +
                     $"private MB {start.Memory >> 20} -> {middle.Memory >> 20} -> {end.Memory >> 20}");
-                Assert.LessOrEqual(end.Device - start.Device, DomainReloadTests.AllowedGrowth, "D3D11 device references grew while drawing frames.");
+                Assert.LessOrEqual(end.Device - start.Device - unityDrift, DomainReloadTests.AllowedGrowth, "Device references grew while drawing frames.");
                 Assert.LessOrEqual(end.EmptyState - start.EmptyState, DomainReloadTests.AllowedGrowth, "The empty context state's references grew while drawing frames.");
                 Assert.Less(end.Memory - middle.Memory, 32L << 20, "Private memory grew over the last frames.");
             }
@@ -60,41 +74,21 @@ namespace SkiaGameRendering.Unity.Tests
         }
 
         static (int Device, int EmptyState, long Memory) Sample(IntPtr emptyState) =>
-            (DomainReloadTests.DeviceRefCount(), RefCount(emptyState), PrivateBytes());
+            (GpuProbe.DeviceRefCount(), emptyState == IntPtr.Zero ? 0 : RefCount(emptyState), GpuProbe.PrivateBytes());
 
-        // Unity's Mono reports Process.PrivateMemorySize64 as 0, so ask Windows directly.
-        static long PrivateBytes()
-        {
-            var counters = new ProcessMemoryCountersEx { Size = (uint)Marshal.SizeOf<ProcessMemoryCountersEx>() };
-            if (!K32GetProcessMemoryInfo(GetCurrentProcess(), ref counters, counters.Size))
-                throw new InvalidOperationException($"GetProcessMemoryInfo failed: {Marshal.GetLastWin32Error()}");
-            return (long)counters.PrivateUsage;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        struct ProcessMemoryCountersEx
-        {
-            public uint Size;
-            public uint PageFaultCount;
-            public UIntPtr PeakWorkingSetSize, WorkingSetSize, QuotaPeakPagedPoolUsage, QuotaPagedPoolUsage,
-                QuotaPeakNonPagedPoolUsage, QuotaNonPagedPoolUsage, PagefileUsage, PeakPagefileUsage, PrivateUsage;
-        }
-
-        [DllImport("kernel32.dll")]
-        static extern IntPtr GetCurrentProcess();
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool K32GetProcessMemoryInfo(IntPtr process, ref ProcessMemoryCountersEx counters, uint size);
-
-        // The ID3D11DeviceContextState AngleSkiaSurfaceFactory swaps in for every draw. Both fields are
-        // private, so a rename fails this test with a null reference rather than passing silently.
+        // The ID3D11DeviceContextState AngleSkiaSurfaceFactory swaps in for every draw, or zero on
+        // Metal, which has none. The fields are private, so a rename fails this test with a null
+        // reference rather than passing silently.
         static IntPtr EmptyStateOfTheFactory()
         {
+            if (GpuProbe.IsMetal)
+                return IntPtr.Zero;
             const System.Reflection.BindingFlags nonPublic = System.Reflection.BindingFlags.NonPublic;
-            var factory = typeof(SkiaUnityRenderTarget).Assembly
+            var backend = typeof(SkiaUnityRenderTarget).Assembly
                 .GetType("SkiaGameRendering.Unity.SkiaUnityRenderThread", throwOnError: true)
-                .GetField("_factory", nonPublic | System.Reflection.BindingFlags.Static).GetValue(null)
-                ?? throw new InvalidOperationException("The render thread has not created its ANGLE factory.");
+                .GetField("_backend", nonPublic | System.Reflection.BindingFlags.Static).GetValue(null)
+                ?? throw new InvalidOperationException("The render thread has not created its backend.");
+            var factory = backend.GetType().GetField("_factory", nonPublic | System.Reflection.BindingFlags.Instance).GetValue(backend);
             return (IntPtr)factory.GetType().GetField("_emptyState", nonPublic | System.Reflection.BindingFlags.Instance).GetValue(factory);
         }
 

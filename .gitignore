@@ -37,6 +37,7 @@ samples/Sample.Unity/[Bb]uild/
 samples/Sample.Unity/*.csproj
 samples/Sample.Unity/*.sln
 samples/Sample.Unity/*.slnx
+samples/Sample.Unity/.vscode/
 
 ## Claude
 .claude/settings.local.json
