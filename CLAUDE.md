@@ -33,6 +33,8 @@ projects share core source via linked includes, so a change in `src/SkiaGameRend
 authoritative list of what CI builds and in what order; mirror it when deciding what to verify.
 
 - Unit tests: `dotnet test tests/Tests.proj`, which runs every test project under `tests/`.
+- CI never runs Unity, by choice: the editor is a multi-GB download per run. Verify Unity changes
+  locally with the commands below, and say in the PR which platforms were run.
 - The Unity sample needs no editor window. First run `eng/build-unity-package.ps1`, then
   `Unity.exe -batchmode -quit -projectPath samples/Sample.Unity -executeMethod SampleBuild.Build`,
   then `samples/Sample.Unity/Build/Mono/Sample.Unity.exe --smoke-test`, which exits 0 only if the
