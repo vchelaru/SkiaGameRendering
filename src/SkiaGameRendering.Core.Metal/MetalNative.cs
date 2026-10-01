@@ -26,6 +26,15 @@ namespace SkiaGameRendering.Core.Metal
         [DllImport(ObjC, EntryPoint = "objc_getProtocol")]
         public static extern IntPtr GetProtocol(string name);
 
+#if NETSTANDARD2_1
+        // netstandard2.1 has no OperatingSystem.IsMacOS. Unity on iOS has not been tried, so whether it
+        // reports OSX here is unverified.
+        public static bool IsApplePlatform => RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+#else
+        public static bool IsApplePlatform =>
+            OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS() || OperatingSystem.IsMacCatalyst();
+#endif
+
         public static readonly IntPtr SelUsage = Selector("usage");
         public static readonly IntPtr SelConformsToProtocol = Selector("conformsToProtocol:");
 

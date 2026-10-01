@@ -63,7 +63,7 @@ namespace SkiaGameRendering.Core.Metal
         /// <param name="queue">The host engine's <c>id&lt;MTLCommandQueue&gt;</c>, created from <paramref name="device"/>.</param>
         public void InitializeFromNative(IntPtr device, IntPtr queue)
         {
-            if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsIOS() && !OperatingSystem.IsTvOS() && !OperatingSystem.IsMacCatalyst())
+            if (!MetalNative.IsApplePlatform)
                 throw new PlatformNotSupportedException("Metal is only available on Apple platforms.");
             if (device == IntPtr.Zero)
                 throw new ArgumentException("MTLDevice native pointer is null.", nameof(device));

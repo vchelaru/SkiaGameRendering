@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Runtime.InteropServices;
 using NUnit.Framework;
 using SkiaSharp;
 using UnityEditor;
@@ -13,10 +12,10 @@ namespace SkiaGameRendering.Unity.Tests
     /// Draws through <see cref="SkiaUnityRenderTarget"/> across domain reloads, in edit mode and in
     /// play mode (including a script reload while playing), with a draw still queued for the render
     /// thread each time the domain unloads. Each cycle checks that the texture holds the drawing and
-    /// that the adapter hasn't leaked references to Unity's D3D11 device: its ANGLE display, GL
-    /// context and D3D11 state objects hold about a dozen, so a leaked set shows up at once.
-    /// The command to run it is in the repo's CLAUDE.md. It needs a D3D11 device, so not
-    /// <c>-nographics</c>.
+    /// that the adapter hasn't leaked references to Unity's device: on D3D11 its ANGLE display, GL
+    /// context and D3D11 state objects hold about a dozen, and on Metal Skia's GRContext retains the
+    /// MTLDevice, so a leaked set shows up at once. The command to run it is in the repo's CLAUDE.md.
+    /// It needs a real device, so not <c>-nographics</c>.
     ///
     /// Locals and fields don't survive a domain reload, so everything a test carries across one lives
     /// in <see cref="SessionState"/>.
@@ -25,8 +24,10 @@ namespace SkiaGameRendering.Unity.Tests
     {
         internal const int Size = 64;
         const int Cycles = 5;
-        // Unity's own count wanders by one between otherwise identical cycles.
-        internal const int AllowedGrowth = 2;
+        // Unity's own count wanders between otherwise identical cycles: by one on D3D11, by up to
+        // three on Metal, where in-flight command buffers retain the device. A leaked GRContext adds
+        // two per script reload on Metal, so five cycles still exceed this.
+        internal static int AllowedGrowth => GpuProbe.IsMetal ? 5 : 2;
         const string CycleKey = "SkiaGameRendering.Tests.Cycle";
         const string BaselineKey = "SkiaGameRendering.Tests.DeviceRefs";
 
@@ -89,13 +90,13 @@ namespace SkiaGameRendering.Unity.Tests
         static void CheckDeviceReferences(string cycleName)
         {
             int cycle = SessionState.GetInt(CycleKey, 0);
-            int references = DeviceRefCount();
-            Debug.Log($"D3D11 device references after {cycleName} {cycle}: {references}");
+            int references = GpuProbe.DeviceRefCount();
+            Debug.Log($"Device references after {cycleName} {cycle}: {references}");
             if (cycle == 1)
                 SessionState.SetInt(BaselineKey, references);
             else
                 Assert.LessOrEqual(references - SessionState.GetInt(BaselineKey, 0), AllowedGrowth,
-                    $"D3D11 device references grew between {cycleName} 1 and {cycle}.");
+                    $"Device references grew between {cycleName} 1 and {cycle}.");
         }
 
         // Red over the top half, transparent below, so the check also catches a flipped texture.
@@ -131,29 +132,5 @@ namespace SkiaGameRendering.Unity.Tests
             using var target = new SkiaUnityRenderTarget(Size, Size);
             Draw(target);
         }
-
-        // Unity's ID3D11Device, reached through a texture: ID3D11DeviceChild::GetDevice is vtable
-        // slot 3, and AddRefs the device, which the Release below gives back.
-        internal static int DeviceRefCount()
-        {
-            var texture = new RenderTexture(4, 4, 0);
-            texture.Create();
-            try
-            {
-                var nativeTexture = texture.GetNativeTexturePtr();
-                var vtable = Marshal.ReadIntPtr(nativeTexture);
-                var getDevice = Marshal.GetDelegateForFunctionPointer<GetDeviceFn>(Marshal.ReadIntPtr(vtable, 3 * IntPtr.Size));
-                getDevice(nativeTexture, out var device);
-                return Marshal.Release(device);
-            }
-            finally
-            {
-                texture.Release();
-                UnityEngine.Object.DestroyImmediate(texture);
-            }
-        }
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate void GetDeviceFn(IntPtr self, out IntPtr device);
     }
 }
