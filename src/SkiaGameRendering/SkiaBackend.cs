@@ -161,6 +161,9 @@ namespace SkiaGameRendering
                 _renderState = renderState;
             }
 
+            internal override bool ReadPixels(SKImageInfo dstInfo, IntPtr dstPixels, int dstRowBytes, int srcX, int srcY) =>
+                (_surface ?? throw new InvalidOperationException("The target has no surface yet.")).ReadPixels(dstInfo, dstPixels, dstRowBytes, srcX, srcY);
+
             internal override void DisposeSkiaResources()
             {
                 _surface?.Dispose();

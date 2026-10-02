@@ -20,6 +20,7 @@ namespace Sample
         private SkiaRenderTarget2D _canvas;
         private readonly bool _smokeTest;
         private int _frameCount;
+        private bool _skiaChecked;
 
         public int ExitCode { get; private set; }
 
@@ -55,9 +56,13 @@ namespace Sample
                 _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
                 _canvas.Begin();
                 Scene.Draw(_canvas.Canvas, 200, 200);
+                var checkFrame = _smokeTest && ++_frameCount == 3;
+                // Mid-draw, so the readback sees the surface in the state Skia expects.
+                if (checkFrame && System.Environment.GetEnvironmentVariable("SKIAGAMERENDERING_SMOKE_SKIA_READBACK") == "1")
+                    CheckSkiaSurface();
                 _canvas.End();
 
-                if (_smokeTest && ++_frameCount == 3)
+                if (checkFrame && !_skiaChecked)
                     CheckSmokeTestFrame();
             }
 
@@ -71,16 +76,6 @@ namespace Sample
         /// </summary>
         private void CheckSmokeTestFrame()
         {
-            // MonoGame's native Vulkan platform hangs on the next frame after GetBackBufferData when
-            // running on Mesa's lavapipe, so CI sets this there and only checks that the frames ran.
-            if (System.Environment.GetEnvironmentVariable("SKIAGAMERENDERING_SMOKE_SKIP_READBACK") == "1")
-            {
-                System.Console.WriteLine("Smoke test passed: frames ran, pixel readback skipped");
-                ExitCode = 0;
-                Exit();
-                return;
-            }
-
             var circle = ReadBackBufferPixel(50, 50);
             var drop = ReadBackBufferPixel(150, 50);
             var outside = ReadBackBufferPixel(400, 400);
@@ -91,6 +86,33 @@ namespace Sample
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: circle={circle}, drop={drop}, outside={outside}");
             ExitCode = passed ? 0 : 1;
             Exit();
+        }
+
+        /// <summary>
+        /// MonoGame's native Vulkan platform hangs the next frame after GetBackBufferData on Mesa's
+        /// lavapipe, so CI sets SKIAGAMERENDERING_SMOKE_SKIA_READBACK=1 there and checks the pixels Skia
+        /// itself drew instead. That proves the Skia draw, not MonoGame's composite onto the back buffer.
+        /// </summary>
+        private void CheckSkiaSurface()
+        {
+            _skiaChecked = true;
+            var circle = ReadSkiaPixel(50, 50);
+            var drop = ReadSkiaPixel(150, 50);
+            var passed = circle.R > 200 && circle.G < 50 && circle.B < 50
+                && drop.R < 100 && drop.B > 150;
+
+            System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")} (Skia surface readback): circle={circle}, drop={drop}");
+            ExitCode = passed ? 0 : 1;
+            Exit();
+        }
+
+        private Color ReadSkiaPixel(int x, int y)
+        {
+            using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(1, 1, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Premul));
+            if (!_canvas!.ReadPixels(bitmap.Info, bitmap.GetPixels(), bitmap.RowBytes, x, y))
+                return Color.Transparent;
+            var p = bitmap.GetPixelSpan();
+            return new Color(p[0], p[1], p[2], p[3]);
         }
 
         private Color ReadBackBufferPixel(int x, int y)

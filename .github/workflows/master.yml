@@ -346,7 +346,7 @@ jobs:
 
   # MonoGame's native WindowsDX12 and DesktopVK platforms, run through the sample's --smoke-test on
   # windows-latest's software drivers: WARP for D3D12 (the runner's only adapter), Mesa lavapipe for
-  # Vulkan. The Vulkan run checks only that the frames run; see SKIAGAMERENDERING_SMOKE_SKIP_READBACK below.
+  # Vulkan. The Vulkan run reads Skia's own surface instead of the back buffer; see SKIAGAMERENDERING_SMOKE_SKIA_READBACK below.
   monogame-native-windows:
     runs-on: windows-latest
     strategy:
@@ -378,8 +378,8 @@ jobs:
         working-directory: out
         shell: pwsh
         env:
-          # MonoGame's GetBackBufferData hangs the next frame on lavapipe; see Game1.CheckSmokeTestFrame.
-          SKIAGAMERENDERING_SMOKE_SKIP_READBACK: ${{ matrix.platform == 'DesktopVK' && '1' || '' }}
+          # MonoGame's GetBackBufferData hangs the next frame on lavapipe, so read Skia's own surface; see Game1.CheckSkiaSurface.
+          SKIAGAMERENDERING_SMOKE_SKIA_READBACK: ${{ matrix.platform == 'DesktopVK' && '1' || '' }}
         # WinExe detaches from the console, so wait on the process for its exit code and print its
         # redirected output. Touching Handle first makes ExitCode available after the process exits.
         run: |

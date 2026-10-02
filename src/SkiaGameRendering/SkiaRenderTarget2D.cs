@@ -52,6 +52,19 @@ namespace SkiaGameRendering
             : throw new InvalidOperationException("Begin must be called before accessing Canvas.");
 
         /// <summary>
+        /// Reads pixels straight out of Skia's surface, a slow GPU readback meant for tests and
+        /// diagnostics. It never touches the engine's own texture or back buffer, so it works where the
+        /// engine's readback does not. Only valid between <see cref="Begin"/> and <see cref="End"/>,
+        /// while the surface is in the state Skia expects. Not supported on KNI WebGL.
+        /// </summary>
+        public bool ReadPixels(SKImageInfo dstInfo, IntPtr dstPixels, int dstRowBytes, int srcX, int srcY)
+        {
+            if (!_hasBegun)
+                throw new InvalidOperationException("Begin must be called before ReadPixels.");
+            return _target!.ReadPixels(dstInfo, dstPixels, dstRowBytes, srcX, srcY);
+        }
+
+        /// <summary>
         /// Begins a render pass. Throws if a previous <see cref="Begin"/> hasn't been closed with
         /// <see cref="End"/> yet — mirrors <see cref="SpriteBatch.Begin()"/>'s own guard.
         /// </summary>
