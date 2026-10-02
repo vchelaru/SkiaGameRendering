@@ -17,19 +17,17 @@
   </PropertyGroup>
 
   <!--
-    PROOF-OF-CONCEPT for https://github.com/MonoGame/MonoGame/pull/9536 and
-    https://github.com/MonoGame/MonoGame/pull/9535 - see README.md. Neither PR is merged as of
-    3.8.5.1 (the latest MonoGame.Framework.Native on NuGet), so this project does NOT compile yet:
-    GetNativeHandles()/FromNativeHandle() don't exist in that build. Bump the Version below once a
-    release contains both.
+    Uses MonoGame/MonoGame#9536 and #9535 (GetNativeHandles / RenderTarget2D.FromNativeHandle), shipped in
+    3.8.6-preview.2. The native mgruntime.dll comes from the separate MonoGame.Runtime.Windows.DX12 package.
   -->
   <ItemGroup>
     <EmbeddedResource Include="..\Sample.MonoGame.WindowsDX\Icon.ico" Link="Icon.ico" />
     <EmbeddedResource Include="..\Sample.MonoGame.WindowsDX\Icon.bmp" Link="Icon.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.5.1" />
-    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.5.1" />
+    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.6-preview.2" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.6-preview.2" />
+    <PackageReference Include="MonoGame.Runtime.Windows.DX12" Version="3.8.6-preview.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\SkiaGameRendering.Core.D3D12\SkiaGameRendering.Core.D3D12.csproj" />

@@ -14,16 +14,11 @@ draws) with SkiaSharp directly into a texture every frame, with no CPU readback,
 that same texture via `SpriteBatch`. If it works, you'll see the same red circle on black every
 other sample shows, in a normal MonoGame window.
 
-## This does not compile yet
+## Status
 
-`Sample.MonoGame.WindowsDX12.csproj` references `MonoGame.Framework.Native` `3.8.5.1` - the latest
-build on NuGet as of this writing - the same `PackageReference` style every other sample in this
-repo uses. `GraphicsDevice.GetNativeHandles()` and `RenderTarget2D.FromNativeHandle()` don't exist
-in that version, so this fails to compile until both PRs above merge and ship in a release: bump
-the `Version` on both `PackageReference`s in the csproj to that release once it's out.
-
-It is deliberately **not** part of `SkiaGameRendering.sln`, `tests/Tests.proj`, or CI — it doesn't
-compile today, so it's a standalone project with its own `.slnx`, same as this repo's other samples.
+Both PRs shipped in MonoGame `3.8.6-preview.2`. The sample builds and renders the shared Scene (red circle and
+blue drop). The native `mgruntime.dll` is a separate package, `MonoGame.Runtime.Windows.DX12`; without
+it the app dies at startup with `DllNotFoundException: mgruntime`.
 
 ## Known gap: no cross-call synchronization primitive
 
