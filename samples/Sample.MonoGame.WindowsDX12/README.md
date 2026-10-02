@@ -9,6 +9,8 @@ It needs MonoGame `3.8.6-preview.2`, the first release with `GraphicsDevice.GetN
 The native `mgruntime.dll` is a separate package, `MonoGame.Runtime.Windows.DX12`; without it the app
 dies at startup with `DllNotFoundException: mgruntime`.
 
+The library ships on NuGet as `SkiaGameRendering.WindowsDX12` `-preview`; this sample references the project directly.
+
 `--smoke-test` renders a few frames, checks the back buffer for the scene, and exits 0 or 1.
 
 See `docs/documentation/SkiaDx12Backend.md` for how the backend shares the device and queue, and
