@@ -344,6 +344,50 @@ jobs:
           "Exit code: $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode
           exit $p.ExitCode
 
+  # MonoGame's native WindowsDX12 and DesktopVK platforms, run through the sample's --smoke-test on
+  # windows-latest's software drivers: WARP for D3D12 (the runner's only adapter), Mesa lavapipe for
+  # Vulkan. Not known to work there yet, so a failure does not fail the workflow; the log shows
+  # whether MonoGame's adapter selection or lavapipe's windowing is what gives out.
+  monogame-native-windows:
+    runs-on: windows-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [WindowsDX12, DesktopVK]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      # Same lavapipe download and registry registration as desktop-and-core; see the comments there.
+      - name: Download and register Mesa lavapipe
+        if: matrix.platform == 'DesktopVK'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "26.2.0"
+          Invoke-WebRequest -Uri "https://github.com/pal1000/mesa-dist-win/releases/download/$version/mesa3d-$version-release-msvc.7z" -OutFile mesa.7z
+          $vendorDir = "tests/mesa-vendor"
+          New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
+          & "C:\Program Files-Zipz.exe" e mesa.7z -o"$vendorDir" "x64/lvp_icd.x86_64.json" "x64/vulkan_lvp.dll" -y
+          Remove-Item mesa.7z
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name "$PWD	ests\mesa-vendor\lvp_icd.x86_64.json" -PropertyType DWord -Value 0 -Force | Out-Null
+      - run: dotnet build samples/Sample.MonoGame.${{ matrix.platform }}/Sample.MonoGame.${{ matrix.platform }}.csproj -c Release -o out
+      - name: Run the sample's smoke test
+        working-directory: out
+        shell: pwsh
+        # WinExe detaches from the console, so wait on the process for its exit code and print its
+        # redirected output. Touching Handle first makes ExitCode available after the process exits.
+        run: |
+          $p = Start-Process ./Sample.MonoGame.${{ matrix.platform }}.exe -ArgumentList --smoke-test -PassThru -RedirectStandardOutput smoke.txt -RedirectStandardError smoke-err.txt
+          $null = $p.Handle
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); Get-Content smoke.txt, smoke-err.txt; throw "Smoke test timed out" }
+          Get-Content smoke.txt, smoke-err.txt
+          "Exit code: $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode
+          exit $p.ExitCode
+
   godot-linux:
     runs-on: ubuntu-latest
     steps:
