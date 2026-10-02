@@ -61,7 +61,7 @@ namespace SkiaGameRendering
         {
             if (!_hasBegun)
                 throw new InvalidOperationException("Begin must be called before ReadPixels.");
-            return _target!.ReadPixels(dstInfo, dstPixels, dstRowBytes, srcX, srcY);
+            return _backend.ReadPixels(_target!, dstInfo, dstPixels, dstRowBytes, srcX, srcY);
         }
 
         /// <summary>

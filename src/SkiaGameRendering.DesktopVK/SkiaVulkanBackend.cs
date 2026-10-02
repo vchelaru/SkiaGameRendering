@@ -98,7 +98,8 @@ namespace SkiaGameRendering
             if (_handBack is { } target)
             {
                 _handBack = null;
-                ToShaderReadOnly(target.Allocation.Image);
+                ToShaderReadOnly(target.Allocation.Image, target.ReadBack);
+                target.ReadBack = false;
             }
         }
 
@@ -182,6 +183,19 @@ namespace SkiaGameRendering
             _current = target;
         }
 
+        /// <summary>
+        /// Skia's readback leaves the image in TRANSFER_SRC_OPTIMAL, so the hand-back barrier has to start
+        /// from there. Skia's later draws would still assume that layout, so a target that was read back
+        /// is only good for the rest of the current frame.
+        /// </summary>
+        internal override bool ReadPixels(SkiaTarget target, SKImageInfo dstInfo, IntPtr dstPixels, int dstRowBytes, int srcX, int srcY)
+        {
+            var read = base.ReadPixels(target, dstInfo, dstPixels, dstRowBytes, srcX, srcY);
+            if (_current is { } current)
+                current.ReadBack = true;
+            return read;
+        }
+
         internal override void UnbindAfterDrawing()
         {
             if (_current is { } target)
@@ -195,13 +209,13 @@ namespace SkiaGameRendering
         // The image itself is destroyed when its RenderTarget2D is disposed (see CreateTexture).
         internal override void DisposeRenderState(object renderState) { }
 
-        void ToShaderReadOnly(ulong image) =>
+        void ToShaderReadOnly(ulong image, bool readBack = false) =>
             _transitioner!.Transition(
                 image,
-                oldLayout: VkConstants.ImageLayoutColorAttachmentOptimal,
+                oldLayout: readBack ? VkConstants.ImageLayoutTransferSrcOptimal : VkConstants.ImageLayoutColorAttachmentOptimal,
                 newLayout: VkConstants.ImageLayoutShaderReadOnlyOptimal,
-                srcStageMask: VkConstants.PipelineStageColorAttachmentOutput,
-                srcAccessMask: VkConstants.AccessColorAttachmentWrite,
+                srcStageMask: readBack ? VkConstants.PipelineStageTransfer : VkConstants.PipelineStageColorAttachmentOutput,
+                srcAccessMask: readBack ? VkConstants.AccessTransferRead : VkConstants.AccessColorAttachmentWrite,
                 dstStageMask: VkConstants.PipelineStageFragmentShader,
                 dstAccessMask: VkConstants.AccessShaderRead);
 
@@ -233,6 +247,7 @@ namespace SkiaGameRendering
         {
             internal VkImageAllocation Allocation { get; } = allocation;
             internal bool HasDrawn { get; set; }
+            internal bool ReadBack { get; set; }
         }
     }
 }

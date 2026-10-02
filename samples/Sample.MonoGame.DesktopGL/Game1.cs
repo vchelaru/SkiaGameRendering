@@ -63,12 +63,7 @@ namespace Sample
                     CheckSkiaSurface();
                 _canvas.End();
 
-                if (checkFrame && readback == "0")
-                {
-                    System.Console.WriteLine("Smoke test passed: frames ran, no readback");
-                    Exit();
-                }
-                else if (checkFrame && !_skiaChecked)
+                if (checkFrame && !_skiaChecked)
                     CheckSmokeTestFrame();
             }
 
