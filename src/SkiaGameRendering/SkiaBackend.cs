@@ -88,6 +88,12 @@ namespace SkiaGameRendering
             }
         }
 
+        /// <summary>
+        /// Reads pixels back through the target's Skia surface mid-draw (see <see cref="SkiaRenderTarget2D.ReadPixels"/>).
+        /// </summary>
+        internal virtual bool ReadPixels(SkiaTarget target, SKImageInfo dstInfo, IntPtr dstPixels, int dstRowBytes, int srcX, int srcY) =>
+            target.ReadPixels(dstInfo, dstPixels, dstRowBytes, srcX, srcY);
+
         internal virtual Texture2D CreateTexture(int width, int height, SurfaceFormat format)
         {
             return new Texture2D(GraphicsDevice, width, height, false, format);
@@ -160,6 +166,9 @@ namespace SkiaGameRendering
                 _backendRenderTarget = result.renderTarget;
                 _renderState = renderState;
             }
+
+            internal override bool ReadPixels(SKImageInfo dstInfo, IntPtr dstPixels, int dstRowBytes, int srcX, int srcY) =>
+                (_surface ?? throw new InvalidOperationException("The target has no surface yet.")).ReadPixels(dstInfo, dstPixels, dstRowBytes, srcX, srcY);
 
             internal override void DisposeSkiaResources()
             {

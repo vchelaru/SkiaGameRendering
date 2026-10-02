@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
+using SkiaSharp;
 
 namespace SkiaGameRendering
 {
@@ -8,6 +9,10 @@ namespace SkiaGameRendering
     internal abstract class SkiaTarget : IDisposable
     {
         public abstract Texture2D Texture { get; }
+
+        /// <summary>Reads pixels back through Skia's own surface. Only valid mid-draw.</summary>
+        internal virtual bool ReadPixels(SKImageInfo dstInfo, IntPtr dstPixels, int dstRowBytes, int srcX, int srcY) =>
+            throw new NotSupportedException($"{GetType().Name} does not support reading pixels back through Skia.");
 
         internal abstract void DisposeSkiaResources();
         internal abstract void DisposeGraphicsResources();

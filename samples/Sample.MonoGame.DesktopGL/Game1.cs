@@ -20,8 +20,20 @@ namespace Sample
         private SkiaRenderTarget2D _canvas;
         private readonly bool _smokeTest;
         private int _frameCount;
+        private bool _skiaChecked;
+        private bool _leakFailed;
+
+        // SKIAGAMERENDERING_SMOKE_LEAK_FRAMES=N makes --smoke-test run LeakWarmupFrames + 2N frames, compare
+        // the two N-frame windows for growth, and only then check the pixels.
+        private const int LeakWarmupFrames = 50;
+        private static readonly int LeakFrames =
+            int.TryParse(System.Environment.GetEnvironmentVariable("SKIAGAMERENDERING_SMOKE_LEAK_FRAMES"), out var n) && n > 0 ? n : 0;
+        private (long Private, long Managed, int Handles) _leakStart, _leakMiddle;
 
         public int ExitCode { get; private set; }
+
+        /// <summary>An extra pass/fail check a platform's Program adds to the smoke test; runs just before the exit code is set.</summary>
+        public System.Func<GraphicsDevice, bool> ExtraSmokeCheck { get; set; }
 
         public Game1(bool smokeTest = false)
         {
@@ -55,13 +67,62 @@ namespace Sample
                 _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
                 _canvas.Begin();
                 Scene.Draw(_canvas.Canvas, 200, 200);
+                var checkFrame = false;
+                if (_smokeTest)
+                {
+                    _frameCount++;
+                    if (LeakFrames > 0)
+                        SampleLeak();
+                    checkFrame = _frameCount == (LeakFrames > 0 ? LeakWarmupFrames + 2 * LeakFrames : 3);
+                }
+                // Mid-draw, so the readback sees the surface in the state Skia expects.
+                var readback = System.Environment.GetEnvironmentVariable("SKIAGAMERENDERING_SMOKE_SKIA_READBACK");
+                if (checkFrame && readback == "1")
+                    CheckSkiaSurface();
                 _canvas.End();
 
-                if (_smokeTest && ++_frameCount == 3)
+                if (checkFrame && !_skiaChecked)
                     CheckSmokeTestFrame();
             }
 
             base.Draw(gameTime);
+        }
+
+        private void SampleLeak()
+        {
+            if (_frameCount != LeakWarmupFrames && _frameCount != LeakWarmupFrames + LeakFrames && _frameCount != LeakWarmupFrames + 2 * LeakFrames)
+                return;
+
+            // Undisposed Skia wrappers free their native memory from finalizers, so settle those first.
+            System.GC.Collect();
+            System.GC.WaitForPendingFinalizers();
+            System.GC.Collect();
+            using var process = System.Diagnostics.Process.GetCurrentProcess();
+            var now = (process.PrivateMemorySize64, System.GC.GetTotalMemory(true), process.HandleCount);
+
+            if (_frameCount == LeakWarmupFrames)
+                _leakStart = now;
+            else if (_frameCount == LeakWarmupFrames + LeakFrames)
+                _leakMiddle = now;
+            else
+            {
+                const long mb = 1024 * 1024;
+                System.Console.WriteLine($"Leak check over {2 * LeakFrames} frames: private {_leakStart.Private / mb} -> {_leakMiddle.Private / mb} -> {now.Item1 / mb} MB, " +
+                    $"managed {_leakStart.Managed / mb} -> {_leakMiddle.Managed / mb} -> {now.Item2 / mb} MB, handles {_leakStart.Handles} -> {_leakMiddle.Handles} -> {now.Item3}");
+                // Same loose limits as tests/Shared/FrameLeakCheck.cs: they catch a texture or command list per frame.
+                _leakFailed = now.Item1 - _leakStart.Private >= 24 * mb || now.Item1 - _leakMiddle.Private >= 12 * mb
+                    || now.Item2 - _leakStart.Managed >= 2 * mb || now.Item3 - _leakStart.Handles >= 32;
+                if (_leakFailed)
+                    System.Console.WriteLine("Leak check FAILED: a resource grew with the frame count.");
+            }
+        }
+
+        protected override void UnloadContent()
+        {
+            _canvas?.Dispose();
+            _canvas = null;
+            SkiaRenderer.Dispose();
+            base.UnloadContent();
         }
 
         /// <summary>
@@ -71,16 +132,6 @@ namespace Sample
         /// </summary>
         private void CheckSmokeTestFrame()
         {
-            // MonoGame's native Vulkan platform hangs on the next frame after GetBackBufferData when
-            // running on Mesa's lavapipe, so CI sets this there and only checks that the frames ran.
-            if (System.Environment.GetEnvironmentVariable("SKIAGAMERENDERING_SMOKE_SKIP_READBACK") == "1")
-            {
-                System.Console.WriteLine("Smoke test passed: frames ran, pixel readback skipped");
-                ExitCode = 0;
-                Exit();
-                return;
-            }
-
             var circle = ReadBackBufferPixel(50, 50);
             var drop = ReadBackBufferPixel(150, 50);
             var outside = ReadBackBufferPixel(400, 400);
@@ -89,8 +140,35 @@ namespace Sample
                 && outside == Color.Black;
 
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: circle={circle}, drop={drop}, outside={outside}");
-            ExitCode = passed ? 0 : 1;
+            ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;
             Exit();
+        }
+
+        /// <summary>
+        /// MonoGame's native Vulkan platform hangs the next frame after GetBackBufferData on Mesa's
+        /// lavapipe, so CI sets SKIAGAMERENDERING_SMOKE_SKIA_READBACK=1 there and checks the pixels Skia
+        /// itself drew instead. That proves the Skia draw, not MonoGame's composite onto the back buffer.
+        /// </summary>
+        private void CheckSkiaSurface()
+        {
+            _skiaChecked = true;
+            var circle = ReadSkiaPixel(50, 50);
+            var drop = ReadSkiaPixel(150, 50);
+            var passed = circle.R > 200 && circle.G < 50 && circle.B < 50
+                && drop.R < 100 && drop.B > 150;
+
+            System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")} (Skia surface readback): circle={circle}, drop={drop}");
+            ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;
+            Exit();
+        }
+
+        private Color ReadSkiaPixel(int x, int y)
+        {
+            using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(1, 1, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Premul));
+            if (!_canvas!.ReadPixels(bitmap.Info, bitmap.GetPixels(), bitmap.RowBytes, x, y))
+                return Color.Transparent;
+            var p = bitmap.GetPixelSpan();
+            return new Color(p[0], p[1], p[2], p[3]);
         }
 
         private Color ReadBackBufferPixel(int x, int y)

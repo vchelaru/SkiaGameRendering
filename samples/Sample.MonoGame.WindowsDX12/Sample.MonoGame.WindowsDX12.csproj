@@ -9,6 +9,7 @@
     <!-- Selects the WindowsDX12 native platform out of MonoGame.Framework.Native's multi-platform
          package - required by MonoGame.Content.Builder.Task.targets even with no content to build. -->
     <MonoGamePlatform>WindowsDX12</MonoGamePlatform>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>..\Sample.MonoGame.WindowsDX\app.manifest</ApplicationManifest>
