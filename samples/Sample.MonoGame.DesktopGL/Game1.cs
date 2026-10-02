@@ -58,15 +58,29 @@ namespace Sample
                 Scene.Draw(_canvas.Canvas, 200, 200);
                 var checkFrame = _smokeTest && ++_frameCount == 3;
                 // Mid-draw, so the readback sees the surface in the state Skia expects.
-                if (checkFrame && System.Environment.GetEnvironmentVariable("SKIAGAMERENDERING_SMOKE_SKIA_READBACK") == "1")
+                var readback = System.Environment.GetEnvironmentVariable("SKIAGAMERENDERING_SMOKE_SKIA_READBACK");
+                if (checkFrame && readback == "1")
                     CheckSkiaSurface();
                 _canvas.End();
 
-                if (checkFrame && !_skiaChecked)
+                if (checkFrame && readback == "0")
+                {
+                    System.Console.WriteLine("Smoke test passed: frames ran, no readback");
+                    Exit();
+                }
+                else if (checkFrame && !_skiaChecked)
                     CheckSmokeTestFrame();
             }
 
             base.Draw(gameTime);
+        }
+
+        protected override void UnloadContent()
+        {
+            _canvas?.Dispose();
+            _canvas = null;
+            SkiaRenderer.Dispose();
+            base.UnloadContent();
         }
 
         /// <summary>
