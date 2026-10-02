@@ -370,10 +370,10 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/pal1000/mesa-dist-win/releases/download/$version/mesa3d-$version-release-msvc.7z" -OutFile mesa.7z
           $vendorDir = "tests/mesa-vendor"
           New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
-          & "C:\Program Files-Zipz.exe" e mesa.7z -o"$vendorDir" "x64/lvp_icd.x86_64.json" "x64/vulkan_lvp.dll" -y
+          & "C:\Program Files\7-Zip\7z.exe" e mesa.7z -o"$vendorDir" "x64/lvp_icd.x86_64.json" "x64/vulkan_lvp.dll" -y
           Remove-Item mesa.7z
           New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
-          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name "$PWD	ests\mesa-vendor\lvp_icd.x86_64.json" -PropertyType DWord -Value 0 -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name "$PWD\tests\mesa-vendor\lvp_icd.x86_64.json" -PropertyType DWord -Value 0 -Force | Out-Null
       - run: dotnet build samples/Sample.MonoGame.${{ matrix.platform }}/Sample.MonoGame.${{ matrix.platform }}.csproj -c Release -o out
       - name: Run the sample's smoke test
         working-directory: out
