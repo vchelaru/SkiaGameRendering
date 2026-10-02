@@ -21,6 +21,24 @@ static partial class StrideSkiaGolden
         draw(graphicsContext);
     }
 
+    private static partial IDisposable BeginFrames(GraphicsDevice graphicsDevice, out Action<Texture, Action<GraphicsContext>> runFrame)
+    {
+        var graphicsContext = new GraphicsContext(graphicsDevice);
+        runFrame = (target, draw) =>
+        {
+            graphicsContext.CommandList.SetRenderTargetAndViewport(null, target);
+            graphicsContext.CommandList.Clear(target, ClearColor);
+            draw(graphicsContext);
+        };
+        // The main command list belongs to the device, so there is nothing of this call's own to release.
+        return new NothingToRelease();
+    }
+
+    sealed class NothingToRelease : IDisposable
+    {
+        public void Dispose() { }
+    }
+
     private static partial byte[] ReadRgba(GraphicsDevice graphicsDevice, Texture texture) =>
         PackRgba(texture.GetData<Color>(new GraphicsContext(graphicsDevice).CommandList));
 }

@@ -18,6 +18,9 @@ PluginImporter:
       enabled: 1
       settings:
         DefaultValueInitialized: true
+    OSXUniversal:
+      enabled: 1
+      settings: {}
     Win64:
       enabled: 1
       settings: {}

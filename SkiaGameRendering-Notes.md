@@ -222,7 +222,7 @@ Full discussion is in a dedicated document: **`WebGL-KNI-Integration.md`** at th
 - Option A reconsidered with a KNI-side `InvalidateStateCache()` patch reducing its implementation cost significantly.
 - Spike v0 findings (spike since concluded and removed from the repo): initial results (Chrome/Edge ~0.25 ms, Firefox ~25 ms), four alternative upload paths identified to test whether any rescue Firefox.
 - KNI-side changes worth making if forking KNI, and which of them are upstreamable to KNI vs better kept downstream.
-- Where to pick up: the Firefox upload-path question is now tracked in [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5) alongside the rest of the WebGL hardware-acceptance benchmark work; v1 (real KNI canvas) and v2 (full interleaving demo) followed and are done — see the integrated `Sample.Kni.WebGL`.
+- Where to pick up: the Firefox upload-path question is now tracked in [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5) alongside the rest of the WebGL hardware-acceptance benchmark work; v1 (real KNI canvas) and v2 (full interleaving demo) followed and are done — see the integrated `Sample.Gum.Kni.WebGL`.
 
 Short version of the recommendation: **build Option D**, which on Chrome/Edge measures ~0.25 ms upload at 1080p; Firefox unknown pending alternative-path measurement; fall back to Option A (with the KNI-fork state-cache patch) only if Firefox can't be rescued.
 
@@ -490,8 +490,7 @@ exactly the raylib adapter's situation, and the backend is that adapter's shape:
 namespace off the context current on the render thread, Skia gets its own `GRContext` on it, and
 `Core.OGL`'s `GlSkiaSurfaceFactory` wraps the texture in an FBO with `GRSurfaceOrigin.TopLeft`:
 Godot uploads image row 0 to texel row 0 and samples v=0 as the top, so Skia must write canvas row 0
-into texel row 0 - the opposite of the raylib adapter's `BottomLeft`, which renders everything
-upside down here. A symmetric test image such as the sample circle cannot show the difference. Separate contexts keep
+into texel row 0, as the raylib adapter does too; `BottomLeft` renders everything upside down. A symmetric test image such as the sample circle cannot show the difference. Separate contexts keep
 Godot's cached GL state and Skia's apart; cross-context visibility is GL's shared-object rule
 (Skia's flush ends in `glFlush`, Godot's canvas binds the texture per draw). Zero-copy, a
 persistent surface, no priming or hand-back. Limits: Godot's `Image.Format` has no BGRA/10-bit

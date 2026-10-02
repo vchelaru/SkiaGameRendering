@@ -33,10 +33,21 @@ projects share core source via linked includes, so a change in `src/SkiaGameRend
 authoritative list of what CI builds and in what order; mirror it when deciding what to verify.
 
 - Unit tests: `dotnet test tests/Tests.proj`, which runs every test project under `tests/`.
+- CI never runs Unity, by choice: the editor is a multi-GB download per run. Verify Unity changes
+  locally with the commands below, and say in the PR which platforms were run.
 - The Unity sample needs no editor window. First run `eng/build-unity-package.ps1`, then
   `Unity.exe -batchmode -quit -projectPath samples/Sample.Unity -executeMethod SampleBuild.Build`,
   then `samples/Sample.Unity/Build/Mono/Sample.Unity.exe --smoke-test`, which exits 0 only if the
   pixels are right. Unity locks a project that is open in the editor, so the batch build fails then.
+  Add `-linear` to build a Linear color space player into `Build/Mono-Linear`; the committed project
+  is Gamma, so revert the `ProjectSettings/` changes that build saves. On macOS the same commands
+  run with `Unity.app/Contents/MacOS/Unity` and build a Metal player, `Build/Mono/Sample.Unity.app`.
+- The Metal plugin (`unity/native/SkiaUnityMetal`) is committed prebuilt. After editing it, run
+  `eng/build-unity-metal-plugin.sh` and then `eng/build-unity-package.ps1`, or Unity keeps loading
+  the old copy in the package's `Plugins/`.
+- The Unity Editor tests (the package's `Tests/Editor`, which reload the domain and enter play mode)
+  run with `Unity.exe -batchmode -projectPath samples/Sample.Unity -runTests -testPlatform EditMode
+  -testResults <path>.xml`, without `-quit` or `-nographics`; exit code 0 means they passed.
 - WindowsDX and KNI WindowsDX need Windows; the WebGL sample needs `dotnet workload install wasm-tools-net8`.
 
 `Directory.Build.props` sets `TreatWarningsAsErrors`, so a new C# warning fails the build. MSBuild
@@ -48,6 +59,11 @@ it to render, and comparing a screenshot's pixels against the expected value; ki
 done. Prefer a small standalone verification app over the full interactive sample when one exists,
 since a sample's camera/controls/gameplay still need a human's subjective judgment. For anything
 needing that subjective read, keep to build-and-test and give the user numbered manual steps instead.
+
+## Releasing
+
+Every package, the NuGet packages and the Unity package alike, ships together at one version from a
+single `publish.yml` run. Never add an option to publish one platform or package on its own.
 
 ## Gotchas
 

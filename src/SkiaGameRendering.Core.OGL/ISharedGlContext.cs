@@ -5,7 +5,7 @@ namespace SkiaGameRendering.Core.OGL
     /// (textures, buffers, programs) but has its own bound state. A host whose GL layer caches bound
     /// state (raylib's rlgl, Godot's GLES3 renderer) is corrupted when Skia issues raw GL calls on
     /// its context, so Skia gets this one instead. See <see cref="WglSharedContext"/> (Windows) and
-    /// <see cref="GlxSharedContext"/> (Linux/X11).
+    /// <see cref="GlxSharedContext"/> (Linux/X11), and <see cref="CglSharedContext"/> (macOS).
     /// </summary>
     public interface ISharedGlContext : IDisposable
     {

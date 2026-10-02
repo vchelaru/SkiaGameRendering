@@ -20,6 +20,24 @@ static partial class StrideSkiaGolden
         graphicsDevice.ExecuteCommandList(commandList.Close());
     }
 
+    private static partial IDisposable BeginFrames(GraphicsDevice graphicsDevice, out Action<Texture, Action<GraphicsContext>> runFrame)
+    {
+        var commandList = CommandList.New(graphicsDevice);
+        var graphicsContext = new GraphicsContext(graphicsDevice, commandList: commandList);
+        bool open = true;
+        runFrame = (target, draw) =>
+        {
+            if (!open)
+                commandList.Reset();
+            commandList.SetRenderTargetAndViewport(null, target);
+            commandList.Clear(target, ClearColor);
+            draw(graphicsContext);
+            graphicsDevice.ExecuteCommandList(commandList.Close());
+            open = false;
+        };
+        return commandList;
+    }
+
     private static partial byte[] ReadRgba(GraphicsDevice graphicsDevice, Texture texture)
     {
         using var commandList = CommandList.New(graphicsDevice);

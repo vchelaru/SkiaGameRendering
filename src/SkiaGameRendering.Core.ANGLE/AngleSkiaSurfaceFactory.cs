@@ -34,9 +34,21 @@ namespace SkiaGameRendering.Core.ANGLE
     ///   one version for every consumer.
     /// - ANGLE DLLs (libEGL.dll, libGLESv2.dll) are resolved at runtime. See AngleEgl.cs for the
     ///   resolution order.
+    /// - ANGLE's shader compiler is not safe to drive from two displays at once: it counts live
+    ///   compilers in one process-wide variable but guards it with a per-display mutex
+    ///   (libANGLE/Compiler.cpp), and each factory has its own display. Two factories compiling
+    ///   or tearing down on different threads crash a later glCompileShader with a null write
+    ///   (issue #124). So every factory in the process shares <see cref="AngleLock"/>, held from
+    ///   <see cref="BeginDraw"/> to <see cref="EndDraw"/> (the compile happens inside the host's
+    ///   own Skia flush) and inside every other call that reaches ANGLE, and each context is set
+    ///   to compile on the calling thread, since ANGLE's worker threads would run outside the lock.
+    ///   Begin/End must run on the same thread, and a thread inside a draw span must not wait on
+    ///   another factory's thread.
     /// </summary>
     public class AngleSkiaSurfaceFactory : IDisposable
     {
+        internal static readonly object AngleLock = new object();
+
         GRContext _grContext = null!;
         IntPtr _eglDevice;
         IntPtr _eglDisplay;
@@ -63,6 +75,12 @@ namespace SkiaGameRendering.Core.ANGLE
         /// <param name="d3dDevicePtr">Native <c>ID3D11Device*</c> from the host engine.</param>
         /// <param name="d3dContextPtr">Native <c>ID3D11DeviceContext*</c> (the immediate context) from the host engine.</param>
         public void InitializeFromNative(IntPtr d3dDevicePtr, IntPtr d3dContextPtr)
+        {
+            lock (AngleLock)
+                Initialize(d3dDevicePtr, d3dContextPtr);
+        }
+
+        void Initialize(IntPtr d3dDevicePtr, IntPtr d3dContextPtr)
         {
             if (d3dDevicePtr == IntPtr.Zero)
                 throw new Exception("D3D11 device native pointer is null.");
@@ -113,6 +131,16 @@ namespace SkiaGameRendering.Core.ANGLE
             if (!eglMakeCurrent(_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, _eglContext))
                 throw new Exception($"eglMakeCurrent failed. EGL error: 0x{eglGetError():X}");
 
+            // Compile shaders on this thread, under AngleLock, instead of on ANGLE's worker threads
+            // (see the MAINTENANCE NOTES). An older ANGLE without the entry point is left as it is.
+            try
+            {
+                glMaxShaderCompilerThreadsKHR(0);
+            }
+            catch (EntryPointNotFoundException)
+            {
+            }
+
             // Create Skia's GR context using ANGLE's GL ES implementation.
             // eglGetProcAddress returns ANGLE's GL function pointers.
             _grContext = GRContext.CreateGl(GRGlInterface.CreateGles(eglGetProcAddress));
@@ -134,22 +162,53 @@ namespace SkiaGameRendering.Core.ANGLE
             _emptyState = D3D11Com.CreateDeviceContextState(_device1);
         }
 
+        /// <summary>
+        /// Starts a draw span and takes <see cref="AngleLock"/> until <see cref="EndDraw"/>, which
+        /// must be called on the same thread.
+        /// </summary>
         public void BeginDraw()
         {
+            if (!_holdsDrawLock)
+            {
+                Monitor.Enter(AngleLock);
+                _holdsDrawLock = true;
+            }
+
             // Save the engine's current D3D11 state by swapping to the empty state
             _savedState = D3D11Com.SwapDeviceContextState(_context1, _emptyState);
         }
 
         public void EndDraw()
         {
-            eglMakeCurrent(_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-
-            // Restore the engine's D3D11 state
-            if (_savedState != IntPtr.Zero)
+            try
             {
-                D3D11Com.SwapDeviceContextState(_context1, _savedState);
-                D3D11Com.Release(_savedState);
-                _savedState = IntPtr.Zero;
+                eglMakeCurrent(_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+
+                // Restore the engine's D3D11 state
+                if (_savedState != IntPtr.Zero)
+                {
+                    // The swap hands back _emptyState AddRef'd, like any previous state it returns.
+                    var emptyState = D3D11Com.SwapDeviceContextState(_context1, _savedState);
+                    if (emptyState != IntPtr.Zero)
+                        D3D11Com.Release(emptyState);
+                    D3D11Com.Release(_savedState);
+                    _savedState = IntPtr.Zero;
+                }
+            }
+            finally
+            {
+                ReleaseDrawLock();
+            }
+        }
+
+        bool _holdsDrawLock;
+
+        void ReleaseDrawLock()
+        {
+            if (_holdsDrawLock)
+            {
+                _holdsDrawLock = false;
+                Monitor.Exit(AngleLock);
             }
         }
 
@@ -159,6 +218,12 @@ namespace SkiaGameRendering.Core.ANGLE
         /// while this surface is current writes directly into the engine's texture.
         /// </summary>
         public AngleTextureState CreateTextureState(IntPtr d3dTexturePtr)
+        {
+            lock (AngleLock)
+                return CreateTextureStateCore(d3dTexturePtr);
+        }
+
+        AngleTextureState CreateTextureStateCore(IntPtr d3dTexturePtr)
         {
             int[] pbufferAttribs = { EGL_NONE };
             var eglSurface = eglCreatePbufferFromClientBuffer(
@@ -181,6 +246,13 @@ namespace SkiaGameRendering.Core.ANGLE
         /// </param>
         public (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
             AngleTextureState state, int width, int height, SKColorType colorType, SKColorSpace? colorSpace = null)
+        {
+            lock (AngleLock)
+                return CreateSurfaceCore(state, width, height, colorType, colorSpace);
+        }
+
+        (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurfaceCore(
+            AngleTextureState state, int width, int height, SKColorType colorType, SKColorSpace? colorSpace)
         {
             if (!eglMakeCurrent(_eglDisplay, state.EglSurface, state.EglSurface, _eglContext))
                 throw new Exception($"eglMakeCurrent failed. EGL error: 0x{eglGetError():X}");
@@ -209,30 +281,49 @@ namespace SkiaGameRendering.Core.ANGLE
 
         public void BindForDrawing(AngleTextureState state)
         {
-            if (!eglMakeCurrent(_eglDisplay, state.EglSurface, state.EglSurface, _eglContext))
-                throw new Exception($"eglMakeCurrent failed. EGL error: 0x{eglGetError():X}");
-            _grContext.ResetContext();
+            lock (AngleLock)
+            {
+                if (!eglMakeCurrent(_eglDisplay, state.EglSurface, state.EglSurface, _eglContext))
+                    throw new Exception($"eglMakeCurrent failed. EGL error: 0x{eglGetError():X}");
+                _grContext.ResetContext();
+            }
         }
 
         public void UnbindAfterDrawing()
         {
-            _grContext.Flush();
-            // glFinish blocks until ANGLE's GPU work completes, ensuring the D3D11
-            // texture is ready before the engine reads it. Could potentially relax to
-            // glFlush if D3D11's internal sync is sufficient.
-            glFinish();
+            lock (AngleLock)
+            {
+                _grContext.Flush();
+                // glFinish blocks until ANGLE's GPU work completes, ensuring the D3D11
+                // texture is ready before the engine reads it. Could potentially relax to
+                // glFlush if D3D11's internal sync is sufficient.
+                glFinish();
+            }
         }
 
         public void DisposeRenderState(AngleTextureState state)
         {
-            if (state.EglSurface != IntPtr.Zero && state.EglSurface != EGL_NO_SURFACE)
+            lock (AngleLock)
             {
-                eglDestroySurface(_eglDisplay, state.EglSurface);
-                state.EglSurface = IntPtr.Zero;
+                if (state.EglSurface != IntPtr.Zero && state.EglSurface != EGL_NO_SURFACE)
+                {
+                    eglDestroySurface(_eglDisplay, state.EglSurface);
+                    state.EglSurface = IntPtr.Zero;
+                }
             }
         }
 
         public void Dispose()
+        {
+            lock (AngleLock)
+            {
+                DisposeCore();
+                // A Dispose mid-draw (no EndDraw) would otherwise leave every other factory blocked.
+                ReleaseDrawLock();
+            }
+        }
+
+        void DisposeCore()
         {
             _grContext?.Dispose();
 

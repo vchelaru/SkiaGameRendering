@@ -88,5 +88,5 @@ shader.Texture = canvas.Texture;
   `SkiaRenderTarget2D` (and `Dispose()` the old one) for a different size.
 - Tear the shared backend down (e.g. on exit, or before switching backends) with
   `SkiaRenderer.Dispose()`. Dispose your own `SkiaRenderTarget2D` instances first.
-- See the sample this pattern is drawn from: `samples/Sample.Kni.WebGL/Gum/SkiaGumRenderable.cs`
-  and `samples/Sample.Kni.WebGL/Game1.cs`.
+- See the sample this pattern is drawn from: `samples/Sample.Gum.Kni.WebGL/Gum/SkiaGumRenderable.cs`
+  and `samples/Sample.Gum.Kni.WebGL/Game1.cs`.

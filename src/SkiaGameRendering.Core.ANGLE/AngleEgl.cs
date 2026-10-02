@@ -228,6 +228,10 @@ namespace SkiaGameRendering.Core.ANGLE
         [DllImport(LibGLESv2, CallingConvention = CallingConvention.Winapi)]
         internal static extern void glFinish();
 
+        // GL_KHR_parallel_shader_compile. 0 makes ANGLE compile and link on the calling thread.
+        [DllImport(LibGLESv2, CallingConvention = CallingConvention.Winapi)]
+        internal static extern void glMaxShaderCompilerThreadsKHR(uint count);
+
         // GL constants
         internal const int GL_FRAMEBUFFER = 0x8D40;
         internal const int GL_RENDERBUFFER = 0x8D41;

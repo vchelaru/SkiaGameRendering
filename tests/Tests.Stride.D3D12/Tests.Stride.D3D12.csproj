@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!--
+      Selects the Direct3D12 build of Stride.Graphics.dll instead of the Windows default (Direct3D11),
+      so the device tests run on Stride's D3D12 backend and the reflection pins bind to the variant
+      the adapter actually reflects into. Same trick as Tests.Stride.VK's StrideGraphicsApi=Vulkan.
+    -->
+    <StrideGraphicsApi>Direct3D12</StrideGraphicsApi>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Stride.D3D12\SkiaGameRendering.Stride.D3D12.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\EngineReflectionPin.cs" Link="EngineReflectionPin.cs" />
+    <Compile Include="..\Shared\StrideTestParallelism.cs" Link="StrideTestParallelism.cs" />
+    <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
+    <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Compile Include="..\Shared\FrameLeakCheck.cs" Link="FrameLeakCheck.cs" />
+    <Compile Include="..\Shared\StrideSkiaGolden.cs" Link="StrideSkiaGolden.cs" />
+    <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- See Tests.Stride.D3D11.csproj's matching alias for why this is here. -->
+    <Using Include="SkiaGameRendering.Stride.D3D12.SkiaStrideD3D12RenderTarget2D" Alias="SkiaStrideCanvas" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../../src/SkiaGameRendering.Core.D3D12/SkiaGameRendering.Core.D3D12.csproj" />
+  <Project Path="../../src/SkiaGameRendering.Stride.D3D12/SkiaGameRendering.Stride.D3D12.csproj" />
+  <Project Path="Sample.Stride.D3D12.csproj" DefaultStartup="true" />
+</Solution>

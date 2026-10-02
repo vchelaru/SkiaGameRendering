@@ -12,6 +12,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>SampleGodot</RootNamespace>
+    <!-- D3D12DebugMessages.cs reads the D3D12 debug layer's queue through raw COM vtables. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

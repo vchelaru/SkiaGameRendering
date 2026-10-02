@@ -16,17 +16,18 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 | KNI WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |
 | KNI WebGL (Blazor) | WebGL2 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WebGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
-| raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) (Windows + Linux) | Second WGL (Windows) or GLX (Linux) context shares rlgl's GL namespace |
+| raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) (Windows, Linux, macOS) | Second WGL (Windows), GLX (Linux) or CGL (macOS) context shares rlgl's GL namespace |
 | FNA (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) (Windows) | ANGLE (GL ES → D3D11 translation) on the device FNA3D's D3D11 driver exposes through `FNA3D_GetSysRendererEXT`; needs `FNA3D_FORCE_DRIVER=D3D11` |
 | FNA (OpenGL) | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Fna.OGL) (Windows, Linux, macOS) | Second SDL GL context shared with FNA3D's; needs `FNA3D_FORCE_DRIVER=OpenGL` |
 | FNA (SDL_GPU) | Vulkan/D3D12/Metal | Blocked: FNA3D's default driver exposes no native device (see the FNA section below) | |
 | Stride (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D11)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) (Windows) | ANGLE (GL ES → D3D11 translation) on shared device |
 | Stride (Vulkan) | Vulkan | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.VK)](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) (Linux, macOS, Windows) | Skia's Vulkan backend on Stride's shared `VkDevice`/`VkQueue`, no separate context |
+| Stride (D3D12) | D3D12 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D12)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D12) (Windows) | Skia's D3D12 backend on Stride's shared `ID3D12Device`/queue, drawing straight into the Stride texture |
 | Godot 4.7+ (Vulkan) | Vulkan | Source only for now (`src/SkiaGameRendering.Godot`) | Skia's Vulkan backend on the handles Godot's `RenderingDevice.GetDriverResource` exposes publicly; drawn straight into an RD texture shown via `Texture2DRD`. No reflection. |
 | Godot 4.7+ (D3D12) | D3D12 | Same package, backend picked at runtime (Windows) | Skia's D3D12 backend on Godot's `ID3D12Device`/queue; Skia draws into a typed resource this library owns and one GPU `CopyResource` per frame lands it in Godot's (typeless) texture - no CPU readback, but not zero-copy |
 | Godot 4.7+ (Compatibility) | OpenGL 3.3 | Same package (Windows native WGL; Linux X11/GLX unrun) | Second GL context sharing Godot's, Skia draws into an FBO around an ordinary `ImageTexture`'s GL texture - zero-copy, the raylib adapter's shape |
 | Godot 4.7+ (Metal) | Metal | Same package (macOS) | Skia's Metal backend on Godot's `MTLDevice`/queue, drawn straight into the RD texture's `MTLTexture` - zero-copy |
-| Unity 6 (D3D11) | D3D11 | UPM git URL `https://github.com/vchelaru/SkiaGameRendering.git#upm` (Windows x64, Mono and IL2CPP) | ANGLE on the device Unity's `RenderTexture` belongs to; draws are recorded to an `SKPicture` on the main thread and played back on Unity's render thread |
+| Unity 6 (D3D11, Metal) | D3D11, Metal | UPM git URL `https://github.com/vchelaru/SkiaGameRendering.git#upm` (Windows x64, Mono and IL2CPP; macOS) | ANGLE on the device Unity's `RenderTexture` belongs to (D3D11), or Unity's own `MTLDevice` and command queue through a small native plugin (Metal); draws are recorded to an `SKPicture` on the main thread and played back on Unity's render thread |
 | Godot 4 (Vulkan on macOS; Compatibility on ANGLE/EGL/Wayland) | Vulkan / OpenGL | Not started | SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet - see `TODO.md` |
 
 MonoGame ships the legacy `WindowsDX` (D3D11) project unchanged alongside the two native platforms
@@ -40,7 +41,7 @@ references the native runtime package for its platform (`MonoGame.Runtime.Window
 
 - .NET 8 (.NET 10 for the Stride backend)
 - Visual Studio 2022
-- MonoGame 3.8.4.1+ (DesktopGL or WindowsDX; samples use 3.8.5.1), MonoGame 3.8.6-preview.2+ (native WindowsDX12 or DesktopVK), KNI (DesktopGL, WindowsDX, or WebGL/Blazor), FNA 26.09+ (D3D11 on Windows, or OpenGL anywhere), raylib, Stride 4.4.0-beta5+ (D3D11 on Windows, or Vulkan on Windows/Linux/macOS; prerelease), or Godot 4.7+ .NET (Forward+/Mobile on Vulkan, D3D12 or Metal, or Compatibility on native OpenGL)
+- MonoGame 3.8.4.1+ (DesktopGL or WindowsDX; samples use 3.8.5.1), MonoGame 3.8.6-preview.2+ (native WindowsDX12 or DesktopVK), KNI (DesktopGL, WindowsDX, or WebGL/Blazor), FNA 26.09+ (D3D11 on Windows, or OpenGL anywhere), raylib, Stride 4.4.0-beta5+ (D3D11 or D3D12 on Windows, or Vulkan on Windows/Linux/macOS; prerelease), or Godot 4.7+ .NET (Forward+/Mobile on Vulkan, D3D12 or Metal, or Compatibility on native OpenGL)
 - SkiaSharp 3.119.4 for WebGL and the KNI desktop backends; 3.119.2 for the MonoGame desktop projects
 
 The MonoGame DesktopGL (`SkiaGameRendering`) and WindowsDX (`SkiaGameRendering.WindowsDX`) packages
@@ -65,8 +66,9 @@ Install the NuGet package for your platform, then follow the setup for your engi
 | raylib | `SkiaGameRendering.Raylib.OGL` | `docs/raylib/quickstart.md` |
 | Stride (D3D11) | `SkiaGameRendering.Stride.D3D11` | `docs/stride/quickstart.md` |
 | Stride (Vulkan) | `SkiaGameRendering.Stride.VK` | `docs/stride/vulkan-quickstart.md` |
+| Stride (D3D12) | `SkiaGameRendering.Stride.D3D12` | `docs/stride/d3d12-quickstart.md` |
 | Godot (Vulkan, D3D12 or Compatibility) | `SkiaGameRendering.Godot` (not published yet; reference the project from source) | `docs/godot/quickstart.md` |
-| Unity 6 (D3D11) | Not on NuGet: Package Manager > Install package from git URL > `https://github.com/vchelaru/SkiaGameRendering.git#upm` (or `#upm/v<version>` to pin one) | [Unity](#unity) |
+| Unity 6 (D3D11, Metal) | Not on NuGet: Package Manager > Install package from git URL > `https://github.com/vchelaru/SkiaGameRendering.git#upm` (or `#upm/v<version>` to pin one) | [Unity](#unity) |
 
 ```powershell
 dotnet add package <package from the table>
@@ -173,15 +175,22 @@ For Vulkan, use the `SkiaGameRendering.Stride.VK` namespace and the `SkiaStrideV
 On Windows, also set `<StrideGraphicsApi>Vulkan</StrideGraphicsApi>` in your project; see
 `docs/stride/vulkan-quickstart.md`.
 
+For Direct3D 12, use the `SkiaGameRendering.Stride.D3D12` namespace and the `SkiaStrideD3D12*` types,
+and set `<StrideGraphicsApi>Direct3D12</StrideGraphicsApi>`; see `docs/stride/d3d12-quickstart.md`.
+
 ### Unity
 
 Unity renders on its own thread, so the canvas records your drawing and `End` plays it back on
-Unity's render thread. Call `Begin`/`End` from the main thread and use `Texture` like any
-`RenderTexture`. Only Direct3D 11 is supported so far: set Player Settings > Other Settings > Graphics
-APIs for Windows to Direct3D11. The package only compiles for the Editor and Windows x64 players,
-so code that uses it needs the same limits, or the project's other platform builds fail to compile.
-Put that code in an asmdef limited to Editor and Windows 64-bit, or inside
-`#if UNITY_EDITOR_WIN || (UNITY_STANDALONE_WIN && UNITY_64)`.
+Unity's render thread. Call `Begin`/`End` from the main thread. Skia writes premultiplied alpha,
+so draw `Texture` with `SkiaUnityRenderTarget.PremultipliedMaterial` (a `RawImage`'s material, or
+a copy on a mesh) or, for `Graphics.DrawTexture` in `OnGUI`, `PremultipliedGuiMaterial`; Unity's
+default blending darkens its edges. Both work in Gamma and Linear color space projects, but only
+with the right one for where you draw, since IMGUI stays in gamma in a Linear project. Supported so far: Direct3D 11 on Windows (set Player Settings > Other Settings > Graphics APIs
+for Windows to Direct3D11) and Metal on macOS, the default there. The package only compiles for the
+Editor and Windows x64 and macOS players, so code that uses it needs the same limits, or the
+project's other platform builds fail to compile. Put that code in an asmdef limited to Editor,
+Windows 64-bit and macOS, or inside
+`#if UNITY_EDITOR_WIN || UNITY_EDITOR_OSX || (UNITY_STANDALONE_WIN && UNITY_64) || UNITY_STANDALONE_OSX`.
 
 ```csharp
 var target = new SkiaUnityRenderTarget(512, 512);
@@ -189,9 +198,14 @@ var target = new SkiaUnityRenderTarget(512, 512);
 void Update()
 {
     target.Begin();
-    target.Canvas.Clear(SKColors.Black);
     target.Canvas.DrawCircle(256, 256, 200, paint);
     target.End();
+}
+
+void OnGUI()
+{
+    if (Event.current.type == EventType.Repaint)
+        Graphics.DrawTexture(new Rect(0, 0, 512, 512), target.Texture, SkiaUnityRenderTarget.PremultipliedGuiMaterial);
 }
 ```
 
@@ -277,14 +291,16 @@ and hardware, see [docs/performance.md](docs/performance.md).
 - `samples/Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
 - `samples/Sample.Kni.DesktopGL/` — KNI DesktopGL sample (cross-platform: Windows, Linux, macOS)
 - `samples/Sample.Kni.WindowsDX/` — KNI WindowsDX sample (Windows only)
-- `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample using the patched canvas-upload API
-- `samples/Sample.Raylib.OGL/` — raylib sample (Windows + Linux)
+- `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample
+- `samples/Sample.Gum.Kni.WebGL/` — KNI Blazor WebAssembly sample of Gum UI interleaved with SpriteBatch, render targets, shaders, and browser input
+- `samples/Sample.Raylib.OGL/` — raylib sample (Windows, Linux, macOS)
 - `samples/Sample.Fna.WindowsDX/`: FNA sample (Windows, D3D11 only; builds against the `external/FNA` submodule and the vendored `external/fnalibs`)
 - `samples/Sample.Fna.OGL/`: FNA sample on FNA3D's OpenGL driver (same setup; the vendored fnalibs are Windows x64 only, so on Linux/macOS drop in your own)
 - `samples/Sample.Stride.D3D11/` — Stride sample (Windows, D3D11 only)
 - `samples/Sample.Stride.VK/` — Stride sample (Vulkan; builds on Windows via `StrideGraphicsApi=Vulkan`, runs on Windows/Linux/macOS)
+- `samples/Sample.Stride.D3D12/`: Stride sample (Windows, D3D12 via `StrideGraphicsApi=Direct3D12`)
 - `samples/Sample.Godot/` — Godot 4.7 project (Vulkan, D3D12 or Compatibility via `--rendering-driver`; `dotnet build` it, then open or run it with a Godot .NET editor binary - not shipped here)
-- `samples/Sample.Unity/`: Unity 6 project (Windows, D3D11). Run `eng/build-unity-package.ps1` first to fill the package's `Plugins/`; `--smoke-test` checks the rendered pixels and exits
+- `samples/Sample.Unity/`: Unity 6 project (Windows D3D11, macOS Metal). Run `eng/build-unity-package.ps1` first to fill the package's `Plugins/`; `--smoke-test` checks the rendered pixels and exits
 - `samples/Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
 DesktopGL, WindowsDX, KNI WindowsDX, and both FNA samples share the same `Game1.cs` via a linked file include; KNI DesktopGL has its own copy.
@@ -307,7 +323,9 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Core.VK/` — engine-agnostic Vulkan/Skia interop shared by Vulkan-based backends
 - `src/SkiaGameRendering.Core.Metal/`: engine-agnostic Metal/Skia interop shared by Metal-based backends (Godot on macOS today)
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaStrideVulkanRenderTarget2D`, Windows/Linux/macOS)
-- `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s netstandard2.1 build + `SkiaUnityRenderTarget`, Windows/D3D11 only)
+- `src/SkiaGameRendering.Core.D3D12/`: engine-agnostic D3D12/Skia interop shared by D3D12-based backends
+- `src/SkiaGameRendering.Stride.D3D12/`: Stride library (shared `Core.D3D12` + `SkiaStrideD3D12RenderTarget2D`, Windows/D3D12 only)
+- `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s and `Core.Metal`'s netstandard2.1 builds + `SkiaUnityRenderTarget`, Windows/D3D11 and macOS/Metal; the Metal plugin's source is `unity/native/SkiaUnityMetal/`)
 - `src/SkiaGameRendering.Godot/` — Godot library (`Core.VK`, `Core.D3D12`, `Core.Metal` and `Core.OGL` behind one `SkiaGodotRenderTarget2D`, backend chosen from the running driver; no reflection, all public Godot API)
 
 See `SkiaGameRendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
@@ -348,7 +366,7 @@ dotnet build samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
 dotnet run --project samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
 ```
 
-The sample proves SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum/Skia content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation. See `docs/webgl/quickstart.md`, `docs/webgl/validated-baseline.md`, and `docs/documentation/SkiaWebGlBackend.md` for the exact contract and support status.
+`Sample.Kni.WebGL` draws the shared scene like every other sample. `Sample.Gum.Kni.WebGL` (same commands, different project) covers SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation. See `docs/webgl/quickstart.md`, `docs/webgl/validated-baseline.md`, and `docs/documentation/SkiaWebGlBackend.md` for the exact contract and support status.
 
 ### Firefox is not usable yet
 

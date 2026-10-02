@@ -17,6 +17,17 @@ with every Windows install (including GitHub's `windows-latest` runners) - no ve
 `WarpDevice.cs` is the reusable helper; `D3D11StateSwapTests.cs` and `AngleSkiaPixelReadbackTests.cs`
 are the usage examples (a state-swap round-trip, and a full draw-then-read-pixels-back test).
 
+## D3D12 - WARP
+
+WARP has a D3D12 device too; `tests/Tests.Core.D3D12` and `tests/Tests.Stride.D3D12` use it
+(`STRIDE_GRAPHICS_SOFTWARE_RENDERING=1` makes Stride pick it, see `WarpStrideDevice.cs`).
+
+**WARP renders correct pixels even when resource barriers are wrong, so pixel tests cannot catch a
+broken state handoff.** Only the D3D12 debug layer with GPU-based validation reports it;
+`tests/Tests.Stride.D3D12/StrideD3D12BarrierValidationTests.cs` is the pattern. A resource moving
+between an engine using enhanced barriers and Skia's legacy barriers must be in the COMMON layout
+when it crosses (see `SkiaStrideD3D12Context`).
+
 ## OpenGL - WGL context + llvmpipe
 
 Windows has nothing like WARP for OpenGL. `tests/Tests.Core.OGL/WglContext.cs` gets a real context
@@ -71,10 +82,9 @@ path - `ubuntu-latest` ships Mesa already, so no vendoring step like `MesaVendor
 `LinuxOnlyFactAttribute` skips the test on Windows for now (build-only there; see its doc comment for
 what real Windows coverage would need).
 
-**`SkiaRaylibContext.CreateSurface` uses `GRSurfaceOrigin.BottomLeft`** (matching raylib's own
-texture-sampling convention), so a tightly-packed `glGetTexImage`/`LoadImageFromTexture` readback
-comes back with row 0 as the canvas's *bottom* row, not its top - flip vertically before comparing
-against a `GoldenImage`, which expects top-down.
+**The GLX golden test is the one place raylib runs, and it cannot see a vertical flip on screen.**
+It reads the texture back, so it only checks which texel row canvas row 0 went into; raylib draws
+texel row 0 at the top, which is why `SkiaRaylibContext.CreateSurface` uses `TopLeft`.
 
 ## Vulkan - lavapipe
 
@@ -153,6 +163,14 @@ runs today.
   it, the call appears to succeed (no exception, correct count) but every element comes back zeroed -
   the native writes never make it back into the managed array. An `IntPtr[]` (as used for
   `vkEnumeratePhysicalDevices`) round-trips fine without the attribute; a custom struct array does not.
+- **Lavapipe, like WARP, renders correct pixels with wrong image layouts, so pixel tests cannot catch a
+  broken handoff.** Only `VK_LAYER_KHRONOS_validation` reports it;
+  `tests/Tests.Stride.VK/StrideVulkanLayoutValidationTests.cs` is the pattern, and skips when the layer
+  is absent unless `SKIAGAMERENDERING_REQUIRE_VK_VALIDATION=1` (CI sets it). On a dev box the Vulkan
+  SDK installs without admin via
+  `vulkansdk.exe --root <dir> --accept-licenses --default-answer --confirm-command install copy_only=1`;
+  then set `VK_ADD_LAYER_PATH=<dir>\Bin`. CI runs elevated, so `master.yml` registers the layer under
+  `HKLM\SOFTWARE\Khronos\Vulkan\ExplicitLayers` instead, like lavapipe.
 
 ## Metal - the real device
 
@@ -167,6 +185,11 @@ has no in-process GPU test. `tests/Tests.Godot/GodotSampleTests.cs` launches
 the binary named by `GODOT_BIN` against `samples/Sample.Godot` once per
 rendering driver and skips without it; `master.yml` runs it on Windows (vulkan, d3d12), Linux
 (vulkan under validation, opengl3) and macOS (metal).
+
+Godot's `--gpu-validation` on d3d12 turns on the plain D3D12 debug layer but prints none of its
+messages; `samples/Sample.Godot/D3D12DebugMessages.cs` reads the layer's `ID3D12InfoQueue` from
+Godot's device instead. GPU-based validation is not usable with Godot: its renderers fail
+root-signature creation (E_OUTOFMEMORY) under it.
 
 ## Engine glue - headless GraphicsDevice
 
@@ -185,7 +208,28 @@ DesktopGL has no such shortcut: MonoGame's GL `PlatformSetup` takes its context 
 `SdlGameWindow.Instance`, which only a running `Game` creates. So `tests/Shared/OneFrameGame.cs` pays
 for a real game loop, running `Game.RunOneFrame()` and reading back inside `Draw`, on llvmpipe. Skia
 resources have to be created and disposed inside that one frame - the backend's `GRContext` belongs
-to the GL context the window owns and cannot outlive it.
+to the GL context the window owns and cannot outlive it. **Every game in a test process must run on
+the same thread:** MonoGame fixes its UI thread once per process and throws `NoSuitableGraphicsDeviceException`
+("Operation not called on UI thread") on any other, so `OneFrameGame.Render` queues all games onto one
+dedicated thread. That thread is not the process main thread, which macOS's SDL requires, so these tests only run on Windows.
+
+## Per-frame leak checks
+
+`tests/Shared/FrameLeakCheck.cs` (and `EngineFrameLeak.cs` for MonoGame/KNI/FNA) warms up, then
+compares two equal frame windows: private memory, handles, and exact reference counts where the API
+exposes them. `SKIAGAMERENDERING_LEAK_FRAMES=N` runs longer windows locally. The leak tests share one
+xUnit collection that runs after the parallel tests, so other devices can't move the numbers.
+
+- **Stride grows ~240 KB a frame on its own without `GraphicsDevice.Begin/End` each frame**, with no
+  Skia code running. A leak harness must call them, the way a `Game` does.
+- **Vulkan and D3D12 grow when the CPU never waits for the GPU**, because Skia keeps queuing work.
+  That's a harness artifact, not a leak; wait for the GPU every few frames.
+
+## Native crashes
+
+**A native crash in the test host leaves a managed stack that stops at the P/Invoke.** The Windows
+Application event log's "Application Error" entry names the faulting module and offset (e.g.
+`libGLESv2.dll+0x2B973A`), which is what actually locates the crash.
 
 ## Golden images
 

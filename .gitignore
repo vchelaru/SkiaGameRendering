@@ -15,6 +15,7 @@ packages/
 **/Content/obj/
 
 tests/mesa-vendor/
+tests/vk-layer/
 
 # Godot's per-project cache/import directory (created by the editor or --import; never checked in)
 **/.godot/
@@ -37,6 +38,7 @@ samples/Sample.Unity/[Bb]uild/
 samples/Sample.Unity/*.csproj
 samples/Sample.Unity/*.sln
 samples/Sample.Unity/*.slnx
+samples/Sample.Unity/.vscode/
 
 ## Claude
 .claude/settings.local.json

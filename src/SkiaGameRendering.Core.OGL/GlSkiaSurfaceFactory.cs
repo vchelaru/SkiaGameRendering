@@ -9,12 +9,10 @@ namespace SkiaGameRendering.Core.OGL
     /// callers supply the raw GL texture id and loaded <see cref="GlFunctions"/>, nothing about how
     /// the texture or GL context were created.
     /// <para>
-    /// <paramref name="origin"/> in <see cref="CreateSurface"/> controls whether the resulting
-    /// texture, when sampled with plain OpenGL texture coordinates (v=0 at the bottom), matches
-    /// what was drawn on the Skia canvas. Defaults to <see cref="GRSurfaceOrigin.TopLeft"/> to
-    /// preserve existing callers (e.g. MonoGame, which flips elsewhere); callers that sample the
-    /// texture directly with normal GL semantics (e.g. raylib) should pass
-    /// <see cref="GRSurfaceOrigin.BottomLeft"/> instead to avoid a manual per-draw flip.
+    /// <paramref name="origin"/> in <see cref="CreateSurface"/> picks which texel row canvas row 0
+    /// lands in. The default, <see cref="GRSurfaceOrigin.TopLeft"/>, writes it to texel row 0, which
+    /// is what every engine here (MonoGame, raylib, Godot) draws as the top of a texture.
+    /// <see cref="GRSurfaceOrigin.BottomLeft"/> only suits a host that draws texel row 0 at the bottom.
     /// </para>
     /// </summary>
     public static class GlSkiaSurfaceFactory
