@@ -361,8 +361,9 @@ jobs:
         with:
           dotnet-version: 8.0.x
       # Same lavapipe download and registry registration as desktop-and-core; see the comments there.
+      # WindowsDX12 needs it too: MonoGame's native platform creates its SDL window with Vulkan support
+      # even on D3D12 and throws when the loader has no driver with VK_KHR_surface.
       - name: Download and register Mesa lavapipe
-        if: matrix.platform == 'DesktopVK'
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -378,6 +379,9 @@ jobs:
       - name: Run the sample's smoke test
         working-directory: out
         shell: pwsh
+        env:
+          # MonoGame's GetBackBufferData hangs the next frame on lavapipe; see Game1.CheckSmokeTestFrame.
+          SKIAGAMERENDERING_SMOKE_SKIP_READBACK: ${{ matrix.platform == 'DesktopVK' && '1' || '' }}
         # WinExe detaches from the console, so wait on the process for its exit code and print its
         # redirected output. Touching Handle first makes ExitCode available after the process exits.
         run: |

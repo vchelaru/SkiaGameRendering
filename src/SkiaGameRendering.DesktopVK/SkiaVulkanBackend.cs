@@ -29,9 +29,9 @@ namespace SkiaGameRendering
     ///   flight that sample it.
     /// - MonoGame does not expose its queue lock, so none is passed: Skia, this backend and MonoGame
     ///   must all submit from the thread that runs <c>Draw</c>.
-    /// - The Skia context is created with no instance or device extensions listed and Vulkan 1.2 as
-    ///   its ceiling, the same minimal surface the Godot and Stride adapters use. Skia only draws 2D
-    ///   into an image here and never presents.
+    /// - The Skia context is created with no instance or device extensions listed and Vulkan 1.0 as
+    ///   its ceiling, because MonoGame creates its instance as a 1.0 app (see <see cref="Initialize"/>).
+    ///   Skia only draws 2D into an image here and never presents.
     /// </summary>
     public class SkiaVulkanBackend : SkiaBackend
     {
@@ -64,9 +64,13 @@ namespace SkiaGameRendering
             _physicalDevice = handles.PhysicalDevice;
             _device = handles.LogicalDevice;
 
+            // MonoGame creates its VkInstance with apiVersion 1.0 (MGG_Vulkan.cpp), and drivers built on
+            // Mesa's runtime (lavapipe among them) hand out only 1.0 entry points to such an app. Asking
+            // Skia for more makes GRContext.CreateVulkan fail there; NVIDIA hands out everything, which is
+            // why a real GPU hides it.
             var apiVersion = Math.Min(
                 VkSkiaSurfaceFactory.QueryApiVersion(_instance, _physicalDevice),
-                VkConstants.MakeApiVersion(1, 2));
+                VkConstants.MakeApiVersion(1, 0));
 
             var queueFamilyIndex = (uint)handles.QueueFamilyIndex;
             _factory.InitializeFromNative(
