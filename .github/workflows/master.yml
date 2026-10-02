@@ -346,11 +346,9 @@ jobs:
 
   # MonoGame's native WindowsDX12 and DesktopVK platforms, run through the sample's --smoke-test on
   # windows-latest's software drivers: WARP for D3D12 (the runner's only adapter), Mesa lavapipe for
-  # Vulkan. Not known to work there yet, so a failure does not fail the workflow; the log shows
-  # whether MonoGame's adapter selection or lavapipe's windowing is what gives out.
+  # Vulkan. The Vulkan run checks only that the frames run; see SKIAGAMERENDERING_SMOKE_SKIP_READBACK below.
   monogame-native-windows:
     runs-on: windows-latest
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
