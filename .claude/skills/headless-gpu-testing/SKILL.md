@@ -225,6 +225,10 @@ xUnit collection that runs after the parallel tests, so other devices can't move
 - **Vulkan and D3D12 grow when the CPU never waits for the GPU**, because Skia keeps queuing work.
   That's a harness artifact, not a leak; wait for the GPU every few frames.
 
+## MonoGame native samples (WindowsDX12, DesktopVK)
+
+`master.yml`'s `monogame-native-windows` job runs each sample's `--smoke-test` (`samples/Sample.MonoGame.DesktopGL/Game1.cs`) with a per-frame leak check, and under the validation layer: Khronos for Vulkan, and for D3D12 the debug layer `samples/Sample.MonoGame.WindowsDX12/D3D12DebugLayer.cs` turns on (windows-latest has Graphics Tools). **MonoGame's `GetBackBufferData` hangs the next frame on lavapipe**, so the DesktopVK run reads Skia's own surface with `SkiaRenderTarget2D.ReadPixels` mid-draw instead, which leaves the image in `TRANSFER_SRC_OPTIMAL` (a read-back target is only good for the rest of that frame).
+
 ## Native crashes
 
 **A native crash in the test host leaves a managed stack that stops at the P/Invoke.** The Windows

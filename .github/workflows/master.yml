@@ -410,7 +410,7 @@ jobs:
         env:
           # MonoGame's GetBackBufferData hangs the next frame on lavapipe, so read Skia's own surface; see Game1.CheckSkiaSurface.
           # Runs 50 + 2 x 250 frames and fails if private memory, the managed heap or handles grow; see Game1.SampleLeak.
-          SKIAGAMERENDERING_SMOKE_LEAK_FRAMES: ${{ matrix.platform == 'DesktopVK' && '250' || '' }}
+          SKIAGAMERENDERING_SMOKE_LEAK_FRAMES: 250
           # The D3D12 debug layer (the runner has Graphics Tools installed) on MonoGame's own device; see D3D12DebugLayer.
           SKIAGAMERENDERING_D3D12_DEBUG: ${{ matrix.platform == 'WindowsDX12' && '1' || '' }}
           SKIAGAMERENDERING_SMOKE_SKIA_READBACK: ${{ matrix.platform == 'DesktopVK' && '1' || '' }}

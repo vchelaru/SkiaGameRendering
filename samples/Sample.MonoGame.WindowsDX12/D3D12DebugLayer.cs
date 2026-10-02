@@ -32,20 +32,6 @@ static unsafe class D3D12DebugLayer
     [DllImport("d3d12.dll")]
     static extern int D3D12GetDebugInterface(Guid* riid, void** debug);
 
-    static long? DIAG_firstError;
-
-    public static void Mark(GraphicsDevice graphicsDevice, string tag)
-    {
-        var device = graphicsDevice.GetNativeHandles().LogicalDevice;
-        void* queue;
-        var iid = IID_ID3D12InfoQueue;
-        if (((delegate* unmanaged[MemberFunction]<IntPtr, Guid*, void**, int>)(*(void***)device)[0])(device, &iid, &queue) < 0)
-            return;
-        var count = ((delegate* unmanaged[MemberFunction]<void*, ulong>)(*(void***)queue)[8])(queue);
-        ((delegate* unmanaged[MemberFunction]<void*, uint>)(*(void***)queue)[2])(queue);
-        Console.WriteLine($"  MARK {tag}: {count} messages stored");
-    }
-
     public static bool Requested => Environment.GetEnvironmentVariable("SKIAGAMERENDERING_D3D12_DEBUG") == "1";
 
     /// <summary>Must run before the <c>GraphicsDevice</c> exists.</summary>
@@ -93,25 +79,13 @@ static unsafe class D3D12DebugLayer
                     if (getMessage(queue, i, message, &length) < 0 || message->Severity > 1 || message->ID == GetGpuDescriptorHandleForHeapStartInvalid)
                         continue;
                     errors++;
-                    Console.WriteLine($"D3D12 debug layer error #{i} {message->ID}: {Marshal.PtrToStringUTF8((IntPtr)message->Description)}");
-                    DIAG_firstError ??= (long)i;
+                    Console.WriteLine($"D3D12 debug layer error {message->ID}: {Marshal.PtrToStringUTF8((IntPtr)message->Description)}");
                 }
                 finally
                 {
                     NativeMemory.Free(message);
                 }
             }
-            if (DIAG_firstError is { } first)
-                for (var j = Math.Max(0, first - 4); j < Math.Min((long)count, first + 4); j++)
-                {
-                    nuint len = 0;
-                    getMessage(queue, (ulong)j, null, &len);
-                    var m = (D3D12_MESSAGE*)NativeMemory.Alloc(len);
-                    getMessage(queue, (ulong)j, m, &len);
-                    var text = Marshal.PtrToStringUTF8((IntPtr)m->Description) ?? "";
-                    Console.WriteLine($"  DIAG #{j} sev{m->Severity} id{m->ID}: {text[..Math.Min(260, text.Length)]}");
-                    NativeMemory.Free(m);
-                }
             Console.WriteLine($"D3D12 debug layer: {errors} error(s) of {count} message(s)");
             return errors == 0;
         }

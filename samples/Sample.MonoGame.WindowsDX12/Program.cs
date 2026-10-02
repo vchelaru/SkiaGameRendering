@@ -9,7 +9,5 @@ if (debugLayer)
 using var game = new Sample.Game1(smokeTest);
 if (debugLayer)
     game.ExtraSmokeCheck = Sample.D3D12DebugLayer.Passed;
-if (debugLayer)
-    game.DIAG_Mark = Sample.D3D12DebugLayer.Mark;
 game.Run();
 return game.ExitCode;

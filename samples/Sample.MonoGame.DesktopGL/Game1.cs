@@ -34,7 +34,6 @@ namespace Sample
 
         /// <summary>An extra pass/fail check a platform's Program adds to the smoke test; runs just before the exit code is set.</summary>
         public System.Func<GraphicsDevice, bool> ExtraSmokeCheck { get; set; }
-        public System.Action<GraphicsDevice, string> DIAG_Mark { get; set; }
 
         public Game1(bool smokeTest = false)
         {
@@ -60,16 +59,13 @@ namespace Sample
             if (!SkiaRenderer.IsInitialized && SkiaRenderer.IsReady)
                 SkiaRenderer.Initialize(GraphicsDevice);
 
-            DIAG_Mark?.Invoke(GraphicsDevice, "draw start");
             GraphicsDevice.SetRenderTarget(null);
             GraphicsDevice.Clear(Color.Black);
-            DIAG_Mark?.Invoke(GraphicsDevice, "after clear");
 
             if (SkiaRenderer.IsInitialized)
             {
                 _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
                 _canvas.Begin();
-                DIAG_Mark?.Invoke(GraphicsDevice, "after skia begin");
                 Scene.Draw(_canvas.Canvas, 200, 200);
                 var checkFrame = false;
                 if (_smokeTest)
@@ -84,14 +80,12 @@ namespace Sample
                 if (checkFrame && readback == "1")
                     CheckSkiaSurface();
                 _canvas.End();
-                DIAG_Mark?.Invoke(GraphicsDevice, "after skia end");
 
                 if (checkFrame && !_skiaChecked)
                     CheckSmokeTestFrame();
             }
 
             base.Draw(gameTime);
-            DIAG_Mark?.Invoke(GraphicsDevice, "draw end");
         }
 
         private void SampleLeak()

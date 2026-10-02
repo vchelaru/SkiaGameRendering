@@ -17,16 +17,14 @@ namespace SkiaGameRendering
     /// reflection and no CPU readback.
     ///
     /// MAINTENANCE NOTES:
-    /// - <b>Resource states.</b> MonoGame wraps the resource believing it is in
-    ///   <c>RENDER_TARGET</c>, and from then on tracks the state itself: sampling it moves it to
-    ///   <c>PIXEL_SHADER_RESOURCE | NON_PIXEL_SHADER_RESOURCE</c> and it stays there. Skia always
-    ///   leaves a surface in <c>RENDER_TARGET</c> and cannot report otherwise (see
-    ///   <see cref="D3D12SkiaSurfaceFactory"/>), so every draw after the first is bracketed by a
-    ///   shader-resource-to-render-target transition before and a render-target-to-shader-resource one
-    ///   after, which keeps MonoGame's bookkeeping and the real state equal. The first draw needs
-    ///   neither, since both sides start at <c>RENDER_TARGET</c>. This assumes the host samples the
-    ///   texture between two draws, which <see cref="SkiaRenderTarget2D.End"/> does; a caller that
-    ///   starts a second pass without ever drawing the texture breaks the assumption.
+    /// - <b>Resource states.</b> MonoGame never transitions a wrapped resource before it first samples
+    ///   it, so the resource has to be in <c>PIXEL_SHADER_RESOURCE | NON_PIXEL_SHADER_RESOURCE</c> from
+    ///   creation on and stay there between draws (the D3D12 debug layer reports a state mismatch on the
+    ///   second draw otherwise; WARP draws correctly either way). Skia always leaves a surface in
+    ///   <c>RENDER_TARGET</c> and cannot report otherwise (see <see cref="D3D12SkiaSurfaceFactory"/>), so
+    ///   every draw is bracketed by a shader-resource-to-render-target transition before and a
+    ///   render-target-to-shader-resource one after. This assumes the host samples the texture between
+    ///   two draws, which <see cref="SkiaRenderTarget2D.End"/> does.
     /// - <b>Release is deferred.</b> A destroyed target's <c>ID3D12Resource</c> is released a few
     ///   draws after its <see cref="RenderTarget2D"/> is disposed, because MonoGame may still have
     ///   frames in flight that sample it.
