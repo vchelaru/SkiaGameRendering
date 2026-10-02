@@ -32,6 +32,9 @@ namespace Sample
 
         public int ExitCode { get; private set; }
 
+        /// <summary>An extra pass/fail check a platform's Program adds to the smoke test; runs just before the exit code is set.</summary>
+        public System.Func<GraphicsDevice, bool> ExtraSmokeCheck { get; set; }
+
         public Game1(bool smokeTest = false)
         {
             _smokeTest = smokeTest;
@@ -137,7 +140,7 @@ namespace Sample
                 && outside == Color.Black;
 
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: circle={circle}, drop={drop}, outside={outside}");
-            ExitCode = passed && !_leakFailed ? 0 : 1;
+            ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;
             Exit();
         }
 
@@ -155,7 +158,7 @@ namespace Sample
                 && drop.R < 100 && drop.B > 150;
 
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")} (Skia surface readback): circle={circle}, drop={drop}");
-            ExitCode = passed && !_leakFailed ? 0 : 1;
+            ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;
             Exit();
         }
 
