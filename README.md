@@ -56,8 +56,8 @@ Install the NuGet package for your platform, then follow the setup for your engi
 |--------|---------|------------|
 | MonoGame DesktopGL | `SkiaGameRendering` | `docs/desktop/quickstart.md` |
 | MonoGame WindowsDX | `SkiaGameRendering.WindowsDX` | `docs/desktop/quickstart.md` |
-| MonoGame WindowsDX12 | `SkiaGameRendering.WindowsDX12` (prerelease: `dotnet add package SkiaGameRendering.WindowsDX12 --prerelease`) | `docs/desktop/quickstart.md` |
-| MonoGame DesktopVK | `SkiaGameRendering.DesktopVK` (prerelease: `dotnet add package SkiaGameRendering.DesktopVK --prerelease`) | `docs/desktop/quickstart.md` |
+| MonoGame WindowsDX12 | [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.WindowsDX12)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX12) `SkiaGameRendering.WindowsDX12` (prerelease: `dotnet add package SkiaGameRendering.WindowsDX12 --prerelease`) | `docs/desktop/quickstart.md` |
+| MonoGame DesktopVK | [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.DesktopVK)](https://www.nuget.org/packages/SkiaGameRendering.DesktopVK) `SkiaGameRendering.DesktopVK` (prerelease: `dotnet add package SkiaGameRendering.DesktopVK --prerelease`) | `docs/desktop/quickstart.md` |
 | KNI DesktopGL | `SkiaGameRendering.Kni.DesktopGL` | `docs/desktop/quickstart.md` |
 | KNI WindowsDX | `SkiaGameRendering.Kni.WindowsDX` | `docs/desktop/quickstart.md` |
 | KNI WebGL (Blazor) | `SkiaGameRendering.Kni.WebGL` | `docs/webgl/quickstart.md` (extra host setup) |
