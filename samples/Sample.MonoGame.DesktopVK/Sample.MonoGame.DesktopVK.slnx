@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../../src/SkiaGameRendering.Core.VK/SkiaGameRendering.Core.VK.csproj" />
+  <Project Path="../../src/SkiaGameRendering.DesktopVK/SkiaGameRendering.DesktopVK.csproj" />
+  <Project Path="Sample.MonoGame.DesktopVK.csproj" DefaultStartup="true" />
+</Solution>

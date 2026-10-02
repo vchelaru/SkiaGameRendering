@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>SkiaGameRendering</RootNamespace>
+    <PackageId>SkiaGameRendering.DesktopVK</PackageId>
+    <Version>$(LibraryVersion)</Version>
+    <Description>GPU SkiaSharp rendering into MonoGame DesktopVK (native Vulkan platform) render targets, drawn on MonoGame's own device and queue with no CPU readback.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- GetNativeHandles and FromNativeHandle first shipped in 3.8.6-preview.2. The native
+         mgruntime library is a separate package (MonoGame.Runtime.Windows.Vulkan or
+         MonoGame.Runtime.Linux.Vulkan) the game references. -->
+    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.6-preview.2" />
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SkiaGameRendering.Core.VK\SkiaGameRendering.Core.VK.csproj" />
+  </ItemGroup>
+
+  <!-- Shared core files from the DesktopGL project -->
+  <ItemGroup>
+    <Compile Include="..\SkiaGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaRenderer.cs" Link="SkiaRenderer.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="SkiaRenderTarget2D.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaTarget.cs" Link="SkiaTarget.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

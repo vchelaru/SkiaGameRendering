@@ -1,21 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RollForward>Major</RollForward>
     <PublishReadyToRun>false</PublishReadyToRun>
     <TieredCompilation>false</TieredCompilation>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- Selects the WindowsDX12 native platform out of MonoGame.Framework.Native's multi-platform
+    <!-- Selects the DesktopVK native platform out of MonoGame.Framework.Native's multi-platform
          package - required by MonoGame.Content.Builder.Task.targets even with no content to build. -->
-    <MonoGamePlatform>WindowsDX12</MonoGamePlatform>
+    <MonoGamePlatform>DesktopVK</MonoGamePlatform>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>..\Sample.MonoGame.WindowsDX\app.manifest</ApplicationManifest>
     <ApplicationIcon>..\Sample.MonoGame.WindowsDX\Icon.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <!-- The native mgruntime.dll comes from the separate MonoGame.Runtime.Windows.DX12 package; the
+  <!-- The native mgruntime library comes from the separate MonoGame.Runtime.*.Vulkan packages; the
        library package only references the managed MonoGame.Framework.Native. -->
   <ItemGroup>
     <EmbeddedResource Include="..\Sample.MonoGame.WindowsDX\Icon.ico" Link="Icon.ico" />
@@ -24,10 +24,11 @@
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.Native" Version="3.8.6-preview.2" />
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.6-preview.2" />
-    <PackageReference Include="MonoGame.Runtime.Windows.DX12" Version="3.8.6-preview.2" />
+    <PackageReference Include="MonoGame.Runtime.Windows.Vulkan" Version="3.8.6-preview.2" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <PackageReference Include="MonoGame.Runtime.Linux.Vulkan" Version="3.8.6-preview.2" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SkiaGameRendering.WindowsDX12\SkiaGameRendering.WindowsDX12.csproj" />
+    <ProjectReference Include="..\..\src\SkiaGameRendering.DesktopVK\SkiaGameRendering.DesktopVK.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />

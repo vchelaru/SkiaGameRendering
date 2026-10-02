@@ -112,6 +112,12 @@ jobs:
       - run: dotnet build samples/Sample.MonoGame.DesktopGL/Sample.MonoGame.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.MonoGame.WindowsDX/Sample.MonoGame.WindowsDX.csproj -c ${{ matrix.configuration }}
+      # The two native MonoGame platforms need 3.8.6-preview.2's GetNativeHandles/FromNativeHandle. CI only
+      # builds them: windows-latest has no GPU for MonoGame's native D3D12/Vulkan device.
+      - run: dotnet build src/SkiaGameRendering.WindowsDX12/SkiaGameRendering.WindowsDX12.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.MonoGame.WindowsDX12/Sample.MonoGame.WindowsDX12.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.DesktopVK/SkiaGameRendering.DesktopVK.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.MonoGame.DesktopVK/Sample.MonoGame.DesktopVK.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Kni.DesktopGL/SkiaGameRendering.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Kni.DesktopGL/Sample.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Kni.WindowsDX/SkiaGameRendering.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}

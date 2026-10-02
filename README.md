@@ -10,8 +10,8 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 |----------|---------|--------|--------------|
 | MonoGame 3.8.4 DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering)](https://www.nuget.org/packages/SkiaGameRendering) | Shared GL context via SDL |
 | MonoGame 3.8.4 WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
-| MonoGame 3.8.5 WindowsDX12 | D3D12 | Blocked — see `TODO.md` | |
-| MonoGame 3.8.5 DesktopVK | Vulkan | Blocked — see `TODO.md` | |
+| MonoGame 3.8.6 WindowsDX12 | D3D12 | Source only for now (`src/SkiaGameRendering.WindowsDX12`; needs prerelease MonoGame) | Skia's D3D12 backend on MonoGame's `ID3D12Device`/queue from `GetNativeHandles()`, drawn into a resource wrapped with `RenderTarget2D.FromNativeHandle()` |
+| MonoGame 3.8.6 DesktopVK | Vulkan | Source only for now (`src/SkiaGameRendering.DesktopVK`; needs prerelease MonoGame; Windows, Linux) | Skia's Vulkan backend on MonoGame's `VkDevice`/`VkQueue` from `GetNativeHandles()`, drawn into an image wrapped with `RenderTarget2D.FromNativeHandle()` |
 | KNI DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.DesktopGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Shared GL context via SDL |
 | KNI WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |
@@ -29,15 +29,18 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 | Unity 6 (D3D11) | D3D11 | UPM git URL `https://github.com/vchelaru/SkiaGameRendering.git#upm` (Windows x64, Mono and IL2CPP) | ANGLE on the device Unity's `RenderTexture` belongs to; draws are recorded to an `SKPicture` on the main thread and played back on Unity's render thread |
 | Godot 4 (Vulkan on macOS; Compatibility on ANGLE/EGL/Wayland) | Vulkan / OpenGL | Not started | SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet - see `TODO.md` |
 
-MonoGame 3.8.5 ships the legacy `WindowsDX` (D3D11) project unchanged alongside the two new native
-platforms above — only `WindowsDX12` and `DesktopVK` are blocked; D3D11 is expected to keep working
-on 3.8.5 the same as it does on 3.8.4 (see `SkiaGameRendering-Notes.md` section 9).
+MonoGame ships the legacy `WindowsDX` (D3D11) project unchanged alongside the two native platforms
+above. 3.8.5 hid the native platforms' graphics device, which blocked them; 3.8.6-preview.2 added
+`GraphicsDevice.GetNativeHandles()` and `RenderTarget2D.FromNativeHandle()`, which the `WindowsDX12`
+and `DesktopVK` backends use (see `SkiaGameRendering-Notes.md` section 9). A game using them also
+references the native runtime package for its platform (`MonoGame.Runtime.Windows.DX12`,
+`MonoGame.Runtime.Windows.Vulkan` or `MonoGame.Runtime.Linux.Vulkan`).
 
 ## Requirements
 
 - .NET 8 (.NET 10 for the Stride backend)
 - Visual Studio 2022
-- MonoGame 3.8.4.1+ (DesktopGL or WindowsDX; samples use 3.8.5.1), KNI (DesktopGL, WindowsDX, or WebGL/Blazor), FNA 26.09+ (D3D11 on Windows, or OpenGL anywhere), raylib, Stride 4.4.0-beta5+ (D3D11 on Windows, or Vulkan on Windows/Linux/macOS; prerelease), or Godot 4.7+ .NET (Forward+/Mobile on Vulkan, D3D12 or Metal, or Compatibility on native OpenGL)
+- MonoGame 3.8.4.1+ (DesktopGL or WindowsDX; samples use 3.8.5.1), MonoGame 3.8.6-preview.2+ (native WindowsDX12 or DesktopVK), KNI (DesktopGL, WindowsDX, or WebGL/Blazor), FNA 26.09+ (D3D11 on Windows, or OpenGL anywhere), raylib, Stride 4.4.0-beta5+ (D3D11 on Windows, or Vulkan on Windows/Linux/macOS; prerelease), or Godot 4.7+ .NET (Forward+/Mobile on Vulkan, D3D12 or Metal, or Compatibility on native OpenGL)
 - SkiaSharp 3.119.4 for WebGL and the KNI desktop backends; 3.119.2 for the MonoGame desktop projects
 
 The MonoGame DesktopGL (`SkiaGameRendering`) and WindowsDX (`SkiaGameRendering.WindowsDX`) packages
@@ -52,6 +55,8 @@ Install the NuGet package for your platform, then follow the setup for your engi
 |--------|---------|------------|
 | MonoGame DesktopGL | `SkiaGameRendering` | `docs/desktop/quickstart.md` |
 | MonoGame WindowsDX | `SkiaGameRendering.WindowsDX` | `docs/desktop/quickstart.md` |
+| MonoGame WindowsDX12 | `SkiaGameRendering.WindowsDX12` (not published yet; reference the project from source) | `docs/desktop/quickstart.md` |
+| MonoGame DesktopVK | `SkiaGameRendering.DesktopVK` (not published yet; reference the project from source) | `docs/desktop/quickstart.md` |
 | KNI DesktopGL | `SkiaGameRendering.Kni.DesktopGL` | `docs/desktop/quickstart.md` |
 | KNI WindowsDX | `SkiaGameRendering.Kni.WindowsDX` | `docs/desktop/quickstart.md` |
 | KNI WebGL (Blazor) | `SkiaGameRendering.Kni.WebGL` | `docs/webgl/quickstart.md` (extra host setup) |
