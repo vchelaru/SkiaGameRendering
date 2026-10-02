@@ -15,8 +15,8 @@ DesktopGL, KNI WindowsDX. All four share the same public API (`SkiaRenderer`,
 ```powershell
 dotnet add package SkiaGameRendering                    # MonoGame DesktopGL
 dotnet add package SkiaGameRendering.WindowsDX           # MonoGame WindowsDX
-dotnet add package SkiaGameRendering.WindowsDX12         # MonoGame native WindowsDX12 (also reference MonoGame.Runtime.Windows.DX12)
-dotnet add package SkiaGameRendering.DesktopVK           # MonoGame native DesktopVK (also reference MonoGame.Runtime.Windows.Vulkan or MonoGame.Runtime.Linux.Vulkan)
+dotnet add package SkiaGameRendering.WindowsDX12 --prerelease         # MonoGame native WindowsDX12, prerelease (also reference MonoGame.Runtime.Windows.DX12)
+dotnet add package SkiaGameRendering.DesktopVK --prerelease           # MonoGame native DesktopVK, prerelease (also reference MonoGame.Runtime.Windows.Vulkan or MonoGame.Runtime.Linux.Vulkan)
 dotnet add package SkiaGameRendering.Kni.DesktopGL       # KNI DesktopGL
 dotnet add package SkiaGameRendering.Kni.WindowsDX       # KNI WindowsDX
 ```

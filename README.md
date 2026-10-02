@@ -10,8 +10,8 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 |----------|---------|--------|--------------|
 | MonoGame 3.8.4 DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering)](https://www.nuget.org/packages/SkiaGameRendering) | Shared GL context via SDL |
 | MonoGame 3.8.4 WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
-| MonoGame 3.8.6 WindowsDX12 | D3D12 | Source only for now (`src/SkiaGameRendering.WindowsDX12`; needs prerelease MonoGame) | Skia's D3D12 backend on MonoGame's `ID3D12Device`/queue from `GetNativeHandles()`, drawn into a resource wrapped with `RenderTarget2D.FromNativeHandle()` |
-| MonoGame 3.8.6 DesktopVK | Vulkan | Source only for now (`src/SkiaGameRendering.DesktopVK`; needs prerelease MonoGame; Windows, Linux) | Skia's Vulkan backend on MonoGame's `VkDevice`/`VkQueue` from `GetNativeHandles()`, drawn into an image wrapped with `RenderTarget2D.FromNativeHandle()` |
+| MonoGame 3.8.6 WindowsDX12 | D3D12 | [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.WindowsDX12)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX12) (prerelease, needs prerelease MonoGame; game also references `MonoGame.Runtime.Windows.DX12`) | Skia's D3D12 backend on MonoGame's `ID3D12Device`/queue from `GetNativeHandles()`, drawn into a resource wrapped with `RenderTarget2D.FromNativeHandle()` |
+| MonoGame 3.8.6 DesktopVK | Vulkan | [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.DesktopVK)](https://www.nuget.org/packages/SkiaGameRendering.DesktopVK) (prerelease, needs prerelease MonoGame; Windows, Linux; game also references `MonoGame.Runtime.Windows.Vulkan` or `MonoGame.Runtime.Linux.Vulkan`) | Skia's Vulkan backend on MonoGame's `VkDevice`/`VkQueue` from `GetNativeHandles()`, drawn into an image wrapped with `RenderTarget2D.FromNativeHandle()` |
 | KNI DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.DesktopGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Shared GL context via SDL |
 | KNI WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
 | KNI Android | GL ES | Not started | |
@@ -56,8 +56,8 @@ Install the NuGet package for your platform, then follow the setup for your engi
 |--------|---------|------------|
 | MonoGame DesktopGL | `SkiaGameRendering` | `docs/desktop/quickstart.md` |
 | MonoGame WindowsDX | `SkiaGameRendering.WindowsDX` | `docs/desktop/quickstart.md` |
-| MonoGame WindowsDX12 | `SkiaGameRendering.WindowsDX12` (not published yet; reference the project from source) | `docs/desktop/quickstart.md` |
-| MonoGame DesktopVK | `SkiaGameRendering.DesktopVK` (not published yet; reference the project from source) | `docs/desktop/quickstart.md` |
+| MonoGame WindowsDX12 | `SkiaGameRendering.WindowsDX12` (prerelease: `dotnet add package SkiaGameRendering.WindowsDX12 --prerelease`) | `docs/desktop/quickstart.md` |
+| MonoGame DesktopVK | `SkiaGameRendering.DesktopVK` (prerelease: `dotnet add package SkiaGameRendering.DesktopVK --prerelease`) | `docs/desktop/quickstart.md` |
 | KNI DesktopGL | `SkiaGameRendering.Kni.DesktopGL` | `docs/desktop/quickstart.md` |
 | KNI WindowsDX | `SkiaGameRendering.Kni.WindowsDX` | `docs/desktop/quickstart.md` |
 | KNI WebGL (Blazor) | `SkiaGameRendering.Kni.WebGL` | `docs/webgl/quickstart.md` (extra host setup) |

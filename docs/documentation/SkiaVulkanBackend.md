@@ -8,7 +8,7 @@ image MonoGame then samples. No CPU readback and no reflection.
 
 Namespace: `SkiaGameRendering`
 
-Assembly/package: `SkiaGameRendering.DesktopVK`
+Assembly/package: `SkiaGameRendering.DesktopVK` (prerelease on NuGet: `dotnet add package SkiaGameRendering.DesktopVK --prerelease`, because MonoGame's native platform is itself prerelease)
 
 ```csharp
 public class SkiaVulkanBackend : SkiaBackend

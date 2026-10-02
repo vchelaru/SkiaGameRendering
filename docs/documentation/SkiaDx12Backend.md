@@ -8,7 +8,7 @@ straight into a texture MonoGame then samples. No CPU readback and no reflection
 
 Namespace: `SkiaGameRendering`
 
-Assembly/package: `SkiaGameRendering.WindowsDX12`
+Assembly/package: `SkiaGameRendering.WindowsDX12` (prerelease on NuGet: `dotnet add package SkiaGameRendering.WindowsDX12 --prerelease`, because MonoGame's native platform is itself prerelease)
 
 ```csharp
 public class SkiaDx12Backend : SkiaBackend

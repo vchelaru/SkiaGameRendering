@@ -7,7 +7,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>SkiaGameRendering</RootNamespace>
     <PackageId>SkiaGameRendering.DesktopVK</PackageId>
-    <Version>$(LibraryVersion)</Version>
+    <!--
+      Prerelease, like Stride.VK: MonoGame.Framework.Native 3.8.6-preview.2 is itself a prerelease,
+      and NuGet rejects a stable package that depends on one (NU5104, an error under
+      TreatWarningsAsErrors). Drop the suffix once MonoGame 3.8.6 ships stable.
+    -->
+    <Version>$(LibraryVersion)-preview</Version>
     <Description>GPU SkiaSharp rendering into MonoGame DesktopVK (native Vulkan platform) render targets, drawn on MonoGame's own device and queue with no CPU readback.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
