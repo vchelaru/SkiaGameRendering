@@ -34,6 +34,18 @@ static unsafe class D3D12DebugLayer
 
     static long? DIAG_firstError;
 
+    public static void Mark(GraphicsDevice graphicsDevice, string tag)
+    {
+        var device = graphicsDevice.GetNativeHandles().LogicalDevice;
+        void* queue;
+        var iid = IID_ID3D12InfoQueue;
+        if (((delegate* unmanaged[MemberFunction]<IntPtr, Guid*, void**, int>)(*(void***)device)[0])(device, &iid, &queue) < 0)
+            return;
+        var count = ((delegate* unmanaged[MemberFunction]<void*, ulong>)(*(void***)queue)[8])(queue);
+        ((delegate* unmanaged[MemberFunction]<void*, uint>)(*(void***)queue)[2])(queue);
+        Console.WriteLine($"  MARK {tag}: {count} messages stored");
+    }
+
     public static bool Requested => Environment.GetEnvironmentVariable("SKIAGAMERENDERING_D3D12_DEBUG") == "1";
 
     /// <summary>Must run before the <c>GraphicsDevice</c> exists.</summary>
