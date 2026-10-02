@@ -7,7 +7,7 @@ DesktopGL, KNI WindowsDX. All four share the same public API (`SkiaRenderer`,
 ## Prerequisites
 
 - .NET 8, Visual Studio 2022
-- MonoGame 3.8.4.1 (DesktopGL or WindowsDX) or KNI (DesktopGL or WindowsDX)
+- MonoGame 3.8.4.1 (DesktopGL or WindowsDX), MonoGame 3.8.6-preview.2 (native WindowsDX12 or DesktopVK), or KNI (DesktopGL or WindowsDX)
 - SkiaSharp 3.119.4 for the KNI desktop backends; 3.119.2 for the MonoGame desktop projects
 
 ## Add the package
@@ -15,6 +15,8 @@ DesktopGL, KNI WindowsDX. All four share the same public API (`SkiaRenderer`,
 ```powershell
 dotnet add package SkiaGameRendering                    # MonoGame DesktopGL
 dotnet add package SkiaGameRendering.WindowsDX           # MonoGame WindowsDX
+dotnet add package SkiaGameRendering.WindowsDX12         # MonoGame native WindowsDX12 (also reference MonoGame.Runtime.Windows.DX12)
+dotnet add package SkiaGameRendering.DesktopVK           # MonoGame native DesktopVK (also reference MonoGame.Runtime.Windows.Vulkan or MonoGame.Runtime.Linux.Vulkan)
 dotnet add package SkiaGameRendering.Kni.DesktopGL       # KNI DesktopGL
 dotnet add package SkiaGameRendering.Kni.WindowsDX       # KNI WindowsDX
 ```
@@ -108,6 +110,8 @@ track or dispose them for you.
 | `SkiaKniGlBackend` | KNI DesktopGL | Same trick, adapted to KNI's SDL bridge | [docs](../documentation/SkiaKniGlBackend.md) |
 | `SkiaAngleBackend` | MonoGame WindowsDX | ANGLE (GL ES → D3D11) on MonoGame's own D3D11 device | [docs](../documentation/SkiaAngleBackend.md) |
 | `SkiaKniAngleBackend` | KNI WindowsDX | Same ANGLE interop, on KNI's D3D11 device via its Strategy bridge | [docs](../documentation/SkiaKniAngleBackend.md) |
+| `SkiaDx12Backend` | MonoGame native WindowsDX12 | Skia's D3D12 backend on MonoGame's own device and queue | [docs](../documentation/SkiaDx12Backend.md) |
+| `SkiaVulkanBackend` | MonoGame native DesktopVK | Skia's Vulkan backend on MonoGame's own device and queue | [docs](../documentation/SkiaVulkanBackend.md) |
 
 The two GL backends share `src/SkiaGameRendering.Core.OGL/` (engine-agnostic raw-GL/Skia FBO
 interop); the two ANGLE backends share `src/SkiaGameRendering.Core.ANGLE/` (engine-agnostic
@@ -145,8 +149,10 @@ but every consumer should land on the vendored copy in practice.
 
 - `samples/Sample.MonoGame.DesktopGL/` — cross-platform: Windows, Linux, macOS
 - `samples/Sample.MonoGame.WindowsDX/` — Windows only
+- `samples/Sample.MonoGame.WindowsDX12/` — Windows only
+- `samples/Sample.MonoGame.DesktopVK/` — Windows and Linux
 - `samples/Sample.Kni.DesktopGL/` — cross-platform: Windows, Linux, macOS
 - `samples/Sample.Kni.WindowsDX/` — Windows only
 
-DesktopGL, WindowsDX, and KNI WindowsDX share the same `Game1.cs` via a linked file include; KNI
+DesktopGL, WindowsDX, WindowsDX12, DesktopVK, and KNI WindowsDX share the same `Game1.cs` via a linked file include; KNI
 DesktopGL has its own copy.

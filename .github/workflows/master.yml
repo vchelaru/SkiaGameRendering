@@ -147,6 +147,12 @@ jobs:
       - run: dotnet build samples/Sample.MonoGame.DesktopGL/Sample.MonoGame.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.MonoGame.WindowsDX/Sample.MonoGame.WindowsDX.csproj -c ${{ matrix.configuration }}
+      # The two native MonoGame platforms need 3.8.6-preview.2's GetNativeHandles/FromNativeHandle. CI only
+      # builds them: windows-latest has no GPU for MonoGame's native D3D12/Vulkan device.
+      - run: dotnet build src/SkiaGameRendering.WindowsDX12/SkiaGameRendering.WindowsDX12.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.MonoGame.WindowsDX12/Sample.MonoGame.WindowsDX12.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.DesktopVK/SkiaGameRendering.DesktopVK.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.MonoGame.DesktopVK/Sample.MonoGame.DesktopVK.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Kni.DesktopGL/SkiaGameRendering.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Kni.DesktopGL/Sample.Kni.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build src/SkiaGameRendering.Kni.WindowsDX/SkiaGameRendering.Kni.WindowsDX.csproj -c ${{ matrix.configuration }}
@@ -334,6 +340,52 @@ jobs:
           $p = Start-Process ./Sample.MonoGame.WindowsDX.exe -ArgumentList --smoke-test -PassThru -RedirectStandardOutput smoke.txt -RedirectStandardError smoke-err.txt
           $null = $p.Handle
           if (-not $p.WaitForExit(120000)) { $p.Kill(); throw "Smoke test timed out" }
+          Get-Content smoke.txt, smoke-err.txt
+          "Exit code: $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode
+          exit $p.ExitCode
+
+  # MonoGame's native WindowsDX12 and DesktopVK platforms, run through the sample's --smoke-test on
+  # windows-latest's software drivers: WARP for D3D12 (the runner's only adapter), Mesa lavapipe for
+  # Vulkan. The Vulkan run checks only that the frames run; see SKIAGAMERENDERING_SMOKE_SKIP_READBACK below.
+  monogame-native-windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [WindowsDX12, DesktopVK]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      # Same lavapipe download and registry registration as desktop-and-core; see the comments there.
+      # WindowsDX12 needs it too: MonoGame's native platform creates its SDL window with Vulkan support
+      # even on D3D12 and throws when the loader has no driver with VK_KHR_surface.
+      - name: Download and register Mesa lavapipe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "26.2.0"
+          Invoke-WebRequest -Uri "https://github.com/pal1000/mesa-dist-win/releases/download/$version/mesa3d-$version-release-msvc.7z" -OutFile mesa.7z
+          $vendorDir = "tests/mesa-vendor"
+          New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
+          & "C:\Program Files\7-Zip\7z.exe" e mesa.7z -o"$vendorDir" "x64/lvp_icd.x86_64.json" "x64/vulkan_lvp.dll" -y
+          Remove-Item mesa.7z
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name "$PWD\tests\mesa-vendor\lvp_icd.x86_64.json" -PropertyType DWord -Value 0 -Force | Out-Null
+      - run: dotnet build samples/Sample.MonoGame.${{ matrix.platform }}/Sample.MonoGame.${{ matrix.platform }}.csproj -c Release -o out
+      - name: Run the sample's smoke test
+        working-directory: out
+        shell: pwsh
+        env:
+          # MonoGame's GetBackBufferData hangs the next frame on lavapipe; see Game1.CheckSmokeTestFrame.
+          SKIAGAMERENDERING_SMOKE_SKIP_READBACK: ${{ matrix.platform == 'DesktopVK' && '1' || '' }}
+        # WinExe detaches from the console, so wait on the process for its exit code and print its
+        # redirected output. Touching Handle first makes ExitCode available after the process exits.
+        run: |
+          $p = Start-Process ./Sample.MonoGame.${{ matrix.platform }}.exe -ArgumentList --smoke-test -PassThru -RedirectStandardOutput smoke.txt -RedirectStandardError smoke-err.txt
+          $null = $p.Handle
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); Get-Content smoke.txt, smoke-err.txt; throw "Smoke test timed out" }
           Get-Content smoke.txt, smoke-err.txt
           "Exit code: $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode
           exit $p.ExitCode
