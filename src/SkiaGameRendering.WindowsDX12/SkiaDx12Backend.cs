@@ -104,6 +104,9 @@ namespace SkiaGameRendering
             var resource = D3D12SkiaSurfaceFactory.CreateRenderTargetResource(_device, width, height, dxgiFormat);
             try
             {
+                // MonoGame never transitions a wrapped resource before it first samples it, so it has to
+                // start where MonoGame leaves it after sampling.
+                _transitioner!.Transition(resource, D3D12Constants.ResourceStateRenderTarget, ShaderResourceState);
                 var texture = RenderTarget2D.FromNativeHandle(GraphicsDevice, resource, width, height, format);
                 _resources.Add(texture, new TargetResource(resource, dxgiFormat));
                 texture.Disposing += (_, _) => _pendingReleases.Add((resource, _drawIndex));
@@ -133,9 +136,7 @@ namespace SkiaGameRendering
         internal override void BindForDrawing(object renderState)
         {
             var target = (TargetResource)renderState;
-            if (target.HasDrawn)
-                _transitioner!.Transition(target.Resource, ShaderResourceState, D3D12Constants.ResourceStateRenderTarget);
-
+            _transitioner!.Transition(target.Resource, ShaderResourceState, D3D12Constants.ResourceStateRenderTarget);
             _current = target;
         }
 
@@ -144,11 +145,7 @@ namespace SkiaGameRendering
             if (_current is { } target)
             {
                 _current = null;
-
-                // The first draw leaves the resource where MonoGame already believes it is.
-                if (target.HasDrawn)
-                    _handBack = target;
-                target.HasDrawn = true;
+                _handBack = target;
             }
         }
 
@@ -183,7 +180,6 @@ namespace SkiaGameRendering
         {
             internal IntPtr Resource { get; } = resource;
             internal uint DxgiFormat { get; } = dxgiFormat;
-            internal bool HasDrawn { get; set; }
         }
     }
 }
