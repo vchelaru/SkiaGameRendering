@@ -21,6 +21,14 @@ namespace Sample
         private readonly bool _smokeTest;
         private int _frameCount;
         private bool _skiaChecked;
+        private bool _leakFailed;
+
+        // SKIAGAMERENDERING_SMOKE_LEAK_FRAMES=N makes --smoke-test run LeakWarmupFrames + 2N frames, compare
+        // the two N-frame windows for growth, and only then check the pixels.
+        private const int LeakWarmupFrames = 50;
+        private static readonly int LeakFrames =
+            int.TryParse(System.Environment.GetEnvironmentVariable("SKIAGAMERENDERING_SMOKE_LEAK_FRAMES"), out var n) && n > 0 ? n : 0;
+        private (long Private, long Managed, int Handles) _leakStart, _leakMiddle;
 
         public int ExitCode { get; private set; }
 
@@ -56,7 +64,14 @@ namespace Sample
                 _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
                 _canvas.Begin();
                 Scene.Draw(_canvas.Canvas, 200, 200);
-                var checkFrame = _smokeTest && ++_frameCount == 3;
+                var checkFrame = false;
+                if (_smokeTest)
+                {
+                    _frameCount++;
+                    if (LeakFrames > 0)
+                        SampleLeak();
+                    checkFrame = _frameCount == (LeakFrames > 0 ? LeakWarmupFrames + 2 * LeakFrames : 3);
+                }
                 // Mid-draw, so the readback sees the surface in the state Skia expects.
                 var readback = System.Environment.GetEnvironmentVariable("SKIAGAMERENDERING_SMOKE_SKIA_READBACK");
                 if (checkFrame && readback == "1")
@@ -68,6 +83,35 @@ namespace Sample
             }
 
             base.Draw(gameTime);
+        }
+
+        private void SampleLeak()
+        {
+            if (_frameCount != LeakWarmupFrames && _frameCount != LeakWarmupFrames + LeakFrames && _frameCount != LeakWarmupFrames + 2 * LeakFrames)
+                return;
+
+            // Undisposed Skia wrappers free their native memory from finalizers, so settle those first.
+            System.GC.Collect();
+            System.GC.WaitForPendingFinalizers();
+            System.GC.Collect();
+            using var process = System.Diagnostics.Process.GetCurrentProcess();
+            var now = (process.PrivateMemorySize64, System.GC.GetTotalMemory(true), process.HandleCount);
+
+            if (_frameCount == LeakWarmupFrames)
+                _leakStart = now;
+            else if (_frameCount == LeakWarmupFrames + LeakFrames)
+                _leakMiddle = now;
+            else
+            {
+                const long mb = 1024 * 1024;
+                System.Console.WriteLine($"Leak check over {2 * LeakFrames} frames: private {_leakStart.Private / mb} -> {_leakMiddle.Private / mb} -> {now.Item1 / mb} MB, " +
+                    $"managed {_leakStart.Managed / mb} -> {_leakMiddle.Managed / mb} -> {now.Item2 / mb} MB, handles {_leakStart.Handles} -> {_leakMiddle.Handles} -> {now.Item3}");
+                // Same loose limits as tests/Shared/FrameLeakCheck.cs: they catch a texture or command list per frame.
+                _leakFailed = now.Item1 - _leakStart.Private >= 24 * mb || now.Item1 - _leakMiddle.Private >= 12 * mb
+                    || now.Item2 - _leakStart.Managed >= 2 * mb || now.Item3 - _leakStart.Handles >= 32;
+                if (_leakFailed)
+                    System.Console.WriteLine("Leak check FAILED: a resource grew with the frame count.");
+            }
         }
 
         protected override void UnloadContent()
@@ -93,7 +137,7 @@ namespace Sample
                 && outside == Color.Black;
 
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: circle={circle}, drop={drop}, outside={outside}");
-            ExitCode = passed ? 0 : 1;
+            ExitCode = passed && !_leakFailed ? 0 : 1;
             Exit();
         }
 
@@ -111,7 +155,7 @@ namespace Sample
                 && drop.R < 100 && drop.B > 150;
 
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")} (Skia surface readback): circle={circle}, drop={drop}");
-            ExitCode = passed ? 0 : 1;
+            ExitCode = passed && !_leakFailed ? 0 : 1;
             Exit();
         }
 
