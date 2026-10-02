@@ -403,6 +403,14 @@ jobs:
           if (-not (Test-Path $layerPath)) { throw "$layerPath is missing." }
           New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\ExplicitLayers" -Force | Out-Null
           New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\ExplicitLayers" -Name $layerPath -PropertyType DWord -Value 0 -Force | Out-Null
+      - name: Probe the D3D12 debug layer
+        if: matrix.platform == 'WindowsDX12'
+        shell: pwsh
+        run: |
+          "present before: $(Test-Path "$env:SystemRoot\System32\d3d12SDKLayers.dll")"
+          Get-WindowsCapability -Online -Name "Tools.Graphics.DirectX*" | Format-List Name, State
+          try { Add-WindowsCapability -Online -Name "Tools.Graphics.DirectX~~~~0.0.1.0" } catch { "install failed: $_" }
+          "present after: $(Test-Path "$env:SystemRoot\System32\d3d12SDKLayers.dll")"
       - run: dotnet build samples/Sample.MonoGame.${{ matrix.platform }}/Sample.MonoGame.${{ matrix.platform }}.csproj -c Release -o out
       - name: Run the sample's smoke test
         working-directory: out
