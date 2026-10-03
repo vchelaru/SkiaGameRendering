@@ -20,16 +20,13 @@
     <ProjectReference Include="..\..\src\SkiaGameRendering.Raylib.OGL\SkiaGameRendering.Raylib.OGL.csproj" />
   </ItemGroup>
 
-  <!--
-    No MesaVendor.props import here, unlike Tests.Core.OGL.csproj: LinuxOnlyFactAttribute skips the
-    one test in this project before it ever touches GL on Windows, so windows-latest never needs a
-    software GL driver for it. See that attribute's doc comment for why Windows raylib coverage is
-    deferred instead of wired up now.
-  -->
   <ItemGroup>
+    <Compile Include="..\Shared\VendoredOpenGl.cs" Link="VendoredOpenGl.cs" />
     <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
     <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
     <Compile Include="..\Shared\FrameLeakCheck.cs" Link="FrameLeakCheck.cs" />
     <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <Import Project="..\MesaVendor.props" />
 </Project>
