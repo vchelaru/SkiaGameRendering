@@ -6,29 +6,29 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 
 ## Platform Support
 
-| Platform | Backend | Status | How it works |
-|----------|---------|--------|--------------|
-| MonoGame 3.8.4 DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering)](https://www.nuget.org/packages/SkiaGameRendering) | Shared GL context via SDL |
-| MonoGame 3.8.4 WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
-| MonoGame 3.8.6 WindowsDX12 | D3D12 | [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.WindowsDX12)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX12) (prerelease, needs prerelease MonoGame; game also references `MonoGame.Runtime.Windows.DX12`) | Skia's D3D12 backend on MonoGame's `ID3D12Device`/queue from `GetNativeHandles()`, drawn into a resource wrapped with `RenderTarget2D.FromNativeHandle()` |
-| MonoGame 3.8.6 DesktopVK | Vulkan | [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.DesktopVK)](https://www.nuget.org/packages/SkiaGameRendering.DesktopVK) (prerelease, needs prerelease MonoGame; Windows, Linux; game also references `MonoGame.Runtime.Windows.Vulkan` or `MonoGame.Runtime.Linux.Vulkan`) | Skia's Vulkan backend on MonoGame's `VkDevice`/`VkQueue` from `GetNativeHandles()`, drawn into an image wrapped with `RenderTarget2D.FromNativeHandle()` |
-| KNI DesktopGL | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.DesktopGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Shared GL context via SDL |
-| KNI WindowsDX | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | ANGLE (GL ES → D3D11 translation) on shared device |
-| KNI Android | GL ES | Not started | |
-| KNI WebGL (Blazor) | WebGL2 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WebGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
-| raylib | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) (Windows, Linux, macOS) | Second WGL (Windows), GLX (Linux) or CGL (macOS) context shares rlgl's GL namespace |
-| FNA (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) (Windows) | ANGLE (GL ES → D3D11 translation) on the device FNA3D's D3D11 driver exposes through `FNA3D_GetSysRendererEXT`; needs `FNA3D_FORCE_DRIVER=D3D11` |
-| FNA (OpenGL) | OpenGL | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Fna.OGL) (Windows, Linux, macOS) | Second SDL GL context shared with FNA3D's; needs `FNA3D_FORCE_DRIVER=OpenGL` |
-| FNA (SDL_GPU) | Vulkan/D3D12/Metal | Blocked: FNA3D's default driver exposes no native device (see the FNA section below) | |
-| Stride (D3D11) | D3D11 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D11)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) (Windows) | ANGLE (GL ES → D3D11 translation) on shared device |
-| Stride (Vulkan) | Vulkan | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.VK)](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) (Linux, macOS, Windows) | Skia's Vulkan backend on Stride's shared `VkDevice`/`VkQueue`, no separate context |
-| Stride (D3D12) | D3D12 | [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D12)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D12) (Windows) | Skia's D3D12 backend on Stride's shared `ID3D12Device`/queue, drawing straight into the Stride texture |
-| Godot 4.7+ (Vulkan) | Vulkan | Source only for now (`src/SkiaGameRendering.Godot`) | Skia's Vulkan backend on the handles Godot's `RenderingDevice.GetDriverResource` exposes publicly; drawn straight into an RD texture shown via `Texture2DRD`. No reflection. |
-| Godot 4.7+ (D3D12) | D3D12 | Same package, backend picked at runtime (Windows) | Skia's D3D12 backend on Godot's `ID3D12Device`/queue; Skia draws into a typed resource this library owns and one GPU `CopyResource` per frame lands it in Godot's (typeless) texture - no CPU readback, but not zero-copy |
-| Godot 4.7+ (Compatibility) | OpenGL 3.3 | Same package (Windows native WGL; Linux X11/GLX unrun) | Second GL context sharing Godot's, Skia draws into an FBO around an ordinary `ImageTexture`'s GL texture - zero-copy, the raylib adapter's shape |
-| Godot 4.7+ (Metal) | Metal | Same package (macOS) | Skia's Metal backend on Godot's `MTLDevice`/queue, drawn straight into the RD texture's `MTLTexture` - zero-copy |
-| Unity 6 (D3D11, D3D12, Metal) | D3D11, D3D12, Metal | UPM git URL `https://github.com/vchelaru/SkiaGameRendering.git#upm` (Windows x64, Mono and IL2CPP; macOS) | ANGLE on the device Unity's `RenderTexture` belongs to (D3D11), or Unity's own `ID3D12Device`/`MTLDevice` and command queue through a small native plugin (D3D12, Metal); draws are recorded to an `SKPicture` on the main thread and played back on Unity's render thread |
-| Godot 4 (Vulkan on macOS; Compatibility on ANGLE/EGL/Wayland) | Vulkan / OpenGL | Not started | SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet - see `TODO.md` |
+| Engine | Backend | Package | Platforms | Notes |
+|--------|---------|---------|-----------|-------|
+| [MonoGame 3.8.4 DesktopGL](docs/desktop/quickstart.md) | OpenGL | [SkiaGameRendering](https://www.nuget.org/packages/SkiaGameRendering) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering)](https://www.nuget.org/packages/SkiaGameRendering) | Windows, Linux, macOS |  |
+| [MonoGame 3.8.4 WindowsDX](docs/desktop/quickstart.md) | D3D11 | [SkiaGameRendering.WindowsDX](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX) | Windows |  |
+| [MonoGame 3.8.6 WindowsDX12](docs/desktop/quickstart.md) | D3D12 | [SkiaGameRendering.WindowsDX12](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX12) [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.WindowsDX12)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX12) | Windows | Prerelease; needs prerelease MonoGame and `MonoGame.Runtime.Windows.DX12` |
+| [MonoGame 3.8.6 DesktopVK](docs/desktop/quickstart.md) | Vulkan | [SkiaGameRendering.DesktopVK](https://www.nuget.org/packages/SkiaGameRendering.DesktopVK) [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.DesktopVK)](https://www.nuget.org/packages/SkiaGameRendering.DesktopVK) | Windows, Linux | Prerelease; needs prerelease MonoGame and `MonoGame.Runtime.Windows.Vulkan` or `MonoGame.Runtime.Linux.Vulkan` |
+| [KNI DesktopGL](docs/desktop/quickstart.md) | OpenGL | [SkiaGameRendering.Kni.DesktopGL](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.DesktopGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Windows, Linux, macOS |  |
+| [KNI WindowsDX](docs/desktop/quickstart.md) | D3D11 | [SkiaGameRendering.Kni.WindowsDX](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | Windows |  |
+| [KNI WebGL (Blazor)](docs/webgl/quickstart.md) | WebGL2 | [SkiaGameRendering.Kni.WebGL](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WebGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Browser | Extra host setup; see [WebGL / WASM Status](#webgl--wasm-status) |
+| [raylib](docs/raylib/quickstart.md) | OpenGL | [SkiaGameRendering.Raylib.OGL](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) | Windows, Linux, macOS |  |
+| [FNA](#fna) | D3D11 | [SkiaGameRendering.Fna.WindowsDX](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) | Windows | Needs `FNA3D_FORCE_DRIVER=D3D11` |
+| [FNA](#fna) | OpenGL | [SkiaGameRendering.Fna.OGL](https://www.nuget.org/packages/SkiaGameRendering.Fna.OGL) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Fna.OGL) | Windows, Linux, macOS | Needs `FNA3D_FORCE_DRIVER=OpenGL` |
+| [Stride](docs/stride/quickstart.md) | D3D11 | [SkiaGameRendering.Stride.D3D11](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D11)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) | Windows |  |
+| [Stride](docs/stride/vulkan-quickstart.md) | Vulkan | [SkiaGameRendering.Stride.VK](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.VK)](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) | Windows, Linux, macOS |  |
+| [Stride](docs/stride/d3d12-quickstart.md) | D3D12 | [SkiaGameRendering.Stride.D3D12](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D12) [![NuGet](https://img.shields.io/nuget/v/SkiaGameRendering.Stride.D3D12)](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D12) | Windows |  |
+| [Godot 4.7+](docs/godot/quickstart.md) | Vulkan, D3D12, Metal, OpenGL 3.3 | `src/SkiaGameRendering.Godot` (source only, not on NuGet yet) | Windows, Linux, macOS | One package; backend picked at runtime. Compatibility/OpenGL on Linux (X11/GLX) is unrun |
+| [Unity 6](#unity) | D3D11, D3D12, Metal | UPM git URL: `https://github.com/vchelaru/SkiaGameRendering.git#upm` (or `#upm/v<version>` to pin) | Windows x64 (Mono, IL2CPP), macOS | Not on NuGet |
+
+Not supported yet:
+
+- **KNI Android** (GL ES): not started.
+- **FNA SDL_GPU** (Vulkan/D3D12/Metal): blocked, FNA3D's default driver exposes no native device (see [FNA](#fna)).
+- **Godot Vulkan on macOS, and Compatibility on ANGLE/EGL/Wayland**: SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet. See `TODO.md`.
 
 MonoGame ships the legacy `WindowsDX` (D3D11) project unchanged alongside the two native platforms
 above. 3.8.5 hid the native platforms' graphics device, which blocked them; 3.8.6-preview.2 added
@@ -52,26 +52,10 @@ are trim- and NativeAOT-compatible; CI publishes `Sample.MonoGame.DesktopGL` (on
 
 Install the NuGet package for your platform, then follow the setup for your engine below.
 
-| Engine | Package | Full guide |
-|--------|---------|------------|
-| MonoGame DesktopGL | `SkiaGameRendering` | `docs/desktop/quickstart.md` |
-| MonoGame WindowsDX | `SkiaGameRendering.WindowsDX` | `docs/desktop/quickstart.md` |
-| MonoGame WindowsDX12 | [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.WindowsDX12)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX12) `SkiaGameRendering.WindowsDX12` (prerelease: `dotnet add package SkiaGameRendering.WindowsDX12 --prerelease`) | `docs/desktop/quickstart.md` |
-| MonoGame DesktopVK | [![NuGet](https://img.shields.io/nuget/vpre/SkiaGameRendering.DesktopVK)](https://www.nuget.org/packages/SkiaGameRendering.DesktopVK) `SkiaGameRendering.DesktopVK` (prerelease: `dotnet add package SkiaGameRendering.DesktopVK --prerelease`) | `docs/desktop/quickstart.md` |
-| KNI DesktopGL | `SkiaGameRendering.Kni.DesktopGL` | `docs/desktop/quickstart.md` |
-| KNI WindowsDX | `SkiaGameRendering.Kni.WindowsDX` | `docs/desktop/quickstart.md` |
-| KNI WebGL (Blazor) | `SkiaGameRendering.Kni.WebGL` | `docs/webgl/quickstart.md` (extra host setup) |
-| FNA (D3D11) | `SkiaGameRendering.Fna.WindowsDX` | [FNA](#fna) |
-| FNA (OpenGL) | `SkiaGameRendering.Fna.OGL` | [FNA](#fna) |
-| raylib | `SkiaGameRendering.Raylib.OGL` | `docs/raylib/quickstart.md` |
-| Stride (D3D11) | `SkiaGameRendering.Stride.D3D11` | `docs/stride/quickstart.md` |
-| Stride (Vulkan) | `SkiaGameRendering.Stride.VK` | `docs/stride/vulkan-quickstart.md` |
-| Stride (D3D12) | `SkiaGameRendering.Stride.D3D12` | `docs/stride/d3d12-quickstart.md` |
-| Godot (Vulkan, D3D12 or Compatibility) | `SkiaGameRendering.Godot` (not published yet; reference the project from source) | `docs/godot/quickstart.md` |
-| Unity 6 (D3D11, D3D12, Metal) | Not on NuGet: Package Manager > Install package from git URL > `https://github.com/vchelaru/SkiaGameRendering.git#upm` (or `#upm/v<version>` to pin one) | [Unity](#unity) |
+The Package column in the [table above](#platform-support) is the NuGet name, and the Engine column links each engine's full guide.
 
 ```powershell
-dotnet add package <package from the table>
+dotnet add package <package from the table>  # add --prerelease for the prerelease packages
 ```
 
 ### MonoGame, KNI, and FNA
@@ -327,6 +311,21 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Stride.D3D12/`: Stride library (shared `Core.D3D12` + `SkiaStrideD3D12RenderTarget2D`, Windows/D3D12 only)
 - `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s, `Core.D3D12`'s and `Core.Metal`'s netstandard2.1 builds + `SkiaUnityRenderTarget`, Windows/D3D11, Windows/D3D12 and macOS/Metal; the plugins' sources are `unity/native/SkiaUnityD3D12/` and `unity/native/SkiaUnityMetal/`)
 - `src/SkiaGameRendering.Godot/` — Godot library (`Core.VK`, `Core.D3D12`, `Core.Metal` and `Core.OGL` behind one `SkiaGodotRenderTarget2D`, backend chosen from the running driver; no reflection, all public Godot API)
+
+### How each backend works
+
+| Backend | Technique |
+|---------|-----------|
+| OpenGL (MonoGame/KNI DesktopGL, FNA OpenGL) | Second SDL GL context shared with the engine's |
+| OpenGL (raylib) | Second WGL (Windows), GLX (Linux) or CGL (macOS) context shares rlgl's GL namespace |
+| OpenGL 3.3 (Godot Compatibility) | Second GL context sharing Godot's; Skia draws into an FBO around an `ImageTexture`'s GL texture, zero-copy |
+| D3D11 (MonoGame/KNI/FNA WindowsDX, Stride, Unity) | ANGLE (GL ES → D3D11 translation) on the engine's shared device. FNA gets the device through `FNA3D_GetSysRendererEXT`; Unity uses the device its `RenderTexture` belongs to |
+| D3D12 (MonoGame WindowsDX12, Stride, Godot, Unity) | Skia's D3D12 backend on the engine's `ID3D12Device`/queue. MonoGame wraps the target with `RenderTarget2D.FromNativeHandle()`; Godot draws into a typed resource and does one GPU `CopyResource` per frame (no readback, not zero-copy); Unity goes through a small native plugin |
+| Vulkan (MonoGame DesktopVK, Stride, Godot) | Skia's Vulkan backend on the engine's `VkDevice`/`VkQueue`, no separate context. Godot's handles come from public `RenderingDevice.GetDriverResource`, no reflection |
+| Metal (Godot, Unity) | Skia's Metal backend on the engine's `MTLDevice`/queue, drawn straight into the engine's `MTLTexture`; Unity goes through a small native plugin |
+| WebGL2 (KNI Blazor) | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
+
+Unity records draws to an `SKPicture` on the main thread and plays them back on its render thread.
 
 See `SkiaGameRendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
 
