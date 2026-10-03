@@ -13,6 +13,7 @@ namespace Tests.Raylib.OGL;
 /// in the on-screen result fails here. <c>RaylibGoldenImageTests</c> reads the texture instead, which
 /// cannot see that. Runs on Windows (Mesa llvmpipe, see <c>MesaVendor.props</c>) and Linux (Xvfb).
 /// </summary>
+[Collection(RaylibWindowCollection.Name)]
 public sealed class RaylibOnScreenOrientationTests
 {
     [Fact]

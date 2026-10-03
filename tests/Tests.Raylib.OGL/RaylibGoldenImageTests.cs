@@ -21,6 +21,7 @@ namespace Tests.Raylib.OGL;
 /// shared-GL-context trick (issue #3) found a real state-corruption bug a clean build completely
 /// missed, so "it compiles" is not this repo's bar for this code path.
 /// </summary>
+[Collection(RaylibWindowCollection.Name)]
 public sealed class RaylibGoldenImageTests
 {
     const string Golden = "raylib-ogl-scene.png";
