@@ -71,20 +71,22 @@ no-op, not a build error.
   so app-local DLL probing works the same as any other .NET Core host - this was checked directly,
   not assumed.
 
-## Linux - GLX + Xvfb (raylib backend)
+## raylib - GLX + Xvfb on Linux, WGL + llvmpipe on Windows
 
-`tests/Tests.Raylib.OGL/RaylibGoldenImageTests.cs` is the one golden test in this repo that actually
-runs on Linux: a real raylib window under Xvfb, exercising `SkiaRaylibContext`'s GLX path
-(`src/SkiaGameRendering.Raylib.OGL/Glx.cs`) end to end. `master.yml`'s `raylib-linux` job runs it
-directly (`dotnet test tests/Tests.Raylib.OGL/Tests.Raylib.OGL.csproj`, not through `Tests.proj`)
-under `xvfb-run`, with `LIBGL_ALWAYS_SOFTWARE=1`/`GALLIUM_DRIVER=llvmpipe` forcing Mesa's software
-path - `ubuntu-latest` ships Mesa already, so no vendoring step like `MesaVendor.props` is needed.
-`LinuxOnlyFactAttribute` skips the test on Windows for now (build-only there; see its doc comment for
-what real Windows coverage would need).
+`tests/Tests.Raylib.OGL` opens a real (hidden) raylib window. `master.yml`'s `raylib-linux` job runs
+the project directly (`dotnet test tests/Tests.Raylib.OGL/Tests.Raylib.OGL.csproj`, not through
+`Tests.proj`) under `xvfb-run`, with `LIBGL_ALWAYS_SOFTWARE=1`/`GALLIUM_DRIVER=llvmpipe` forcing Mesa's
+software path - `ubuntu-latest` ships Mesa already. On Windows it goes through `Tests.proj` like the
+other OpenGL projects, on the vendored Mesa from `MesaVendor.props` and `VendoredOpenGl.PreloadIfPresent`
+(called before `InitWindow`; GLFW loads `opengl32.dll` the way SDL does).
 
-**The GLX golden test is the one place raylib runs, and it cannot see a vertical flip on screen.**
-It reads the texture back, so it only checks which texel row canvas row 0 went into; raylib draws
-texel row 0 at the top, which is why `SkiaRaylibContext.CreateSurface` uses `TopLeft`.
+- `RaylibGoldenImageTests` is Linux-only (`LinuxOnlyFactAttribute`): it exercises `SkiaRaylibContext`'s
+  GLX path (`Glx.cs`) and compares against a golden rendered on Linux llvmpipe.
+- `RaylibOnScreenOrientationTests` runs on both. **The golden test reads the texture back, so it cannot
+  see a vertical flip on screen**; this one composites with `End()` and reads the window framebuffer
+  with `LoadImageFromScreen`. Call `Rlgl.DrawRenderBatchActive()` first, or the read is all black
+  (`DrawTexture` is still queued in raylib's batch). `TopLeft` in `SkiaRaylibContext.CreateSurface` is
+  what it guards.
 
 ## Vulkan - lavapipe
 

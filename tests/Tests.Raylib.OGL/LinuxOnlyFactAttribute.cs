@@ -8,12 +8,8 @@ namespace Tests.Raylib.OGL;
 /// <c>desktop-and-core</c> job automatically the moment it exists, so without this gate that job would
 /// try to run a real raylib window and GLX-only code path on Windows.
 /// <para>
-/// Windows raylib golden coverage is a deliberate follow-up, not an oversight: it would need Mesa
-/// llvmpipe vendored into this project the way <c>Tests.Core.OGL.csproj</c> does for
-/// <c>WglSkiaPixelReadbackTests</c> (see <c>tests/MesaVendor.props</c>), and - unlike that project,
-/// which only needs a hidden window - proof that raylib's own <c>InitWindow</c> succeeds at all
-/// headless on <c>windows-latest</c>, which has never been checked. Skipping (not silently no-op'ing)
-/// keeps that gap visible in CI output instead of hiding it.
+/// Only the golden comparison is Linux-only: it checks <c>SkiaRaylibContext</c>'s GLX path against a
+/// golden rendered on Linux llvmpipe. Windows raylib coverage is <c>RaylibOnScreenOrientationTests</c>.
 /// </para>
 /// </summary>
 public sealed class LinuxOnlyFactAttribute : FactAttribute
