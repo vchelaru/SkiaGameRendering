@@ -4,6 +4,7 @@ using Sample.Shared;
 using SkiaGameRendering.Unity;
 using SkiaSharp;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 /// <summary>
@@ -212,9 +213,12 @@ public sealed class SkiaSample : MonoBehaviour
         foreach (var (name, x, y) in new[] { ("gui", 0, 0), ("quad", QuadX, 0), ("rawimage", 0, UiY) })
         {
             var square = ScreenPixel(x + 2 * Cell + center, y + center);
-            var squareReference = ScreenPixel(x + 2 * Cell + center, y + Cell + center);
+            // On Metal in a Linear project IMGUI encodes its own output a second time, so the GUI.DrawTexture
+            // references come out too light; the quad's references are what the screen should show there.
+            int referenceX = name == "gui" && SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal ? QuadX : x;
+            var squareReference = ScreenPixel(referenceX + 2 * Cell + center, y + Cell + center);
             var grey = ScreenPixel(x + 3 * Cell + center, y + center);
-            var greyReference = ScreenPixel(x + 3 * Cell + center, y + Cell + center);
+            var greyReference = ScreenPixel(referenceX + 3 * Cell + center, y + Cell + center);
             // The references are only an oracle if Unity drew them: blue alone would mean it did not.
             bool referencesDrawn = greyReference.r > 20 && greyReference.b < 250 && squareReference.r > 20;
             pass &= referencesDrawn && Matches(square, squareReference) && Matches(grey, greyReference);

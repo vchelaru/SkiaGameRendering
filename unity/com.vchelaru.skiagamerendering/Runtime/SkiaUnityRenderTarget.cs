@@ -89,12 +89,13 @@ namespace SkiaGameRendering.Unity
 
         /// <summary>
         /// <see cref="PremultipliedMaterial"/> for <c>Graphics.DrawTexture</c> in <c>OnGUI</c>. IMGUI
-        /// writes gamma values even in a Linear color space project, so it must skip the sRGB decode;
-        /// in a Gamma project the two materials draw the same.
+        /// writes gamma values even in a Linear color space project on Direct3D 11, so there it skips
+        /// the sRGB decode. On Metal IMGUI writes linear values like everything else, so it decodes.
+        /// In a Gamma project the two materials draw the same.
         /// </summary>
         public static Material PremultipliedGuiMaterial => _premultipliedGuiMaterial != null
             ? _premultipliedGuiMaterial
-            : _premultipliedGuiMaterial = CreatePremultipliedMaterial("SkiaGameRendering Premultiplied GUI", gammaOutput: true);
+            : _premultipliedGuiMaterial = CreatePremultipliedMaterial("SkiaGameRendering Premultiplied GUI", gammaOutput: SystemInfo.graphicsDeviceType != GraphicsDeviceType.Metal);
 
         static Material CreatePremultipliedMaterial(string name, bool gammaOutput)
         {
