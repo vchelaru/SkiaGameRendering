@@ -22,7 +22,7 @@ namespace SkiaGameRendering.Unity
     /// Unity renders on its own thread, so <see cref="Canvas"/> is a recording canvas: <see cref="End"/>
     /// turns the recording into an <see cref="SKPicture"/> and hands it to
     /// <see cref="SkiaUnityRenderThread"/>, which plays it back onto the texture on the render thread.
-    /// Supported so far: Direct3D 11 on Windows (through ANGLE) and Metal on macOS.
+    /// Supported so far: Direct3D 11 (through ANGLE) and Direct3D 12 on Windows, and Metal on macOS.
     /// </summary>
     public sealed class SkiaUnityRenderTarget : IDisposable
     {
@@ -89,12 +89,13 @@ namespace SkiaGameRendering.Unity
 
         /// <summary>
         /// <see cref="PremultipliedMaterial"/> for <c>Graphics.DrawTexture</c> in <c>OnGUI</c>. IMGUI
-        /// writes gamma values even in a Linear color space project, so it must skip the sRGB decode;
-        /// in a Gamma project the two materials draw the same.
+        /// writes gamma values even in a Linear color space project on Direct3D 11, so there it skips
+        /// the sRGB decode. On Metal IMGUI writes linear values like everything else, so it decodes.
+        /// In a Gamma project the two materials draw the same.
         /// </summary>
         public static Material PremultipliedGuiMaterial => _premultipliedGuiMaterial != null
             ? _premultipliedGuiMaterial
-            : _premultipliedGuiMaterial = CreatePremultipliedMaterial("SkiaGameRendering Premultiplied GUI", gammaOutput: true);
+            : _premultipliedGuiMaterial = CreatePremultipliedMaterial("SkiaGameRendering Premultiplied GUI", gammaOutput: SystemInfo.graphicsDeviceType != GraphicsDeviceType.Metal);
 
         static Material CreatePremultipliedMaterial(string name, bool gammaOutput)
         {
