@@ -7,8 +7,8 @@
 // project nothing decodes them on sampling. This shader does, the way an sRGB texture holding the
 // straight colors would: unpremultiply, decode, premultiply again. Decoding the premultiplied values
 // directly, as an sRGB texture format would, darkens everything translucent. IMGUI is the exception:
-// it writes gamma values even in a Linear project, so _GammaOutput (PremultipliedGuiMaterial) skips
-// the decode there.
+// it writes gamma values even in a Linear project on Direct3D 11, so _GammaOutput
+// (PremultipliedGuiMaterial) skips the decode there. On Metal IMGUI does not, and the decode applies.
 Shader "SkiaGameRendering/Premultiplied"
 {
     Properties
