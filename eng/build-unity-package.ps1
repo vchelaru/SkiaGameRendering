@@ -1,6 +1,6 @@
 # Fills unity/com.vchelaru.skiagamerendering/Plugins/ with the binaries the Unity package needs:
-# Core.ANGLE's and Core.Metal's netstandard2.1 builds, SkiaSharp's managed and native libraries,
-# ANGLE (Windows x64), and the SkiaUnityMetal plugin (macOS). Unity doesn't consume NuGet, so these
+# Core.ANGLE's, Core.Metal's and Core.D3D12's netstandard2.1 builds, SkiaSharp's managed and native libraries,
+# ANGLE (Windows x64), and the SkiaUnityD3D12 (Windows) and SkiaUnityMetal (macOS) plugins. Unity doesn't consume NuGet, so these
 # are copied out of the NuGet cache instead.
 # Unless -PackageOnly is passed, also fills samples/Sample.Unity/Assets/Plugins/Scene (see the end).
 param([switch]$PackageOnly)
@@ -13,6 +13,7 @@ $native = Join-Path $plugins 'x86_64'
 $macOS = Join-Path $plugins 'macOS'
 $angleProj = Join-Path $repo 'src/SkiaGameRendering.Core.ANGLE/SkiaGameRendering.Core.ANGLE.csproj'
 $metalProj = Join-Path $repo 'src/SkiaGameRendering.Core.Metal/SkiaGameRendering.Core.Metal.csproj'
+$d3d12Proj = Join-Path $repo 'src/SkiaGameRendering.Core.D3D12/SkiaGameRendering.Core.D3D12.csproj'
 
 [xml]$versions = Get-Content (Join-Path $repo 'eng/Versions.props')
 $skiaVersion = $versions.Project.PropertyGroup.SkiaSharpVersion
@@ -22,6 +23,8 @@ dotnet build $angleProj -c Release -f netstandard2.1
 if ($LASTEXITCODE -ne 0) { throw "Core.ANGLE build failed." }
 dotnet build $metalProj -c Release -f netstandard2.1
 if ($LASTEXITCODE -ne 0) { throw "Core.Metal build failed." }
+dotnet build $d3d12Proj -c Release -f netstandard2.1
+if ($LASTEXITCODE -ne 0) { throw "Core.D3D12 build failed." }
 # SkiaSharp's macOS native, which the main build never restores on Windows.
 dotnet restore (Join-Path $repo 'eng/unity-natives/UnityNatives.csproj')
 if ($LASTEXITCODE -ne 0) { throw "eng/unity-natives restore failed." }
@@ -31,8 +34,12 @@ New-Item -ItemType Directory -Force $native, $macOS | Out-Null
 $angleOut = Join-Path $repo 'src/SkiaGameRendering.Core.ANGLE/bin/Release/netstandard2.1'
 Copy-Item (Join-Path $angleOut 'SkiaGameRendering.Core.ANGLE.dll') $plugins
 Copy-Item (Join-Path $repo 'src/SkiaGameRendering.Core.Metal/bin/Release/netstandard2.1/SkiaGameRendering.Core.Metal.dll') $plugins
+Copy-Item (Join-Path $repo 'src/SkiaGameRendering.Core.D3D12/bin/Release/netstandard2.1/SkiaGameRendering.Core.D3D12.dll') $plugins
 Copy-Item (Join-Path $nuget "skiasharp/$skiaVersion/lib/netstandard2.1/SkiaSharp.dll") $plugins
 Copy-Item (Join-Path $nuget "skiasharp.nativeassets.win32/$skiaVersion/runtimes/win-x64/native/libSkiaSharp.dll") $native
+
+# Built and committed by eng/build-unity-d3d12-plugin.ps1.
+Copy-Item (Join-Path $repo 'unity/native/SkiaUnityD3D12/x86_64/SkiaUnityD3D12.dll') $native
 
 $angleNative = Join-Path $repo 'src/SkiaGameRendering.Core.ANGLE/runtimes/win-x64/native'
 foreach ($dll in 'libEGL.dll', 'libGLESv2.dll', 'z.dll') {

@@ -22,7 +22,7 @@ namespace SkiaGameRendering.Unity
     /// Unity renders on its own thread, so <see cref="Canvas"/> is a recording canvas: <see cref="End"/>
     /// turns the recording into an <see cref="SKPicture"/> and hands it to
     /// <see cref="SkiaUnityRenderThread"/>, which plays it back onto the texture on the render thread.
-    /// Supported so far: Direct3D 11 on Windows (through ANGLE) and Metal on macOS.
+    /// Supported so far: Direct3D 11 (through ANGLE) and Direct3D 12 on Windows, and Metal on macOS.
     /// </summary>
     public sealed class SkiaUnityRenderTarget : IDisposable
     {

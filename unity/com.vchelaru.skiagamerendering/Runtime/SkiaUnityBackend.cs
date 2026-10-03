@@ -13,6 +13,8 @@ namespace SkiaGameRendering.Unity
     /// </summary>
     internal abstract class SkiaUnityBackend : IDisposable
     {
+        static GraphicsDeviceType _graphicsDeviceType;
+
         /// <summary>
         /// Main thread. Throws unless one of the backends below can run on this device, and loads
         /// anything a backend needs loaded before the render thread uses it.
@@ -20,8 +22,16 @@ namespace SkiaGameRendering.Unity
         internal static void PrepareOnMainThread()
         {
             var api = SystemInfo.graphicsDeviceType;
+            // SystemInfo can't be read from the render thread; Create runs there.
+            _graphicsDeviceType = api;
             if (api == GraphicsDeviceType.Direct3D11)
                 return;
+            if (api == GraphicsDeviceType.Direct3D12
+                && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
+            {
+                D3D12UnityBackend.LoadPlugin();
+                return;
+            }
             // The Metal plugin is only built for macOS so far; iOS needs it as a static library.
             if (api == GraphicsDeviceType.Metal
                 && (Application.platform == RuntimePlatform.OSXEditor || Application.platform == RuntimePlatform.OSXPlayer))
@@ -30,14 +40,17 @@ namespace SkiaGameRendering.Unity
                 return;
             }
             throw new NotSupportedException(
-                $"SkiaGameRendering.Unity supports Direct3D11 on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
+                $"SkiaGameRendering.Unity supports Direct3D11 and Direct3D12 on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
         }
 
         /// <summary>Creates the backend for Unity's current device, the first time anything draws.</summary>
         internal static SkiaUnityBackend Create(IntPtr nativeTexture) =>
-            SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal
-                ? new MetalUnityBackend()
-                : new AngleUnityBackend(nativeTexture);
+            _graphicsDeviceType switch
+            {
+                GraphicsDeviceType.Metal => new MetalUnityBackend(),
+                GraphicsDeviceType.Direct3D12 => new D3D12UnityBackend(),
+                _ => new AngleUnityBackend(nativeTexture),
+            };
 
         /// <summary>Plays <paramref name="picture"/> back onto the target's texture, creating its surface on the first draw.</summary>
         internal abstract void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture);
