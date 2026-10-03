@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- netstandard2.1 is for Unity, whose Mono runtime can't load a net8.0 assembly (issue #95). -->
+    <TargetFrameworks>net8.0;netstandard2.1</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -12,6 +14,12 @@
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
   </PropertyGroup>
+
+  <!-- D3D12Com's function-pointer calls need net8.0. Unity's netstandard2.1 build only wraps the host's
+       resources, so it leaves out the COM helpers (resource creation, barriers). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <Compile Remove="D3D12Com.cs;D3D12ResourceTransitioner.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />

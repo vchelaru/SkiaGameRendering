@@ -79,6 +79,7 @@ namespace SkiaGameRendering.Core.D3D12
 
         public GRContext GRContext => _grContext;
 
+#if NET8_0_OR_GREATER
         /// <summary>
         /// Whether the host's device (and the D3D12 runtime under it) supports enhanced barriers.
         /// An engine that has them tracks textures by <c>D3D12_BARRIER_LAYOUT</c> rather than legacy
@@ -132,6 +133,7 @@ namespace SkiaGameRendering.Core.D3D12
             if (resource != IntPtr.Zero)
                 D3D12Com.Release(resource);
         }
+#endif
 
         /// <param name="adapter">
         /// The host's <c>IDXGIAdapter1*</c> (or <c>IDXGIAdapter*</c>) the device was created against.
