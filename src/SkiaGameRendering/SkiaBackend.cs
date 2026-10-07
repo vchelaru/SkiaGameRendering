@@ -45,10 +45,15 @@ namespace SkiaGameRendering
             }
             catch
             {
-                texture.Dispose();
+                DisposeTexture(texture);
                 throw;
             }
         }
+
+        /// <summary>
+        /// Disposes a texture this backend created, for a backend that has to repair engine state afterward.
+        /// </summary>
+        internal virtual void DisposeTexture(Texture2D texture) => texture.Dispose();
 
         /// <summary>
         /// Begins a render pass into <paramref name="target"/>: switches to the Skia GPU context,
@@ -188,7 +193,8 @@ namespace SkiaGameRendering
 
             internal override void DisposeGraphicsResources()
             {
-                _texture?.Dispose();
+                if (_texture != null)
+                    _backend.DisposeTexture(_texture);
                 _texture = null;
             }
         }
