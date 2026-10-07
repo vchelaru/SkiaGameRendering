@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Framework.Utilities;
@@ -14,7 +15,7 @@ namespace SkiaGameRendering
     /// itself works). Skia draws on the very <c>VkDevice</c>/<c>VkQueue</c> MonoGame renders with,
     /// read from <c>GraphicsDevice.GetNativeHandles()</c>, into a <c>VkImage</c> this backend creates
     /// (<see cref="VkImageAllocator"/>) and hands back to MonoGame through
-    /// <c>RenderTarget2D.FromNativeHandle()</c>. No reflection and no CPU readback.
+    /// <c>RenderTarget2D.FromNativeHandle()</c>. No CPU readback.
     ///
     /// MAINTENANCE NOTES:
     /// - <b>Image layouts.</b> MonoGame wraps the image believing it is in
@@ -27,6 +28,13 @@ namespace SkiaGameRendering
     /// - <b>Release is deferred.</b> A destroyed target's image and memory are freed a few draws after
     ///   its <see cref="RenderTarget2D"/> is disposed, because MonoGame may still have frames in
     ///   flight that sample it.
+    /// - <b>Disposing a wrapped texture breaks MonoGame's next draw.</b> MonoGame's native destroy for a
+    ///   <c>FromNativeHandle</c> texture (<c>MGG_Texture_Destroy</c> -> <c>MGVK_DestroyTargetSets</c> in
+    ///   MGG_Vulkan.cpp, 3.8.6-preview.2 and develop) nulls the device's current target set without marking
+    ///   it dirty, so the next draw dereferences null. <see cref="DisposeTexture"/> re-applies the bound
+    ///   render targets through the private <c>GraphicsDevice.PlatformApplyRenderTargets</c>, which only sets
+    ///   the native dirty flag; the public <c>SetRenderTarget</c> would early-out or clear the target.
+    ///   Pinned by <c>tests/Tests.DesktopVK/MonoGameDesktopVkReflectionTests.cs</c>.
     /// - MonoGame does not expose its queue lock, so none is passed: Skia, this backend and MonoGame
     ///   must all submit from the thread that runs <c>Draw</c>.
     /// - The Skia context is created with no instance or device extensions listed and Vulkan 1.0 as
@@ -37,6 +45,11 @@ namespace SkiaGameRendering
     {
         // The draws a released image waits out before it is destroyed.
         const int ReleaseDelayDraws = 4;
+
+        // See the MAINTENANCE NOTES on disposing a wrapped texture.
+        static readonly MethodInfo ApplyRenderTargets =
+            typeof(GraphicsDevice).GetMethod("PlatformApplyRenderTargets", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new MissingMethodException(nameof(GraphicsDevice), "PlatformApplyRenderTargets");
 
         readonly VkSkiaSurfaceFactory _factory = new();
         readonly ConditionalWeakTable<Texture2D, TargetImage> _images = new();
@@ -146,6 +159,12 @@ namespace SkiaGameRendering
                 VkImageAllocator.Destroy(_device, allocation);
                 throw;
             }
+        }
+
+        internal override void DisposeTexture(Texture2D texture)
+        {
+            texture.Dispose();
+            ApplyRenderTargets.Invoke(GraphicsDevice, null);
         }
 
         internal override object CaptureTextureHandle(Texture2D texture) =>

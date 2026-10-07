@@ -64,6 +64,9 @@ namespace Sample
 
             if (SkiaRenderer.IsInitialized)
             {
+                // The smoke test disposes a target before drawing with another, which crashed DesktopVK.
+                if (_canvas == null && _smokeTest)
+                    new SkiaRenderTarget2D(GraphicsDevice, 64, 64).Dispose();
                 _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
                 _canvas.Begin();
                 Scene.Draw(_canvas.Canvas, 200, 200);
