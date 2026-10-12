@@ -60,7 +60,7 @@ namespace Benchmarks.ShapeRendering
         private SkiaRenderTarget2D _skiaCanvas = null!;
         private SKPaint _fillPaint = null!;
         private SKPaint _strokePaint = null!;
-        private SKPath _trianglePath = null!;
+        private SKPathBuilder _trianglePath = null!;
 
         private ShapeBatch _shapeBatch = null!;
         private SpriteRenderers _spriteRenderers = null!;
@@ -106,7 +106,7 @@ namespace Benchmarks.ShapeRendering
             _skiaCanvas = new SkiaRenderTarget2D(GraphicsDevice, BackBufferWidth, BackBufferHeight);
             _fillPaint = new SKPaint { Style = SKPaintStyle.Fill, IsAntialias = true };
             _strokePaint = new SKPaint { Style = SKPaintStyle.Stroke, IsAntialias = true };
-            _trianglePath = new SKPath();
+            _trianglePath = new SKPathBuilder();
 
             _shapeBatch = new ShapeBatch(GraphicsDevice, Content);
             _spriteRenderers = new SpriteRenderers(GraphicsDevice);

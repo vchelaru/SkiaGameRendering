@@ -11,7 +11,7 @@ namespace Benchmarks.ShapeRendering
     /// </summary>
     internal static class ShapeRenderers
     {
-        public static void DrawSceneSkia(SKCanvas canvas, Scene scene, float t, SKPaint fill, SKPaint stroke, SKPath scratchPath)
+        public static void DrawSceneSkia(SKCanvas canvas, Scene scene, float t, SKPaint fill, SKPaint stroke, SKPathBuilder scratchPath)
         {
             var shapes = scene.Shapes;
             for (int i = 0; i < shapes.Length; i++)
@@ -75,7 +75,8 @@ namespace Benchmarks.ShapeRendering
                     {
                         float rotation = scene.AnimatedRotation(i, t);
                         BuildEquilateralTriangle(scratchPath, pos, s.Size, rotation);
-                        canvas.DrawPath(scratchPath, fill);
+                        using (var path = scratchPath.Detach())
+                            canvas.DrawPath(path, fill);
                         break;
                     }
                 }
@@ -135,9 +136,8 @@ namespace Benchmarks.ShapeRendering
             }
         }
 
-        private static void BuildEquilateralTriangle(SKPath path, Vector2 center, float radius, float rotation)
+        private static void BuildEquilateralTriangle(SKPathBuilder path, Vector2 center, float radius, float rotation)
         {
-            path.Rewind();
             for (int corner = 0; corner < 3; corner++)
             {
                 float angle = rotation + corner * (MathF.PI * 2f / 3f) - MathF.PI / 2f;

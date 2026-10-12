@@ -49,18 +49,19 @@ static class GoldenScene
         using (var paint = new SKPaint { Shader = shader, IsAntialias = true })
             canvas.DrawRect(SKRect.Create(10, 66, 108, 16), paint);
 
-        using (var path = new SKPath())
-        using (var paint = new SKPaint
-               {
-                   Style = SKPaintStyle.Stroke,
-                   StrokeWidth = 5f,
-                   StrokeCap = SKStrokeCap.Round,
-                   Color = new SKColor(120, 230, 140, 255),
-                   IsAntialias = true,
-               })
+        using (var pathBuilder = new SKPathBuilder())
         {
-            path.MoveTo(14f, 116f);
-            path.CubicTo(44f, 88f, 74f, 122f, 116f, 94f);
+            pathBuilder.MoveTo(14f, 116f);
+            pathBuilder.CubicTo(44f, 88f, 74f, 122f, 116f, 94f);
+            using var path = pathBuilder.Detach();
+            using var paint = new SKPaint
+            {
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = 5f,
+                StrokeCap = SKStrokeCap.Round,
+                Color = new SKColor(120, 230, 140, 255),
+                IsAntialias = true,
+            };
             canvas.DrawPath(path, paint);
         }
 
