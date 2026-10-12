@@ -1,8 +1,9 @@
 <Project>
   <PropertyGroup>
     <KniVersion>4.3.9001</KniVersion>
-    <!-- Shared version for all published SkiaGameRendering.* NuGet packages. Bump here to bump all
-         of them together; split per-package only if they ever need to version independently. -->
+    <!-- Default version for local and CI builds of the SkiaGameRendering.* packages. It is NOT the
+         released version: publish.yml overrides it with its `version` input, so this value goes stale.
+         Look up the last published version on NuGet (see CLAUDE.md "Releasing"). -->
     <LibraryVersion>0.1.1</LibraryVersion>
     <!-- Must match whatever nkast.Wasm.* version the pinned KniVersion actually depends on (check
          that KNI package's own nuspec - it changes between KNI releases, e.g. 4.2.9001 -> 8.0.11,

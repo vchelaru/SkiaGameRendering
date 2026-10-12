@@ -69,10 +69,14 @@ needing that subjective read, keep to build-and-test and give the user numbered 
 
 Every package, the NuGet packages and the Unity package alike, ships together at one version from a
 single `publish.yml` run. Never add an option to publish one platform or package on its own.
-`SkiaGameRendering.DesktopVK` is the one exception for now: it is not packed, and stays at 0.1.1 on
+`SkiaGameRendering.DesktopVK` is the one exception for now: it is not packed, and stays at 0.17.4-preview on
 SkiaSharp 3.119.4, until MonoGame creates its Vulkan instance at 1.1 or higher
 (https://github.com/MonoGame/MonoGame/issues/9588). Re-add its pack step in `publish.yml` and its
 `monogame-native-windows` matrix entry in `master.yml` then.
+
+`LibraryVersion` in `eng/Versions.props` is only a default; the `version` input of `publish.yml`
+sets the real one. To find the last published version of a package, read
+`https://api.nuget.org/v3-flatcontainer/<lowercase-id>/index.json`.
 
 ## Gotchas
 
