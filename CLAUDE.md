@@ -74,6 +74,10 @@ single `publish.yml` run. Never add an option to publish one platform or package
 - **A backend is only verifiable on its own platform and GPU stack.** A change to shared core source
   compiles for every backend but is exercised by none of them until each platform actually runs.
   Say which backends you verified and which you did not, rather than implying a clean build covers all.
+- **"Not verified" means the host cannot run it.** Before a PR lists a platform as unverified, run
+  everything this machine can. On Windows that includes the Unity `-d3d12` and `-linear` players,
+  the Godot engine tests (download Godot as `master.yml` does and set `GODOT_BIN`), and the WebGL
+  sample. Only Metal needs macOS.
 - **FNA is a submodule, not a package.** `external/FNA` (plus the five C#-binding submodules under
   its `lib/`) must be initialized before anything `Fna.*` builds; the checkout step in
   `.github/workflows/master.yml` is the exact command list. Its native DLLs are vendored under
