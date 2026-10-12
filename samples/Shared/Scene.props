@@ -1,11 +1,11 @@
 <Project>
   <!--
     Imported by every sample that draws Scene: the source, the embedded SVG it loads, and the SVG
-    parser. Svg.Skia 5.1.1 is the last release built on SkiaSharp 3.119; 5.2+ needs SkiaSharp 4.x.
+    parser. Svg.Skia 5.2+ is the first line built on SkiaSharp 4.x (5.1.1 was the last on 3.119).
   -->
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Scene.cs" Link="Scene.cs" />
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Drop.svg" LogicalName="Sample.Shared.Drop.svg" Link="Drop.svg" />
-    <PackageReference Include="Svg.Skia" Version="5.1.1" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
 </Project>

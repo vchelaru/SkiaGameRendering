@@ -8,7 +8,7 @@ DesktopGL, KNI WindowsDX. All four share the same public API (`SkiaRenderer`,
 
 - .NET 8, Visual Studio 2022
 - MonoGame 3.8.4.1 (DesktopGL or WindowsDX), MonoGame 3.8.6-preview.2 (native WindowsDX12 or DesktopVK), or KNI (DesktopGL or WindowsDX)
-- SkiaSharp 3.119.4 for the KNI desktop backends; 3.119.2 for the MonoGame desktop projects
+- SkiaSharp 4.153.1
 
 ## Add the package
 

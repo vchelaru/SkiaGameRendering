@@ -12,7 +12,7 @@
          failing the build, and KNI's own bootstrap crashes when it calls into the JS interop
          globals those scripts were supposed to define. See repo issue #14. -->
     <NkastWasmCanvasVersion>10.0.3</NkastWasmCanvasVersion>
-    <SkiaSharpVersion>3.119.4</SkiaSharpVersion>
+    <SkiaSharpVersion>4.153.1</SkiaSharpVersion>
     <!-- 4.4.0-beta5 is a prerelease, pinned deliberately: it's the first Stride version whose D3D11
          backend is Silk.NET rather than SharpDX, which is what makes GraphicsDevice.NativeDevice a
          public ComPtr<ID3D11Device> - the current stable release (4.3.0.2507) still wraps D3D11 in

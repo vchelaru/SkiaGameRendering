@@ -8,7 +8,7 @@ Updated: 2026-09-05
 | KNI package | stock NuGet, no fork/patch (`nkast.Kni.Platform.Blazor.GL`, `nkast.Xna.Framework.Graphics`) |
 | KNI package baseline | 4.3.9001 |
 | nkast.Wasm.Canvas | 10.0.3 |
-| SkiaSharp | 3.119.4 |
+| SkiaSharp | 4.153.1 |
 | Gum.SkiaSharp | 2026.5.31.1 |
 | Graphics profile | HiDef / WebGL2 |
 | Texture format | RGBA8 / `SurfaceFormat.Color` / `SKColorType.Rgba8888` |
