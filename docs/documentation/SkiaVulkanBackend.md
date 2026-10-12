@@ -6,6 +6,14 @@
 Vulkan backend draws on the same `VkDevice` and `VkQueue` MonoGame renders with, straight into an
 image MonoGame then samples. No CPU readback and no reflection.
 
+> **Stay on `SkiaGameRendering.DesktopVK` 0.1.1.** It is built on SkiaSharp 3.119.4 and is not
+> republished with the other packages. SkiaSharp 4.x needs Vulkan 1.1, but MonoGame creates its
+> `VkInstance` at 1.0, and AMD and Mesa drivers then withhold the core 1.1 device functions Skia loads
+> (NVIDIA does not), so `GRContext.CreateVulkan` fails there. Tracked in
+> [MonoGame#9588](https://github.com/MonoGame/MonoGame/issues/9588). The source here already asks Skia for 1.1, so republishing needs no code change
+> once MonoGame is fixed. An app using 0.1.1 cannot also use libraries that need SkiaSharp 4.x
+> (Topten.RichTextKit 0.6.170, for one); NuGet reports the conflict at restore.
+
 Namespace: `SkiaGameRendering`
 
 Assembly/package: `SkiaGameRendering.DesktopVK` (prerelease on NuGet: `dotnet add package SkiaGameRendering.DesktopVK --prerelease`, because MonoGame's native platform is itself prerelease)
