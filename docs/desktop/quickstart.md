@@ -8,7 +8,7 @@ DesktopGL, KNI WindowsDX. All four share the same public API (`SkiaRenderer`,
 
 - .NET 8, Visual Studio 2022
 - MonoGame 3.8.4.1 (DesktopGL or WindowsDX), MonoGame 3.8.6-preview.2 (native WindowsDX12 or DesktopVK), or KNI (DesktopGL or WindowsDX)
-- SkiaSharp 4.153.1 (3.119.4 for `SkiaGameRendering.DesktopVK` 0.1.1)
+- SkiaSharp 4.153.1 (3.119.4 for `SkiaGameRendering.DesktopVK` 0.17.4-preview)
 
 ## Add the package
 
@@ -16,7 +16,7 @@ DesktopGL, KNI WindowsDX. All four share the same public API (`SkiaRenderer`,
 dotnet add package SkiaGameRendering                    # MonoGame DesktopGL
 dotnet add package SkiaGameRendering.WindowsDX           # MonoGame WindowsDX
 dotnet add package SkiaGameRendering.WindowsDX12 --prerelease         # MonoGame native WindowsDX12, prerelease (also reference MonoGame.Runtime.Windows.DX12)
-dotnet add package SkiaGameRendering.DesktopVK --version 0.1.1 --prerelease           # MonoGame native DesktopVK, prerelease (also reference MonoGame.Runtime.Windows.Vulkan or MonoGame.Runtime.Linux.Vulkan)
+dotnet add package SkiaGameRendering.DesktopVK --version 0.17.4-preview           # MonoGame native DesktopVK, prerelease (also reference MonoGame.Runtime.Windows.Vulkan or MonoGame.Runtime.Linux.Vulkan)
 dotnet add package SkiaGameRendering.Kni.DesktopGL       # KNI DesktopGL
 dotnet add package SkiaGameRendering.Kni.WindowsDX       # KNI WindowsDX
 ```
