@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    Imported by every project that pulls in Stride (src, tests and samples). Stride.Assets 4.4.0-beta5
+    depends on SixLabors.ImageSharp 3.1.12, which has published advisories (NU1902, NU1903) that are
+    only fixed in ImageSharp 4.1.2. Stride's asset pipeline is the only user of it here, and this repo
+    cannot change which ImageSharp Stride is built against. Directory.Build.props's
+    TreatWarningsAsErrors also escalates NuGet audit warnings, so without this the restore fails.
+
+    Not our problem to fix. Revisit only when a Stride release stops depending on ImageSharp 3.1.12,
+    then check whether this can be dropped.
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
+  </PropertyGroup>
+</Project>

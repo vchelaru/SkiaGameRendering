@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
+  <Import Project="..\..\eng\StrideAudit.props" />
 
   <PropertyGroup>
     <!--

@@ -87,6 +87,10 @@ SkiaSharp 3.119.4, until MonoGame creates its Vulkan instance at 1.1 or higher
   everything this machine can. On Windows that includes the Unity `-d3d12` and `-linear` players,
   the Godot engine tests (download Godot as `master.yml` does and set `GODOT_BIN`), and the WebGL
   sample. Only Metal needs macOS.
+- **NuGet audit advisories on Stride's own dependencies are not ours to fix.** Stride.Assets pulls in
+  `SixLabors.ImageSharp` 3.1.12, which carries advisories. `eng/StrideAudit.props` suppresses them for
+  every Stride project, so import it from any new one. Don't pin or upgrade ImageSharp; revisit only
+  when a Stride release stops depending on it.
 - **FNA is a submodule, not a package.** `external/FNA` (plus the five C#-binding submodules under
   its `lib/`) must be initialized before anything `Fna.*` builds; the checkout step in
   `.github/workflows/master.yml` is the exact command list. Its native DLLs are vendored under
