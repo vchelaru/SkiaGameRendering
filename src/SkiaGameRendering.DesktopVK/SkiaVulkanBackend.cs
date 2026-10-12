@@ -77,13 +77,13 @@ namespace SkiaGameRendering
             _physicalDevice = handles.PhysicalDevice;
             _device = handles.LogicalDevice;
 
-            // MonoGame creates its VkInstance with apiVersion 1.0 (MGG_Vulkan.cpp), and drivers built on
-            // Mesa's runtime (lavapipe among them) hand out only 1.0 entry points to such an app. Asking
-            // Skia for more makes GRContext.CreateVulkan fail there; NVIDIA hands out everything, which is
-            // why a real GPU hides it.
+            // Skia requires Vulkan 1.1, so 1.1 is the most this can ask for. MonoGame creates its VkInstance
+            // with apiVersion 1.0 (MGG_Vulkan.cpp), and drivers built on Mesa's runtime (lavapipe among
+            // them) hand out only 1.0 device entry points to such an app, so GRContext.CreateVulkan fails
+            // there. NVIDIA hands out everything.
             var apiVersion = Math.Min(
                 VkSkiaSurfaceFactory.QueryApiVersion(_instance, _physicalDevice),
-                VkConstants.MakeApiVersion(1, 0));
+                VkConstants.MakeApiVersion(1, 1));
 
             var queueFamilyIndex = (uint)handles.QueueFamilyIndex;
             _factory.InitializeFromNative(
