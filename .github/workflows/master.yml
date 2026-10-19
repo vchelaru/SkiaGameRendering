@@ -440,6 +440,23 @@ jobs:
           }
           exit $p.ExitCode
 
+  # Builds only: there is no Android device or emulator on the runner, so the sample's smoke test
+  # (adb shell am start ... --ez smoke true, then read "Smoke test passed" from logcat) is run by hand.
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          # KNI's Android platform package only ships net10.0-android36.0.
+          dotnet-version: 10.0.x
+      - name: Install the Android workload
+        run: dotnet workload install android
+      - name: Install the Android SDK platform and build tools
+        run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -t:InstallAndroidDependencies -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:AcceptAndroidSDKLicenses=True
+      - name: Build the Android sample
+        run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -c Release -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64
+
   godot-linux:
     runs-on: ubuntu-latest
     steps:
