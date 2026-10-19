@@ -10,7 +10,7 @@ KNI/MonoGame backend (`SkiaRenderer` plus `SkiaRenderTarget2D`, see the [README]
   package only ships `net10.0-android36.0`, so the game does too.
 - A JDK (17+) and the Android SDK (platform 36). `dotnet build -t:InstallAndroidDependencies
   -p:AndroidSdkDirectory=<dir> -p:JavaSdkDirectory=<dir> -p:AcceptAndroidSDKLicenses=True` downloads both.
-- A device or emulator with OpenGL ES 3.0 or newer. Skia's GL backend needs ES 3.0.
+- A device with OpenGL ES 3.0 or newer. The shared FBO code uses `DEPTH24_STENCIL8`, which is ES 3.0 core; ES 2.0 is not supported.
 
 ## Add the package
 
