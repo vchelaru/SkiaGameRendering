@@ -29,6 +29,7 @@ own implementation, documented per platform in `docs/`:
   WindowsDX (`SkiaGlBackend`, `SkiaKniGlBackend`, `SkiaAngleBackend`, `SkiaKniAngleBackend`),
   project layout, and known limitations.
 - [`docs/webgl/quickstart.md`](docs/webgl/quickstart.md) — KNI WebGL/Blazor (`SkiaWebGlBackend`).
+- [`docs/android/quickstart.md`](docs/android/quickstart.md): KNI Android (`SkiaKniAndroidBackend`, `Core.OGL`'s `EglSharedContext`).
 - [`docs/raylib/quickstart.md`](docs/raylib/quickstart.md) — raylib (`SkiaRaylibRenderTarget2D`),
   the first non-MonoGame engine and the first consumer of `Core.OGL` from outside the MonoGame
   family (tracked in [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3); it does
