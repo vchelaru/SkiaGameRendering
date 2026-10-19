@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net10.0-android36.0</TargetFramework>
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Sample</RootNamespace>
+    <KniPlatform>Android</KniPlatform>
+    <ApplicationId>com.vchelaru.skiagamerendering.sample</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <!-- 64-bit and 32-bit ARM, since the oldest phones still run an armeabi-v7a userspace. -->
+    <RuntimeIdentifiers>android-arm64;android-arm</RuntimeIdentifiers>
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="nkast.Xna.Framework" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Content" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Audio" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Media" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Input" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Game" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Devices" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Storage" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.XR" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Kni.Platform.Android.GL" Version="[$(KniVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Kni.Android\SkiaGameRendering.Kni.Android.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
+  </ItemGroup>
+  <Import Project="..\Shared\Scene.props" />
+</Project>

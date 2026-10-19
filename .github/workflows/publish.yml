@@ -29,6 +29,8 @@ jobs:
             10.0.x
       - name: Install WASM toolchain
         run: dotnet workload install wasm-tools-net8
+      - name: Install the Android workload
+        run: dotnet workload install android
 
       - name: Pack SkiaGameRendering.Core.OGL
         run: dotnet pack src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
@@ -52,6 +54,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Kni.WindowsDX/SkiaGameRendering.Kni.WindowsDX.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Kni.WebGL
         run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Kni.Android
+        run: dotnet pack src/SkiaGameRendering.Kni.Android/SkiaGameRendering.Kni.Android.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Raylib.OGL
         run: dotnet pack src/SkiaGameRendering.Raylib.OGL/SkiaGameRendering.Raylib.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Fna.WindowsDX

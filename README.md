@@ -14,6 +14,7 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 | [MonoGame 3.8.6 DesktopVK](docs/desktop/quickstart.md) | Vulkan | [![SkiaGameRendering.DesktopVK](https://img.shields.io/nuget/vpre/SkiaGameRendering.DesktopVK?label=SkiaGameRendering.DesktopVK)](https://www.nuget.org/packages/SkiaGameRendering.DesktopVK) | Windows, Linux | Prerelease; needs prerelease MonoGame and `MonoGame.Runtime.Windows.Vulkan` or `MonoGame.Runtime.Linux.Vulkan`. **Stay on 0.17.4-preview (SkiaSharp 3.119.4).** Later releases use SkiaSharp 4.x, which needs Vulkan 1.1, and MonoGame creates its device at 1.0, so Skia fails on AMD and Mesa drivers. Not published until [MonoGame#9588](https://github.com/MonoGame/MonoGame/issues/9588) is fixed |
 | [KNI DesktopGL](docs/desktop/quickstart.md) | OpenGL | [![SkiaGameRendering.Kni.DesktopGL](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.DesktopGL?label=SkiaGameRendering.Kni.DesktopGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Windows, Linux, macOS |  |
 | [KNI WindowsDX](docs/desktop/quickstart.md) | D3D11 | [![SkiaGameRendering.Kni.WindowsDX](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX?label=SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | Windows |  |
+| [KNI Android](docs/android/quickstart.md) | OpenGL ES | [![SkiaGameRendering.Kni.Android](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.Android?label=SkiaGameRendering.Kni.Android)](https://www.nuget.org/packages/SkiaGameRendering.Kni.Android) | Android 7+ (API 24), GLES 3.0+ | .NET 10; see the [quick start](docs/android/quickstart.md) for lifecycle notes |
 | [KNI WebGL (Blazor)](docs/webgl/quickstart.md) | WebGL2 | [![SkiaGameRendering.Kni.WebGL](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WebGL?label=SkiaGameRendering.Kni.WebGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Browser | Extra host setup; see [WebGL / WASM Status](#webgl--wasm-status) |
 | [raylib](docs/raylib/quickstart.md) | OpenGL | [![SkiaGameRendering.Raylib.OGL](https://img.shields.io/nuget/v/SkiaGameRendering.Raylib.OGL?label=SkiaGameRendering.Raylib.OGL)](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) | Windows, Linux, macOS |  |
 | [FNA](#fna) | D3D11 | [![SkiaGameRendering.Fna.WindowsDX](https://img.shields.io/nuget/v/SkiaGameRendering.Fna.WindowsDX?label=SkiaGameRendering.Fna.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) | Windows | Needs `FNA3D_FORCE_DRIVER=D3D11` |
@@ -26,7 +27,7 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 
 Not supported yet:
 
-- **KNI Android** (GL ES): not started.
+- **MonoGame Android**: not started (KNI Android works).
 - **FNA SDL_GPU** (Vulkan/D3D12/Metal): blocked, FNA3D's default driver exposes no native device (see [FNA](#fna)).
 - **Godot Vulkan on macOS, and Compatibility on ANGLE/EGL/Wayland**: SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet. See `TODO.md`.
 
@@ -275,6 +276,7 @@ and hardware, see [docs/performance.md](docs/performance.md).
 - `samples/Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
 - `samples/Sample.Kni.DesktopGL/` — KNI DesktopGL sample (cross-platform: Windows, Linux, macOS)
 - `samples/Sample.Kni.WindowsDX/` — KNI WindowsDX sample (Windows only)
+- `samples/Sample.Kni.Android/`: KNI Android sample (.NET 10; install the APK, or run with `--ez smoke true` to check the pixels)
 - `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample
 - `samples/Sample.Gum.Kni.WebGL/` — KNI Blazor WebAssembly sample of Gum UI interleaved with SpriteBatch, render targets, shaders, and browser input
 - `samples/Sample.Raylib.OGL/` — raylib sample (Windows, Linux, macOS)
@@ -299,6 +301,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.WindowsDX/` — MonoGame WindowsDX library (shared core + `SkiaAngleBackend`, on `Core.ANGLE`)
 - `src/SkiaGameRendering.Kni.DesktopGL/` — KNI DesktopGL library (shared core + `SkiaKniGlBackend`)
 - `src/SkiaGameRendering.Kni.WindowsDX/` — KNI WindowsDX library (shared core + `SkiaKniAngleBackend`, on `Core.ANGLE`)
+- `src/SkiaGameRendering.Kni.Android/`: KNI Android library (shared core + `SkiaKniAndroidBackend`, on `Core.OGL`'s `EglSharedContext`; targets `net10.0-android36.0`)
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
 - `src/SkiaGameRendering.Fna.WindowsDX/`: FNA library (shared core + `SkiaFnaAngleBackend`, on `Core.ANGLE`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Fna.OGL/`: FNA library (shared core + `SkiaFnaGlBackend`, on `Core.OGL`; `src/SkiaGameRendering.Fna/` holds the FNA3D binding both FNA packages link)
@@ -317,6 +320,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 | Backend | Technique |
 |---------|-----------|
 | OpenGL (MonoGame/KNI DesktopGL, FNA OpenGL) | Second SDL GL context shared with the engine's |
+| OpenGL ES (KNI Android) | Second EGL context sharing KNI's, created from the host's current `EGLConfig`; surfaceless where the driver allows it |
 | OpenGL (raylib) | Second WGL (Windows), GLX (Linux) or CGL (macOS) context shares rlgl's GL namespace |
 | OpenGL 3.3 (Godot Compatibility) | Second GL context sharing Godot's; Skia draws into an FBO around an `ImageTexture`'s GL texture, zero-copy |
 | D3D11 (MonoGame/KNI/FNA WindowsDX, Stride, Unity) | ANGLE (GL ES → D3D11 translation) on the engine's shared device. FNA gets the device through `FNA3D_GetSysRendererEXT`; Unity uses the device its `RenderTexture` belongs to |
