@@ -66,7 +66,7 @@ namespace SkiaGameRendering
 
         /// <summary>
         /// Begins a render pass. Throws if a previous <see cref="Begin"/> hasn't been closed with
-        /// <see cref="End"/> yet — mirrors <see cref="SpriteBatch.Begin()"/>'s own guard.
+        /// <see cref="End"/> yet — mirrors <see cref="SpriteBatch.Begin"/>'s own guard.
         /// </summary>
         public void Begin(bool clear = true)
         {
