@@ -21,21 +21,47 @@ namespace Sample
         ScreenOrientation = ScreenOrientation.FullSensor)]
     public class Activity1 : AndroidGameActivity
     {
+        LoggingGame _game;
+
         protected override void OnCreate(Bundle bundle)
         {
             base.OnCreate(bundle);
             var smoke = Intent?.GetBooleanExtra("smoke", false) ?? false;
-            Game game = new LoggingGame(smoke);
-            SetContentView((View)game.Services.GetService(typeof(View)));
-            game.Run();
+            _game = new LoggingGame(this, smoke);
+            SetContentView((View)_game.Services.GetService(typeof(View)));
+            _game.Run();
+        }
+
+        // The process outlives the activity, and the next launch builds a new GraphicsDevice, which
+        // SkiaRenderer rejects while it is still bound to the old one. KNI does not unload content
+        // when an activity is destroyed, so release Skia here.
+        protected override void OnDestroy()
+        {
+            Log.Info("SkiaSample", "OnDestroy");
+            _game?.ReleaseSkia();
+            _game = null;
+            base.OnDestroy();
         }
 
         /// <summary>Logs the Skia backend once, then everything Game1 does is unchanged.</summary>
         sealed class LoggingGame : Game1
         {
+            readonly Activity _activity;
             bool _logged;
 
-            public LoggingGame(bool smokeTest) : base(smokeTest) { }
+            public LoggingGame(Activity activity, bool smokeTest) : base(smokeTest)
+            {
+                _activity = activity;
+            }
+
+            public void ReleaseSkia() => UnloadContent();
+
+            // KNI Android throws on Game.Exit (the platform does not allow closing programmatically).
+            protected override void ExitGame()
+            {
+                Log.Info("SkiaSample", $"Exit code {ExitCode}");
+                _activity.Finish();
+            }
 
             protected override void Draw(GameTime gameTime)
             {
@@ -45,12 +71,6 @@ namespace Sample
                     _logged = true;
                     Log.Info("SkiaSample", $"Skia backend: {backend.Description}");
                 }
-            }
-
-            protected override void UnloadContent()
-            {
-                Log.Info("SkiaSample", $"Exit code {ExitCode}");
-                base.UnloadContent();
             }
         }
     }

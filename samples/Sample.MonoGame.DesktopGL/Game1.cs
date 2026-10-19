@@ -46,10 +46,13 @@ namespace Sample
             IsMouseVisible = true;
         }
 
+        /// <summary>Leaves the app; a platform that forbids <see cref="Game.Exit"/> (KNI Android) overrides it.</summary>
+        protected virtual void ExitGame() => Exit();
+
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
+                ExitGame();
 
             base.Update(gameTime);
         }
@@ -144,7 +147,7 @@ namespace Sample
 
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: circle={circle}, drop={drop}, outside={outside}");
             ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;
-            Exit();
+            ExitGame();
         }
 
         /// <summary>
@@ -162,7 +165,7 @@ namespace Sample
 
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")} (Skia surface readback): circle={circle}, drop={drop}");
             ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;
-            Exit();
+            ExitGame();
         }
 
         private Color ReadSkiaPixel(int x, int y)
