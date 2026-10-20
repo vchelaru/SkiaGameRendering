@@ -4,20 +4,11 @@ using SkiaSharp;
 
 namespace SkiaGameRendering.Kni.DesktopGL
 {
-    internal class KniGlTextureState
-    {
-        internal int TextureId;
-    }
-
-    public class SkiaKniGlBackend : SkiaBackend
+    public class SkiaKniGlBackend : SkiaSharedGlBackend
     {
         IntPtr _windowId;
         IntPtr _engineContextId;
         IntPtr _skiaContextId;
-        GRContext _grContext = null!;
-        GlFunctions _gl = null!;
-
-        public override GRContext GRContext => _grContext;
 
         public override void Initialize(GraphicsDevice graphicsDevice)
         {
@@ -37,19 +28,8 @@ namespace SkiaGameRendering.Kni.DesktopGL
             MakeEngineContextCurrent();
         }
 
-        void MakeSkiaContextCurrent() => KniGlWrapper.MakeCurrent(_windowId, _skiaContextId);
-        void MakeEngineContextCurrent() => KniGlWrapper.MakeCurrent(_windowId, _engineContextId);
-
-        internal override void BeginDraw()
-        {
-            MakeSkiaContextCurrent();
-            _grContext.ResetContext();
-        }
-
-        internal override void EndDraw()
-        {
-            MakeEngineContextCurrent();
-        }
+        private protected override void MakeSkiaContextCurrent() => KniGlWrapper.MakeCurrent(_windowId, _skiaContextId);
+        private protected override void MakeEngineContextCurrent() => KniGlWrapper.MakeCurrent(_windowId, _engineContextId);
 
         // A plain Texture2D has no shared-handle support in KNI - only RenderTarget2D constructed
         // with shared:true exposes GetSharedHandle(). DepthFormat.None/0 samples because Skia
@@ -60,49 +40,7 @@ namespace SkiaGameRendering.Kni.DesktopGL
                 DepthFormat.None, 0, RenderTargetUsage.PreserveContents, shared: true);
         }
 
-        internal override object CaptureTextureHandle(Texture2D texture)
-        {
-            return new KniGlTextureState { TextureId = (int)texture.GetSharedHandle() };
-        }
-
-        internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
-        {
-            var state = (KniGlTextureState)textureHandle;
-
-            var result = GlSkiaSurfaceFactory.CreateSurface(
-                _grContext, _gl, state.TextureId, width, height, colorType, out var framebufferState);
-
-            renderState = framebufferState;
-            return result;
-        }
-
-        internal override void BindForDrawing(object renderState)
-        {
-            GlSkiaSurfaceFactory.BindForDrawing(_gl, (GlFramebufferState)renderState);
-        }
-
-        internal override void UnbindAfterDrawing()
-        {
-            GlSkiaSurfaceFactory.UnbindAfterDrawing(_gl);
-        }
-
-        // Skia rewrites the shared texture on its own GL context. KNI's texture binding cache skips
-        // glBindTexture when the same texture is already bound on the unit, and the driver only
-        // refreshes the engine context's view of a shared texture when it is bound again, so a
-        // texture reused frame after frame keeps showing most of its first contents (a full-screen
-        // fill came out as blocky patches around whatever else was drawn). Binding the texture again
-        // directly costs about 13 microseconds a frame; drawing a different texture first so that KNI
-        // rebinds it worked too but cost about 200.
-        internal override void RefreshEngineView(Texture2D texture)
-        {
-            GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, (int)texture.GetSharedHandle());
-        }
-
-        internal override void DisposeRenderState(object renderState)
-        {
-            GlSkiaSurfaceFactory.DisposeRenderState(_gl, (GlFramebufferState)renderState);
-        }
+        private protected override int CaptureGlTextureId(Texture2D texture) => (int)texture.GetSharedHandle();
 
         public override void Dispose()
         {

@@ -4,11 +4,6 @@ using SkiaSharp;
 
 namespace SkiaGameRendering.Kni.Android
 {
-    internal class KniAndroidTextureState
-    {
-        internal int TextureId;
-    }
-
     /// <summary>
     /// SkiaBackend for KNI's Android (GLES) platform. Same design as the desktop GL backends: a second
     /// EGL context (<see cref="EglSharedContext"/>) shares KNI's, Skia gets it to leave in whatever
@@ -20,13 +15,9 @@ namespace SkiaGameRendering.Kni.Android
     /// <c>eglGetCurrent*</c> calls, and <c>Texture2D.GetSharedHandle()</c> is public.
     /// </para>
     /// </summary>
-    public class SkiaKniAndroidBackend : SkiaBackend
+    public class SkiaKniAndroidBackend : SkiaSharedGlBackend
     {
         readonly EglSharedContext _egl = new();
-        GRContext _grContext = null!;
-        GlFunctions _gl = null!;
-
-        public override GRContext GRContext => _grContext;
 
         /// <summary>The Skia context's GLES major version and whether it runs surfaceless; for diagnostics.</summary>
         public string Description => $"GLES {_egl.ClientVersion}, {(_egl.Surfaceless ? "surfaceless" : "host surface")}";
@@ -49,16 +40,9 @@ namespace SkiaGameRendering.Kni.Android
             }
         }
 
-        internal override void BeginDraw()
-        {
-            _egl.MakeSkiaContextCurrent();
-            _grContext.ResetContext();
-        }
+        private protected override void MakeSkiaContextCurrent() => _egl.MakeSkiaContextCurrent();
 
-        internal override void EndDraw()
-        {
-            _egl.RestoreHostContext();
-        }
+        private protected override void MakeEngineContextCurrent() => _egl.RestoreHostContext();
 
         // A plain Texture2D has no shared-handle support in KNI - only a RenderTarget2D constructed
         // with shared:true exposes GetSharedHandle(). DepthFormat.None/0 samples because Skia
@@ -69,37 +53,7 @@ namespace SkiaGameRendering.Kni.Android
                 DepthFormat.None, 0, RenderTargetUsage.PreserveContents, shared: true);
         }
 
-        internal override object CaptureTextureHandle(Texture2D texture)
-        {
-            return new KniAndroidTextureState { TextureId = (int)texture.GetSharedHandle() };
-        }
-
-        internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
-        {
-            var state = (KniAndroidTextureState)textureHandle;
-
-            var result = GlSkiaSurfaceFactory.CreateSurface(
-                _grContext, _gl, state.TextureId, width, height, colorType, out var framebufferState);
-
-            renderState = framebufferState;
-            return result;
-        }
-
-        internal override void BindForDrawing(object renderState)
-        {
-            GlSkiaSurfaceFactory.BindForDrawing(_gl, (GlFramebufferState)renderState);
-        }
-
-        internal override void UnbindAfterDrawing()
-        {
-            GlSkiaSurfaceFactory.UnbindAfterDrawing(_gl);
-        }
-
-        internal override void DisposeRenderState(object renderState)
-        {
-            GlSkiaSurfaceFactory.DisposeRenderState(_gl, (GlFramebufferState)renderState);
-        }
+        private protected override int CaptureGlTextureId(Texture2D texture) => (int)texture.GetSharedHandle();
 
         public override void Dispose()
         {

@@ -64,8 +64,13 @@ no-op, not a build error.
   `Game` starts.
 - **Mesa's gallium WGL loader prefers a D3D12-backed driver over llvmpipe whenever a D3D12 adapter is
   enumerable (WARP included), and only falls back to llvmpipe when none exists.** That makes the
-  software path non-deterministic across machines - set `GALLIUM_DRIVER=llvmpipe` to force it
-  regardless of what the host exposes (`master.yml` sets this for the whole `dotnet test` step).
+  software path non-deterministic across machines, and that D3D12 driver crashes the test host on a
+  laptop with an NVIDIA GPU plus an AMD iGPU. `VendoredOpenGl.PreloadIfPresent` sets
+  `GALLIUM_DRIVER=llvmpipe` when it is unset and the vendored Mesa is present; `master.yml` also sets it.
+- **llvmpipe and a dev box's real driver can both pass a test for a bug that only one driver has.**
+  `ReusedTargetGame` (stale shared texture) passes on llvmpipe and on this dev box's own GL driver even with
+  `SkiaSharedGlBackend.RefreshEngineView` disabled, so a pass there does not prove the refresh is needed.
+  To run on the real driver, delete `opengl32.dll` and `libgallium_wgl.dll` from the test's output directory.
 - **`dotnet test` runs the assembly inside a vstest `testhost` process.** `AppContext.BaseDirectory`
   there is still the test assembly's own output directory (not some shared vstest install location),
   so app-local DLL probing works the same as any other .NET Core host - this was checked directly,

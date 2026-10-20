@@ -91,14 +91,17 @@ namespace SkiaGameRendering
                 UnbindAfterDrawing();
                 EndDraw();
             }
+
+            RefreshEngineView(nativeTarget.TextureHandle!);
         }
 
         /// <summary>
-        /// Called after <see cref="EndRender"/>, before the engine samples <paramref name="texture"/>. A
-        /// backend whose engine can keep showing a shared texture's old contents after another context
-        /// rewrote it makes the engine look at the texture afresh here. The default does nothing.
+        /// Called at the end of <see cref="EndRender"/>, back on the engine's context, before the engine
+        /// samples the target's texture. A backend whose engine can keep showing a shared texture's old
+        /// contents after another context rewrote it makes the engine look at the texture afresh here.
+        /// The default does nothing.
         /// </summary>
-        internal virtual void RefreshEngineView(Texture2D texture) { }
+        internal virtual void RefreshEngineView(object textureHandle) { }
 
         /// <summary>
         /// Reads pixels back through the target's Skia surface mid-draw (see <see cref="SkiaRenderTarget2D.ReadPixels"/>).
@@ -165,6 +168,7 @@ namespace SkiaGameRendering
             public override Texture2D Texture => _texture
                 ?? throw new ObjectDisposedException(nameof(NativeSkiaTarget));
             internal SKSurface? Surface => _surface;
+            internal object? TextureHandle => _textureHandle;
             internal object? RenderState => _renderState;
 
             internal void EnsureSurface(SKColorType colorType)

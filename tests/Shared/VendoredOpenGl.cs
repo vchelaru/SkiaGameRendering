@@ -26,7 +26,15 @@ static class VendoredOpenGl
     internal static void PreloadIfPresent()
     {
         var localPath = Path.Combine(AppContext.BaseDirectory, "opengl32.dll");
-        if (File.Exists(localPath))
-            NativeLibrary.TryLoad(localPath, out _);
+        if (!File.Exists(localPath))
+            return;
+
+        // Mesa's WGL loader picks a D3D12-backed driver over llvmpipe whenever a D3D12 adapter exists, and
+        // that driver crashes the test host on some machines (a laptop with an NVIDIA GPU and an AMD iGPU).
+        // CI sets this variable for the whole test step; setting it here makes a local run behave the same.
+        if (Environment.GetEnvironmentVariable("GALLIUM_DRIVER") == null)
+            Environment.SetEnvironmentVariable("GALLIUM_DRIVER", "llvmpipe");
+
+        NativeLibrary.TryLoad(localPath, out _);
     }
 }

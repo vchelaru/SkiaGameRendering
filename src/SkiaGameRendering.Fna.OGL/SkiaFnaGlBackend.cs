@@ -33,22 +33,18 @@ namespace SkiaGameRendering
     ///   than a silent black texture. The vendored <c>FNA3D.dll</c> under <c>external/fnalibs</c>
     ///   is the build this was verified against.
     /// </summary>
-    public class SkiaFnaGlBackend : SkiaBackend
+    public class SkiaFnaGlBackend : SkiaSharedGlBackend
     {
         delegate byte IsTextureDelegate(uint texture);
 
         IntPtr _window;
         IntPtr _fnaContext;
         IntPtr _skiaContext;
-        GRContext _grContext = null!;
-        GlFunctions _gl = null!;
         IsTextureDelegate _isTexture = null!;
 
         // Reflection handles for FNA internals
         static FieldInfo? _glDeviceField;
         static FieldInfo? _textureField;
-
-        public override GRContext GRContext => _grContext;
 
         public override void Initialize(GraphicsDevice graphicsDevice)
         {
@@ -105,27 +101,19 @@ namespace SkiaGameRendering
             }
         }
 
-        void MakeSkiaContextCurrent()
+        private protected override void MakeSkiaContextCurrent()
         {
             if (!SDL_GL_MakeCurrent(_window, _skiaContext))
                 throw new Exception($"SDL_GL_MakeCurrent (Skia) failed: {SDL_GetError()}");
         }
 
-        void MakeEngineContextCurrent()
+        private protected override void MakeEngineContextCurrent()
         {
             if (!SDL_GL_MakeCurrent(_window, _fnaContext))
                 throw new Exception($"SDL_GL_MakeCurrent (FNA) failed: {SDL_GetError()}");
         }
 
-        internal override void BeginDraw()
-        {
-            MakeSkiaContextCurrent();
-            _grContext.ResetContext();
-        }
-
-        internal override void EndDraw() => MakeEngineContextCurrent();
-
-        internal override object CaptureTextureHandle(Texture2D texture)
+        private protected override int CaptureGlTextureId(Texture2D texture)
         {
             // FNA allocates the GL texture (glTexImage2D per level) in the Texture2D constructor.
             var fna3dTexture = (IntPtr?)_textureField!.GetValue(texture) ?? IntPtr.Zero;
@@ -142,26 +130,8 @@ namespace SkiaGameRendering
                     $"The first field of FNA3D's OpenGL texture struct ({glTextureId}) is not a GL texture name. " +
                     "The vendored FNA3D.dll's OpenGLTexture layout has changed; see SkiaFnaGlBackend's MAINTENANCE NOTES.");
 
-            return new GlTextureState { TextureId = (int)glTextureId };
+            return (int)glTextureId;
         }
-
-        internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
-        {
-            var state = (GlTextureState)textureHandle;
-            var result = GlSkiaSurfaceFactory.CreateSurface(
-                _grContext, _gl, state.TextureId, width, height, colorType, out var framebufferState);
-            renderState = framebufferState;
-            return result;
-        }
-
-        internal override void BindForDrawing(object renderState) =>
-            GlSkiaSurfaceFactory.BindForDrawing(_gl, (GlFramebufferState)renderState);
-
-        internal override void UnbindAfterDrawing() => GlSkiaSurfaceFactory.UnbindAfterDrawing(_gl);
-
-        internal override void DisposeRenderState(object renderState) =>
-            GlSkiaSurfaceFactory.DisposeRenderState(_gl, (GlFramebufferState)renderState);
 
         public override void Dispose()
         {
@@ -181,11 +151,6 @@ namespace SkiaGameRendering
             }
             SDL_GL_DestroyContext(_skiaContext);
             _skiaContext = IntPtr.Zero;
-        }
-
-        internal sealed class GlTextureState
-        {
-            internal int TextureId;
         }
 
         /// <summary>

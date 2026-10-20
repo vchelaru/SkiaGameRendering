@@ -72,6 +72,12 @@ namespace SkiaGameRendering.Raylib.OGL
                 GrContext, Gl, glTextureId, width, height, colorType, out renderState);
         }
 
+        // Skia rewrites the shared texture on its own context, and raylib's context only sees that when
+        // the texture is bound again (see SkiaSharedGlBackend.RefreshEngineView). Run it on raylib's
+        // context, after EndDraw.
+        internal void RefreshEngineView(int glTextureId) =>
+            GlSkiaSurfaceFactory.RefreshSharedTexture(Gl, glTextureId);
+
         internal void BindForDrawing(GlFramebufferState renderState) =>
             GlSkiaSurfaceFactory.BindForDrawing(Gl, renderState);
 

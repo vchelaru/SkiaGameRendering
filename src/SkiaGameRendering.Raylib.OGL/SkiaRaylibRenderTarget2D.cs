@@ -119,6 +119,8 @@ namespace SkiaGameRendering.Raylib.OGL
                 }
             }
 
+            _context.RefreshEngineView((int)Texture.Id);
+
             if (composite)
                 RaylibApi.DrawTexture(Texture, 0, 0, RaylibColor.White);
         }
