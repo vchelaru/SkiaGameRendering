@@ -138,6 +138,7 @@ namespace SkiaGameRendering.Godot
             SKSurface? _surface;
             GRBackendRenderTarget? _renderTarget;
             GlFramebufferState? _framebuffer;
+            readonly int _glTexture;
             bool _disposed;
 
             internal TargetResources(GlCompatibilityGodotBackend backend, int width, int height)
@@ -152,6 +153,7 @@ namespace SkiaGameRendering.Godot
                 var glTexture = (int)RenderingServer.TextureGetNativeHandle(_texture.GetRid(), false);
                 if (glTexture == 0)
                     throw new InvalidOperationException("RenderingServer.TextureGetNativeHandle returned 0 for the Skia texture.");
+                _glTexture = glTexture;
 
                 backend.BeginDraw();
                 try
@@ -198,6 +200,9 @@ namespace SkiaGameRendering.Godot
                     GlSkiaSurfaceFactory.UnbindAfterDrawing(_backend._gl!);
                     _backend.EndDraw();
                 }
+
+                // Back on Godot's context: make it look at the rewritten texture again (see SkiaSharedGlBackend.RefreshEngineView).
+                GlSkiaSurfaceFactory.RefreshSharedTexture(_backend._gl!, _glTexture);
             }
 
             /// <summary>

@@ -6,20 +6,11 @@ using static SkiaGameRendering.SdlGlConstants;
 
 namespace SkiaGameRendering
 {
-    internal class GlTextureState
-    {
-        internal int TextureId;
-    }
-
-    public class SkiaGlBackend : SkiaBackend
+    public class SkiaGlBackend : SkiaSharedGlBackend
     {
         IntPtr _windowId;
         IntPtr _mgContextId;
         IntPtr _skContextId;
-        GRContext _grContext = null!;
-        GlFunctions _gl = null!;
-
-        public override GRContext GRContext => _grContext;
 
         public override void Initialize(GraphicsDevice graphicsDevice)
         {
@@ -44,62 +35,24 @@ namespace SkiaGameRendering
             MakeEngineContextCurrent();
         }
 
-        void MakeSkiaContextCurrent()
+        private protected override void MakeSkiaContextCurrent()
         {
             var result = MakeCurrent(_windowId, _skContextId);
             if (result < 0)
                 throw new Exception("SDL_GL_MakeCurrent failed.");
         }
 
-        void MakeEngineContextCurrent()
+        private protected override void MakeEngineContextCurrent()
         {
             var result = MakeCurrent(_windowId, _mgContextId);
             if (result < 0)
                 throw new Exception("SDL_GL_MakeCurrent failed.");
         }
 
-        internal override void BeginDraw()
-        {
-            MakeSkiaContextCurrent();
-            _grContext.ResetContext();
-        }
-
-        internal override void EndDraw()
-        {
-            MakeEngineContextCurrent();
-        }
-
-        internal override object CaptureTextureHandle(Texture2D texture)
+        private protected override int CaptureGlTextureId(Texture2D texture)
         {
             MgGlFunctions.GetInteger(GL_TEXTURE_BINDING_2D, out var textureId);
-            return new GlTextureState { TextureId = textureId };
-        }
-
-        internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
-        {
-            var state = (GlTextureState)textureHandle;
-
-            var result = GlSkiaSurfaceFactory.CreateSurface(
-                _grContext, _gl, state.TextureId, width, height, colorType, out var framebufferState);
-
-            renderState = framebufferState;
-            return result;
-        }
-
-        internal override void BindForDrawing(object renderState)
-        {
-            GlSkiaSurfaceFactory.BindForDrawing(_gl, (GlFramebufferState)renderState);
-        }
-
-        internal override void UnbindAfterDrawing()
-        {
-            GlSkiaSurfaceFactory.UnbindAfterDrawing(_gl);
-        }
-
-        internal override void DisposeRenderState(object renderState)
-        {
-            GlSkiaSurfaceFactory.DisposeRenderState(_gl, (GlFramebufferState)renderState);
+            return textureId;
         }
 
         public override void Dispose()
