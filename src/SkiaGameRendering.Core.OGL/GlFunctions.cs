@@ -81,7 +81,12 @@ namespace SkiaGameRendering.Core.OGL
         internal FramebufferRenderbufferDelegate FramebufferRenderbuffer { get; private init; } = null!;
         internal RenderbufferStorageDelegate RenderbufferStorage { get; private init; } = null!;
         internal CheckFramebufferStatusDelegate CheckFramebufferStatus { get; private init; } = null!;
+        [System.Security.SuppressUnmanagedCodeSecurity]
+        [UnmanagedFunctionPointer(CallingConvention)]
+        internal delegate void BindTextureDelegate(int target, int texture);
+
         internal FlushDelegate Flush { get; private init; } = null!;
+        internal BindTextureDelegate BindTexture { get; private init; } = null!;
         private GetIntegerDelegate GetIntegerv { get; init; } = null!;
         private GetStringDelegate GetStringPtr { get; init; } = null!;
 
@@ -104,6 +109,7 @@ namespace SkiaGameRendering.Core.OGL
                 CheckFramebufferStatus = loader.Load<CheckFramebufferStatusDelegate>("glCheckFramebufferStatus"),
                 GetIntegerv = loader.Load<GetIntegerDelegate>("glGetIntegerv"),
                 Flush = loader.Load<FlushDelegate>("glFlush"),
+                BindTexture = loader.Load<BindTextureDelegate>("glBindTexture"),
                 GetStringPtr = loader.Load<GetStringDelegate>("glGetString"),
             };
         }

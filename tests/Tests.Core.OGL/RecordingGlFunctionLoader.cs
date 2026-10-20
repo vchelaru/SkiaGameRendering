@@ -112,6 +112,10 @@ internal sealed class RecordingGlFunctionLoader : IGlFunctionLoader
             case "glFlush":
                 return (T)(Delegate)new GlFunctions.FlushDelegate(() => Record("glFlush"));
 
+            case "glBindTexture":
+                return (T)(Delegate)new GlFunctions.BindTextureDelegate((target, texture) =>
+                    Record("glBindTexture", target, texture));
+
             case "glGetString":
                 return (T)(Delegate)new GlFunctions.GetStringDelegate(name =>
                 {
