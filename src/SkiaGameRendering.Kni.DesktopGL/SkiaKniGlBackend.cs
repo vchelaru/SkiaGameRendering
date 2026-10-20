@@ -16,6 +16,8 @@ namespace SkiaGameRendering.Kni.DesktopGL
         IntPtr _skiaContextId;
         GRContext _grContext = null!;
         GlFunctions _gl = null!;
+        SpriteBatch? _rebindBatch;
+        Texture2D? _rebindTexture;
 
         public override GRContext GRContext => _grContext;
 
@@ -87,6 +89,21 @@ namespace SkiaGameRendering.Kni.DesktopGL
             GlSkiaSurfaceFactory.UnbindAfterDrawing(_gl);
         }
 
+        // Skia rewrites the shared texture on its own GL context. KNI's texture binding cache skips
+        // glBindTexture when the same texture is already bound on the unit, and the driver only
+        // refreshes the engine context's view of a shared texture when it is bound again, so a
+        // texture reused frame after frame keeps showing most of its first contents (a full-screen
+        // fill came out as blocky patches around whatever else was drawn). Drawing a different
+        // texture first makes KNI bind the shared one again when it is sampled.
+        internal override void RefreshEngineView(Texture2D texture)
+        {
+            _rebindTexture ??= new Texture2D(GraphicsDevice, 1, 1);
+            _rebindBatch ??= new SpriteBatch(GraphicsDevice);
+            _rebindBatch.Begin();
+            _rebindBatch.Draw(_rebindTexture, Microsoft.Xna.Framework.Vector2.Zero, Microsoft.Xna.Framework.Color.Transparent);
+            _rebindBatch.End();
+        }
+
         internal override void DisposeRenderState(object renderState)
         {
             GlSkiaSurfaceFactory.DisposeRenderState(_gl, (GlFramebufferState)renderState);
@@ -94,6 +111,8 @@ namespace SkiaGameRendering.Kni.DesktopGL
 
         public override void Dispose()
         {
+            _rebindBatch?.Dispose();
+            _rebindTexture?.Dispose();
             _grContext?.Dispose();
         }
     }

@@ -94,6 +94,13 @@ namespace SkiaGameRendering
         }
 
         /// <summary>
+        /// Called after <see cref="EndRender"/>, before the engine samples <paramref name="texture"/>. A
+        /// backend whose engine can keep showing a shared texture's old contents after another context
+        /// rewrote it makes the engine look at the texture afresh here. The default does nothing.
+        /// </summary>
+        internal virtual void RefreshEngineView(Texture2D texture) { }
+
+        /// <summary>
         /// Reads pixels back through the target's Skia surface mid-draw (see <see cref="SkiaRenderTarget2D.ReadPixels"/>).
         /// </summary>
         internal virtual bool ReadPixels(SkiaTarget target, SKImageInfo dstInfo, IntPtr dstPixels, int dstRowBytes, int srcX, int srcY) =>
