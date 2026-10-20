@@ -17,7 +17,7 @@ namespace Tests.Shared;
 /// gets the engine's own initialization path exercised along with it.
 /// </para>
 /// </summary>
-sealed class OneFrameGame : Game
+sealed class OneFrameGame : Game  // GameThread below is reused by games that run several frames
 {
     readonly Func<SkiaBackend> _backendFactory;
     readonly Func<GraphicsDevice, object> _readback;
@@ -62,7 +62,7 @@ sealed class OneFrameGame : Game
     /// any other thread. xUnit runs test classes on whatever thread it likes, so without this, the
     /// second game fails whenever it lands on a different thread than the first.
     /// </summary>
-    static class GameThread
+    internal static class GameThread
     {
         static readonly System.Collections.Concurrent.BlockingCollection<Action> Work = new();
 

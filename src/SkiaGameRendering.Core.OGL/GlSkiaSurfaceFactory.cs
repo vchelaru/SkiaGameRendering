@@ -85,6 +85,20 @@ namespace SkiaGameRendering.Core.OGL
             gl.Flush();
         }
 
+        /// <summary>
+        /// Binds the shared texture again on the engine's context, then puts back whatever was bound, so
+        /// the engine's own binding cache stays right. Binding nothing first matters: a bind of the
+        /// texture that is already bound is a no-op, and a bind is what makes the driver show the
+        /// engine's context what Skia's context wrote.
+        /// </summary>
+        public static void RefreshSharedTexture(GlFunctions gl, int textureId)
+        {
+            gl.GetInteger(0x8069 /* GL_TEXTURE_BINDING_2D */, out int previous);
+            gl.BindTexture(0x0DE1 /* GL_TEXTURE_2D */, 0);
+            gl.BindTexture(0x0DE1, textureId);
+            gl.BindTexture(0x0DE1, previous);
+        }
+
         public static void DisposeRenderState(GlFunctions gl, GlFramebufferState state)
         {
             if (state.FramebufferId > 0)

@@ -87,6 +87,18 @@ namespace SkiaGameRendering.Kni.DesktopGL
             GlSkiaSurfaceFactory.UnbindAfterDrawing(_gl);
         }
 
+        // Skia rewrites the shared texture on its own GL context. KNI's texture binding cache skips
+        // glBindTexture when the same texture is already bound on the unit, and the driver only
+        // refreshes the engine context's view of a shared texture when it is bound again, so a
+        // texture reused frame after frame keeps showing most of its first contents (a full-screen
+        // fill came out as blocky patches around whatever else was drawn). Binding the texture again
+        // directly costs about 13 microseconds a frame; drawing a different texture first so that KNI
+        // rebinds it worked too but cost about 200.
+        internal override void RefreshEngineView(Texture2D texture)
+        {
+            GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, (int)texture.GetSharedHandle());
+        }
+
         internal override void DisposeRenderState(object renderState)
         {
             GlSkiaSurfaceFactory.DisposeRenderState(_gl, (GlFramebufferState)renderState);

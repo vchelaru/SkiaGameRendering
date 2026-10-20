@@ -109,6 +109,7 @@ namespace SkiaGameRendering
             try
             {
                 _backend.EndRender(_target!);
+                _backend.RefreshEngineView(Texture);
                 if (composite)
                 {
                     _spriteBatch ??= new SpriteBatch(_backend.GraphicsDevice);

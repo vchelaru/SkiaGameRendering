@@ -101,6 +101,25 @@ public sealed class GlSkiaSurfaceFactoryTests
         Assert.Equal(GeneratedFramebufferId, _loader.BoundFramebuffer);
     }
 
+    // A bind of the texture that is already bound is a no-op to the driver, so it has to be unbound
+    // first; and the engine's own binding must be put back, or its texture cache would be wrong.
+    [Fact]
+    public void RefreshSharedTexture_BindsNothingThenTheTexture_ThenRestoresThePreviousBinding()
+    {
+        GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, TextureId);
+
+        const int Texture2DBindingQuery = 0x8069;
+        const int Texture2D = 0x0DE1;
+        // The recording loader answers every glGetIntegerv with SampleCount, which stands in for the previous binding.
+        Assert.Equal(new[]
+        {
+            Call("glGetIntegerv", Texture2DBindingQuery),
+            Call("glBindTexture", Texture2D, 0),
+            Call("glBindTexture", Texture2D, TextureId),
+            Call("glBindTexture", Texture2D, SampleCount),
+        }, _loader.Calls);
+    }
+
     [Fact]
     public void BindForDrawing_AndUnbind_RestoreTheDefaultFramebuffer()
     {
