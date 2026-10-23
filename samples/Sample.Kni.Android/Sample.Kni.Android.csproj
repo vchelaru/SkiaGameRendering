@@ -11,8 +11,11 @@
     <ApplicationId>com.vchelaru.skiagamerendering.sample</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-    <!-- 64-bit and 32-bit ARM, since the oldest phones still run an armeabi-v7a userspace. -->
-    <RuntimeIdentifiers>android-arm64;android-arm</RuntimeIdentifiers>
+    <!-- 64-bit and 32-bit ARM, since the oldest phones still run an armeabi-v7a userspace. Set
+         SampleRuntimeIdentifiers to add android-x64 for an emulator; passing RuntimeIdentifiers with
+         -p: also reaches the net8.0 library references and fails the build. -->
+    <SampleRuntimeIdentifiers Condition="'$(SampleRuntimeIdentifiers)' == ''">android-arm64;android-arm</SampleRuntimeIdentifiers>
+    <RuntimeIdentifiers>$(SampleRuntimeIdentifiers)</RuntimeIdentifiers>
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
   </PropertyGroup>
 

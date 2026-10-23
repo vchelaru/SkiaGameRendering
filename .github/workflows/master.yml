@@ -441,8 +441,8 @@ jobs:
           }
           exit $p.ExitCode
 
-  # Builds only: there is no Android device or emulator on the runner, so the sample's smoke test
-  # (adb shell am start ... --ez smoke true, then read "Smoke test passed" from logcat) is run by hand.
+  # Builds the sample for ARM and x86_64, then runs its smoke test on an x86_64 emulator with
+  # SwiftShader as the GPU (the runner has none).
   android:
     runs-on: ubuntu-latest
     steps:
@@ -456,7 +456,21 @@ jobs:
       - name: Install the Android SDK platform and build tools
         run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -t:InstallAndroidDependencies -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:AcceptAndroidSDKLicenses=True
       - name: Build the Android sample
-        run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -c Release -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64
+        run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -c Release -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 "-p:SampleRuntimeIdentifiers=android-arm64%3Bandroid-arm%3Bandroid-x64"
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run the smoke test on an emulator
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: bash eng/run-android-smoke-test.sh "$(find samples/Sample.Kni.Android/bin/Release -name '*-Signed.apk' | head -n 1)"
 
   godot-linux:
     runs-on: ubuntu-latest
