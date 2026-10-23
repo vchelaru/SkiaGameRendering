@@ -117,17 +117,19 @@ namespace SkiaGameRendering.Core.OGL
         /// Builds an FBO on the current (Skia) context around <paramref name="target"/>'s color
         /// attachment, a texture or a multisampled renderbuffer owned by another context, plus a
         /// depth/stencil renderbuffer with the same sample count, and wraps it in a Skia surface.
-        /// Rows run top-down, the same as <see cref="CreateSurface"/>.
+        /// Rows run top-down by default, the same as <see cref="CreateSurface"/>; an engine that keeps its
+        /// back buffer in an FBO renders that one bottom-up, like a window, so it passes
+        /// <see cref="GRSurfaceOrigin.BottomLeft"/>.
         /// </summary>
         public static (SKSurface surface, GRBackendRenderTarget renderTarget) CreateAttachmentSurface(
             GRContext grContext, GlFunctions gl, GlDrawTarget target, int width, int height, SKColorType colorType,
-            out GlFramebufferState framebufferState)
+            out GlFramebufferState framebufferState, GRSurfaceOrigin origin = GRSurfaceOrigin.TopLeft)
         {
             framebufferState = CreateAttachmentFramebuffer(gl, target, width, height, out var samples);
 
             var framebufferInfo = new GRGlFramebufferInfo((uint)framebufferState.FramebufferId, colorType.ToGlSizedFormat());
             var backendRenderTarget = new GRBackendRenderTarget(width, height, samples, 8, framebufferInfo);
-            var surface = SKSurface.Create(grContext, backendRenderTarget, GRSurfaceOrigin.TopLeft, colorType);
+            var surface = SKSurface.Create(grContext, backendRenderTarget, origin, colorType);
             if (surface == null)
             {
                 backendRenderTarget.Dispose();

@@ -32,6 +32,16 @@ namespace SkiaGameRendering
     ///   <c>glIsTexture</c> on the shared context, so a reordered struct is an exception rather
     ///   than a silent black texture. The vendored <c>FNA3D.dll</c> under <c>external/fnalibs</c>
     ///   is the build this was verified against.
+    ///
+    /// SkiaDirectCanvas: FNA3D's back buffer is the window's default framebuffer only while the back
+    /// buffer matches the window's pixel size and is not multisampled. Otherwise FNA3D draws into a
+    /// "faux backbuffer", an FBO of its own over a renderbuffer, and blits it to the window at
+    /// <c>Present</c> (<c>OPENGL_INTERNAL_CreateBackbuffer</c>). Skia attaches that renderbuffer the
+    /// way it attaches a multisampled render target's, bottom-up like the window. FNA3D rebuilds the
+    /// faux backbuffer only in <c>ResetBackbuffer</c>, which <c>GraphicsDevice.Reset</c> calls, so a
+    /// reset drops the cached surface. Skia never draws on FNA's context, so FNA3D's GL state cache
+    /// stays right; the only GL calls made there are queries, a flush, and a texture rebind that puts
+    /// back what was bound.
     /// </summary>
     public class SkiaFnaGlBackend : SkiaSharedGlBackend
     {
@@ -99,6 +109,31 @@ namespace SkiaGameRendering
             {
                 MakeEngineContextCurrent();
             }
+
+            graphicsDevice.DeviceReset += OnDeviceReset;
+        }
+
+        void OnDeviceReset(object? sender, EventArgs e) => InvalidateBackBufferTarget();
+
+        private readonly RenderTargetBinding[] _boundRenderTarget = new RenderTargetBinding[1];
+
+        private protected override bool CanDrawDirect => true;
+
+        private protected override bool BackBufferCanBeFramebufferObject => true;
+
+        private protected override RenderTarget2D? GetBoundRenderTarget()
+        {
+            var count = GraphicsDevice.GetRenderTargetsNoAllocEXT(null);
+            if (count == 0)
+                return null;
+            if (count > 1)
+                throw new NotSupportedException("SkiaDirectCanvas needs a single bound render target, not " + count + ".");
+
+            GraphicsDevice.GetRenderTargetsNoAllocEXT(_boundRenderTarget);
+            var renderTarget = _boundRenderTarget[0].RenderTarget as RenderTarget2D
+                ?? throw new NotSupportedException("SkiaDirectCanvas supports a RenderTarget2D, not a cube target.");
+            _boundRenderTarget[0] = default;
+            return renderTarget;
         }
 
         private protected override void MakeSkiaContextCurrent()
@@ -135,6 +170,8 @@ namespace SkiaGameRendering
 
         private protected override void DestroySkiaContext()
         {
+            if (GraphicsDevice != null)
+                GraphicsDevice.DeviceReset -= OnDeviceReset;
             if (_skiaContext == IntPtr.Zero)
                 return;
             SDL_GL_DestroyContext(_skiaContext);

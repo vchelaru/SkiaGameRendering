@@ -112,6 +112,8 @@ namespace SkiaGameRendering
         // window's back buffer. A bound RenderTarget2D lives in an FBO on the engine's context, and FBOs are
         // not shared, but its color attachment is: a texture, or for a multisampled target a renderbuffer the
         // engine resolves into the texture when the target is unbound. Skia's FBO attaches that same object.
+        // An engine whose back buffer can be an FBO of its own (FNA3D's "faux backbuffer") gets the same
+        // treatment, with the rows bottom-up like a window's.
 
         private sealed class DirectTarget
         {
@@ -135,6 +137,21 @@ namespace SkiaGameRendering
         /// <see cref="NotSupportedException"/> for several bound targets or a non-2D one.
         /// </summary>
         private protected virtual RenderTarget2D? GetBoundRenderTarget() => throw new NotSupportedException();
+
+        /// <summary>
+        /// Whether the engine's back buffer can be an FBO it owns rather than the default framebuffer. Only
+        /// FNA3D does this, when the back buffer and window sizes differ or the back buffer is multisampled.
+        /// </summary>
+        private protected virtual bool BackBufferCanBeFramebufferObject => false;
+
+        /// <summary>
+        /// Drops the cached back buffer surface at the next <see cref="SkiaDirectCanvas"/> pass. For an engine
+        /// that can rebuild its back buffer FBO in place: a deleted renderbuffer's name can come back for the
+        /// new one, which the cache cannot tell apart from the old.
+        /// </summary>
+        private protected void InvalidateBackBufferTarget() => _backBufferStale = true;
+
+        private bool _backBufferStale;
 
         /// <summary>
         /// Makes Skia's context current with the engine's window as its default framebuffer. The desktop
@@ -164,7 +181,8 @@ namespace SkiaGameRendering
 
             // Still on the engine's context: what it is drawing into, as GL sees it.
             var glTarget = GlSkiaSurfaceFactory.QueryDrawTarget(_gl);
-            if ((renderTarget == null) != glTarget.IsDefaultFramebuffer)
+            if (renderTarget != null ? glTarget.IsDefaultFramebuffer
+                    : !glTarget.IsDefaultFramebuffer && !BackBufferCanBeFramebufferObject)
                 throw new InvalidOperationException(
                     "The engine's bound GL framebuffer does not match its current render target.");
 
@@ -176,7 +194,7 @@ namespace SkiaGameRendering
             try
             {
                 PruneDisposedRenderTargets();
-                var target = renderTarget == null ? GetBackBufferTarget() : GetRenderTargetTarget(renderTarget, glTarget);
+                var target = renderTarget == null ? GetBackBufferTarget(glTarget) : GetRenderTargetTarget(renderTarget, glTarget);
 
                 GlSkiaSurfaceFactory.BindForDrawing(_gl, target.Framebuffer);
                 var canvas = target.Surface.Canvas;
@@ -211,25 +229,32 @@ namespace SkiaGameRendering
                 GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, directPass.Gl.AttachmentName);
         }
 
-        private DirectTarget GetBackBufferTarget()
+        private DirectTarget GetBackBufferTarget(GlDrawTarget glTarget)
         {
             var parameters = GraphicsDevice.PresentationParameters;
             var width = parameters.BackBufferWidth;
             var height = parameters.BackBufferHeight;
 
-            if (_backBufferTarget is { } cached && cached.Width == width && cached.Height == height)
+            if (!_backBufferStale && _backBufferTarget is { } cached
+                && cached.Gl == glTarget && cached.Width == width && cached.Height == height)
                 return cached;
 
             if (_backBufferTarget != null)
                 DisposeDirectTarget(_backBufferTarget);
             _backBufferTarget = null;
+            _backBufferStale = false;
 
-            var (surface, backendRenderTarget) = GlSkiaSurfaceFactory.CreateDefaultFramebufferSurface(
-                _grContext, _gl, width, height, SKColorType.Rgba8888);
+            var framebuffer = new GlFramebufferState();
+            var (surface, backendRenderTarget) = glTarget.IsDefaultFramebuffer
+                ? GlSkiaSurfaceFactory.CreateDefaultFramebufferSurface(_grContext, _gl, width, height, SKColorType.Rgba8888)
+                : GlSkiaSurfaceFactory.CreateAttachmentSurface(_grContext, _gl, glTarget, width, height,
+                    SKColorType.Rgba8888, out framebuffer, GRSurfaceOrigin.BottomLeft);
             _backBufferTarget = new DirectTarget
             {
                 Surface = surface,
                 RenderTarget = backendRenderTarget,
+                Framebuffer = framebuffer,
+                Gl = glTarget,
                 Width = width,
                 Height = height,
             };
