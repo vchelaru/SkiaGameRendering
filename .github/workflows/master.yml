@@ -456,7 +456,7 @@ jobs:
       - name: Install the Android SDK platform and build tools
         run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -t:InstallAndroidDependencies -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:AcceptAndroidSDKLicenses=True
       - name: Build the Android sample
-        run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -c Release -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 "-p:SampleRuntimeIdentifiers=android-arm64%3Bandroid-arm%3Bandroid-x64"
+        run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -c Release -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:EmulatorRuntime=true
       - name: Enable KVM for the emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
