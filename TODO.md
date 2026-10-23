@@ -31,7 +31,7 @@ which also draw straight into the current target (`SkiaDirectCanvas`, `SkiaStrid
 
 | Engine | OpenGL / GLES | D3D11 | D3D12 | Vulkan | Metal | WebGL |
 |---|---|---|---|---|---|---|
-| MonoGame | ✅ DesktopGL<br>🟡 Android/iOS | ✅ | 🟦 | 🟦 (unpublished) | ❌ | ❌ |
+| MonoGame | ✅ DesktopGL<br>🟡 Android/iOS | ✅ | ✅ | 🟦 (unpublished) | ❌ | ❌ |
 | KNI | ✅ DesktopGL, Android | ✅ | ❌? | ❌? | ❌ | 🟦 |
 | FNA | ✅ | ✅ | ❌ | ❌ | ❌ | ❌? |
 | raylib | 🟦 | ❌ | ❌ | ❌ | ❌ | ❌? |
@@ -42,8 +42,9 @@ which also draw straight into the current target (`SkiaDirectCanvas`, `SkiaStrid
 FNA's D3D12, Vulkan and Metal are ❌ because FNA3D reaches them through its SDL_GPU driver, which
 exposes no native device handles.
 
-MonoGame's D3D12 stays 🟦: its managed API and native interop table give no way to get the current
-target's `ID3D12Resource`, or to submit what MonoGame has recorded ahead of Skia's draw (Notes section 12).
+MonoGame's D3D12 is ✅ by reading MonoGame's native objects by offset (no MonoGame change); it is only enabled for
+an `mgruntime.dll` whose layout has been verified, and `SupportsDirectCanvas` is false on any other build
+(Notes section 12).
 
 Shared code to reuse when moving a 🟦 to ✅:
 
@@ -54,7 +55,9 @@ Shared code to reuse when moving a 🟦 to ✅:
 - D3D12: `D3D12SkiaSurfaceFactory.DescribeDirectTarget`/`BeginDirectDraw`/`EndDirectDraw` in `Core.D3D12`,
   which take the target's `ID3D12Resource` from the engine adapter (no bound-target query exists). The
   adapter has to put it in `RENDER_TARGET` first and submit the engine's recorded commands ahead of
-  Skia's; `SkiaStrideD3D12Context.BeginDirectDraw` is the one user.
+  Skia's, then restore the engine's list state: `D3D12CommandListSplitter` cuts and reopens an engine's open
+  command list. Used by `SkiaStrideD3D12Context.BeginDirectDraw` (which uses Stride's own `FlushInternal`) and
+  `SkiaDx12Backend` (`MonoGameD3D12Native` finds the target and restores MonoGame's state).
 - Vulkan and Metal have no direct-draw code yet.
 
 ## Architecture

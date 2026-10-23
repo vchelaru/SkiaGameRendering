@@ -14,7 +14,9 @@ namespace SkiaGameRendering
     /// itself works). Skia draws on the very <c>ID3D12Device</c>/<c>ID3D12CommandQueue</c> MonoGame
     /// renders with, read from <c>GraphicsDevice.GetNativeHandles()</c>, into a resource this backend
     /// creates and hands back to MonoGame through <c>RenderTarget2D.FromNativeHandle()</c>. No
-    /// reflection and no CPU readback.
+    /// reflection and no CPU readback on that path. <see cref="SkiaDirectCanvas"/> is in
+    /// SkiaDx12Backend.DirectCanvas.cs and reads MonoGame's native objects by offset
+    /// (<c>MonoGameD3D12Native</c>).
     ///
     /// MAINTENANCE NOTES:
     /// - <b>Resource states.</b> MonoGame never transitions a wrapped resource before it first samples
@@ -31,7 +33,7 @@ namespace SkiaGameRendering
     /// - MonoGame does not expose its queue lock, so none is passed: Skia, this backend and MonoGame
     ///   must all submit from the thread that runs <c>Draw</c>.
     /// </summary>
-    public class SkiaDx12Backend : SkiaBackend
+    public partial class SkiaDx12Backend : SkiaBackend
     {
         // The draws a released resource waits out before its ID3D12Resource reference is dropped.
         const int ReleaseDelayDraws = 4;
@@ -60,6 +62,7 @@ namespace SkiaGameRendering
             _device = handles.LogicalDevice;
             _factory.InitializeFromNative(handles.PhysicalDevice, handles.LogicalDevice, handles.Queue);
             _transitioner = new D3D12ResourceTransitioner(handles.LogicalDevice, handles.Queue);
+            InitializeDirectCanvas(graphicsDevice, handles);
         }
 
         internal override void BeginDraw()
@@ -165,6 +168,7 @@ namespace SkiaGameRendering
 
         public override void Dispose()
         {
+            DisposeDirectCanvas();
             _transitioner?.Dispose();
             _transitioner = null;
             _factory.Dispose();

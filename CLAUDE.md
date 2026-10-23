@@ -115,3 +115,8 @@ sets the real one. To find the last published version of a package, read
   these silently at runtime with no compile error. Every backend has reflection pin tests
   (`tests/Shared/EngineReflectionPin.cs` plus a `*ReflectionTests.cs` in each backend's test
   project) that fail the build on a rename.
+- **MonoGame WindowsDX12's direct canvas reads MonoGame's C++ objects by offset.** See
+  `src/SkiaGameRendering.WindowsDX12/MonoGameD3D12Native.cs`. It only turns on for an `mgruntime.dll`
+  whose SHA-256 is in its `KnownRuntimes`; on a MonoGame bump re-diff the structs against
+  `native/monogame/directx12` in MonoGame/MonoGame, re-probe, then add the hash (`Tests.WindowsDX12`
+  fails until you do).

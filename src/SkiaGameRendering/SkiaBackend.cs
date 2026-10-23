@@ -63,7 +63,7 @@ namespace SkiaGameRendering
         /// <summary>Ends a pass started by <see cref="BeginDirectDraw"/>. Restores the engine's context even if it throws.</summary>
         internal virtual void EndDirectDraw(object pass) => throw DirectCanvasNotSupported();
 
-        internal NotSupportedException DirectCanvasNotSupported() =>
+        internal virtual NotSupportedException DirectCanvasNotSupported() =>
             new($"{GetType().Name} cannot draw straight into the engine's current target. " +
                 "Draw into a SkiaRenderTarget2D instead.");
 

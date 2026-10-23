@@ -440,6 +440,24 @@ jobs:
             if ($errors) { throw "Vulkan validation reported $($errors.Count) message(s)." }
           }
           exit $p.ExitCode
+      # SkiaDirectCanvas on MonoGame's D3D12 platform cuts MonoGame's command list around each Skia pass, so this
+      # checks layer order, state MonoGame sets once and does not set again, a back buffer resize, and a
+      # multisampled back buffer that must be refused. The D3D12 debug layer is on for both; see DirectDrawGame.
+      - name: Run the direct canvas smoke tests
+        if: matrix.platform == 'WindowsDX12'
+        working-directory: out
+        shell: pwsh
+        env:
+          SKIAGAMERENDERING_D3D12_DEBUG: '1'
+        run: |
+          foreach ($mode in "--direct-smoke-test", "--direct-smoke-test-msaa") {
+            $p = Start-Process ./Sample.MonoGame.WindowsDX12.exe -ArgumentList $mode -PassThru -RedirectStandardOutput direct.txt -RedirectStandardError direct-err.txt
+            $null = $p.Handle
+            if (-not $p.WaitForExit(120000)) { $p.Kill(); Get-Content direct.txt, direct-err.txt; throw "$mode timed out" }
+            Get-Content direct.txt, direct-err.txt
+            "$mode exit code: $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode
+            if ($p.ExitCode -ne 0) { exit $p.ExitCode }
+          }
 
   # Builds the sample for ARM and x86_64, then runs its smoke test on an x86_64 emulator with
   # SwiftShader as the GPU (the runner has none).

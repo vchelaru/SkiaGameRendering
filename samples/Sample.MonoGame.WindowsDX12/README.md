@@ -13,5 +13,9 @@ The library ships on NuGet as `SkiaGameRendering.WindowsDX12` `-preview`; this s
 
 `--smoke-test` renders a few frames, checks the back buffer for the scene, and exits 0 or 1.
 
+`--direct-smoke-test` draws with `SkiaDirectCanvas` into the back buffer and a render target for 14 frames and checks
+every layer (`DirectDrawGame.cs`); `--direct-smoke-test-msaa` runs on a multisampled back buffer, which it must refuse.
+`SKIAGAMERENDERING_D3D12_DEBUG=1` turns the D3D12 debug layer on for either, and CI does for these.
+
 See `docs/documentation/SkiaDx12Backend.md` for how the backend shares the device and queue, and
 `SkiaGameRendering-Notes.md` section 9 for what building it turned up.
