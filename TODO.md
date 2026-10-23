@@ -20,6 +20,36 @@ This document tracks which framework/platform/backend combinations have been pro
 | Godot           | 4.7.2 (GodotSharp) | Compatibility (opengl3) | Desktop | samples/Sample.Godot/ | Working (Windows WGL verified; Linux X11/GLX compiled from the raylib adapter's code, unrun) | Same package. No `RenderingDevice`: a second WGL/GLX context shares Godot's GL objects and Skia draws into an FBO around an `ImageTexture`'s GL texture (`RenderingServer.TextureGetNativeHandle`). RGBA8 only. Not `opengl3_angle`/`opengl3_es`/Wayland/macOS (EGL/NSOpenGL contexts). |
 | Godot           | 4.7.2 (GodotSharp) | Metal (RenderingDevice) | Desktop (macOS) | samples/Sample.Godot/ | Working (Apple silicon verified; Intel unrun) | Same package. Zero-copy: Skia draws into the RD texture's `MTLTexture`; Metal has no layouts or states to hand back. Vulkan on macOS stays unsupported (SkiaSharp's macOS build has no Vulkan). |
 
+## Direct Canvas Coverage
+
+Which engine/backend pairs have a render target (`SkiaRenderTarget2D` or the engine's equivalent) and
+which also draw straight into the current target (`SkiaDirectCanvas`, `SkiaStrideDirectCanvas`).
+
+✅ render target + direct  🟦 render target only  🟡 neither, but the engine has this API  ❌ the engine doesn't have this API
+
+`?` marks a guess about what the engine supports that nobody has checked against the engine.
+
+| Engine | OpenGL / GLES | D3D11 | D3D12 | Vulkan | Metal | WebGL |
+|---|---|---|---|---|---|---|
+| MonoGame | ✅ DesktopGL<br>🟡 Android/iOS | ✅ | 🟦 | 🟦 (unpublished) | ❌ | ❌ |
+| KNI | ✅ DesktopGL, Android | ✅ | ❌? | ❌? | ❌ | 🟦 |
+| FNA | ✅ | ✅ | ❌ | ❌ | ❌ | ❌? |
+| raylib | 🟦 | ❌ | ❌ | ❌ | ❌ | ❌? |
+| Stride | 🟡? | ✅ | 🟦 | 🟦 | ❌ | ❌ |
+| Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌? |
+| Unity 6 | 🟡 | 🟦 | 🟦 | 🟡 | 🟦 | 🟡? |
+
+FNA's D3D12, Vulkan and Metal are ❌ because FNA3D reaches them through its SDL_GPU driver, which
+exposes no native device handles.
+
+Shared code to reuse when moving a 🟦 to ✅:
+
+- OpenGL: `GlSkiaSurfaceFactory` in `Core.OGL` and `SkiaSharedGlBackend`. An engine that derives from
+  `SkiaSharedGlBackend` only overrides `CanDrawToCurrentTarget` and `GetBoundRenderTarget`.
+- D3D11: `AngleSkiaSurfaceFactory.BeginDirectDraw`/`EndDirectDraw` in `Core.ANGLE`, which reads the bound
+  view off the immediate context. Used by `SkiaSharedAngleBackend` and `SkiaStrideDirectCanvas`.
+- D3D12, Vulkan and Metal have no direct-draw code yet.
+
 ## Architecture
 
 The library uses a backend abstraction (`SkiaBackend` base class) so each graphics API gets its
