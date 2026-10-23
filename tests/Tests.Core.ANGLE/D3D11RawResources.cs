@@ -80,6 +80,33 @@ static unsafe class D3D11RawResources
         return (IntPtr)texture;
     }
 
+    /// <summary>ID3D11Device::CreateRenderTargetView, vtable slot 9, with a null description (the texture's own format, mip 0).</summary>
+    internal static IntPtr CreateRenderTargetView(IntPtr device, IntPtr texture)
+    {
+        var fn = (delegate* unmanaged[MemberFunction]<IntPtr, IntPtr, void*, void**, int>)(*(void***)device)[9];
+
+        void* view;
+        int hr = fn(device, texture, null, &view);
+        if (hr < 0)
+            throw new InvalidOperationException($"ID3D11Device::CreateRenderTargetView failed. HRESULT: 0x{hr:X8}");
+        return (IntPtr)view;
+    }
+
+    /// <summary>ID3D11DeviceContext::OMSetRenderTargets, vtable slot 33, binding one view and no depth buffer.</summary>
+    internal static void SetRenderTarget(IntPtr context, IntPtr view)
+    {
+        var fn = (delegate* unmanaged[MemberFunction]<IntPtr, uint, IntPtr*, IntPtr, void>)(*(void***)context)[33];
+        fn(context, 1, &view, IntPtr.Zero);
+    }
+
+    /// <summary>ID3D11DeviceContext::ClearRenderTargetView, vtable slot 50.</summary>
+    internal static void ClearRenderTargetView(IntPtr context, IntPtr view, float r, float g, float b, float a)
+    {
+        var fn = (delegate* unmanaged[MemberFunction]<IntPtr, IntPtr, float*, void>)(*(void***)context)[50];
+        var color = stackalloc float[] { r, g, b, a };
+        fn(context, view, color);
+    }
+
     /// <summary>ID3D11DeviceContext::CopyResource, vtable slot 47.</summary>
     internal static void CopyResource(IntPtr context, IntPtr dst, IntPtr src)
     {

@@ -110,6 +110,8 @@ namespace SkiaGameRendering.Core.ANGLE
         internal const int EGL_DEPTH_SIZE = 0x3025;
         internal const int EGL_STENCIL_SIZE = 0x3026;
         internal const int EGL_SURFACE_TYPE = 0x3033;
+        internal const int EGL_SAMPLES = 0x3031;
+        internal const int EGL_SAMPLE_BUFFERS = 0x3032;
         internal const int EGL_RENDERABLE_TYPE = 0x3040;
         internal const int EGL_PBUFFER_BIT = 0x0001;
         internal const int EGL_OPENGL_ES2_BIT = 0x0004;

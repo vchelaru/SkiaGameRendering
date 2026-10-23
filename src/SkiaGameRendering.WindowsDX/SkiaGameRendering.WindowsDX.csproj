@@ -31,6 +31,7 @@
   <!-- Shared core files from the DesktopGL project -->
   <ItemGroup>
     <Compile Include="..\SkiaGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaSharedAngleBackend.cs" Link="SkiaSharedAngleBackend.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaRenderer.cs" Link="SkiaRenderer.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="SkiaRenderTarget2D.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaDirectCanvas.cs" Link="SkiaDirectCanvas.cs" />

@@ -87,6 +87,26 @@ static class DirectDrawLayering
         });
     }
 
+    /// <summary>
+    /// Draws into the back buffer, has the engine resize it, and draws again. A backend that kept a
+    /// reference to the old back buffer would make the resize fail (DXGI's ResizeBuffers refuses while one
+    /// is outstanding) or draw into a stale buffer.
+    /// </summary>
+    internal static string BackBufferAfterResize(GraphicsDevice graphicsDevice)
+    {
+        var before = BackBuffer(graphicsDevice);
+        if (before != "")
+            return "before the resize: " + before;
+
+        var parameters = graphicsDevice.PresentationParameters.Clone();
+        parameters.BackBufferWidth += Size / 2;
+        parameters.BackBufferHeight += Size / 4;
+        graphicsDevice.Reset(parameters);
+
+        var after = BackBuffer(graphicsDevice);
+        return after == "" ? "" : "after the resize: " + after;
+    }
+
     internal static string RenderTarget(GraphicsDevice graphicsDevice, int multiSampleCount)
     {
         using var renderTarget = new RenderTarget2D(graphicsDevice, Size, Size, false, SurfaceFormat.Color,

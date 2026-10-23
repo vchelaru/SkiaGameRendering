@@ -208,6 +208,10 @@ ANGLE requires `libEGL.dll` and `libGLESv2.dll` at runtime, and `libGLESv2.dll` 
 
 Everything above (`AngleEgl`, the surface/texture-state factory, the `SwapDeviceContextState` fix) was later pulled out of `SkiaAngleBackend` into engine-agnostic `src/SkiaGameRendering.Core.ANGLE/` (`AngleEgl.cs`, `AngleSkiaSurfaceFactory.cs`), per [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3)'s step 3. `SkiaAngleBackend` (MonoGame WindowsDX) is now a thin adapter over that factory, and `SkiaKniAngleBackend` (`src/SkiaGameRendering.Kni.WindowsDX/`) is a second adapter reusing it for KNI's WinForms DX11 platform — see TODO.md's Architecture section for the split.
 
+### SkiaDirectCanvas on D3D11
+
+`AngleSkiaSurfaceFactory.BeginDirectDraw` reads the engine's bound render target view off the shared immediate context (`OMGetRenderTargets`), so no engine needs reflection to find its swap chain buffer; FNA3D's own back buffer texture comes out the same way. The texture is wrapped as a pbuffer for that one pass and released at the end, because DXGI's `ResizeBuffers` fails while anything holds a swap chain buffer. For the same reason the pass unbinds ANGLE's render target from ANGLE's swapped-out state before swapping back. A multisampled texture needs an EGL config with the same sample count, or ANGLE refuses it. No `glFinish` or `glFlush` at the end: ANGLE and the engine share one immediate context, so the engine's later draws already queue behind Skia's.
+
 ---
 
 ## 8. WebGL / KNI (Blazor WebAssembly)

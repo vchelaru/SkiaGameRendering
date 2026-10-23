@@ -14,6 +14,7 @@ namespace Tests.Kni.WindowsDX;
 /// golden would quietly hide the difference if they ever diverged.
 /// </para>
 /// </summary>
+[Collection(SkiaRendererCollection.Name)]
 public sealed class KniWindowsDxGoldenImageTests : IDisposable
 {
     const string Golden = "kni-windowsdx-scene.png";

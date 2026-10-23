@@ -97,6 +97,27 @@ static class EngineSkiaGolden
         return ToRgba(pixels);
     }
 
+    /// <summary>
+    /// One <see cref="SkiaRenderTarget2D"/> drawn before and after a <see cref="SkiaDirectCanvas"/> pass on
+    /// the back buffer, then read back. A backend that shares one GPU context between the two, and whose
+    /// direct pass leaves that context's cached state out of step, fails the second draw.
+    /// </summary>
+    internal static byte[] RenderSceneToSkiaTextureAroundDirectDraw(GraphicsDevice graphicsDevice)
+    {
+        using var canvas = new SkiaRenderTarget2D(graphicsDevice, GoldenScene.Width, GoldenScene.Height);
+        canvas.Begin();
+        canvas.Canvas.Clear(SkiaSharp.SKColors.Magenta);
+        canvas.EndWithoutDrawing();
+
+        graphicsDevice.SetRenderTarget(null);
+        DrawDirect(graphicsDevice);
+
+        canvas.Begin();
+        GoldenScene.Draw(canvas.Canvas);
+        canvas.EndWithoutDrawing();
+        return ReadRgba(canvas.Texture);
+    }
+
     static void DrawDirect(GraphicsDevice graphicsDevice)
     {
         using var skia = new SkiaDirectCanvas(graphicsDevice);

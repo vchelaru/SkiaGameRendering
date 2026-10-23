@@ -35,6 +35,8 @@ public sealed class AngleEglConstantTests
         ["EGL_DEPTH_SIZE"] = 0x3025,
         ["EGL_STENCIL_SIZE"] = 0x3026,
         ["EGL_SURFACE_TYPE"] = 0x3033,
+        ["EGL_SAMPLES"] = 0x3031,
+        ["EGL_SAMPLE_BUFFERS"] = 0x3032,
         ["EGL_RENDERABLE_TYPE"] = 0x3040,
         ["EGL_PBUFFER_BIT"] = 0x0001,
         ["EGL_OPENGL_ES2_BIT"] = 0x0004,
