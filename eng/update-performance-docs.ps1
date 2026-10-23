@@ -169,9 +169,16 @@ function Update-Between([string] $file, [string] $begin, [string] $end, [string]
     if ($updated -ne $text) { Set-Content -LiteralPath $file -Value $updated -NoNewline }
 }
 
+# Several files for one hardware, platform and app (a long run split with --page) are one run.
 $runs = @(Get-ChildItem -LiteralPath $resultsDir -Filter '*.md' |
     Where-Object { $_.Name -ne 'README.md' } |
-    ForEach-Object { Read-Run $_.FullName })
+    ForEach-Object { Read-Run $_.FullName } |
+    Group-Object { "$($_.Hardware)|$($_.Platform)|$($_.App)" } |
+    ForEach-Object {
+        $first = $_.Group[0]
+        $first.Rows = @($_.Group | ForEach-Object { $_.Rows })
+        $first
+    })
 
 Update-Between $indexFile '<!-- hardware:begin -->' '<!-- hardware:end -->' (Build-HardwareTable $runs)
 

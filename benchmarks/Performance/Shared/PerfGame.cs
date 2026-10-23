@@ -20,7 +20,7 @@ namespace Performance
     /// pays for per frame (update, draw submission, Present and any GPU wait), not only the draw calls.
     /// The draw CPU column is the time spent inside the entry's draw code alone.
     ///
-    /// Arguments: <c>--page slug</c> runs only that page's scenes; <c>--scene N</c> holds entry N
+    /// Arguments: <c>--page slug[,slug]</c> runs only those pages' scenes; <c>--scene N</c> holds entry N
     /// (0-based, after the page filter) indefinitely instead of sweeping; <c>--no-screenshots</c> skips the PNGs;
     /// <c>--quick</c> shortens the warmup and measured windows for a smoke run.
     /// </summary>
@@ -37,7 +37,7 @@ namespace Performance
         private const float ScreenshotTime = 1f;
 
         private readonly string _label;
-        private readonly string? _page;
+        private readonly string[]? _pages;
         private readonly int? _heldEntry;
         private readonly bool _screenshots;
 
@@ -70,7 +70,7 @@ namespace Performance
                 _heldEntry = int.Parse(args[sceneArg + 1]);
             int pageArg = Array.IndexOf(args, "--page");
             if (pageArg >= 0 && pageArg + 1 < args.Length)
-                _page = args[pageArg + 1];
+                _pages = args[pageArg + 1].Split(',');
             _screenshots = !args.Contains("--no-screenshots");
             bool quick = args.Contains("--quick");
             WarmupSeconds = quick ? 0.3 : 2.0;
@@ -91,8 +91,8 @@ namespace Performance
         protected override void LoadContent()
         {
             var scenes = PerfScene.BuildAll(Width, Height);
-            if (_page != null)
-                scenes = scenes.Where(s => s.Page == _page).ToArray();
+            if (_pages != null)
+                scenes = scenes.Where(s => _pages.Contains(s.Page)).ToArray();
 
             LoadRenderer();
             _entries = scenes.SelectMany(Entries).ToArray();
