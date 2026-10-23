@@ -260,7 +260,7 @@ spriteBatch.Begin(); /* foreground */ spriteBatch.End();
 `Begin()` does not clear; Skia draws on top of what is there. Coordinates are target pixels from the
 top left; the engine's `Viewport` and scissor rectangle are ignored. Multisampled back buffers and render
 targets work. Only one bound `RenderTarget2D` with `SurfaceFormat.Color` is supported; on the D3D11
-platforms an sRGB back buffer is refused too. `SkiaRenderer.SupportsDirectCanvas`
+platforms a back buffer whose texture has an sRGB format is refused too. `SkiaRenderer.SupportsDirectCanvas`
 is false on every other platform, where the constructor throws `NotSupportedException`; use
 `SkiaRenderTarget2D` there.
 
