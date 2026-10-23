@@ -55,6 +55,7 @@ namespace Performance
         private double _titleSeconds;
         private int _titleFrames;
         private string? _skipReason;
+        private int _preparedEntry = -1;
 
         private enum Phase { Warmup, Measure, Screenshot }
 
@@ -129,8 +130,11 @@ namespace Performance
 
             try
             {
-                if (_entrySeconds == 0 && _skipReason == null)
+                if (_preparedEntry != _entryIndex)
+                {
+                    _preparedEntry = _entryIndex;
                     PrepareEntry(entry);
+                }
                 _drawClock.Restart();
                 DrawEntry(entry, screenshot ? ScreenshotTime : (float)_entrySeconds);
                 _drawClock.Stop();

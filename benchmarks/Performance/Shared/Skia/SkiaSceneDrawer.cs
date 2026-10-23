@@ -28,7 +28,7 @@ namespace Performance
         private readonly SKPath _triangle;
         private const int SvgImageSize = 128;
         private SKImage? _svgImage;
-        private readonly SKRect[] _svgSource = { new(0, 0, SvgImageSize, SvgImageSize) };
+        private SKRect[] _svgSource = Array.Empty<SKRect>();
         private SKRotationScaleMatrix[] _svgTransforms = Array.Empty<SKRotationScaleMatrix>();
 
         // DrawAtlas inputs, one set per texture so each texture is a single call.
@@ -89,7 +89,11 @@ namespace Performance
                 _svgImage = raster.ToTextureImage(context) ?? throw new InvalidOperationException("SKImage.ToTextureImage failed.");
             }
             if (scene.Kind == SceneKind.Svg && _svgTransforms.Length != scene.Count)
+            {
                 _svgTransforms = new SKRotationScaleMatrix[scene.Count];
+                _svgSource = new SKRect[scene.Count];
+                Array.Fill(_svgSource, new SKRect(0, 0, SvgImageSize, SvgImageSize));
+            }
 
             _gpuImages ??= Array.ConvertAll(_rasterImages, image =>
                 image.ToTextureImage(context) ?? throw new InvalidOperationException("SKImage.ToTextureImage failed."));
