@@ -8,9 +8,8 @@
     <RootNamespace>SkiaGameRendering</RootNamespace>
     <PackageId>SkiaGameRendering.DesktopVK</PackageId>
     <!--
-      Prerelease, like Stride.VK: MonoGame.Framework.Native 3.8.6-preview.2 is itself a prerelease,
-      and NuGet rejects a stable package that depends on one (NU5104, an error under
-      TreatWarningsAsErrors). Drop the suffix once MonoGame 3.8.6 ships stable.
+      Not packed or published: MonoGame creates its Vulkan instance below 1.1 (MonoGame#9588), so this
+      stays at 0.17.4-preview. Drop the suffix and re-add the pack step in publish.yml once that is fixed.
     -->
     <Version>$(LibraryVersion)-preview</Version>
     <Description>GPU SkiaSharp rendering into MonoGame DesktopVK (native Vulkan platform) render targets, drawn on MonoGame's own device and queue with no CPU readback.</Description>
@@ -20,10 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- GetNativeHandles and FromNativeHandle first shipped in 3.8.6-preview.2. The native
+    <!-- GetNativeHandles and FromNativeHandle first shipped in 3.8.6-preview.2 and are in the 3.8.6 release. The native
          mgruntime library is a separate package (MonoGame.Runtime.Windows.Vulkan or
          MonoGame.Runtime.Linux.Vulkan) the game references. -->
-    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.6-preview.2" />
+    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.6" />
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
   </ItemGroup>
 

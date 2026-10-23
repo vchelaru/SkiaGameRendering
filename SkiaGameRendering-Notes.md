@@ -561,7 +561,7 @@ offset instead, and cuts MonoGame's command list in two itself with `D3D12Comman
   flags by diffing `MGG_GraphicsDevice` across a Present (which sets them all), the pipeline hash by diffing
   between draws with different pipeline state. A build is trusted only if its `mgruntime.dll` SHA-256 is in
   `KnownRuntimes`; anything else makes `SupportsDirectCanvas` false with the reason. 3.8.6-preview.2 and 3.8.6 differ
-  in 28 bytes (PE timestamp and debug GUID), so both are listed. `Tests.WindowsDX12` fails when the package bumps.
+  in 28 bytes (PE timestamp and debug GUID); only 3.8.6 is listed. `Tests.WindowsDX12` fails when the package bumps.
 - *The swap chain.* A pass on the back buffer leaves Skia holding that buffer until the GPU is done and Skia next
   sweeps its finished lists, and DXGI refuses to resize while anything holds a buffer (MonoGame aborts with
   `E_ACCESSDENIED`). `GraphicsDevice.DeviceResetting` fires before MonoGame resizes, so the backend flushes Skia

@@ -37,7 +37,7 @@ canvas.End();
 
 ## Remarks
 
-- Needs `MonoGame.Framework.Native` 3.8.6-preview.2 or later, which added `GetNativeHandles()` and
+- Needs `MonoGame.Framework.Native` 3.8.6 or later, which added `GetNativeHandles()` and
   `RenderTarget2D.FromNativeHandle()`. The game also references `MonoGame.Runtime.Windows.DX12`, the
   package that carries the native `mgruntime.dll`; without it the app fails at startup with
   `DllNotFoundException: mgruntime`.
@@ -50,7 +50,7 @@ canvas.End();
   `RenderTarget2D`, single-sample, `SurfaceFormat.Color` or `Bgra32`. MonoGame exposes neither its current
   target's `ID3D12Resource` nor a way to submit what it has recorded, so the backend reads MonoGame's native
   objects by offset and cuts MonoGame's command list in two around each pass. That is only done for an
-  `mgruntime.dll` whose layout has been verified (3.8.6-preview.2 and 3.8.6); with any other build
+  `mgruntime.dll` whose layout has been verified (3.8.6); with any other build
   `SupportsDirectCanvas` is false and the constructor's `NotSupportedException` says which. Each pass costs a
   submission, so use one per frame, not one per widget, and do not draw with MonoGame between `Begin` and
   `End`. A multisampled back buffer or target is refused. See `SkiaGameRendering-Notes.md` section 12.
