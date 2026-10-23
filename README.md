@@ -242,8 +242,8 @@ Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or 
 
 ## Drawing straight into the current target
 
-On MonoGame DesktopGL, KNI DesktopGL, KNI Android, MonoGame WindowsDX, KNI WindowsDX and FNA (on its
-D3D11 or OpenGL driver), `SkiaDirectCanvas` draws into whatever the
+On MonoGame DesktopGL, KNI DesktopGL, KNI Android, MonoGame WindowsDX and WindowsDX12, KNI WindowsDX and FNA
+(on its D3D11 or OpenGL driver), `SkiaDirectCanvas` draws into whatever the
 engine is rendering to when `Begin()` is called, the back buffer or the bound `RenderTarget2D`, with
 no intermediate texture and no `SpriteBatch` composite. It has the same `Begin`/`Canvas`/`End` shape as
 `SkiaRenderTarget2D`, without the size or the texture:
@@ -279,9 +279,12 @@ handling, and with single-sample targets only (a multisampled one throws `NotSup
 `Begin` submits whatever Stride has recorded on the command list so far and starts a new recording,
 because Skia's work reaches the GPU when `End` runs and would otherwise land under Stride's earlier
 draws. That makes each pass cost a submission, so draw it once per frame rather than once per widget.
-MonoGame's native WindowsDX12 has no direct canvas: its managed API and its native interop table give
-no way to get the current target's `ID3D12Resource`, or to submit what MonoGame has recorded so far, so
-Skia could neither find the target nor draw after the engine's earlier work. Use `SkiaRenderTarget2D` there.
+MonoGame's native WindowsDX12 has `SkiaDirectCanvas` too, with the Stride D3D12 limits (single-sample targets, no
+multisampled back buffer) and the same per-pass submission cost, and no drawing with MonoGame between `Begin`
+and `End`. MonoGame gives no way to get its current target's `ID3D12Resource` or to submit what it has recorded,
+so this reads MonoGame's native objects by offset and is only enabled for a `mgruntime.dll` whose layout has
+been verified (3.8.6-preview.2 and 3.8.6); on any other build `SkiaRenderer.SupportsDirectCanvas` is false and
+`SkiaRenderTarget2D` still works.
 
 ## Performance
 

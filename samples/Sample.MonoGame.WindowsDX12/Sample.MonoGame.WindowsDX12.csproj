@@ -32,6 +32,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
+    <!-- The layer-order checks the direct smoke test runs, shared with the unit test projects. -->
+    <Compile Include="..\..\tests\Shared\DirectDrawLayering.cs" Link="DirectDrawLayering.cs" />
   </ItemGroup>
   <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
     <Message Text="Restoring dotnet tools" Importance="High" />

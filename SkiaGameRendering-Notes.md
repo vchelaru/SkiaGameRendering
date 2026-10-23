@@ -506,7 +506,7 @@ here yet, and web exports cannot P/Invoke GL at all. Verified on Windows; the GL
 from the raylib adapter's code but has not been run under Godot.
 
 
-## 12. SkiaDirectCanvas on D3D12 (Stride; MonoGame WindowsDX12 cannot)
+## 12. SkiaDirectCanvas on D3D12 (Stride, MonoGame WindowsDX12)
 
 D3D12 has no "currently bound render target" to read off a context the way D3D11 does, so
 `D3D12SkiaSurfaceFactory.DescribeDirectTarget`/`BeginDirectDraw`/`EndDirectDraw` take the target's
@@ -539,9 +539,42 @@ interleaving, refusals) and in the real `Sample.Stride.D3D12` game loop on WARP.
 GPU-based validation, which WARP's pixels cannot replace, runs the same cycle in
 `StrideD3D12BarrierValidationTests` on CI (the dev box that built this has no Graphics Tools).
 
-**MonoGame WindowsDX12 cannot.** `GraphicsDevice.GetNativeHandles()` gives the device and queue and
-`RenderTarget2D.FromNativeHandle` wraps a resource, but nothing returns the `ID3D12Resource` behind a
-`Texture` (its `Handle` is an opaque `MGG_Texture*`) or behind the back buffer, and the native interop
-table (`MonoGame.Interop.MGG`) has no submit or flush call: MonoGame's recorded commands would run after
-Skia's. A CPU readback such as `Texture_GetData` would flush as a side effect, and is not an option here.
-The cell stays render-target-only until MonoGame exposes both.
+**MonoGame WindowsDX12.** MonoGame's public API gives neither the `ID3D12Resource` behind its current target
+(`Texture.Handle` is an opaque `MGG_Texture*`) nor a way to submit what it has recorded: `GetNativeHandles()` and
+`RenderTarget2D.FromNativeHandle` only cover the device, the queue and wrapping a resource of ours, and the calls
+that do flush (`GetBackBufferData`, `Texture.GetData`) are CPU readbacks. The native source is public
+(MonoGame/MonoGame, `native/monogame/directx12`), so `MonoGameD3D12Native` reads MonoGame's C++ objects by
+offset instead, and cuts MonoGame's command list in two itself with `D3D12CommandListSplitter`. No MonoGame change.
+- *Finding the target.* `CommandContext::m_currentRT` holds the `Texture*` MonoGame is rendering to, for the back
+  buffer and a `RenderTarget2D` alike; `Texture::InternalData` holds its `ID3D12Resource` and the resource state
+  MonoGame believes it is in (`RENDER_TARGET` while bound, which is also where Skia leaves it).
+- *The cut.* `Begin` closes MonoGame's open `ID3D12GraphicsCommandList` and executes it, so everything MonoGame drew
+  is ahead of Skia in the queue. `End` submits Skia, then reopens the same list object on an allocator the splitter
+  owns (the engine's own allocator holds the first half and stays the engine's). A reopened list is empty, so what
+  MonoGame believes is bound is put back: the root signature and descriptor heaps `CommandContext::Reset` binds, the
+  render targets, and, by raising the dirty flags `MGDX_ApplyState` already honors (vertex and index buffers,
+  constant buffers, texture and sampler tables, viewport, scissor) and zeroing the pipeline-state hash, every draw
+  state. The blend factor and stencil reference are recorded straight onto the list when the managed state is
+  applied, so the managed dirty flags for those are raised too. Cost: one submission per pass.
+- *Layout was probed, not just read.* Every offset in `MonoGameD3D12Native` was found in the source and then
+  confirmed against the shipped `mgruntime.dll` on a live device: pointer chains by following them, the dirty
+  flags by diffing `MGG_GraphicsDevice` across a Present (which sets them all), the pipeline hash by diffing
+  between draws with different pipeline state. A build is trusted only if its `mgruntime.dll` SHA-256 is in
+  `KnownRuntimes`; anything else makes `SupportsDirectCanvas` false with the reason. 3.8.6-preview.2 and 3.8.6 differ
+  in 28 bytes (PE timestamp and debug GUID), so both are listed. `Tests.WindowsDX12` fails when the package bumps.
+- *The swap chain.* A pass on the back buffer leaves Skia holding that buffer until the GPU is done and Skia next
+  sweeps its finished lists, and DXGI refuses to resize while anything holds a buffer (MonoGame aborts with
+  `E_ACCESSDENIED`). `GraphicsDevice.DeviceResetting` fires before MonoGame resizes, so the backend flushes Skia
+  synchronously there.
+- *MonoGame's own flush.* `GetBackBufferData` and `Texture.GetData` restart the list without re-binding the render
+  target, and `SetRenderTarget(null)` does nothing while the back buffer is already the managed target, so a draw
+  after a readback needs the target bound afresh. That is MonoGame's behavior with or without Skia; the smoke test
+  works around it (`BindBackBuffer`), and a direct pass re-binds from the saved views.
+- *Not supported:* a multisampled back buffer or target (Skia cannot draw into a multisampled resource: refused),
+  typeless, sRGB-format and HDR targets, several bound targets, an occlusion query open across a pass. MonoGame must
+  not draw between `Begin` and `End`: its list is closed then.
+Verified by `--direct-smoke-test` and `--direct-smoke-test-msaa` in `Sample.MonoGame.WindowsDX12`: layer order on the
+back buffer and a render target, state set once and not again (a textured `BasicEffect` quad drawn either side of
+a pass), the blend factor, refusals leaving the list alone, a back buffer resize, and 14 frames so allocator
+recycling runs. Each dirty flag was disabled in turn to confirm a scenario fails without it (all but the sampler
+table, which WARP draws correctly either way; the D3D12 debug layer in CI covers that one).

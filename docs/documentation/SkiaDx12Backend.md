@@ -46,10 +46,14 @@ canvas.End();
   MonoGame tracks the resource's state itself, so every draw after the first is wrapped in a pair of
   transitions that keep its record and the real state equal. That assumes the texture is sampled
   between two draws, which `SkiaRenderTarget2D.End()` does.
-- No `SkiaDirectCanvas`: `SkiaRenderer.SupportsDirectCanvas` is false here. Drawing into MonoGame's
-  current target needs that target's `ID3D12Resource` and MonoGame's recorded commands submitted ahead
-  of Skia's, and MonoGame's managed API and native interop table expose neither (only `GetNativeHandles`
-  and `RenderTarget2D.FromNativeHandle`). Use `SkiaRenderTarget2D`.
+- `SkiaDirectCanvas` works here (`SkiaRenderer.SupportsDirectCanvas`) for the back buffer or one bound
+  `RenderTarget2D`, single-sample, `SurfaceFormat.Color` or `Bgra32`. MonoGame exposes neither its current
+  target's `ID3D12Resource` nor a way to submit what it has recorded, so the backend reads MonoGame's native
+  objects by offset and cuts MonoGame's command list in two around each pass. That is only done for an
+  `mgruntime.dll` whose layout has been verified (3.8.6-preview.2 and 3.8.6); with any other build
+  `SupportsDirectCanvas` is false and the constructor's `NotSupportedException` says which. Each pass costs a
+  submission, so use one per frame, not one per widget, and do not draw with MonoGame between `Begin` and
+  `End`. A multisampled back buffer or target is refused. See `SkiaGameRendering-Notes.md` section 12.
 - Skia, this backend and MonoGame submit to one queue, and MonoGame exposes no lock for it: draw from
   the thread that runs `Draw`.
 - A disposed target's resource is released a few draws later, since MonoGame may still have frames
