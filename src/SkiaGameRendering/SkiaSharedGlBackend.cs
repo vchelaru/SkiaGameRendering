@@ -67,7 +67,7 @@ namespace SkiaGameRendering
         internal override void RefreshEngineView(object textureHandle) =>
             GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, ((GlTextureState)textureHandle).TextureId);
 
-        // --- Drawing straight into the engine's current target (SkiaRenderer.DrawToCurrentTarget) ---
+        // --- Drawing straight into the engine's current target (SkiaDirectCanvas) ---
         //
         // Skia's context is made current on the engine's own window, so its default framebuffer is the
         // window's back buffer. A bound RenderTarget2D lives in an FBO on the engine's context, and FBOs are
@@ -89,7 +89,7 @@ namespace SkiaGameRendering
         private readonly List<RenderTarget2D> _disposedRenderTargets = new();
 
         /// <summary>Whether this engine's subclass implements <see cref="GetBoundRenderTarget"/>.</summary>
-        private protected virtual bool CanDrawToCurrentTarget => false;
+        private protected virtual bool CanDrawDirect => false;
 
         /// <summary>
         /// The one <see cref="RenderTarget2D"/> the engine has bound, or null for the back buffer. Throws
@@ -97,20 +97,24 @@ namespace SkiaGameRendering
         /// </summary>
         private protected virtual RenderTarget2D? GetBoundRenderTarget() => throw new NotSupportedException();
 
-        internal override bool SupportsDrawToCurrentTarget => CanDrawToCurrentTarget;
+        internal override bool SupportsDirectCanvas => CanDrawDirect;
 
-        internal override void DrawToCurrentTarget(Action<SKCanvas> draw)
+        private sealed class DirectPass
         {
-            if (!CanDrawToCurrentTarget)
-            {
-                base.DrawToCurrentTarget(draw);
-                return;
-            }
+            internal DirectTarget Target = null!;
+            internal GlDrawTarget Gl;
+            internal int SaveCount;
+        }
+
+        internal override SKCanvas BeginDirectDraw(out object pass)
+        {
+            if (!CanDrawDirect)
+                throw DirectCanvasNotSupported();
 
             var renderTarget = GetBoundRenderTarget();
             if (renderTarget != null && renderTarget.Format != SurfaceFormat.Color)
                 throw new NotSupportedException(
-                    $"DrawToCurrentTarget supports SurfaceFormat.Color render targets, not {renderTarget.Format}.");
+                    $"SkiaDirectCanvas supports SurfaceFormat.Color render targets, not {renderTarget.Format}.");
 
             // Still on the engine's context: what it is drawing into, as GL sees it.
             var glTarget = GlSkiaSurfaceFactory.QueryDrawTarget(_gl);
@@ -129,16 +133,24 @@ namespace SkiaGameRendering
 
                 GlSkiaSurfaceFactory.BindForDrawing(_gl, target.Framebuffer);
                 var canvas = target.Surface.Canvas;
-                var saveCount = canvas.Save();
-                try
-                {
-                    draw(canvas);
-                }
-                finally
-                {
-                    canvas.RestoreToCount(saveCount);
-                    target.Surface.Flush();
-                }
+                pass = new DirectPass { Target = target, Gl = glTarget, SaveCount = canvas.Save() };
+                return canvas;
+            }
+            catch
+            {
+                UnbindAfterDrawing();
+                EndDraw();
+                throw;
+            }
+        }
+
+        internal override void EndDirectDraw(object pass)
+        {
+            var directPass = (DirectPass)pass;
+            try
+            {
+                directPass.Target.Surface.Canvas.RestoreToCount(directPass.SaveCount);
+                directPass.Target.Surface.Flush();
             }
             finally
             {
@@ -148,8 +160,8 @@ namespace SkiaGameRendering
             }
 
             // A multisampled target's renderbuffer is only read by the engine's resolve blit, never sampled.
-            if (glTarget.IsTexture)
-                GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, glTarget.AttachmentName);
+            if (directPass.Gl.IsTexture)
+                GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, directPass.Gl.AttachmentName);
         }
 
         private DirectTarget GetBackBufferTarget()
@@ -230,7 +242,7 @@ namespace SkiaGameRendering
         }
 
         /// <summary>
-        /// Frees the surfaces and FBOs <see cref="DrawToCurrentTarget"/> cached, on the Skia context. Call
+        /// Frees the surfaces and FBOs <see cref="SkiaDirectCanvas"/> cached, on the Skia context. Call
         /// from <see cref="SkiaBackend.Dispose"/> before disposing the <see cref="GRContext"/>.
         /// </summary>
         private protected void DisposeDirectTargets()

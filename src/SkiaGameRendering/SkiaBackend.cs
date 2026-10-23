@@ -50,13 +50,21 @@ namespace SkiaGameRendering
             }
         }
 
-        /// <summary>See <see cref="SkiaRenderer.SupportsDrawToCurrentTarget"/>.</summary>
-        internal virtual bool SupportsDrawToCurrentTarget => false;
+        /// <summary>See <see cref="SkiaRenderer.SupportsDirectCanvas"/>.</summary>
+        internal virtual bool SupportsDirectCanvas => false;
 
-        /// <summary>See <see cref="SkiaRenderer.DrawToCurrentTarget"/>.</summary>
-        internal virtual void DrawToCurrentTarget(Action<SKCanvas> draw) =>
-            throw new NotSupportedException(
-                $"{GetType().Name} cannot draw straight into the engine's current target. " +
+        /// <summary>
+        /// Starts a <see cref="SkiaDirectCanvas"/> pass into whatever the engine is rendering to: switches to
+        /// the Skia context and returns the canvas, plus the state <see cref="EndDirectDraw"/> needs. Leaves
+        /// the engine's context current if it throws.
+        /// </summary>
+        internal virtual SKCanvas BeginDirectDraw(out object pass) => throw DirectCanvasNotSupported();
+
+        /// <summary>Ends a pass started by <see cref="BeginDirectDraw"/>. Restores the engine's context even if it throws.</summary>
+        internal virtual void EndDirectDraw(object pass) => throw DirectCanvasNotSupported();
+
+        internal NotSupportedException DirectCanvasNotSupported() =>
+            new($"{GetType().Name} cannot draw straight into the engine's current target. " +
                 "Draw into a SkiaRenderTarget2D instead.");
 
         /// <summary>

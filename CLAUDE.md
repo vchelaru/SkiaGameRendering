@@ -4,13 +4,17 @@
 
 A library that lets MonoGame, KNI, FNA, raylib, and Stride applications render with SkiaSharp straight
 into engine textures, with no CPU readback. `README.md` covers the public API (`SkiaRenderer`,
-`SkiaRenderTarget2D`), the per-platform package list, and the backend-per-graphics-API architecture.
+`SkiaRenderTarget2D`, `SkiaDirectCanvas`), the per-platform package list, and the backend-per-graphics-API architecture.
 `SkiaGameRendering-Notes.md` has the deeper interop detail (ANGLE, D3D11 state management).
 
 **Never propose or build a CPU rasterization or CPU readback fallback, for any backend or any
 failure.** GPU rendering with no CPU readback is the whole purpose of the library. When a backend
 cannot run on some hardware, the options are to fix it, narrow the supported range, or hold back
 the release.
+
+**New public API takes the shape of the existing API it sits beside.** Drawing types use
+`SkiaRenderTarget2D`'s `Begin()`/`Canvas`/`End()`, like `SpriteBatch`; don't add callback-style
+variants.
 
 This repo began as a fork of [mfigueirido/SkiaMonoGameRendering](https://github.com/mfigueirido/SkiaMonoGameRendering),
 and has since diverged. It exists to close the vector-rendering gap between SkiaGum and

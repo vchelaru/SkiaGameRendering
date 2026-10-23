@@ -57,7 +57,7 @@ namespace SkiaGameRendering
 
         private readonly RenderTargetBinding[] _boundRenderTarget = new RenderTargetBinding[1];
 
-        private protected override bool CanDrawToCurrentTarget => true;
+        private protected override bool CanDrawDirect => true;
 
         private protected override RenderTarget2D? GetBoundRenderTarget()
         {
@@ -65,11 +65,11 @@ namespace SkiaGameRendering
             if (count == 0)
                 return null;
             if (count > 1)
-                throw new NotSupportedException("DrawToCurrentTarget needs a single bound render target, not " + count + ".");
+                throw new NotSupportedException("SkiaDirectCanvas needs a single bound render target, not " + count + ".");
 
             GraphicsDevice.GetRenderTargets(_boundRenderTarget);
             var renderTarget = _boundRenderTarget[0].RenderTarget as RenderTarget2D
-                ?? throw new NotSupportedException("DrawToCurrentTarget supports a RenderTarget2D, not a cube or 3D target.");
+                ?? throw new NotSupportedException("SkiaDirectCanvas supports a RenderTarget2D, not a cube or 3D target.");
             _boundRenderTarget[0] = default;
             return renderTarget;
         }

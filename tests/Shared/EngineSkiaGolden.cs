@@ -63,7 +63,7 @@ static class EngineSkiaGolden
     }
 
     /// <summary>
-    /// The scene drawn with <see cref="SkiaRenderer.DrawToCurrentTarget"/> into a bound engine render
+    /// The scene drawn with <see cref="SkiaDirectCanvas"/> into a bound engine render
     /// target, with no intermediate texture. Same golden as the other two.
     /// </summary>
     internal static byte[] RenderSceneDirectToRenderTarget(GraphicsDevice graphicsDevice)
@@ -75,7 +75,7 @@ static class EngineSkiaGolden
         try
         {
             graphicsDevice.Clear(Color.Black);
-            SkiaRenderer.DrawToCurrentTarget(graphicsDevice, GoldenScene.Draw);
+            DrawDirect(graphicsDevice);
         }
         finally
         {
@@ -85,16 +85,24 @@ static class EngineSkiaGolden
         return ReadRgba(renderTarget);
     }
 
-    /// <summary>The scene drawn with <see cref="SkiaRenderer.DrawToCurrentTarget"/> straight onto the back buffer.</summary>
+    /// <summary>The scene drawn with <see cref="SkiaDirectCanvas"/> straight onto the back buffer.</summary>
     internal static byte[] RenderSceneDirectToBackBuffer(GraphicsDevice graphicsDevice)
     {
         graphicsDevice.SetRenderTarget(null);
         graphicsDevice.Clear(Color.Black);
-        SkiaRenderer.DrawToCurrentTarget(graphicsDevice, GoldenScene.Draw);
+        DrawDirect(graphicsDevice);
 
         var pixels = new Color[GoldenScene.Width * GoldenScene.Height];
         graphicsDevice.GetBackBufferData(pixels);
         return ToRgba(pixels);
+    }
+
+    static void DrawDirect(GraphicsDevice graphicsDevice)
+    {
+        using var skia = new SkiaDirectCanvas(graphicsDevice);
+        skia.Begin();
+        GoldenScene.Draw(skia.Canvas);
+        skia.End();
     }
 
     /// <summary>Reads a texture back through the engine's own <c>GetData</c>, as RGBA8888 bytes.</summary>
