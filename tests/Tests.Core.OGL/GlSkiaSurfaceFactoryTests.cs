@@ -247,6 +247,10 @@ public sealed class GlSkiaSurfaceFactoryTests
         Assert.Equal(new GlDrawTarget(SampleCount, GL_RENDERBUFFER, 9), target);
         Assert.False(target.IsDefaultFramebuffer);
         Assert.False(target.IsTexture);
+
+        // GL_DRAW_FRAMEBUFFER is an invalid target for this query on GLES 2.
+        Assert.Contains(Call("glGetFramebufferAttachmentParameteriv", (int)FramebufferTarget.Framebuffer,
+            GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE), _loader.Calls);
     }
 
     /// <summary>

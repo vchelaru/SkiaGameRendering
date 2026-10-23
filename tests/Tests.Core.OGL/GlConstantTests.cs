@@ -27,7 +27,6 @@ public sealed class GlConstantTests
         ["GL_SAMPLES"] = 0x80A9,
         ["GL_STENCIL_BITS"] = 0x0D57,
         ["GL_DRAW_FRAMEBUFFER_BINDING"] = 0x8CA6,
-        ["GL_DRAW_FRAMEBUFFER"] = 0x8CA9,
         ["GL_COLOR_ATTACHMENT0"] = 0x8CE0,
         ["GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE"] = 0x8CD0,
         ["GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME"] = 0x8CD1,

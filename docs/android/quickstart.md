@@ -39,6 +39,10 @@ and Skia draws into an FBO around the `RenderTarget2D`'s GL texture (`GetSharedH
 API, so no reflection). The Skia context runs surfaceless where the driver allows it and on the
 host's draw surface otherwise; `SkiaKniAndroidBackend.Description` says which.
 
+`SkiaDirectCanvas` works here too. A surfaceless context has no default framebuffer, so for direct
+drawing the Skia context is made current on KNI's current window surface, read again on every
+`Begin()` because KNI recreates it when the app resumes.
+
 ## Verified
 
 Run with `Sample.Kni.Android`'s smoke test
@@ -49,6 +53,15 @@ Run with `Sample.Kni.Android`'s smoke test
 |---|---|---|---|---|
 | Motorola Edge 2025 | 16 (API 36) | Mali-G615 | 3.2 | Pass, surfaceless |
 | Treble GSI on a low-end phone | 12L (API 32) | PowerVR Rogue GE8300 | 3.2 | Pass, surfaceless |
+| Emulator, x86_64 image, `-gpu host` | 15 (API 35) | Host GPU through the emulator's GLES translator | 3.1 | Pass, surfaceless |
+
+The smoke test also checks `SkiaDirectCanvas` on the back buffer, a plain render target and a 4x MSAA
+one (`tests/Shared/DirectDrawLayering.cs`), logging each result under `SkiaSample`. Those checks
+came after the two phones above were tested, so only the emulator has run them.
+
+To run on an emulator, build with `<RuntimeIdentifiers>android-x64</RuntimeIdentifiers>` edited into
+the csproj. Passing it with `-p:` also reaches the `net8.0` library references and fails the build.
 
 Not verified: GLES 3.0-only drivers, devices that reject a surfaceless context (the fallback path
-is untested), 32-bit ARM, emulators, rotation, and the sample's performance.
+is untested), 32-bit ARM, rotation, `SkiaDirectCanvas` after a HOME-and-resume, and the sample's
+performance.

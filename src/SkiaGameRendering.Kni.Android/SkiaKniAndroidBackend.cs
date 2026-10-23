@@ -55,8 +55,20 @@ namespace SkiaGameRendering.Kni.Android
 
         private protected override int CaptureGlTextureId(Texture2D texture) => (int)texture.GetSharedHandle();
 
+        private readonly KniBoundRenderTarget _boundRenderTarget = new();
+
+        private protected override bool CanDrawDirect => true;
+
+        private protected override RenderTarget2D? GetBoundRenderTarget() => _boundRenderTarget.Get(GraphicsDevice);
+
+        // Skia's context normally runs surfaceless, which has no default framebuffer, so drawing to the
+        // back buffer needs it current on KNI's window surface.
+        private protected override void MakeSkiaContextCurrentOnEngineWindow() => _egl.MakeSkiaContextCurrentOnHostSurface();
+
         public override void Dispose()
         {
+            if (_grContext != null)
+                DisposeDirectTargets();
             _grContext?.Dispose();
             _egl.Dispose();
         }
