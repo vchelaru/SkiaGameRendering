@@ -10,17 +10,15 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.5.1" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\src\SkiaGameRendering.WindowsDX\SkiaGameRendering.WindowsDX.csproj" />
   </ItemGroup>
-  <!-- The Raw and Skia apps share everything except how the scene is drawn. -->
+  <!-- The Raw and Skia apps share the scenes and the loop; Skia adds the pure SKCanvas drawing. -->
+  <Import Project="..\..\Shared\Performance.Shared.props" />
   <ItemGroup>
-    <Compile Include="..\..\Shared\PerfGame.cs" Link="Shared\PerfGame.cs" />
-    <Compile Include="..\..\Shared\SpriteScene.cs" Link="Shared\SpriteScene.cs" />
-    <Compile Include="..\..\Shared\SpriteTexture.cs" Link="Shared\SpriteTexture.cs" />
-    <Compile Include="..\..\Shared\MachineInfo.cs" Link="Shared\MachineInfo.cs" />
-    <Compile Include="..\..\Shared\SkiaSpriteGame.cs" Link="Shared\SkiaSpriteGame.cs" />
+    <Compile Include="..\..\Shared\Skia\*.cs" Link="Shared\Skia\%(Filename)%(Extension)" />
     <Compile Include="..\GpuInfo.cs" Link="GpuInfo.cs" />
   </ItemGroup>
 </Project>

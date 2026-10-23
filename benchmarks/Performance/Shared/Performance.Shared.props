@@ -1,0 +1,9 @@
+<Project>
+  <!-- Scenes, loop and assets every performance app compiles in, whichever engine and platform it targets. -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="$(MSBuildThisFileDirectory)Assets\*.cs" Link="Shared\Assets\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\..\samples\Sample.Gum.Kni.WebGL\Assets\NotoSans.ttf" LogicalName="Performance.NotoSans.ttf" Link="Shared\Assets\NotoSans.ttf" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\..\samples\Shared\Drop.svg" LogicalName="Performance.Icon.svg" Link="Shared\Assets\Icon.svg" />
+  </ItemGroup>
+</Project>
