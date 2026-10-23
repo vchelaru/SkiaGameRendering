@@ -57,6 +57,8 @@ authoritative list of what CI builds and in what order; mirror it when deciding 
 - The Unity Editor tests (the package's `Tests/Editor`, which reload the domain and enter play mode)
   run with `Unity.exe -batchmode -projectPath samples/Sample.Unity -runTests -testPlatform EditMode
   -testResults <path>.xml`, without `-quit` or `-nographics`; exit code 0 means they passed.
+- CI's `android` job runs the KNI Android smoke test on an x86_64 emulator with SwiftShader; see
+  `docs/android/quickstart.md` for building and running it against your own device or emulator.
 - WindowsDX and KNI WindowsDX need Windows; the WebGL sample needs `dotnet workload install wasm-tools-net8`.
 
 `Directory.Build.props` sets `TreatWarningsAsErrors`, so a new C# warning fails the build. MSBuild
