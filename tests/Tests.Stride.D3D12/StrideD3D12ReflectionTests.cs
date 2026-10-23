@@ -63,6 +63,33 @@ public sealed class StrideD3D12ReflectionTests
     }
 
     /// <summary>
+    /// The direct canvas submits Stride's recorded commands and starts a new recording through the private
+    /// <c>FlushInternal(bool wait)</c>; the public <c>Flush</c> leaves a closed list nothing can record into.
+    /// </summary>
+    [Fact]
+    public void CommandList_FlushInternal_TakesTheWaitFlag()
+    {
+        var method = typeof(CommandList).GetMethod("FlushInternal", NonPublicInstance, [typeof(bool)]);
+
+        Assert.True(method != null, "CommandList.FlushInternal(bool) not found.");
+        Assert.Equal(typeof(void), method.ReturnType);
+    }
+
+    /// <summary>
+    /// <c>FlushInternal</c> leaves the new native list without viewports or scissors, and Stride only sets them
+    /// while these two say they changed, so the direct canvas sets them itself.
+    /// </summary>
+    [Theory]
+    [InlineData("viewportDirty")]
+    [InlineData("scissorsDirty")]
+    public void CommandList_DirtyFlags_AreBooleanFields(string name)
+    {
+        var field = EngineReflectionPin.RequireField(typeof(CommandList), name, NonPublicInstance);
+
+        Assert.Equal(typeof(bool), field.FieldType);
+    }
+
+    /// <summary>
     /// The adapter compiles against the Direct3D11 build of Stride.Graphics, and casts the boxed
     /// D3D12 <see cref="BarrierLayout"/> it reads to that build's enum. Same values in both, today.
     /// </summary>

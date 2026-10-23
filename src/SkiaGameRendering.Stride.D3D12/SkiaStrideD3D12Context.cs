@@ -76,6 +76,9 @@ namespace SkiaGameRendering.Stride.D3D12
         static FieldInfo? _queueLockField;
         static PropertyInfo? _nativeAdapterProperty;
         static PropertyInfo? _nativeResourceProperty;
+        static Action<CommandList, bool>? _flushInternal;
+        static FieldInfo? _viewportDirtyField;
+        static FieldInfo? _scissorsDirtyField;
 
         internal GRContext GRContext => _factory.GRContext;
 
@@ -165,6 +168,92 @@ namespace SkiaGameRendering.Stride.D3D12
             _factory.BeginDraw();
             _factory.EndDraw(synchronous: true);
             _transitioner?.WaitForCompletion();
+        }
+
+        /// <summary>
+        /// Starts a pass that draws into the render target bound on <paramref name="commandList"/>. Stride
+        /// submits what it has recorded at the end of its command list, but Skia submits straight away, so the
+        /// list is flushed first: that is what puts Skia's pixels over everything Stride drew before this call
+        /// (and the flush is the cost of the pass). The target is then handed to Skia the way
+        /// <see cref="AcquireForSkia"/> does for a render target, and the layout Stride last recorded for it is
+        /// stale until <see cref="EndDirectDraw"/> says otherwise. Validation comes first, so a target Skia
+        /// cannot draw into throws before anything has been flushed or moved.
+        /// </summary>
+        internal SKCanvas BeginDirectDraw(CommandList commandList, Texture target, out DirectPass pass)
+        {
+            var resource = GetNativeResource(target);
+            var directTarget = D3D12SkiaSurfaceFactory.DescribeDirectTarget(resource, target.ViewWidth, target.ViewHeight);
+
+            SubmitRecordedCommands(commandList);
+            AcquireForSkia(target);
+            try
+            {
+                var canvas = _factory.BeginDirectDraw(directTarget, out var corePass);
+                pass = new DirectPass(commandList, target, corePass);
+                return canvas;
+            }
+            catch
+            {
+                ReleaseToStride(target);
+                commandList.ResourceBarrierTransition(target, BarrierLayout.RenderTarget);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Submits everything <paramref name="commandList"/> has recorded and starts a new recording with the
+        /// same targets and pipeline state, which is what Stride itself does mid-frame before a read-back. The
+        /// public <c>CommandList.Flush</c> only closes and submits, leaving a list nothing can record into; the
+        /// private <c>FlushInternal(false)</c> also resets it and rebinds its pipeline state, descriptor heaps
+        /// and render targets. It does not rebind viewports or scissors, so those are marked for re-applying here.
+        /// </summary>
+        static void SubmitRecordedCommands(CommandList commandList)
+        {
+            _flushInternal ??= CreateFlushInternal();
+            _viewportDirtyField ??= typeof(CommandList).GetField("viewportDirty", NonPublicInstance)
+                ?? throw new Exception("Could not find Stride.Graphics.CommandList.viewportDirty.");
+            _scissorsDirtyField ??= typeof(CommandList).GetField("scissorsDirty", NonPublicInstance)
+                ?? throw new Exception("Could not find Stride.Graphics.CommandList.scissorsDirty.");
+
+            _flushInternal(commandList, false);
+
+            // Stride applies viewports and scissors to the native list when these say they changed. The
+            // reset list has none, and setting the same values again would not mark them changed.
+            _viewportDirtyField.SetValue(commandList, true);
+            _scissorsDirtyField.SetValue(commandList, true);
+        }
+
+        static Action<CommandList, bool> CreateFlushInternal()
+        {
+            var method = typeof(CommandList).GetMethod("FlushInternal", NonPublicInstance, [typeof(bool)])
+                ?? throw new Exception("Could not find Stride.Graphics.CommandList.FlushInternal(bool).");
+            return (Action<CommandList, bool>)Delegate.CreateDelegate(typeof(Action<CommandList, bool>), method);
+        }
+
+        /// <summary>
+        /// Submits Skia's work and hands the target back to Stride: the legacy move to <c>COMMON</c> is queued
+        /// behind Skia's draw, and Stride's own list is told the target is a render target again, so its next
+        /// draw into it starts from <c>COMMON</c> like any other first use. Hands it back even if the submit throws.
+        /// </summary>
+        internal void EndDirectDraw(DirectPass pass)
+        {
+            try
+            {
+                _factory.EndDirectDraw(pass.CorePass, synchronous: false);
+            }
+            finally
+            {
+                ReleaseToStride(pass.Target);
+                pass.CommandList.ResourceBarrierTransition(pass.Target, BarrierLayout.RenderTarget);
+            }
+        }
+
+        /// <summary>One <see cref="BeginDirectDraw"/> pass.</summary>
+        internal sealed class DirectPass(CommandList commandList, Texture target, D3D12DirectPass corePass)
+        {
+            internal CommandList CommandList { get; } = commandList;
+            internal Texture Target { get; } = target;
+            internal D3D12DirectPass CorePass { get; } = corePass;
         }
 
         /// <summary>Wraps a texture <see cref="AcquireForSkia"/> has put in <c>RENDER_TARGET</c>.</summary>

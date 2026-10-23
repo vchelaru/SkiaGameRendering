@@ -12,7 +12,7 @@ using SharedScene = Sample.Shared.Scene;
 // (StrideGraphicsApi=Direct3D12 in the csproj) through SkiaGameRendering.Stride.D3D12.
 using var game = new Game();
 
-SkiaStrideD3D12RenderTarget2D? canvas = null;
+SkiaStrideD3D12DirectCanvas? canvas = null;
 
 // Not game.Run(start: Start): GameBase.Run(GameContext) hides the toolkit's Run extension method.
 Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
@@ -21,17 +21,15 @@ void Start(Scene rootScene)
 {
     game.SetupBase3DScene();
 
-    var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
-
-    // Sized to the back buffer so the composite covers the screen. Constructing it initializes
+    // Draws straight into the back buffer the compositor is rendering to. Constructing it initializes
     // SkiaStrideD3D12Renderer against game.GraphicsDevice.
-    canvas = new SkiaStrideD3D12RenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
+    canvas = new SkiaStrideD3D12DirectCanvas(game.GraphicsDevice);
 
     // Appended after the existing scene renderer, so the Skia layer draws on top of the 3D scene.
-    var renderer = new SkiaStrideD3D12SceneRenderer { Canvas = canvas };
+    var renderer = new SkiaStrideD3D12SceneRenderer { DirectCanvas = canvas };
     renderer.SkiaDraw += skCanvas =>
     {
-        skCanvas.Clear(SKColors.Transparent);
+        var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
         SharedScene.Draw(skCanvas, backBuffer.Width, backBuffer.Height);
     };
     game.AddSceneRenderer(renderer);

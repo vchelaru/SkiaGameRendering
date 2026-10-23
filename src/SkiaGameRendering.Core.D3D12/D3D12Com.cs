@@ -212,6 +212,18 @@ namespace SkiaGameRendering.Core.D3D12
             return (IntPtr)result;
         }
 
+        /// <summary>
+        /// ID3D12Resource::GetDesc, vtable slot 10 (Map 8, Unmap 9). The descriptor comes back through a
+        /// hidden return pointer, which is the second argument after <c>this</c> for a struct this size.
+        /// </summary>
+        internal static D3D12_RESOURCE_DESC GetResourceDesc(IntPtr resource)
+        {
+            var fn = (delegate* unmanaged[MemberFunction]<IntPtr, D3D12_RESOURCE_DESC*, D3D12_RESOURCE_DESC*>)(*(void***)resource)[10];
+            D3D12_RESOURCE_DESC desc;
+            fn(resource, &desc);
+            return desc;
+        }
+
         /// <summary>ID3D12Device::CreateFence, vtable slot 36.</summary>
         internal static IntPtr CreateFence(IntPtr device, ulong initialValue)
         {

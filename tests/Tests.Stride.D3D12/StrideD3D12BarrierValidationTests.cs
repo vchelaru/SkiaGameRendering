@@ -4,7 +4,10 @@ using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
+using Stride.Games;
+using Tests.Shared;
 using Stride.Graphics;
+using BarrierLayout = Stride.Graphics.BarrierLayout;
 using Xunit;
 
 namespace Tests.StrideD3D12;
@@ -79,6 +82,86 @@ public sealed class StrideD3D12BarrierValidationTests
 
             Assert.Equal(new Color(0, 128, 0, 255), pixel);
             Assert.Equal(GraphicsDeviceStatus.Normal, device.GraphicsDeviceStatus);
+        }
+        finally
+        {
+            SkiaStrideD3D12Renderer.Dispose();
+            GlobalLogger.GlobalMessageLogged -= OnMessage;
+        }
+
+        Assert.True(errors.Count == 0, "D3D12 debug layer errors:\n" + string.Join("\n", errors));
+    }
+
+    /// <summary>
+    /// The same check for <see cref="SkiaStrideD3D12DirectCanvas"/>: Stride sprite, Skia, Stride sprite, Skia,
+    /// into an offscreen render target and into a swap chain back buffer, for several frames, with each frame's
+    /// Stride submit between the passes. The handoff moves the target between Stride's enhanced-barrier layouts and
+    /// Skia's legacy states twice a pass, and nothing but the debug layer sees that go wrong on WARP.
+    /// </summary>
+    [D3D12DebugLayerFact]
+    public void DirectDrawCycle_ReportsNoDebugLayerErrors()
+    {
+        EnableDebugLayerWithGpuValidation();
+
+        var errors = new List<string>();
+        void OnMessage(ILogMessage message)
+        {
+            if (message.Type >= LogMessageType.Error && !message.Text.Contains(SkiaHeapStartMessage))
+                lock (errors) errors.Add(message.Text);
+        }
+
+        Environment.SetEnvironmentVariable("STRIDE_GRAPHICS_SOFTWARE_RENDERING", "1");
+        using var device = GraphicsDevice.New(GraphicsAdapterFactory.DefaultAdapter, DeviceCreationFlags.Debug);
+        device.DebugGpuValidationEnabled = true;
+        device.ColorSpace = ColorSpace.Gamma;
+
+        GlobalLogger.GlobalMessageLogged += OnMessage;
+        try
+        {
+            using var window = new HiddenWindow(16, 16);
+            var parameters = new PresentationParameters(16, 16,
+                new WindowHandle(AppContextType.DesktopWinForms, null!, window.Handle), PixelFormat.R8G8B8A8_UNorm);
+            using var presenter = new SwapChainGraphicsPresenter(device, parameters);
+            device.Presenter = presenter;
+            using var offscreen = Texture.New2D(
+                device, 16, 16, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+            using var white = Texture.New2D(device, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { Color.White });
+            using var spriteBatch = new SpriteBatch(device);
+            using var direct = new SkiaStrideD3D12DirectCanvas(device);
+
+            Color pixel = default;
+            foreach (var target in new[] { offscreen, presenter.BackBuffer, offscreen, presenter.BackBuffer })
+            {
+                using var commandList = CommandList.New(device);
+                var graphicsContext = new GraphicsContext(device, commandList: commandList);
+                commandList.SetRenderTargetAndViewport(null, target);
+                commandList.Clear(target, new Color4(0f, 0f, 1f, 1f));
+
+                commandList.ResourceBarrierTransition(white, BarrierLayout.ShaderResource);
+                spriteBatch.Begin(graphicsContext);
+                spriteBatch.Draw(white, new RectangleF(0, 0, 8, 16), new Color4(0f, 1f, 0f, 1f));
+                spriteBatch.End();
+
+                direct.Begin(graphicsContext);
+                direct.Canvas.Clear(SKColors.Red);
+                direct.End();
+
+                spriteBatch.Begin(graphicsContext);
+                spriteBatch.Draw(white, new RectangleF(0, 0, 4, 16), new Color4(1f, 1f, 0f, 1f));
+                spriteBatch.End();
+
+                direct.Begin(graphicsContext);
+                direct.Canvas.DrawRect(12, 0, 4, 16, new SKPaint { Color = SKColors.Lime });
+                direct.End();
+
+                pixel = target.GetData<Color>(commandList)[2];
+                device.ExecuteCommandList(commandList.Close());
+            }
+
+            // The last frame's x = 2 is Stride's yellow sprite, drawn after Skia's full red clear.
+            Assert.Equal(new Color(255, 255, 0, 255), pixel);
+            Assert.Equal(GraphicsDeviceStatus.Normal, device.GraphicsDeviceStatus);
+            device.Presenter = null!;
         }
         finally
         {

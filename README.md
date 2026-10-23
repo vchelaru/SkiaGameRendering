@@ -157,12 +157,13 @@ buffer and clear it in `SkiaDraw`.
 
 For Vulkan, use the `SkiaGameRendering.Stride.VK` namespace and the `SkiaStrideVulkan*` types
 (`SkiaStrideVulkanRenderTarget2D`, `SkiaStrideVulkanSceneRenderer`, `SkiaStrideVulkanRenderer`).
-Those, and the D3D12 types below, have no direct canvas yet, so set the scene renderer's `Canvas`.
+Those have no direct canvas yet, so set the scene renderer's `Canvas`.
 On Windows, also set `<StrideGraphicsApi>Vulkan</StrideGraphicsApi>` in your project; see
 `docs/stride/vulkan-quickstart.md`.
 
 For Direct3D 12, use the `SkiaGameRendering.Stride.D3D12` namespace and the `SkiaStrideD3D12*` types,
 and set `<StrideGraphicsApi>Direct3D12</StrideGraphicsApi>`; see `docs/stride/d3d12-quickstart.md`.
+`SkiaStrideD3D12DirectCanvas` and `SkiaStrideD3D12SceneRenderer.DirectCanvas` work like the D3D11 ones above.
 
 ### Unity
 
@@ -270,8 +271,17 @@ Stride on Direct3D 11 has the same thing as `SkiaStrideDirectCanvas`. `Begin` ta
 is the back buffer. In Stride's default Linear color space the back buffer is an sRGB view of an
 8-bit texture: Skia writes into it without encoding, so an `SKColor` shows as that color, and Skia
 blends in sRGB space while Stride blends in linear. One bound 8-bit RGBA or BGRA target is supported;
-sRGB-format textures and HDR targets throw `NotSupportedException`. Stride's Vulkan and Direct3D 12
-backends have no direct canvas yet.
+sRGB-format textures and HDR targets throw `NotSupportedException`. Stride's Vulkan backend has no
+direct canvas yet.
+
+Stride on Direct3D 12 has `SkiaStrideD3D12DirectCanvas`, used the same way, with the same color
+handling, and with single-sample targets only (a multisampled one throws `NotSupportedException`).
+`Begin` submits whatever Stride has recorded on the command list so far and starts a new recording,
+because Skia's work reaches the GPU when `End` runs and would otherwise land under Stride's earlier
+draws. That makes each pass cost a submission, so draw it once per frame rather than once per widget.
+MonoGame's native WindowsDX12 has no direct canvas: its managed API and its native interop table give
+no way to get the current target's `ID3D12Resource`, or to submit what MonoGame has recorded so far, so
+Skia could neither find the target nor draw after the engine's earlier work. Use `SkiaRenderTarget2D` there.
 
 ## Performance
 
