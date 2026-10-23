@@ -63,9 +63,9 @@ export function getFramebufferInfo(contextUid) {
     const framebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
     return {
         fboId: framebuffer ? framebuffer.id : 0,
-        stencils: gl.getParameter(gl.STENCIL_BITS),
+        stencils: gl.getParameter(0x0D57) ?? 0, // STENCIL_BITS (numeric: the raw KNI gl object may not expose constants)
         samples: 0,
-        depth: gl.getParameter(gl.DEPTH_BITS),
+        depth: gl.getParameter(0x0D56) ?? 0, // DEPTH_BITS
         width: gl.canvas.width,
         height: gl.canvas.height,
     };

@@ -14,15 +14,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- SPIKE ONLY, temporary, not for commit upstream: points at a locally patched, locally built
-         clone of kniEngine/kni (tag v4.3.9001 + GraphicsDevice.InvalidateStateCache, cloned to
-         C:\kni-src - see WebGL-KNI-Integration.md section 6 and the worktree-agent-a366b823b701668f9
-         spike) instead of the real NuGet package, because this benchmark calls the new
-         GraphicsDevice.InvalidateStateCache() API that only exists on that patched build. If
-         C:\kni-src is missing or its InvalidateStateCache patch has been reverted, re-apply it
-         following WebGL-KNI-Integration.md section 6 before this project will build. -->
-    <ProjectReference Include="C:\kni-src\Platforms\Kni.Platform.Blazor.GL.csproj" />
-    <!-- <PackageReference Include="nkast.Kni.Platform.Blazor.GL" Version="$(KniVersion)" /> -->
+    <!-- Stock KNI: the state reset between Skia and KNI is KniStateInvalidation.cs (reflection), the same
+         approach the shipped SkiaWebGlBackend uses. -->
+    <PackageReference Include="nkast.Kni.Platform.Blazor.GL" Version="$(KniVersion)" />
   </ItemGroup>
 
   <ItemGroup>
