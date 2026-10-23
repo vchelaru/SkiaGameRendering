@@ -124,5 +124,111 @@ namespace SkiaGameRendering.Core.ANGLE
             fn(deviceChild, &device);
             return (IntPtr)device;
         }
+
+        // --- Reading the engine's bound render target, for SkiaDirectCanvas ---
+
+        /// <summary>D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT.</summary>
+        internal const int SimultaneousRenderTargetCount = 8;
+
+        /// <summary>
+        /// ID3D11DeviceContext::OMGetRenderTargets, vtable slot 89: IUnknown (0-2) + ID3D11DeviceChild
+        /// (3-6) + ID3D11DeviceContext's methods from VSSetConstantBuffers (7) through GSGetSamplers (88).
+        /// Fills <paramref name="views"/> (length <see cref="SimultaneousRenderTargetCount"/>) with AddRef'd
+        /// render target views, null for an empty slot. Returns void natively.
+        /// </summary>
+        internal static void OMGetRenderTargets(IntPtr context, IntPtr[] views)
+        {
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr*, IntPtr*, void>)(*(void***)context)[89];
+            fixed (IntPtr* viewsPtr = views)
+                fn(context, (uint)views.Length, viewsPtr, null);
+        }
+
+        /// <summary>
+        /// ID3D11DeviceContext::OMSetRenderTargets(0, null, null), vtable slot 33: IUnknown (0-2) +
+        /// ID3D11DeviceChild (3-6) + ID3D11DeviceContext's methods from VSSetConstantBuffers (7) through
+        /// SetPredication (30), GSSetShaderResources (31), GSSetSamplers (32). Unbinds every render target
+        /// and the depth buffer, dropping the references the context state holds on them.
+        /// </summary>
+        internal static void OMUnbindRenderTargets(IntPtr context)
+        {
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, uint, IntPtr*, IntPtr, void>)(*(void***)context)[33];
+            fn(context, 0, null, IntPtr.Zero);
+        }
+
+        /// <summary>
+        /// ID3D11View::GetResource, vtable slot 7: IUnknown (0-2) + ID3D11DeviceChild (3-6) + GetResource.
+        /// AddRefs the resource.
+        /// </summary>
+        internal static IntPtr GetViewResource(IntPtr view)
+        {
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, void**, void>)(*(void***)view)[7];
+            void* resource;
+            fn(view, &resource);
+            return (IntPtr)resource;
+        }
+
+        /// <summary>
+        /// ID3D11RenderTargetView::GetDesc, vtable slot 8: IUnknown (0-2) + ID3D11DeviceChild (3-6) +
+        /// ID3D11View::GetResource (7) + GetDesc.
+        /// </summary>
+        internal static RenderTargetViewDesc GetRenderTargetViewDesc(IntPtr renderTargetView)
+        {
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, RenderTargetViewDesc*, void>)(*(void***)renderTargetView)[8];
+            RenderTargetViewDesc desc;
+            fn(renderTargetView, &desc);
+            return desc;
+        }
+
+        /// <summary>
+        /// ID3D11Texture2D::GetDesc, vtable slot 10: IUnknown (0-2) + ID3D11DeviceChild (3-6) +
+        /// ID3D11Resource's GetType, SetEvictionPriority, GetEvictionPriority (7-9) + GetDesc.
+        /// </summary>
+        internal static Texture2DDesc GetTexture2DDesc(IntPtr texture2d)
+        {
+            var fn = (delegate* unmanaged[Stdcall]<IntPtr, Texture2DDesc*, void>)(*(void***)texture2d)[10];
+            Texture2DDesc desc;
+            fn(texture2d, &desc);
+            return desc;
+        }
+    }
+
+    /// <summary>D3D11_TEXTURE2D_DESC.</summary>
+    internal struct Texture2DDesc
+    {
+        public uint Width;
+        public uint Height;
+        public uint MipLevels;
+        public uint ArraySize;
+        public DxgiFormat Format;
+        public uint SampleCount;
+        public uint SampleQuality;
+        public uint Usage;
+        public uint BindFlags;
+        public uint CPUAccessFlags;
+        public uint MiscFlags;
+    }
+
+    /// <summary>D3D11_RENDER_TARGET_VIEW_DESC: the format, the dimension, then a 12-byte union whose first field is always the mip slice (or, for a buffer, an element offset).</summary>
+    internal struct RenderTargetViewDesc
+    {
+        public DxgiFormat Format;
+        public RtvDimension ViewDimension;
+        public uint MipSlice;
+        public uint FirstArraySlice;
+        public uint ArraySize;
+    }
+
+    /// <summary>The D3D11_RTV_DIMENSION values this library tells apart.</summary>
+    internal enum RtvDimension : uint
+    {
+        Texture2D = 4,
+        Texture2DMultisampled = 6,
+    }
+
+    /// <summary>The DXGI_FORMAT values <see cref="AngleSkiaSurfaceFactory"/> draws into directly.</summary>
+    internal enum DxgiFormat : uint
+    {
+        R8G8B8A8Unorm = 28,
+        B8G8R8A8Unorm = 87,
     }
 }

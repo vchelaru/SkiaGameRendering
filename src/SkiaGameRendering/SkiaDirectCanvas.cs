@@ -18,7 +18,7 @@ namespace SkiaGameRendering
     /// </code>
     /// <see cref="Begin"/> does not clear; Skia draws on top of what is already there. Coordinates are target
     /// pixels with the origin at the top left; the engine's <see cref="GraphicsDevice.Viewport"/> and scissor
-    /// rectangle are ignored. Only MonoGame DesktopGL and KNI DesktopGL support it (see
+    /// rectangle are ignored. Not every platform supports it (see
     /// <see cref="SkiaRenderer.SupportsDirectCanvas"/>), and only for the back buffer or one bound
     /// <see cref="SurfaceFormat.Color"/> target.
     /// </summary>

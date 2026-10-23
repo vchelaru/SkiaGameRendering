@@ -33,15 +33,11 @@ namespace SkiaGameRendering
     ///   before ANGLE touches it, so a reordered struct is an exception rather than a silent black
     ///   texture. (If a non-pointer field ever moves first, that check itself is what crashes.)
     /// </summary>
-    public class SkiaFnaAngleBackend : SkiaBackend
+    public class SkiaFnaAngleBackend : SkiaSharedAngleBackend
     {
-        readonly AngleSkiaSurfaceFactory _factory = new();
-
         // Reflection handles for FNA internals
         static FieldInfo? _glDeviceField;
         static FieldInfo? _textureField;
-
-        public override GRContext GRContext => _factory.GRContext;
 
         public override void Initialize(GraphicsDevice graphicsDevice)
         {
@@ -69,10 +65,6 @@ namespace SkiaGameRendering
 
             _factory.InitializeFromNative(sysRenderer.D3D11Device, sysRenderer.D3D11Context);
         }
-
-        internal override void BeginDraw() => _factory.BeginDraw();
-
-        internal override void EndDraw() => _factory.EndDraw();
 
         /// <summary>
         /// ANGLE requires textures to have D3D11_BIND_RENDER_TARGET. FNA3D's D3D11 driver only adds
@@ -114,24 +106,21 @@ namespace SkiaGameRendering
             return _factory.CreateTextureState(d3dPtr);
         }
 
-        internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
+        // FNA allows four simultaneous targets (GraphicsDevice.renderTargetBindings).
+        readonly RenderTargetBinding[] _boundRenderTarget = new RenderTargetBinding[4];
+
+        private protected override RenderTarget2D? GetBoundRenderTarget()
         {
-            var state = (AngleTextureState)textureHandle;
-            var result = _factory.CreateSurface(state, width, height, colorType);
-            renderState = state;
-            return result;
+            var count = GraphicsDevice.GetRenderTargetsNoAllocEXT(_boundRenderTarget);
+            var renderTarget = _boundRenderTarget[0].RenderTarget;
+            Array.Clear(_boundRenderTarget);
+
+            if (count == 0)
+                return null;
+            if (count > 1)
+                throw new NotSupportedException("SkiaDirectCanvas needs a single bound render target, not " + count + ".");
+            return renderTarget as RenderTarget2D
+                ?? throw new NotSupportedException("SkiaDirectCanvas supports a RenderTarget2D, not a cube or 3D target.");
         }
-
-        internal override void BindForDrawing(object renderState) => _factory.BindForDrawing((AngleTextureState)renderState);
-
-        internal override void UnbindAfterDrawing() => _factory.UnbindAfterDrawing();
-
-        internal override void DisposeRenderState(object renderState) => _factory.DisposeRenderState((AngleTextureState)renderState);
-
-        internal override void DisposeTargetSkiaResources(SKSurface? surface, GRBackendRenderTarget? renderTarget, object? renderState) =>
-            _factory.DisposeSurface((AngleTextureState?)renderState, surface, renderTarget);
-
-        public override void Dispose() => _factory.Dispose();
     }
 }

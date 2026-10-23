@@ -240,7 +240,8 @@ Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or 
 
 ## Drawing straight into the current target
 
-On MonoGame DesktopGL, KNI DesktopGL and KNI Android, `SkiaDirectCanvas` draws into whatever the
+On MonoGame DesktopGL, KNI DesktopGL, KNI Android, MonoGame WindowsDX, KNI WindowsDX and FNA on its
+D3D11 driver, `SkiaDirectCanvas` draws into whatever the
 engine is rendering to when `Begin()` is called, the back buffer or the bound `RenderTarget2D`, with
 no intermediate texture and no `SpriteBatch` composite. It has the same `Begin`/`Canvas`/`End` shape as
 `SkiaRenderTarget2D`, without the size or the texture:
@@ -256,8 +257,9 @@ spriteBatch.Begin(); /* foreground */ spriteBatch.End();
 ```
 
 `Begin()` does not clear; Skia draws on top of what is there. Coordinates are target pixels from the
-top left; the engine's `Viewport` and scissor rectangle are ignored. Multisampled render targets work.
-Only one bound `RenderTarget2D` with `SurfaceFormat.Color` is supported. `SkiaRenderer.SupportsDirectCanvas`
+top left; the engine's `Viewport` and scissor rectangle are ignored. Multisampled back buffers and render
+targets work. Only one bound `RenderTarget2D` with `SurfaceFormat.Color` is supported; on the D3D11
+platforms an sRGB back buffer is refused too. `SkiaRenderer.SupportsDirectCanvas`
 is false on every other platform, where the constructor throws `NotSupportedException`; use
 `SkiaRenderTarget2D` there.
 
@@ -276,7 +278,7 @@ engine's own `SpriteBatch` and use Skia for vectors, SVG and text. The two inter
   called between `Begin()` and `End()` when Skia's GPU context is current, and reuse the result.
 - **Use few, large targets.** Every `Begin()`/`End()` pair switches GPU context and flushes Skia. On
   WindowsDX and KNI WindowsDX, `End()` also calls `glFinish`, which stalls the CPU until the GPU
-  finishes. One screen-sized target per frame beats one per element.
+  finishes; `SkiaDirectCanvas.End()` does not. One screen-sized target per frame beats one per element.
 
 Measured with `benchmarks/Benchmarks.ShapeRendering.DesktopGL` (MonoGame DesktopGL, macOS, Apple
 Silicon), frame time in ms:

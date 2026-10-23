@@ -20,15 +20,11 @@ namespace SkiaGameRendering.Kni.WindowsDX
     ///   ConcreteGraphicsDevice/ConcreteGraphicsContext/ConcreteTexture. They may change between
     ///   KNI versions.
     /// </summary>
-    public class SkiaKniAngleBackend : SkiaBackend
+    public class SkiaKniAngleBackend : SkiaSharedAngleBackend
     {
-        readonly AngleSkiaSurfaceFactory _factory = new();
-
         static PropertyInfo? _d3dDeviceProperty;
         static PropertyInfo? _d3dContextProperty;
         static MethodInfo? _getTextureMethod;
-
-        public override GRContext GRContext => _factory.GRContext;
 
         public override void Initialize(GraphicsDevice graphicsDevice)
         {
@@ -50,10 +46,6 @@ namespace SkiaGameRendering.Kni.WindowsDX
 
             _factory.InitializeFromNative(d3dDevice.NativePointer, d3dContext.NativePointer);
         }
-
-        internal override void BeginDraw() => _factory.BeginDraw();
-
-        internal override void EndDraw() => _factory.EndDraw();
 
         IntPtr GetD3DTexturePtr(Texture2D texture)
         {
@@ -82,24 +74,8 @@ namespace SkiaGameRendering.Kni.WindowsDX
             return _factory.CreateTextureState(d3dPtr);
         }
 
-        internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
-        {
-            var state = (AngleTextureState)textureHandle;
-            var result = _factory.CreateSurface(state, width, height, colorType);
-            renderState = state;
-            return result;
-        }
+        readonly KniBoundRenderTarget _boundRenderTarget = new();
 
-        internal override void BindForDrawing(object renderState) => _factory.BindForDrawing((AngleTextureState)renderState);
-
-        internal override void UnbindAfterDrawing() => _factory.UnbindAfterDrawing();
-
-        internal override void DisposeRenderState(object renderState) => _factory.DisposeRenderState((AngleTextureState)renderState);
-
-        internal override void DisposeTargetSkiaResources(SKSurface? surface, GRBackendRenderTarget? renderTarget, object? renderState) =>
-            _factory.DisposeSurface((AngleTextureState?)renderState, surface, renderTarget);
-
-        public override void Dispose() => _factory.Dispose();
+        private protected override RenderTarget2D? GetBoundRenderTarget() => _boundRenderTarget.Get(GraphicsDevice);
     }
 }

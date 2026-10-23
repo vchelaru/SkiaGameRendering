@@ -23,7 +23,7 @@ sealed partial class HeadlessGraphicsDevice : IDisposable
 
     internal GraphicsDevice GraphicsDevice { get; }
 
-    internal HeadlessGraphicsDevice(int width, int height)
+    internal HeadlessGraphicsDevice(int width, int height, int multiSampleCount = 0)
     {
         _window = new HiddenWindow(width, height);
         try
@@ -36,6 +36,7 @@ sealed partial class HeadlessGraphicsDevice : IDisposable
                 DepthStencilFormat = DepthFormat.Depth24Stencil8,
                 DeviceWindowHandle = _window.Handle,
                 IsFullScreen = false,
+                MultiSampleCount = multiSampleCount,
                 PresentationInterval = PresentInterval.Immediate,
             };
             PinToSoftwareRasterizer(presentationParameters);

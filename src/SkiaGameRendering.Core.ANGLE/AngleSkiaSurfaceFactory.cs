@@ -9,6 +9,23 @@ namespace SkiaGameRendering.Core.ANGLE
         internal IntPtr EglSurface;
     }
 
+    /// <summary>One <see cref="AngleSkiaSurfaceFactory.BeginDirectDraw"/> pass, ended by <see cref="AngleSkiaSurfaceFactory.EndDirectDraw"/>.</summary>
+    public sealed class AngleDirectPass
+    {
+        internal AngleDirectPass(AngleTextureState state, SKSurface surface, GRBackendRenderTarget renderTarget, int saveCount)
+        {
+            State = state;
+            Surface = surface;
+            RenderTarget = renderTarget;
+            SaveCount = saveCount;
+        }
+
+        internal AngleTextureState State { get; }
+        internal SKSurface Surface { get; }
+        internal GRBackendRenderTarget RenderTarget { get; }
+        internal int SaveCount { get; }
+    }
+
     /// <summary>
     /// Engine-agnostic ANGLE/D3D11-Skia interop, shared by any host engine that renders via D3D11
     /// (MonoGame WindowsDX, KNI WindowsDX, ...).
@@ -223,11 +240,11 @@ namespace SkiaGameRendering.Core.ANGLE
                 return CreateTextureStateCore(d3dTexturePtr);
         }
 
-        AngleTextureState CreateTextureStateCore(IntPtr d3dTexturePtr)
+        AngleTextureState CreateTextureStateCore(IntPtr d3dTexturePtr, int sampleCount = 1)
         {
             int[] pbufferAttribs = { EGL_NONE };
             var eglSurface = eglCreatePbufferFromClientBuffer(
-                _eglDisplay, EGL_D3D_TEXTURE_ANGLE, d3dTexturePtr, _eglConfig, pbufferAttribs);
+                _eglDisplay, EGL_D3D_TEXTURE_ANGLE, d3dTexturePtr, GetConfig(sampleCount), pbufferAttribs);
 
             if (eglSurface == EGL_NO_SURFACE)
                 throw new Exception($"eglCreatePbufferFromClientBuffer failed. EGL error: 0x{eglGetError():X}");
@@ -357,6 +374,194 @@ namespace SkiaGameRendering.Core.ANGLE
                 EndDraw();
             }
         }
+
+        // --- Drawing straight into the engine's bound render target (SkiaDirectCanvas) ---
+
+        readonly Dictionary<int, IntPtr> _multisampledConfigs = new();
+
+        /// <summary>
+        /// The EGL config to wrap a texture with <paramref name="sampleCount"/> samples. ANGLE refuses a
+        /// multisampled texture against a single-sampled config (EGL_BAD_PARAMETER), and draws into it
+        /// directly with one whose sample count matches; the engine resolves it as it always does.
+        /// </summary>
+        IntPtr GetConfig(int sampleCount)
+        {
+            if (sampleCount <= 1)
+                return _eglConfig;
+            if (_multisampledConfigs.TryGetValue(sampleCount, out var config))
+                return config;
+
+            int[] attribs = { EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT, EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+                EGL_SAMPLE_BUFFERS, 1, EGL_SAMPLES, sampleCount, EGL_NONE };
+            if (!eglChooseConfig(_eglDisplay, attribs, out config, 1, out var numConfigs) || numConfigs == 0)
+                throw new NotSupportedException($"ANGLE has no {sampleCount}x multisampled pbuffer config. EGL error: 0x{eglGetError():X}");
+            _multisampledConfigs.Add(sampleCount, config);
+            return config;
+        }
+
+        readonly IntPtr[] _boundViews = new IntPtr[D3D11Com.SimultaneousRenderTargetCount];
+
+        /// <summary>
+        /// Starts a pass that draws into whatever render target the engine has bound on the immediate
+        /// context: its swap chain's back buffer or a render target texture. Called with the engine's own
+        /// state current, before any <see cref="BeginDraw"/>. The target's texture is wrapped as an EGL
+        /// pbuffer for this pass only and released at <see cref="EndDirectDraw"/>, so nothing here holds a
+        /// swap chain buffer across frames (DXGI's ResizeBuffers fails while anything does).
+        /// </summary>
+        /// <param name="expectedWidth">The width the engine says its current target has, checked against the bound texture.</param>
+        /// <param name="expectedHeight">The height the engine says its current target has.</param>
+        public SKCanvas BeginDirectDraw(int expectedWidth, int expectedHeight, out AngleDirectPass pass)
+        {
+            var texture = GetBoundTexture(expectedWidth, expectedHeight, out var desc, out var colorType);
+
+            AngleTextureState? state = null;
+            SKSurface? surface = null;
+            GRBackendRenderTarget? renderTarget = null;
+            BeginDraw();
+            try
+            {
+                state = CreateTextureStateCore(texture, (int)desc.SampleCount);
+                (surface, renderTarget) = CreateSurfaceCore(state, (int)desc.Width, (int)desc.Height, colorType, null);
+                pass = new AngleDirectPass(state, surface, renderTarget, surface.Canvas.Save());
+                return surface.Canvas;
+            }
+            catch
+            {
+                ReleaseDirectPass(state, surface, renderTarget);
+                EndDraw();
+                throw;
+            }
+            finally
+            {
+                // The pbuffer holds its own reference to the texture.
+                D3D11Com.Release(texture);
+            }
+        }
+
+        /// <summary>
+        /// Ends a pass started by <see cref="BeginDirectDraw"/>: submits Skia's draws, which land on the
+        /// engine's queue after its earlier draws and before its later ones, and restores the engine's
+        /// D3D11 state. Restores it even if it throws.
+        /// </summary>
+        public void EndDirectDraw(AngleDirectPass pass)
+        {
+            try
+            {
+                pass.Surface.Canvas.RestoreToCount(pass.SaveCount);
+                pass.Surface.Flush();
+                _grContext.Flush();
+            }
+            finally
+            {
+                try
+                {
+                    ReleaseDirectPass(pass.State, pass.Surface, pass.RenderTarget);
+                }
+                finally
+                {
+                    EndDraw();
+                }
+            }
+        }
+
+        /// <summary>Frees a pass's Skia surface with ANGLE's context current, then its pbuffer. Inside a draw span.</summary>
+        void ReleaseDirectPass(AngleTextureState? state, SKSurface? surface, GRBackendRenderTarget? renderTarget)
+        {
+            surface?.Dispose();
+            renderTarget?.Dispose();
+            // A surface is only destroyed once it is no longer current.
+            eglMakeCurrent(_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, _eglContext);
+            if (state != null)
+                DisposeRenderState(state);
+
+            // ANGLE's swapped-out D3D11 state still binds its view of the target, which holds a reference
+            // to the engine's back buffer and makes the engine's next ResizeBuffers fail. A new pbuffer
+            // gets a new view, so ANGLE rebinds next pass even though its state cache missed this.
+            D3D11Com.OMUnbindRenderTargets(_context1);
+        }
+
+        /// <summary>The engine's one bound render target texture, AddRef'd, checked against what the engine says it is.</summary>
+        IntPtr GetBoundTexture(int expectedWidth, int expectedHeight, out Texture2DDesc desc, out SKColorType colorType)
+        {
+            D3D11Com.OMGetRenderTargets(_context1, _boundViews);
+            var view = _boundViews[0];
+            var count = 0;
+            for (var i = 0; i < _boundViews.Length; i++)
+            {
+                if (_boundViews[i] == IntPtr.Zero)
+                    continue;
+                count++;
+                if (i > 0)
+                    D3D11Com.Release(_boundViews[i]);
+                _boundViews[i] = IntPtr.Zero;
+            }
+
+            if (view == IntPtr.Zero)
+                throw new InvalidOperationException(
+                    count == 0
+                        ? "The engine has no render target bound on its D3D11 context."
+                        : "The engine's render target is not in D3D11 slot 0.");
+
+            try
+            {
+                if (count > 1)
+                    throw new NotSupportedException($"SkiaDirectCanvas needs a single bound render target, not {count}.");
+
+                var viewDesc = D3D11Com.GetRenderTargetViewDesc(view);
+                if (viewDesc.ViewDimension is not (RtvDimension.Texture2D or RtvDimension.Texture2DMultisampled)
+                    || (viewDesc.ViewDimension == RtvDimension.Texture2D && viewDesc.MipSlice != 0))
+                    throw new NotSupportedException(
+                        "SkiaDirectCanvas draws into the top mip level of a 2D render target; the engine has bound " +
+                        $"a view of dimension {viewDesc.ViewDimension}, mip {viewDesc.MipSlice}.");
+
+                var resource = D3D11Com.GetViewResource(view);
+                IntPtr texture;
+                try
+                {
+                    texture = D3D11Com.QueryInterface(resource, D3D11Com.IID_ID3D11Texture2D);
+                }
+                finally
+                {
+                    D3D11Com.Release(resource);
+                }
+
+                try
+                {
+                    desc = D3D11Com.GetTexture2DDesc(texture);
+                    if (desc.Width != expectedWidth || desc.Height != expectedHeight)
+                        throw new InvalidOperationException(
+                            $"The engine's bound D3D11 render target is {desc.Width}x{desc.Height}, but the engine " +
+                            $"reports its current target as {expectedWidth}x{expectedHeight}.");
+                    if (desc.MipLevels != 1 || desc.ArraySize != 1)
+                        throw new NotSupportedException(
+                            "SkiaDirectCanvas cannot draw into a render target with mipmaps or array slices " +
+                            $"({desc.MipLevels} mips, {desc.ArraySize} slices).");
+                    colorType = ToColorType(viewDesc.Format);
+                    return texture;
+                }
+                catch
+                {
+                    D3D11Com.Release(texture);
+                    throw;
+                }
+            }
+            finally
+            {
+                D3D11Com.Release(view);
+            }
+        }
+
+        /// <summary>
+        /// The Skia color type for a bound render target view's format. sRGB views are refused: ANGLE would
+        /// encode Skia's writes, which no other backend's direct canvas does.
+        /// </summary>
+        internal static SKColorType ToColorType(DxgiFormat format) => format switch
+        {
+            DxgiFormat.R8G8B8A8Unorm => SKColorType.Rgba8888,
+            DxgiFormat.B8G8R8A8Unorm => SKColorType.Bgra8888,
+            _ => throw new NotSupportedException(
+                $"SkiaDirectCanvas supports 8-bit RGBA or BGRA render targets, not DXGI format {(uint)format}."),
+        };
 
         public void Dispose()
         {

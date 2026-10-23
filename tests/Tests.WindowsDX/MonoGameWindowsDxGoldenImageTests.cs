@@ -19,6 +19,7 @@ namespace Tests.WindowsDX;
 /// the Skia texture it came from.
 /// </para>
 /// </summary>
+[Collection(SkiaRendererCollection.Name)]
 public sealed class MonoGameWindowsDxGoldenImageTests : IDisposable
 {
     const string Golden = "monogame-windowsdx-scene.png";
