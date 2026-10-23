@@ -69,6 +69,19 @@ namespace SkiaGameRendering.Core.OGL
         [UnmanagedFunctionPointer(CallingConvention)]
         internal delegate IntPtr GetStringDelegate(int name);
 
+        [System.Security.SuppressUnmanagedCodeSecurity]
+        [UnmanagedFunctionPointer(CallingConvention)]
+        internal unsafe delegate void GetFramebufferAttachmentParameterDelegate(int target, int attachment, int pname, [Out] int* data);
+
+        [System.Security.SuppressUnmanagedCodeSecurity]
+        [UnmanagedFunctionPointer(CallingConvention)]
+        internal unsafe delegate void GetRenderbufferParameterDelegate(int target, int pname, [Out] int* data);
+
+        [System.Security.SuppressUnmanagedCodeSecurity]
+        [UnmanagedFunctionPointer(CallingConvention)]
+        internal delegate void RenderbufferStorageMultisampleDelegate(RenderbufferTarget target, int samples,
+            RenderbufferStorage storage, int width, int height);
+
         internal GenRenderbuffersDelegate GenRenderbuffers { get; private init; } = null!;
         internal BindRenderbufferDelegate BindRenderbuffer { get; private init; } = null!;
         internal DeleteRenderbuffersDelegate DeleteRenderbuffers { get; private init; } = null!;
@@ -88,6 +101,10 @@ namespace SkiaGameRendering.Core.OGL
         internal FlushDelegate Flush { get; private init; } = null!;
         internal BindTextureDelegate BindTexture { get; private init; } = null!;
         private GetIntegerDelegate GetIntegerv { get; init; } = null!;
+        // Optional: only drawing straight into the engine's current target needs these (GL 3.0 / ES 3.0).
+        private GetFramebufferAttachmentParameterDelegate? GetFramebufferAttachmentParameteriv { get; init; }
+        private GetRenderbufferParameterDelegate? GetRenderbufferParameteriv { get; init; }
+        internal RenderbufferStorageMultisampleDelegate? RenderbufferStorageMultisample { get; private init; }
         private GetStringDelegate GetStringPtr { get; init; } = null!;
 
         private GlFunctions() { }
@@ -111,6 +128,11 @@ namespace SkiaGameRendering.Core.OGL
                 Flush = loader.Load<FlushDelegate>("glFlush"),
                 BindTexture = loader.Load<BindTextureDelegate>("glBindTexture"),
                 GetStringPtr = loader.Load<GetStringDelegate>("glGetString"),
+                GetFramebufferAttachmentParameteriv = LoadOptional<GetFramebufferAttachmentParameterDelegate>(
+                    loader, "glGetFramebufferAttachmentParameteriv"),
+                GetRenderbufferParameteriv = LoadOptional<GetRenderbufferParameterDelegate>(loader, "glGetRenderbufferParameteriv"),
+                RenderbufferStorageMultisample = LoadOptional<RenderbufferStorageMultisampleDelegate>(
+                    loader, "glRenderbufferStorageMultisample"),
             };
         }
 
@@ -135,6 +157,24 @@ namespace SkiaGameRendering.Core.OGL
             {
                 GetIntegerv(name, ptr);
             }
+        }
+
+        internal unsafe int GetFramebufferAttachmentParameter(int target, int attachment, int pname)
+        {
+            var function = GetFramebufferAttachmentParameteriv
+                ?? throw new NotSupportedException("The GL driver lacks glGetFramebufferAttachmentParameteriv.");
+            int value = 0;
+            function(target, attachment, pname, &value);
+            return value;
+        }
+
+        internal unsafe int GetRenderbufferParameter(int pname)
+        {
+            var function = GetRenderbufferParameteriv
+                ?? throw new NotSupportedException("The GL driver lacks glGetRenderbufferParameteriv.");
+            int value = 0;
+            function((int)RenderbufferTarget.Renderbuffer, pname, &value);
+            return value;
         }
     }
 }

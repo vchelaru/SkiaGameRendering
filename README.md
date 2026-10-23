@@ -238,6 +238,24 @@ SkiaRenderer.Dispose();
 ```
 Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or dispose them for you.
 
+## Drawing straight into the current target
+
+On MonoGame DesktopGL and KNI DesktopGL, `SkiaRenderer.DrawToCurrentTarget` draws into whatever the
+engine is rendering to right now, the back buffer or the bound `RenderTarget2D`, with no
+intermediate texture and no `SpriteBatch` composite:
+
+```cs
+spriteBatch.Begin(); /* background */ spriteBatch.End();
+SkiaRenderer.DrawToCurrentTarget(GraphicsDevice, canvas => canvas.DrawCircle(100, 100, 50, paint));
+spriteBatch.Begin(); /* foreground */ spriteBatch.End();
+```
+
+It draws on top of what is there and does not clear. Coordinates are target pixels from the top
+left; the engine's `Viewport` and scissor rectangle are ignored. Multisampled render targets work.
+Only one bound `RenderTarget2D` with `SurfaceFormat.Color` is supported. `SkiaRenderer.SupportsDrawToCurrentTarget`
+is false on every other platform, where the call throws `NotSupportedException`; use
+`SkiaRenderTarget2D` there.
+
 ## Performance
 
 Skia is a general-purpose vector renderer. It is not a sprite batcher, so draw sprites with the
@@ -266,6 +284,10 @@ Silicon), frame time in ms:
 | 10k | 3.977 | 0.638 | 0.579 |
 | 500 tinted | 0.836 | 0.250 | 0.174 |
 | 10k tinted | 10.794 | 0.658 | 0.585 |
+
+`DrawToCurrentTarget` saves the full-screen clear and composite of a `SkiaRenderTarget2D`, about
+8-12% of the Skia frame cost for a 450-draw scene on an AMD Radeon 780M
+(`benchmarks/Benchmarks.DirectDraw.DesktopGL`).
 
 For whole-frame FPS of a plain MonoGame app against the same scene drawn through Skia, by platform
 and hardware, see [docs/performance.md](docs/performance.md).

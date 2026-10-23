@@ -62,12 +62,51 @@ static class EngineSkiaGolden
         return ReadRgba(renderTarget);
     }
 
+    /// <summary>
+    /// The scene drawn with <see cref="SkiaRenderer.DrawToCurrentTarget"/> into a bound engine render
+    /// target, with no intermediate texture. Same golden as the other two.
+    /// </summary>
+    internal static byte[] RenderSceneDirectToRenderTarget(GraphicsDevice graphicsDevice)
+    {
+        using var renderTarget = new RenderTarget2D(graphicsDevice, GoldenScene.Width, GoldenScene.Height,
+            false, SurfaceFormat.Color, DepthFormat.None);
+
+        graphicsDevice.SetRenderTarget(renderTarget);
+        try
+        {
+            graphicsDevice.Clear(Color.Black);
+            SkiaRenderer.DrawToCurrentTarget(graphicsDevice, GoldenScene.Draw);
+        }
+        finally
+        {
+            graphicsDevice.SetRenderTarget(null);
+        }
+
+        return ReadRgba(renderTarget);
+    }
+
+    /// <summary>The scene drawn with <see cref="SkiaRenderer.DrawToCurrentTarget"/> straight onto the back buffer.</summary>
+    internal static byte[] RenderSceneDirectToBackBuffer(GraphicsDevice graphicsDevice)
+    {
+        graphicsDevice.SetRenderTarget(null);
+        graphicsDevice.Clear(Color.Black);
+        SkiaRenderer.DrawToCurrentTarget(graphicsDevice, GoldenScene.Draw);
+
+        var pixels = new Color[GoldenScene.Width * GoldenScene.Height];
+        graphicsDevice.GetBackBufferData(pixels);
+        return ToRgba(pixels);
+    }
+
     /// <summary>Reads a texture back through the engine's own <c>GetData</c>, as RGBA8888 bytes.</summary>
     internal static byte[] ReadRgba(Texture2D texture)
     {
         var pixels = new Color[texture.Width * texture.Height];
         texture.GetData(pixels);
+        return ToRgba(pixels);
+    }
 
+    static byte[] ToRgba(Color[] pixels)
+    {
         var rgba = new byte[pixels.Length * 4];
         for (var i = 0; i < pixels.Length; i++)
         {

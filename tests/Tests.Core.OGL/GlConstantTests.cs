@@ -25,6 +25,15 @@ public sealed class GlConstantTests
     private static readonly Dictionary<string, int> Expected = new()
     {
         ["GL_SAMPLES"] = 0x80A9,
+        ["GL_STENCIL_BITS"] = 0x0D57,
+        ["GL_DRAW_FRAMEBUFFER_BINDING"] = 0x8CA6,
+        ["GL_DRAW_FRAMEBUFFER"] = 0x8CA9,
+        ["GL_COLOR_ATTACHMENT0"] = 0x8CE0,
+        ["GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE"] = 0x8CD0,
+        ["GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME"] = 0x8CD1,
+        ["GL_RENDERBUFFER_SAMPLES"] = 0x8CAB,
+        ["GL_TEXTURE"] = 0x1702,
+        ["GL_RENDERBUFFER"] = 0x8D41,
 
         // GL_RENDERBUFFER / GL_RENDERBUFFER_EXT
         ["RenderbufferTarget.Renderbuffer"] = 0x8D41,

@@ -55,8 +55,29 @@ namespace SkiaGameRendering
             return textureId;
         }
 
+        private readonly RenderTargetBinding[] _boundRenderTarget = new RenderTargetBinding[1];
+
+        private protected override bool CanDrawToCurrentTarget => true;
+
+        private protected override RenderTarget2D? GetBoundRenderTarget()
+        {
+            var count = GraphicsDevice.RenderTargetCount;
+            if (count == 0)
+                return null;
+            if (count > 1)
+                throw new NotSupportedException("DrawToCurrentTarget needs a single bound render target, not " + count + ".");
+
+            GraphicsDevice.GetRenderTargets(_boundRenderTarget);
+            var renderTarget = _boundRenderTarget[0].RenderTarget as RenderTarget2D
+                ?? throw new NotSupportedException("DrawToCurrentTarget supports a RenderTarget2D, not a cube or 3D target.");
+            _boundRenderTarget[0] = default;
+            return renderTarget;
+        }
+
         public override void Dispose()
         {
+            if (_grContext != null)
+                DisposeDirectTargets();
             _grContext?.Dispose();
         }
     }

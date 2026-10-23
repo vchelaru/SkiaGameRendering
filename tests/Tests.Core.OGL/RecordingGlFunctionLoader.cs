@@ -30,6 +30,9 @@ internal sealed class RecordingGlFunctionLoader : IGlFunctionLoader
     public static string Call(string name, params int[] args) =>
         $"{name}({string.Join(", ", args.Select(FormatArgument))})";
 
+    /// <summary>What glGetFramebufferAttachmentParameteriv answers, by pname. Unlisted pnames answer 0.</summary>
+    public Dictionary<int, int> AttachmentParameters { get; } = new();
+
     /// <summary>Entry points to report as absent, the way a driver without them would.</summary>
     public HashSet<string> Missing { get; } = new();
 
@@ -122,6 +125,26 @@ internal sealed class RecordingGlFunctionLoader : IGlFunctionLoader
                     Record("glGetString", name);
                     return IntPtr.Zero;
                 });
+
+            case "glGetFramebufferAttachmentParameteriv":
+                return (T)(Delegate)new GlFunctions.GetFramebufferAttachmentParameterDelegate(
+                    (int target, int attachment, int pname, int* data) =>
+                    {
+                        Record("glGetFramebufferAttachmentParameteriv", target, attachment, pname);
+                        *data = AttachmentParameters.TryGetValue(pname, out var value) ? value : 0;
+                    });
+
+            case "glGetRenderbufferParameteriv":
+                return (T)(Delegate)new GlFunctions.GetRenderbufferParameterDelegate((int target, int pname, int* data) =>
+                {
+                    Record("glGetRenderbufferParameteriv", target, pname);
+                    *data = SampleCount;
+                });
+
+            case "glRenderbufferStorageMultisample":
+                return (T)(Delegate)new GlFunctions.RenderbufferStorageMultisampleDelegate(
+                    (target, samples, storage, width, height) =>
+                        Record("glRenderbufferStorageMultisample", (int)target, samples, (int)storage, width, height));
 
             default:
                 throw new NotSupportedException(

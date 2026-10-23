@@ -234,4 +234,85 @@ public sealed class GlSkiaSurfaceFactoryTests
             Call("glDeleteRenderbuffers", 1, GeneratedRenderbufferId),
         }, _loader.Calls);
     }
+
+    [Fact]
+    public void QueryDrawTarget_ReadsTheBoundFramebuffersColorAttachment()
+    {
+        _loader.AttachmentParameters[GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE] = GL_RENDERBUFFER;
+        _loader.AttachmentParameters[GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME] = 9;
+
+        var target = GlSkiaSurfaceFactory.QueryDrawTarget(_gl);
+
+        // The recording loader answers every glGetIntegerv with SampleCount, which stands in for the bound FBO.
+        Assert.Equal(new GlDrawTarget(SampleCount, GL_RENDERBUFFER, 9), target);
+        Assert.False(target.IsDefaultFramebuffer);
+        Assert.False(target.IsTexture);
+    }
+
+    /// <summary>
+    /// A multisampled engine target draws into a renderbuffer that the engine resolves into its texture
+    /// when the target is unbound. Skia has to draw into that renderbuffer, at its sample count, or the
+    /// resolve overwrites what Skia drew.
+    /// </summary>
+    [Fact]
+    public void CreateAttachmentFramebuffer_ForRenderbuffer_AttachesItWithMatchingDepthStencilSamples()
+    {
+        const int engineRenderbuffer = 9;
+
+        var state = GlSkiaSurfaceFactory.CreateAttachmentFramebuffer(_gl,
+            new GlDrawTarget(5, GL_RENDERBUFFER, engineRenderbuffer), Width, Height, out var samples);
+
+        Assert.Equal(SampleCount, samples);
+        Assert.Equal(GeneratedFramebufferId, state.FramebufferId);
+        Assert.Equal(new[]
+        {
+            Call("glBindRenderbuffer", (int)RenderbufferTarget.Renderbuffer, engineRenderbuffer),
+            Call("glGetRenderbufferParameteriv", (int)RenderbufferTarget.Renderbuffer, GL_RENDERBUFFER_SAMPLES),
+            Call("glBindRenderbuffer", (int)RenderbufferTarget.Renderbuffer, 0),
+
+            Call("glGenRenderbuffers", 1),
+            Call("glBindRenderbuffer", (int)RenderbufferTarget.Renderbuffer, GeneratedRenderbufferId),
+            Call("glRenderbufferStorageMultisample", (int)RenderbufferTarget.Renderbuffer, SampleCount,
+                (int)RenderbufferStorage.Depth24Stencil8, Width, Height),
+            Call("glBindRenderbuffer", (int)RenderbufferTarget.Renderbuffer, 0),
+
+            Call("glGenFramebuffers", 1),
+            Call("glBindFramebuffer", (int)FramebufferTarget.Framebuffer, GeneratedFramebufferId),
+            Call("glFramebufferRenderbuffer", (int)FramebufferTarget.Framebuffer,
+                (int)FramebufferAttachment.ColorAttachment0, (int)RenderbufferTarget.Renderbuffer, engineRenderbuffer),
+            Call("glFramebufferRenderbuffer", (int)FramebufferTarget.Framebuffer,
+                (int)FramebufferAttachment.DepthAttachment, (int)RenderbufferTarget.Renderbuffer, GeneratedRenderbufferId),
+            Call("glFramebufferRenderbuffer", (int)FramebufferTarget.Framebuffer,
+                (int)FramebufferAttachment.StencilAttachment, (int)RenderbufferTarget.Renderbuffer, GeneratedRenderbufferId),
+
+            Call("glCheckFramebufferStatus", (int)FramebufferTarget.Framebuffer),
+            Call("glBindFramebuffer", (int)FramebufferTarget.Framebuffer, 0),
+        }, _loader.Calls);
+    }
+
+    [Fact]
+    public void CreateAttachmentFramebuffer_ForTexture_IsSingleSampled()
+    {
+        GlSkiaSurfaceFactory.CreateAttachmentFramebuffer(_gl,
+            new GlDrawTarget(5, GL_TEXTURE, TextureId), Width, Height, out var samples);
+
+        Assert.Equal(0, samples);
+        Assert.Contains(Call("glFramebufferTexture2D", (int)FramebufferTarget.Framebuffer,
+            (int)FramebufferAttachment.ColorAttachment0, (int)TextureTarget.Texture2D, TextureId, 0), _loader.Calls);
+        Assert.Contains(Call("glRenderbufferStorage", (int)RenderbufferTarget.Renderbuffer,
+            (int)RenderbufferStorage.Depth24Stencil8, Width, Height), _loader.Calls);
+    }
+
+    [Fact]
+    public void CreateAttachmentFramebuffer_WhenIncomplete_DeletesWhatItMadeAndThrows()
+    {
+        _loader.Status = FramebufferErrorCode.FramebufferUnsupported;
+
+        Assert.Throws<InvalidOperationException>(() => GlSkiaSurfaceFactory.CreateAttachmentFramebuffer(_gl,
+            new GlDrawTarget(5, GL_TEXTURE, TextureId), Width, Height, out _));
+
+        Assert.Contains(Call("glDeleteFramebuffers", 1, GeneratedFramebufferId), _loader.Calls);
+        Assert.Contains(Call("glDeleteRenderbuffers", 1, GeneratedRenderbufferId), _loader.Calls);
+        Assert.Equal(0, _loader.BoundFramebuffer);
+    }
 }
