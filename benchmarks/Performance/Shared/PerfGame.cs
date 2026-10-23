@@ -57,6 +57,9 @@ namespace Performance
         private string? _skipReason;
         private int _preparedEntry = -1;
 
+        /// <summary>True once every entry has been measured and the results written.</summary>
+        public bool Finished { get; private set; }
+
         private enum Phase { Warmup, Measure, Screenshot }
 
         protected PerfGame(string label, string[] args)
@@ -155,7 +158,7 @@ namespace Performance
 
             if (screenshot)
             {
-                if (_screenshots)
+                if (_screenshots && PerfEnvironment.Screenshots)
                     SaveScreenshot(entry);
                 NextEntry();
             }
@@ -211,7 +214,10 @@ namespace Performance
             if (_entryIndex >= _entries.Length)
             {
                 WriteResults();
-                Exit();
+                Finished = true;
+                // A page has no process to end; it reads Finished.
+                if (PerfEnvironment.Publish == null)
+                    Exit();
                 return;
             }
             _phase = Phase.Warmup;
@@ -257,20 +263,27 @@ namespace Performance
         protected abstract string GpuDescription { get; }
 
         /// <summary>Writes the results. Desktop apps write a markdown file next to the exe; platforms without a file system override this.</summary>
-        protected virtual void PublishResults(string fileName, string markdown) =>
-            File.WriteAllText(Path.Combine(AppContext.BaseDirectory, fileName), markdown);
+        protected virtual void PublishResults(string fileName, string markdown)
+        {
+            if (PerfEnvironment.Publish != null)
+                PerfEnvironment.Publish(fileName, markdown);
+            else
+                File.WriteAllText(Path.Combine(AppContext.BaseDirectory, fileName), markdown);
+        }
 
         private void WriteResults()
         {
+            var machine = PerfEnvironment.Machine?.Invoke()
+                ?? new MachineDescription(MachineInfo.Os, MachineInfo.Cpu, MachineInfo.Power, MachineInfo.Commit);
             var sb = new StringBuilder();
             sb.AppendLine($"# {_label}");
             sb.AppendLine();
             sb.AppendLine($"- Date: {DateTime.Now:yyyy-MM-dd}");
-            sb.AppendLine($"- Commit: {MachineInfo.Commit}");
-            sb.AppendLine($"- OS: {MachineInfo.Os}");
-            sb.AppendLine($"- CPU: {MachineInfo.Cpu}");
+            sb.AppendLine($"- Commit: {machine.Commit}");
+            sb.AppendLine($"- OS: {machine.Os}");
+            sb.AppendLine($"- CPU: {machine.Cpu}");
             sb.AppendLine($"- GPU: {GpuDescription}");
-            sb.AppendLine($"- Power: {MachineInfo.Power}");
+            sb.AppendLine($"- Power: {machine.Power}");
             sb.AppendLine($"- Window: {Width}x{Height}, vsync off, {MeasureSeconds:0}s measured per entry after {WarmupSeconds:0}s warmup");
             sb.AppendLine();
             sb.AppendLine("| Page | Scene | Count | Kind | Renderer | FPS | Median frame ms | p95 frame ms | Median draw CPU ms | Note |");

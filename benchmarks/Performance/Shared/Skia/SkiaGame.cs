@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using SkiaGameRendering;
+using SkiaSharp;
 
 namespace Performance
 {
@@ -19,6 +20,7 @@ namespace Performance
         public const string TargetLabel = "Skia render target";
         public const string DirectLabel = "Skia direct";
         public const string PreRasterizedSuffix = " (pre-rasterized SVG)";
+        public const string DrawImageSuffix = " (DrawImage per sprite)";
 
         private SkiaRenderTarget2D _target = null!;
         private SkiaDirectCanvas? _direct;
@@ -50,13 +52,19 @@ namespace Performance
                 yield return new PerfEntry(scene, "skia", TargetLabel + PreRasterizedSuffix);
                 yield return new PerfEntry(scene, "skia", DirectLabel + PreRasterizedSuffix);
             }
+            else if (scene.Kind == SceneKind.Sprites)
+            {
+                yield return new PerfEntry(scene, "skia", DirectLabel + DrawImageSuffix);
+            }
         }
 
         protected override void DrawEntry(PerfEntry entry, float t)
         {
             GraphicsDevice.Clear(Color.Black);
 
-            bool preRasterized = entry.Renderer.EndsWith(PreRasterizedSuffix);
+            var variant = entry.Renderer.EndsWith(PreRasterizedSuffix) ? SkiaVariant.PreRasterizedSvg
+                : entry.Renderer.EndsWith(DrawImageSuffix) ? SkiaVariant.DrawImage
+                : SkiaVariant.Default;
             if (entry.Renderer.StartsWith(DirectLabel))
             {
                 if (_direct == null)
@@ -65,8 +73,8 @@ namespace Performance
                 _direct.Begin();
                 try
                 {
-                    _drawer.Prepare(SkiaRenderer.CurrentBackend!.GRContext!, entry.Scene);
-                    _drawer.Draw(_direct.Canvas, entry.Scene, t, preRasterized);
+                    _drawer.Prepare(ContextOf(_direct.Canvas), entry.Scene);
+                    _drawer.Draw(_direct.Canvas, entry.Scene, t, variant);
                 }
                 finally
                 {
@@ -79,8 +87,8 @@ namespace Performance
                 try
                 {
                     // Uploads need Skia's GPU context current, which it only is between Begin and End.
-                    _drawer.Prepare(SkiaRenderer.CurrentBackend!.GRContext!, entry.Scene);
-                    _drawer.Draw(_target.Canvas, entry.Scene, t, preRasterized);
+                    _drawer.Prepare(ContextOf(_target.Canvas), entry.Scene);
+                    _drawer.Draw(_target.Canvas, entry.Scene, t, variant);
                 }
                 finally
                 {
@@ -88,6 +96,10 @@ namespace Performance
                 }
             }
         }
+
+        // The context the canvas draws on: the browser backend uses a different one for each mode.
+        private static GRContext ContextOf(SKCanvas canvas) =>
+            canvas.Context as GRContext ?? SkiaRenderer.CurrentBackend!.GRContext!;
 
         protected override string GpuDescription => GpuInfo.Query(GraphicsDevice);
 

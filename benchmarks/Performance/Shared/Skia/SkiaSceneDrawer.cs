@@ -10,6 +10,16 @@ namespace Performance
     /// It draws onto whatever canvas it is handed, so the same code runs under a
     /// <c>SkiaRenderTarget2D</c> and under a <c>SkiaDirectCanvas</c>.
     /// </summary>
+    public enum SkiaVariant
+    {
+        /// <summary>The recommended path for the scene.</summary>
+        Default,
+        /// <summary>The SVG scene draws a bitmap rasterized once instead of replaying the vectors.</summary>
+        PreRasterizedSvg,
+        /// <summary>The sprite scenes draw one DrawImage per sprite instead of one DrawAtlas.</summary>
+        DrawImage,
+    }
+
     public sealed class SkiaSceneDrawer : IDisposable
     {
         private const float ShadowBlur = 12f;
@@ -19,6 +29,7 @@ namespace Performance
         private readonly SKPaint _paint = new() { IsAntialias = true };
         private readonly SKImage[] _rasterImages;
         private SKImage[]? _gpuImages;
+        private GRContext? _imageContext;
         private readonly SKTypeface _typeface;
         private readonly Dictionary<int, SKFont> _fonts = new();
         private readonly SKSvg _svg = new();
@@ -37,6 +48,7 @@ namespace Performance
         private SKColor[] _tintColors = Array.Empty<SKColor>();
 
         private SKShader[]? _gradients;
+        private SKColorFilter[]? _tintFilters;
         private PerfScene? _preparedScene;
 
         public SkiaSceneDrawer()
@@ -78,6 +90,19 @@ namespace Performance
         /// </summary>
         public void Prepare(GRContext context, PerfScene scene)
         {
+            // GPU images belong to one Skia context. Most platforms draw both modes on one; the browser's render
+            // target and direct modes use two, so the images are uploaded again when the context changes.
+            if (!ReferenceEquals(_imageContext, context))
+            {
+                if (_gpuImages != null)
+                    foreach (var image in _gpuImages)
+                        image.Dispose();
+                _gpuImages = null;
+                _svgImage?.Dispose();
+                _svgImage = null;
+                _imageContext = context;
+            }
+
             if (scene.Kind == SceneKind.Svg && _svgImage == null)
             {
                 // Rasterized once on the CPU, so the SVG is not replayed as vectors in the measured frames.
@@ -175,11 +200,11 @@ namespace Performance
             return new SKColor(c.R, c.G, c.B);
         }
 
-        public void Draw(SKCanvas canvas, PerfScene scene, float t, bool preRasterized = false)
+        public void Draw(SKCanvas canvas, PerfScene scene, float t, SkiaVariant variant = SkiaVariant.Default)
         {
             switch (scene.Kind)
             {
-                case SceneKind.Sprites: DrawSprites(canvas, scene, t); break;
+                case SceneKind.Sprites: DrawSprites(canvas, scene, t, variant == SkiaVariant.DrawImage); break;
                 case SceneKind.MultiTexture: DrawMultiTexture(canvas, scene, t); break;
                 case SceneKind.Circles: DrawCircles(canvas, scene, t); break;
                 case SceneKind.Shapes: DrawShapes(canvas, scene, t); break;
@@ -187,7 +212,7 @@ namespace Performance
                 case SceneKind.Shadows: DrawShadows(canvas, scene, t); break;
                 case SceneKind.TextSingle: DrawText(canvas, scene, t, mixed: false); break;
                 case SceneKind.TextMixed: DrawText(canvas, scene, t, mixed: true); break;
-                case SceneKind.Svg: DrawSvgs(canvas, scene, t, preRasterized); break;
+                case SceneKind.Svg: DrawSvgs(canvas, scene, t, variant == SkiaVariant.PreRasterizedSvg); break;
                 case SceneKind.FillOpaque: DrawFill(canvas, scene, t, translucent: false); break;
                 case SceneKind.FillTranslucent: DrawFill(canvas, scene, t, translucent: true); break;
                 case SceneKind.Ui: DrawUi(canvas, scene, t); break;
@@ -195,10 +220,32 @@ namespace Performance
             }
         }
 
-        private void DrawSprites(SKCanvas canvas, PerfScene scene, float t)
+        private void DrawSprites(SKCanvas canvas, PerfScene scene, float t, bool drawImage)
         {
             if (scene.Count == 0)
                 return;
+
+            if (drawImage)
+            {
+                // One DrawImage per sprite, tinted with a pre-built color filter per palette entry.
+                _tintFilters ??= Array.ConvertAll(PerfScene.TintPalette,
+                    c => SKColorFilter.CreateBlendMode(new SKColor(c.R, c.G, c.B, c.A), SKBlendMode.Modulate));
+                float centre = PerfAssets.Size / 2f;
+                for (int i = 0; i < scene.Items.Length; i++)
+                {
+                    var pos = scene.Position(i, t);
+                    float scale = scene.Items[i].Size * 2f / PerfAssets.Size;
+                    canvas.Save();
+                    canvas.Translate(pos.X, pos.Y);
+                    canvas.RotateRadians(scene.Rotation(i, t));
+                    canvas.Scale(scale, scale);
+                    _paint.ColorFilter = scene.Tinted ? _tintFilters[i % _tintFilters.Length] : null;
+                    canvas.DrawImage(_gpuImages![0], -centre, -centre, Linear, _paint);
+                    canvas.Restore();
+                }
+                _paint.ColorFilter = null;
+                return;
+            }
 
             float half = PerfAssets.Size / 2f;
             var items = scene.Items;
@@ -451,6 +498,9 @@ namespace Performance
             if (_gradients != null)
                 foreach (var shader in _gradients)
                     shader.Dispose();
+            if (_tintFilters != null)
+                foreach (var filter in _tintFilters)
+                    filter.Dispose();
             _svgImage?.Dispose();
             if (_gpuImages != null)
                 foreach (var image in _gpuImages)

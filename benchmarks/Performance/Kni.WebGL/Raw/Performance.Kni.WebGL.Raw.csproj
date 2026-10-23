@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <Import Project="..\..\..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <KniPlatform>BlazorGL</KniPlatform>
+    <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
+    <RootNamespace>Performance</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="nkast.Kni.Platform.Blazor.GL" Version="$(KniVersion)" />
+    <PackageReference Include="Apos.Shapes.KNI" Version="0.8.6" />
+    <PackageReference Include="FontStashSharp.Kni" Version="1.6.2" />
+    <PackageReference Include="StbTrueTypeSharp" Version="1.26.13" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.27" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.27" PrivateAssets="all" />
+  </ItemGroup>
+  <!-- The Raw and Skia apps share the scenes and the loop; Raw adds the engine-side drawing (SpriteBatch, Apos.Shapes, fonts). -->
+  <Import Project="..\..\Shared\Performance.Shared.props" />
+  <ItemGroup>
+    <Compile Include="..\..\Shared\Engine\*.cs" Link="Shared\Engine\%(Filename)%(Extension)" />
+    <Compile Include="..\GpuInfo.cs" Link="GpuInfo.cs" />
+    <Compile Include="..\PerfPage.cs" Link="PerfPage.cs" />
+  </ItemGroup>
+</Project>
