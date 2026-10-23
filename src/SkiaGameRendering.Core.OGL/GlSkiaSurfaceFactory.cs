@@ -69,6 +69,135 @@ namespace SkiaGameRendering.Core.OGL
             return new GlFramebufferState { FramebufferId = framebufferId, RenderbufferId = renderbufferId };
         }
 
+        /// <summary>
+        /// What the current context is drawing into: the default framebuffer, or the color attachment
+        /// of the bound FBO. Call it on the engine's context. FBOs are not shared between contexts but
+        /// textures and renderbuffers are, so this is what lets a second context draw into the same target.
+        /// </summary>
+        public static GlDrawTarget QueryDrawTarget(GlFunctions gl)
+        {
+            gl.GetInteger(GL_DRAW_FRAMEBUFFER_BINDING, out var framebufferId);
+            if (framebufferId == 0)
+                return default;
+
+            var type = gl.GetFramebufferAttachmentParameter(
+                GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+            var name = gl.GetFramebufferAttachmentParameter(
+                GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+            return new GlDrawTarget(framebufferId, type, name);
+        }
+
+        /// <summary>
+        /// Wraps the default framebuffer (the window's back buffer) of the current context. Its sample
+        /// count and stencil bits come from the window's pixel format, and row 0 is the bottom, so the
+        /// surface uses <see cref="GRSurfaceOrigin.BottomLeft"/>.
+        /// </summary>
+        public static (SKSurface surface, GRBackendRenderTarget renderTarget) CreateDefaultFramebufferSurface(
+            GRContext grContext, GlFunctions gl, int width, int height, SKColorType colorType)
+        {
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            gl.GetInteger(GL_SAMPLES, out var samples);
+            // Not valid on a core-profile context, where it leaves the value at 0. Skia then avoids stencil.
+            gl.GetInteger(GL_STENCIL_BITS, out var stencilBits);
+
+            var framebufferInfo = new GRGlFramebufferInfo(0, colorType.ToGlSizedFormat());
+            var backendRenderTarget = new GRBackendRenderTarget(width, height, samples, stencilBits, framebufferInfo);
+            var surface = SKSurface.Create(grContext, backendRenderTarget, GRSurfaceOrigin.BottomLeft, colorType);
+            if (surface == null)
+            {
+                backendRenderTarget.Dispose();
+                throw new InvalidOperationException("Skia could not wrap the default framebuffer.");
+            }
+
+            return (surface, backendRenderTarget);
+        }
+
+        /// <summary>
+        /// Builds an FBO on the current (Skia) context around <paramref name="target"/>'s color
+        /// attachment, a texture or a multisampled renderbuffer owned by another context, plus a
+        /// depth/stencil renderbuffer with the same sample count, and wraps it in a Skia surface.
+        /// Rows run top-down, the same as <see cref="CreateSurface"/>.
+        /// </summary>
+        public static (SKSurface surface, GRBackendRenderTarget renderTarget) CreateAttachmentSurface(
+            GRContext grContext, GlFunctions gl, GlDrawTarget target, int width, int height, SKColorType colorType,
+            out GlFramebufferState framebufferState)
+        {
+            framebufferState = CreateAttachmentFramebuffer(gl, target, width, height, out var samples);
+
+            var framebufferInfo = new GRGlFramebufferInfo((uint)framebufferState.FramebufferId, colorType.ToGlSizedFormat());
+            var backendRenderTarget = new GRBackendRenderTarget(width, height, samples, 8, framebufferInfo);
+            var surface = SKSurface.Create(grContext, backendRenderTarget, GRSurfaceOrigin.TopLeft, colorType);
+            if (surface == null)
+            {
+                backendRenderTarget.Dispose();
+                DisposeRenderState(gl, framebufferState);
+                throw new InvalidOperationException("Skia could not wrap the render target's framebuffer.");
+            }
+
+            return (surface, backendRenderTarget);
+        }
+
+        internal static GlFramebufferState CreateAttachmentFramebuffer(GlFunctions gl, GlDrawTarget target,
+            int width, int height, out int samples)
+        {
+            samples = 0;
+            if (target.AttachmentType == GL_RENDERBUFFER)
+            {
+                gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, target.AttachmentName);
+                samples = gl.GetRenderbufferParameter(GL_RENDERBUFFER_SAMPLES);
+                gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
+            }
+            else if (target.AttachmentType != GL_TEXTURE)
+            {
+                throw new NotSupportedException(
+                    $"The bound framebuffer's color attachment is GL object type 0x{target.AttachmentType:X4}, " +
+                    "not a texture or renderbuffer.");
+            }
+
+            gl.GenRenderbuffers(1, out var renderbufferId);
+            gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, renderbufferId);
+            if (samples > 0)
+            {
+                var storageMultisample = gl.RenderbufferStorageMultisample
+                    ?? throw new NotSupportedException("The GL driver lacks glRenderbufferStorageMultisample.");
+                storageMultisample(RenderbufferTarget.Renderbuffer, samples, RenderbufferStorage.Depth24Stencil8, width, height);
+            }
+            else
+            {
+                gl.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, width, height);
+            }
+            gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
+
+            gl.GenFramebuffers(1, out var framebufferId);
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, framebufferId);
+
+            if (target.AttachmentType == GL_RENDERBUFFER)
+                gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
+                    FramebufferAttachment.ColorAttachment0, RenderbufferTarget.Renderbuffer, target.AttachmentName);
+            else
+                gl.FramebufferTexture2D(FramebufferTarget.Framebuffer,
+                    FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, target.AttachmentName, 0);
+            gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
+                FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, renderbufferId);
+            gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
+                FramebufferAttachment.StencilAttachment, RenderbufferTarget.Renderbuffer, renderbufferId);
+
+            var state = new GlFramebufferState { FramebufferId = framebufferId, RenderbufferId = renderbufferId };
+            var framebufferStatus = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            if (framebufferStatus != FramebufferErrorCode.FramebufferComplete)
+            {
+                DisposeRenderState(gl, state);
+                throw new InvalidOperationException(
+                    $"Skia framebuffer creation failed for the render target (status 0x{(int)framebufferStatus:X4}).");
+            }
+
+            return state;
+        }
+
+        /// <summary>glFlush on the current context.</summary>
+        public static void Flush(GlFunctions gl) => gl.Flush();
+
         public static void BindForDrawing(GlFunctions gl, GlFramebufferState state)
         {
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, state.FramebufferId);

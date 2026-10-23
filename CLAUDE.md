@@ -64,6 +64,10 @@ it to render, and comparing a screenshot's pixels against the expected value; ki
 done. Prefer a small standalone verification app over the full interactive sample when one exists,
 since a sample's camera/controls/gameplay still need a human's subjective judgment. For anything
 needing that subjective read, keep to build-and-test and give the user numbered manual steps instead.
+Launched verification and benchmark apps run hidden or in a small window, never fullscreen and never
+taking focus. A MonoGame game driven by `RunOneFrame` in a loop never shows its window, yet its back
+buffer still renders at full size (`benchmarks/Benchmarks.DirectDraw.DesktopGL`); a hidden window is
+never active, so set `InactiveSleepTime` to zero or every frame sleeps 20 ms.
 
 ## Releasing
 

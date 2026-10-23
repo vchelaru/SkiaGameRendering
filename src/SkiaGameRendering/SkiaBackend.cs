@@ -50,6 +50,15 @@ namespace SkiaGameRendering
             }
         }
 
+        /// <summary>See <see cref="SkiaRenderer.SupportsDrawToCurrentTarget"/>.</summary>
+        internal virtual bool SupportsDrawToCurrentTarget => false;
+
+        /// <summary>See <see cref="SkiaRenderer.DrawToCurrentTarget"/>.</summary>
+        internal virtual void DrawToCurrentTarget(Action<SKCanvas> draw) =>
+            throw new NotSupportedException(
+                $"{GetType().Name} cannot draw straight into the engine's current target. " +
+                "Draw into a SkiaRenderTarget2D instead.");
+
         /// <summary>
         /// Disposes a texture this backend created, for a backend that has to repair engine state afterward.
         /// </summary>
