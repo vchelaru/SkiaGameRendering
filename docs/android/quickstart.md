@@ -54,13 +54,18 @@ Run with `Sample.Kni.Android`'s smoke test
 | Motorola Edge 2025 | 16 (API 36) | Mali-G615 | 3.2 | Pass, surfaceless |
 | Treble GSI on a low-end phone | 12L (API 32) | PowerVR Rogue GE8300 | 3.2 | Pass, surfaceless |
 | Emulator, x86_64 image, `-gpu host` | 15 (API 35) | Host GPU through the emulator's GLES translator | 3.1 | Pass, surfaceless |
+| CI emulator, Pixel 6 x86_64 image, `-gpu swiftshader_indirect` | 15 (API 35) | SwiftShader (software) | 3 | Pass, surfaceless |
 
 The smoke test also checks `SkiaDirectCanvas` on the back buffer, a plain render target and a 4x MSAA
 one (`tests/Shared/DirectDrawLayering.cs`), logging each result under `SkiaSample`. Those checks
-came after the two phones above were tested, so only the emulator has run them.
+came after the two phones above were tested, so only the emulators have run them. CI's `android` job
+runs the whole smoke test, 4x MSAA included, on the SwiftShader emulator on every PR.
 
-To run on an emulator, build with `<RuntimeIdentifiers>android-x64</RuntimeIdentifiers>` edited into
-the csproj. Passing it with `-p:` also reaches the `net8.0` library references and fails the build.
+To run on an emulator, build with `-p:EmulatorRuntime=true`, which adds `android-x64`. Passing
+`RuntimeIdentifiers` itself with `-p:` also reaches the `net8.0` library references and fails the
+build. `eng/run-android-smoke-test.sh <apk>` installs and runs the smoke test on the connected device
+and exits non-zero on a failed check, a crash, or a timeout. The smoke test reads the back buffer at
+(400, 400), so the screen must be wider than that; the emulator's default AVD is not.
 
 Not verified: GLES 3.0-only drivers, devices that reject a surfaceless context (the fallback path
 is untested), 32-bit ARM, rotation, `SkiaDirectCanvas` after a HOME-and-resume, and the sample's

@@ -21,6 +21,11 @@ result=""
 while (( SECONDS < deadline )); do
   result=$(adb logcat -d -s SkiaSample | grep -o "Exit code [0-9-]*" || true)
   [[ -n $result ]] && break
+  if adb logcat -d -b crash | grep -q "Process: $package"; then
+    adb logcat -d -b crash
+    echo "The app crashed."
+    exit 1
+  fi
   sleep 2
 done
 
