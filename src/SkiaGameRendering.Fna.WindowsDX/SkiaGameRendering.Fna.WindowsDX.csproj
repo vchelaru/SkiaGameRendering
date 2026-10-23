@@ -35,7 +35,7 @@
   <ItemGroup>
     <Compile Include="..\SkiaGameRendering.Fna\Fna3dSysRenderer.cs" Link="Fna3dSysRenderer.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />
-    <Compile Include="..\SkiaGameRendering\SkiaSharedAngleBackend.cs" Link="SkiaSharedAngleBackend.cs" />
+    <Compile Include="..\SkiaGameRendering.WindowsDX\SkiaSharedAngleBackend.cs" Link="SkiaSharedAngleBackend.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaRenderer.cs" Link="SkiaRenderer.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="SkiaRenderTarget2D.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaDirectCanvas.cs" Link="SkiaDirectCanvas.cs" />

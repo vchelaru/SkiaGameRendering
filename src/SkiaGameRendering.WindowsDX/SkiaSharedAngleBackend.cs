@@ -8,8 +8,8 @@ namespace SkiaGameRendering
     /// The part every D3D11 backend that draws through ANGLE on the engine's own device has in common:
     /// MonoGame WindowsDX, KNI WindowsDX and FNA's D3D11 driver. A subclass supplies the engine's device,
     /// where the engine keeps a texture's D3D11 resource, and which render target it has bound. The
-    /// interop itself lives in <see cref="AngleSkiaSurfaceFactory"/>. Linked as source into each of those
-    /// projects, like <see cref="SkiaBackend"/>.
+    /// interop itself lives in <see cref="AngleSkiaSurfaceFactory"/>. Lives in the MonoGame WindowsDX
+    /// project and is linked as source into the KNI and FNA ones.
     /// </summary>
     public abstract class SkiaSharedAngleBackend : SkiaBackend
     {
