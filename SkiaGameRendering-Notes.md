@@ -212,6 +212,8 @@ Everything above (`AngleEgl`, the surface/texture-state factory, the `SwapDevice
 
 `AngleSkiaSurfaceFactory.BeginDirectDraw` reads the engine's bound render target view off the shared immediate context (`OMGetRenderTargets`), so no engine needs reflection to find its swap chain buffer; FNA3D's own back buffer texture comes out the same way. The texture is wrapped as a pbuffer for that one pass and released at the end, because DXGI's `ResizeBuffers` fails while anything holds a swap chain buffer. For the same reason the pass unbinds ANGLE's render target from ANGLE's swapped-out state before swapping back. A multisampled texture needs an EGL config with the same sample count, or ANGLE refuses it. No `glFinish` or `glFlush` at the end: ANGLE and the engine share one immediate context, so the engine's later draws already queue behind Skia's.
 
+ANGLE wraps the texture in the texture's own format, so the texture's format, not the bound view's, decides whether Skia's writes get sRGB-encoded. An sRGB view of a UNORM texture is accepted and drawn unencoded; an sRGB-typed texture is refused. Stride needs the first: inside its compositor, in its default Linear color space, the bound target is the flip-model swap chain buffer (`R8G8B8A8_UNORM`) through an `R8G8B8A8_UNORM_SRGB` view (measured in `Sample.Stride.D3D11`). Stride's D3D11 `CommandList` issues straight on the immediate context and binds render targets eagerly, so its cached state stays true across a pass: the context-state swap hands every binding back unchanged.
+
 ---
 
 ## 8. WebGL / KNI (Blazor WebAssembly)

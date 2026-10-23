@@ -42,7 +42,7 @@ using Stride.Engine;
 
 using var game = new Game();
 
-SkiaStrideRenderTarget2D? canvas = null;
+SkiaStrideDirectCanvas? canvas = null;
 var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
 
 // Not game.Run(...): Stride.Games.GameBase already declares an instance Run(GameContext) method,
@@ -54,15 +54,12 @@ void Start(Scene rootScene)
 {
     game.SetupBase3DScene();
 
-    var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
-    canvas = new SkiaStrideRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
+    // Draws straight into the back buffer. To draw into a texture and composite it instead, set
+    // Canvas to a SkiaStrideRenderTarget2D sized to the back buffer and clear it in SkiaDraw.
+    canvas = new SkiaStrideDirectCanvas(game.GraphicsDevice);
 
-    var renderer = new SkiaStrideSceneRenderer { Canvas = canvas };
-    renderer.SkiaDraw += skCanvas =>
-    {
-        skCanvas.Clear(SKColors.Transparent);
-        skCanvas.DrawCircle(100, 100, 100, paint);
-    };
+    var renderer = new SkiaStrideSceneRenderer { DirectCanvas = canvas };
+    renderer.SkiaDraw += skCanvas => skCanvas.DrawCircle(100, 100, 100, paint);
     game.AddSceneRenderer(renderer); // draws on top of the 3D scene, every frame
 }
 
