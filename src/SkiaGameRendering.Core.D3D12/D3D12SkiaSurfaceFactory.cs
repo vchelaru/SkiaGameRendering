@@ -340,6 +340,8 @@ namespace SkiaGameRendering.Core.D3D12
         // submits at EndDirectDraw, so anything the engine recorded earlier has to be submitted before
         // BeginDirectDraw for it to land underneath Skia's pixels.
 
+#if NET8_0_OR_GREATER
+        // Reads the resource's descriptor through D3D12Com, which the netstandard2.1 (Unity) build leaves out.
         /// <summary>
         /// Checks that <paramref name="resource"/> is something Skia can draw into directly, and says what it
         /// is. Throws <see cref="NotSupportedException"/> for a resource that is not a single-sample 2D texture
@@ -385,6 +387,7 @@ namespace SkiaGameRendering.Core.D3D12
 
             return new D3D12DirectTarget(resource, desc.Format, expectedWidth, expectedHeight, colorType);
         }
+#endif
 
         /// <summary>
         /// Starts a pass that draws into the resource <paramref name="target"/> describes, which the host has
