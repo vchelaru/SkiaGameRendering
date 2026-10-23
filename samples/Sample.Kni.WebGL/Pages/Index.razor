@@ -9,6 +9,12 @@
     <canvas id="theCanvas" tabindex="0" aria-label="Skia KNI WebGL sample"></canvas>
     <aside id="diagnostics" aria-live="polite">
         <span id="diagnostic-text">@_status</span>
+        <select id="draw-mode" aria-label="Draw mode">
+            <option value="texture">SkiaRenderTarget2D</option>
+            <option value="direct">SkiaDirectCanvas</option>
+            <option value="scene">SkiaDirectCanvas, Scene only</option>
+        </select>
+        <button id="recreate" type="button">Recreate backend</button>
         <select id="upload-mode" aria-label="Upload path">
             <option value="sub">texSubImage2D</option>
             <option value="image">texImage2D diagnostic</option>

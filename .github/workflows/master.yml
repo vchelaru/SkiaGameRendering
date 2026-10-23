@@ -480,6 +480,21 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      # sdkmanager exits 0 when the system image arrives as a corrupt zip ("Error on ZipFile unknown
+      # archive"), so success is the image file existing, not the exit code. The emulator action below
+      # then finds the image installed and skips its own download.
+      - name: Install the emulator system image
+        run: |
+          image="$ANDROID_HOME/system-images/android-35/google_apis/x86_64/system.img"
+          for attempt in 1 2 3; do
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'system-images;android-35;google_apis;x86_64' > /dev/null || true
+            [ -f "$image" ] && exit 0
+            echo "System image missing after attempt $attempt; retrying."
+            rm -rf "$ANDROID_HOME/system-images"
+            sleep 10
+          done
+          echo "The system image never installed." >&2
+          exit 1
       - name: Run the smoke test on an emulator
         uses: reactivecircus/android-emulator-runner@v2.38.0
         with:

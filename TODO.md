@@ -13,7 +13,7 @@ This document tracks which framework/platform/backend combinations have been pro
 | KNI             | 4.3.9001 (stock) | DesktopGL | Desktop  | samples/Sample.Kni.DesktopGL/ | Working | See `docs/desktop/quickstart.md`. Cross-platform (Windows, Linux, macOS). |
 | KNI             | 4.3.9001 (stock) | WindowsDX | Desktop  | samples/Sample.Kni.WindowsDX/ | Working | See `docs/desktop/quickstart.md`. Windows only. |
 | KNI             | 4.3.9001 (stock) | GLES | Android | samples/Sample.Kni.Android/ | Working (2 devices) | See `docs/android/quickstart.md`. Verified on a Mali-G615 phone (Android 16) and a PowerVR GE8300 phone (Android 12L), both GLES 3.2 and surfaceless. Unverified: GLES 3.0-only drivers, the host-surface fallback, 32-bit ARM, rotation. CI builds it only. |
-| KNI             | 4.3.9001 (stock) | WebGL2 | Web | samples/Sample.Kni.WebGL/ | Working (Chrome, Edge); Firefox blocked | See `docs/webgl/quickstart.md`. Chrome/Edge measured Tier 1 on physical hardware; Firefox misses upload budget by 60-300x and needs the Option A (shared-context) fallback — see `docs/webgl/validated-baseline.md` and `docs/webgl/performance-results.md`. Safari (Tier 2) untested, no Mac available. |
+| KNI             | 4.3.9001 (stock) | WebGL2 | Web | samples/Sample.Kni.WebGL/ | Working (Chrome, Edge); `SkiaRenderTarget2D` blocked on Firefox, `SkiaDirectCanvas` works there | See `docs/webgl/quickstart.md`. Chrome/Edge measured Tier 1 on physical hardware; Firefox misses the upload budget by 60-300x for `SkiaRenderTarget2D`, so use `SkiaDirectCanvas` (Option A, shipped: Skia and KNI share KNI's context, state reset by reflection) — see `docs/webgl/validated-baseline.md` and `docs/webgl/performance-results.md`. Safari (Tier 2) untested, no Mac available; local WebKit does not start the sample on Windows, CI's WebKit runs it. |
 | raylib          | 8.0.0 (Raylib-cs) | rlgl (OGL) | Desktop | samples/Sample.Raylib.OGL/ | Working (Windows + Linux) | See `docs/raylib/quickstart.md`. macOS not implemented. |
 | Godot           | 4.7.2 (GodotSharp) | Vulkan (RenderingDevice) | Desktop | samples/Sample.Godot/ | Working (Windows verified, incl. clean `--gpu-validation`; Linux expected, unrun; macOS unsupported: SkiaSharp's macOS build has no Vulkan) | See `docs/godot/quickstart.md`. No reflection: `RenderingDevice.GetDriverResource` is public. Zero-copy. |
 | Godot           | 4.7.2 (GodotSharp) | D3D12 (RenderingDevice) | Desktop (Windows) | samples/Sample.Godot/ | Working (Windows verified) | Same package, chosen at runtime. Not zero-copy: Godot allocates typeless D3D12 textures and Skia's D3D12 backend cannot render into those, so Skia draws into a typed resource and one GPU `CopyResource` per frame lands it in Godot's texture. See `SkiaGameRendering-Notes.md` section 11. |
@@ -32,7 +32,7 @@ which also draw straight into the current target (`SkiaDirectCanvas`, `SkiaStrid
 | Engine | OpenGL / GLES | D3D11 | D3D12 | Vulkan | Metal | WebGL |
 |---|---|---|---|---|---|---|
 | MonoGame | ✅ DesktopGL<br>🟡 Android/iOS | ✅ | ✅ | 🟦 (unpublished) | ❌ | ❌ |
-| KNI | ✅ DesktopGL, Android | ✅ | ❌? | ❌? | ❌ | 🟦 |
+| KNI | ✅ DesktopGL, Android | ✅ | ❌? | ❌? | ❌ | ✅ |
 | FNA | ✅ | ✅ | ❌ | ❌ | ❌ | ❌? |
 | raylib | 🟦 | ❌ | ❌ | ❌ | ❌ | ❌? |
 | Stride | 🟡? | ✅ | ✅ | 🟦 | ❌ | ❌ |
@@ -58,6 +58,9 @@ Shared code to reuse when moving a 🟦 to ✅:
   Skia's, then restore the engine's list state: `D3D12CommandListSplitter` cuts and reopens an engine's open
   command list. Used by `SkiaStrideD3D12Context.BeginDirectDraw` (which uses Stride's own `FlushInternal`) and
   `SkiaDx12Backend` (`MonoGameD3D12Native` finds the target and restores MonoGame's state).
+- WebGL: KNI's `SkiaWebGlBackend` registers KNI's own WebGL2 context with SkiaSharp's Emscripten GL runtime
+  (no second context exists to share objects with), so Skia and KNI drive one context. `KniStateInvalidation`
+  resets KNI's state cache by reflection after each pass. None of that is reusable elsewhere.
 - Vulkan and Metal have no direct-draw code yet.
 
 ## Architecture
@@ -94,7 +97,7 @@ finding is preserved in issue #3's spike comment and carried into `Wgl.cs`'s doc
 
 ## Next Steps
 
-1. ~~Run and archive the hardware benchmark matrix in `benchmarks/Benchmarks.WebGL/`~~ — done, closes [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5). Follow-up: Firefox needs the Option A (shared-context) fallback to reach Tier 1 (see `docs/webgl/validated-baseline.md`); not yet tracked in its own issue.
+1. ~~Run and archive the hardware benchmark matrix in `benchmarks/Benchmarks.WebGL/`~~ — done, closes [issue #5](https://github.com/vchelaru/SkiaGameRendering/issues/5). Follow-up: Firefox needed the Option A (shared-context) fallback; it shipped as `SkiaDirectCanvas` (see `docs/webgl/validated-baseline.md`).
 2. Address the lazy-allocation issue above (ANGLE DLL packaging landed via issue #36).
 3. Split per-graphics-API core libraries out of the per-engine adapters so a new engine (raylib) can reuse the GL/Skia interop instead of duplicating it — tracked in [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3). The OGL split (`src/SkiaGameRendering.Core.OGL/`) landed via [#4](https://github.com/vchelaru/SkiaGameRendering/pull/4), and `src/SkiaGameRendering.Raylib.OGL/` now proves it against a real second (non-MonoGame) engine on both Windows and Linux (`GlxSharedContext`, now in `Core.OGL`, verified under WSLg — tracked in [issue #9](https://github.com/vchelaru/SkiaGameRendering/issues/9)). Issue #3 is not fully closed yet: macOS raylib support is unimplemented, and step 3 (`SkiaAngleBackend` → `Core.ANGLE`, now also reused by `src/SkiaGameRendering.Kni.WindowsDX/`) has landed, leaving step 4 (`SkiaWebGlBackend` → `Core.WebGL`) as the only remaining unmigrated backend.
 4. `src/SkiaGameRendering.Core.VK/` landed via [issue #23](https://github.com/vchelaru/SkiaGameRendering/issues/23) — engine-agnostic Vulkan/Skia interop, no host engine wired up yet. The Stride adapter (reflection into `Stride.Graphics.GraphicsDevice`/`Texture`'s Vulkan internals, plus queue-lock discipline) is the next step, tracked in [issue #54](https://github.com/vchelaru/SkiaGameRendering/issues/54).

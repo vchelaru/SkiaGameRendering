@@ -90,7 +90,7 @@ async function runBenchmark(progressPrefix) {
     }
 
     // Correctness check BEFORE trusting any timing below - same readback check the second spike
-    // used (pure green = InvalidateStateCache defeated the state-cache corruption; anything else
+    // used (pure green = KniStateInvalidation defeated the state-cache corruption; anything else
     // means the harness itself is not proving what it claims to, and the timing numbers below are
     // meaningless regardless of how fast/slow they are.
     dotNetRef.invokeMethod("RunFrame", width, height);
@@ -123,9 +123,9 @@ async function runBenchmark(progressPrefix) {
         timestampUtc: new Date().toISOString(),
         browser: navigator.userAgent,
         platform: navigator.userAgentData?.platform || navigator.platform,
-        architecture: "OptionA-ContextBridge-InvalidateStateCache",
+        architecture: "OptionA-ContextBridge-KniStateInvalidation",
         sequenceMeasuredPerFrame: [
-            "GraphicsDevice.InvalidateStateCache() (patched KNI)",
+            "KniStateInvalidation.Invalidate (reflection on stock KNI)",
             "Skia draw into KNI's shared WebGL2 context: magenta clear + filled AA circle",
             "KNI SpriteBatch full-viewport pure-green quad draw (reused SpriteBatch/Texture2D/BlendState.Opaque)",
         ],

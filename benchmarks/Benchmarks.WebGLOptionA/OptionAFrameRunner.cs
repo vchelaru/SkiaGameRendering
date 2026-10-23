@@ -13,8 +13,7 @@ namespace Benchmarks.WebGLOptionA;
 // Drives the exact 3-step Option A per-frame sequence proven out by the
 // worktree-agent-ab7b0bc9d3444d8d7 / worktree-agent-a366b823b701668f9 spikes (repo issue #12), now
 // wrapped for repeated timing instead of a single proof-of-concept pass:
-//   1. GraphicsDevice.InvalidateStateCache() - the patched KNI call (see Benchmarks.WebGLOptionA.csproj's
-//      ProjectReference comment for where the patch lives).
+//   1. KniStateInvalidation.Invalidate - makes KNI forget its cached GL state (reflection on stock KNI).
 //   2. A Skia draw into KNI's real, shared WebGL2 context (magenta clear + filled AA circle - NOT a
 //      bare Clear(), which the second spike found does not exercise the corruption path).
 //   3. KNI's own next real draw call (a full-viewport pure-green SpriteBatch quad, reusing the exact
@@ -116,7 +115,7 @@ internal sealed class OptionAFrameRunner
         var stopwatch = Stopwatch.StartNew();
 
         _graphicsDevice.Viewport = new Viewport(0, 0, width, height);
-        _graphicsDevice.InvalidateStateCache();
+        KniStateInvalidation.Invalidate(_graphicsDevice);
 
         EnsureSkiaSurface(width, height);
         using (var paint = new SKPaint { Color = new SKColor(0x00, 0x88, 0xFF, 0xFF), IsAntialias = true, Style = SKPaintStyle.Fill })

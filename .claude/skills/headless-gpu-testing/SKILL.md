@@ -245,6 +245,19 @@ xUnit collection that runs after the parallel tests, so other devices can't move
 
 `master.yml`'s `monogame-native-windows` job runs each sample's `--smoke-test` (`samples/Sample.MonoGame.DesktopGL/Game1.cs`) with a per-frame leak check, and under the validation layer: Khronos for Vulkan, and for D3D12 the debug layer `samples/Sample.MonoGame.WindowsDX12/D3D12DebugLayer.cs` turns on (windows-latest has Graphics Tools). **MonoGame's `GetBackBufferData` hangs the next frame on lavapipe**, so the DesktopVK run reads Skia's own surface with `SkiaRenderTarget2D.ReadPixels` mid-draw instead, which leaves the image in `TRANSFER_SRC_OPTIMAL` (a read-back target is only good for the rest of that frame).
 
+## KNI WebGL - Playwright against the samples
+
+`tests/Tests.Kni.WebGL` drives `Sample.Kni.WebGL` and `Sample.Gum.Kni.WebGL` in Chromium (four device pixel
+ratios), Firefox and WebKit, in `master.yml`'s `webgl-functional` job. `tests/direct-layout.js` and
+`scene-direct.spec.js` show the pattern: the sample draws known squares, and the test reads canvas pixels
+inside a `requestAnimationFrame` that runs after the sample's own draw.
+
+- **KNI clears the back buffer on `SetRenderTarget(null)`** (the default `DiscardContents` usage, to purple 68,34,136), so
+  a frame that draws render targets after back-buffer content loses the content. Draw the targets first.
+- **Playwright's Firefox does not launch on the Windows dev box** (`spawn UNKNOWN`) and its WebKit does not start the
+  sample there, so CI is the only Playwright check of those two. Stock Firefox runs the same checks over WebDriver BiDi
+  (`firefox.exe --remote-debugging-port=N -headless`, then `script.evaluate`).
+
 ## Native crashes
 
 **A native crash in the test host leaves a managed stack that stops at the P/Invoke.** The Windows

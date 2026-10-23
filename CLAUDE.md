@@ -111,7 +111,7 @@ sets the real one. To find the last published version of a package, read
   `external/fnalibs/` (see the README.txt there), and the D3D11 adapter depends on the layout of a
   struct inside that `FNA3D.dll` (see the MAINTENANCE NOTES on `SkiaFnaAngleBackend` and `SkiaFnaGlBackend`), so bump the two together.
 - **Engine internals are reached by reflection, not a fork.** See
-  `src/SkiaGameRendering.Kni.WebGL/WebGlCanvasUpload.cs`. A MonoGame or KNI version bump can break
+  `src/SkiaGameRendering.Kni.WebGL/WebGlCanvasUpload.cs` and `KniStateInvalidation.cs`. A MonoGame or KNI version bump can break
   these silently at runtime with no compile error. Every backend has reflection pin tests
   (`tests/Shared/EngineReflectionPin.cs` plus a `*ReflectionTests.cs` in each backend's test
   project) that fail the build on a rename.

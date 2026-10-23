@@ -14,7 +14,8 @@ globalThis.skiaKniSample = (() => {
     function tick() {
         resizeCanvas();
         const diagnosticTexImage = document.getElementById("upload-mode")?.value === "image";
-        const diagnostics = instance.invokeMethod("Tick", canvas.width, canvas.height, diagnosticTexImage);
+        const drawMode = document.getElementById("draw-mode")?.value ?? "texture";
+        const diagnostics = instance.invokeMethod("Tick", canvas.width, canvas.height, diagnosticTexImage, drawMode);
         if (diagnostics)
             document.getElementById("diagnostic-text").textContent = diagnostics;
         frame = requestAnimationFrame(tick);
@@ -31,7 +32,12 @@ globalThis.skiaKniSample = (() => {
         start(dotNetInstance) {
             if (instance) stop();
             instance = dotNetInstance;
+            document.getElementById("recreate")?.addEventListener("click", () => instance?.invokeMethod("Recreate"));
             canvas = document.getElementById("theCanvas");
+            // ?mode=direct (or scene) starts in a SkiaDirectCanvas mode, for the tests.
+            const mode = new URLSearchParams(location.search).get("mode");
+            const select = document.getElementById("draw-mode");
+            if (select && mode) select.value = mode;
             frame = requestAnimationFrame(tick);
         },
         stop,

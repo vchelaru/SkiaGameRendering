@@ -30,7 +30,7 @@ specific reason to skip the ambient path.
 
 | Member | Description |
 | --- | --- |
-| `Diagnostics` | Read-only counters and latest CPU timing for rendering, upload, resize, dropped frames, and context loss. |
+| `Diagnostics` | Read-only counters and latest CPU timing for rendering, upload, resize, dropped frames, and context loss, plus `DirectDrawCount` and `DirectContextLossCount` for `SkiaDirectCanvas`. |
 | `Options` | The `SkiaWebGlOptions` this backend was constructed with — mutate it live (e.g. to toggle `UploadMode`) without reconstructing the backend. |
 | `GRContext` | The Skia GPU context owned by the host. It is available after the host has created its first surface. |
 | `Ready` | Overrides `SkiaBackend.Ready`; forwards to the host's `Ready` (resolves once the browser has created the WebGL2 context). Must complete before `Initialize` is called. |
@@ -53,6 +53,24 @@ and the desktop docs) do the rest. No other WebGL-specific member needs to appea
 ## Options
 
 `SkiaWebGlOptions` controls WebGL2 validation, direct `texSubImage2D` versus diagnostic `texImage2D`, Y orientation, premultiplied alpha, and color-space conversion. The production default path is direct canvas `texSubImage2D`; `DiagnosticTexImage2D` reallocates storage and is intended only for comparison.
+
+## SkiaDirectCanvas
+
+The backend also supports `SkiaDirectCanvas` (`SkiaRenderer.SupportsDirectCanvas` is true once it is
+initialized): Skia draws straight into KNI's own WebGL2 context, the back buffer or the bound
+`RenderTarget2D`, with no upload. The first `Begin()` registers KNI's context with SkiaSharp's Emscripten
+GL runtime and creates a second `GRContext` on it (the host's own `GRContext` stays on its hidden canvas).
+Each pass saves and restores the GL bindings KNI relies on, then resets KNI's state cache by reflection
+(`KniStateInvalidation`, pinned by `tests/Tests.Kni.WebGL.Reflection`).
+
+| Behavior | Detail |
+| --- | --- |
+| Targets | The back buffer (origin bottom left in GL, so Skia uses `BottomLeft`), or one bound `SurfaceFormat.Color` `RenderTarget2D` (`TopLeft`, since KNI renders targets upside down). Multisampled targets work. Several bound targets and cube maps throw `NotSupportedException`. |
+| Lost KNI context | `Begin()` throws `InvalidOperationException` and counts a dropped frame. After the context is restored, Skia's context and surfaces are rebuilt on the next `Begin()` and `Diagnostics.DirectContextLossCount` increments. KNI itself does not recover its own resources. |
+| Disposal | `Dispose()` frees the direct `GRContext` with KNI's context current, then unregisters the context from Skia. Dispose your `SkiaDirectCanvas` first. If the device is already gone, Skia's resources are abandoned instead. |
+| Thread | Same as the rest of the backend: the browser graphics thread. |
+
+See `docs/webgl/quickstart.md` for usage.
 
 ## Example
 

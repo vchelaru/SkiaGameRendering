@@ -242,7 +242,7 @@ Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or 
 
 ## Drawing straight into the current target
 
-On MonoGame DesktopGL, KNI DesktopGL, KNI Android, MonoGame WindowsDX and WindowsDX12, KNI WindowsDX and FNA
+On MonoGame DesktopGL, KNI DesktopGL, KNI Android, KNI WebGL, MonoGame WindowsDX and WindowsDX12, KNI WindowsDX and FNA
 (on its D3D11 or OpenGL driver), `SkiaDirectCanvas` draws into whatever the
 engine is rendering to when `Begin()` is called, the back buffer or the bound `RenderTarget2D`, with
 no intermediate texture and no `SpriteBatch` composite. It has the same `Begin`/`Canvas`/`End` shape as
@@ -264,6 +264,9 @@ targets work. Only one bound `RenderTarget2D` with `SurfaceFormat.Color` is supp
 platforms a back buffer whose texture has an sRGB format is refused too. `SkiaRenderer.SupportsDirectCanvas`
 is false on every other platform, where the constructor throws `NotSupportedException`; use
 `SkiaRenderTarget2D` there.
+
+On KNI WebGL, Skia and KNI drive the one WebGL context, since WebGL cannot share objects between
+contexts, and each pass resets KNI's cached GL state afterward; see `docs/webgl/quickstart.md`.
 
 Stride on Direct3D 11 has the same thing as `SkiaStrideDirectCanvas`. `Begin` takes the
 `GraphicsContext`, where Stride keeps its current target, and `End` takes nothing; or set
@@ -379,7 +382,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 | D3D12 (MonoGame WindowsDX12, Stride, Godot, Unity) | Skia's D3D12 backend on the engine's `ID3D12Device`/queue. MonoGame wraps the target with `RenderTarget2D.FromNativeHandle()`; Godot draws into a typed resource and does one GPU `CopyResource` per frame (no readback, not zero-copy); Unity goes through a small native plugin |
 | Vulkan (MonoGame DesktopVK, Stride, Godot) | Skia's Vulkan backend on the engine's `VkDevice`/`VkQueue`, no separate context. Godot's handles come from public `RenderingDevice.GetDriverResource`, no reflection |
 | Metal (Godot, Unity) | Skia's Metal backend on the engine's `MTLDevice`/queue, drawn straight into the engine's `MTLTexture`; Unity goes through a small native plugin |
-| WebGL2 (KNI Blazor) | Cross-context `texSubImage2D(canvas)` through KNI's stock public API |
+| WebGL2 (KNI Blazor) | `SkiaRenderTarget2D`: cross-context `texSubImage2D(canvas)` from Skia's own canvas. `SkiaDirectCanvas`: KNI's WebGL2 context registered with SkiaSharp's Emscripten GL runtime, so Skia and KNI share one context and nothing is copied |
 
 Unity records draws to an `SKPicture` on the main thread and plays them back on its render thread.
 
@@ -413,7 +416,9 @@ builds against; ship `fnalibs` next to your exe as usual. Tested against FNA 26.
 
 The WebGL backend is implemented in `SkiaGameRendering.Kni.WebGL`. It creates a synchronous SkiaSharp WebGL2 source host, flushes the current Skia frame, and uploads that canvas directly into a preallocated KNI `Texture2D` with `texSubImage2D`. Production code has no `readPixels`, managed pixel buffer, or `Texture2D.SetData(byte[])` path.
 
-The browser backend consumes stock KNI from NuGet (no fork or patch); the one internal (the current WebGL rendering context) that KNI doesn't expose publicly is reached via reflection instead — see `src/SkiaGameRendering.Kni.WebGL/WebGlCanvasUpload.cs`.
+`SkiaDirectCanvas` skips the upload: Skia draws into KNI's own WebGL2 context, into the back buffer or the bound render target, between KNI's draws.
+
+The browser backend consumes stock KNI from NuGet (no fork or patch). The internals KNI doesn't expose publicly (its WebGL context and texture handles, and the state cache `SkiaDirectCanvas` resets after each pass) are reached via reflection instead — see `src/SkiaGameRendering.Kni.WebGL/WebGlCanvasUpload.cs` and `KniStateInvalidation.cs`; `tests/Tests.Kni.WebGL.Reflection` pins every member.
 
 ```powershell
 dotnet workload install wasm-tools-net8
@@ -423,13 +428,14 @@ dotnet run --project samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
 
 `Sample.Kni.WebGL` draws the shared scene like every other sample. `Sample.Gum.Kni.WebGL` (same commands, different project) covers SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation. See `docs/webgl/quickstart.md`, `docs/webgl/validated-baseline.md`, and `docs/documentation/SkiaWebGlBackend.md` for the exact contract and support status.
 
-### Firefox is not usable yet
+### Firefox: use `SkiaDirectCanvas`
 
-Measured on real hardware (`docs/webgl/performance-results.md`), every upload path misses budget on
-Firefox by 60-300x (35-171ms per frame just for the upload, vs. a <1ms target), consistent with an
-internal CPU readback on cross-context canvas uploads. Chrome and Edge are unaffected (Tier 1).
-Fixing this needs a shared-GL-context redesign ("Option A" in `docs/webgl/validated-baseline.md`),
-which is unstarted.
+Measured on real hardware (`docs/webgl/performance-results.md`), every `SkiaRenderTarget2D` upload path
+misses budget on Firefox by 60-300x (35-171ms per frame just for the upload, vs. a <1ms target),
+consistent with an internal CPU readback on cross-context canvas uploads. Chrome and Edge are
+unaffected (Tier 1). `SkiaDirectCanvas` has no upload: it measured about 1-2 ms of CPU a frame
+at 1080p to 4K on Firefox 158 (Intel Arc A750), with the pixels checked on screen
+(`docs/webgl/validated-baseline.md`). On Firefox, draw with it rather than with `SkiaRenderTarget2D`.
 
 ## Using SkiaSharp
 

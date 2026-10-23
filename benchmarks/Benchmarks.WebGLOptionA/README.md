@@ -13,10 +13,10 @@ path (Firefox misses the Option D upload budget by 60-300x per
 
 ## What it measures, per "frame"
 
-1. `GraphicsDevice.InvalidateStateCache()` - a patched-KNI-only API (see **Prerequisites** below).
+1. `KniStateInvalidation.Invalidate` - resets KNI's cached GL state by reflection on stock KNI.
 2. A Skia draw into KNI's real, shared WebGL2 context: a magenta clear + a filled, anti-aliased
    circle (`SKPaint`/`DrawCircle`) - deliberately not a bare `Clear()`, which does not exercise the
-   shader/texture/buffer-binding corruption path `InvalidateStateCache()` exists to fix.
+   shader/texture/buffer-binding corruption path the invalidation exists to fix.
 3. KNI's own next real draw call: a full-viewport pure-green `SpriteBatch` quad, reusing the exact
    same `SpriteBatch`/`Texture2D`/`BlendState.Opaque` objects on every call (see `BenchGame.cs`'s
    comment for why reuse matters - it's what defeats KNI's reference-equality dirty-flag cache).
@@ -48,16 +48,8 @@ Each report includes:
 
 ## Prerequisites
 
-This benchmark calls `GraphicsDevice.InvalidateStateCache()`, an API that only exists on a locally
-patched KNI build - it is not in the real `nkast.Kni.Platform.Blazor.GL` NuGet package.
-`Benchmarks.WebGLOptionA.csproj` points at `C:\kni-src` (a clone of `kniEngine/kni` tag `v4.3.9001`)
-via `ProjectReference` instead of the usual `PackageReference`. If that path is missing or its
-patch has been reverted:
-
-1. Clone `https://github.com/kniEngine/kni`, checkout tag `v4.3.9001`, to `C:\kni-src`.
-2. Apply the `InvalidateStateCache` patch described in `WebGL-KNI-Integration.md` section 6 (four
-   files: `Platforms/Graphics/.BlazorGL/ConcreteGraphicsContext.cs`,
-   `src/Xna.Framework.Graphics/Graphics/{GraphicsContext,GraphicsContextStrategy,GraphicsDevice}.cs`).
+The `wasm-tools-net8` workload (`dotnet workload install wasm-tools-net8`). It runs on stock
+`nkast.Kni.Platform.Blazor.GL`; there is no KNI fork or patch.
 
 ## Running it yourself (real hardware, non-headless)
 
@@ -88,8 +80,8 @@ For each one:
    summary is logged to the devtools console (`[optionA] done: ...`).
 3. **Before trusting the number**, confirm that status line says `pureGreenAfterSequence=true`. If
    it says `false`, the state-cache fix did not hold on this run and the timing numbers are not
-   measuring what this benchmark claims to measure - re-check the `C:\kni-src` patch
-   (**Prerequisites**) before re-running.
+   measuring what this benchmark claims to measure - re-check `KniStateInvalidation.cs`
+   against the pinned KNI version before re-running.
 4. Below the status line, a **comparison table** appears automatically (no extra click) - Option
    D's already-published numbers (embedded from `docs/webgl/performance-results.md`, see
    **Comparing against Option D** below) right next to the row you just measured, for the browser
@@ -121,11 +113,9 @@ above, and not a substitute for it.
   when registration was attempted.
 - **A blank page or a script 404 in devtools** - the `nkast.Wasm.*` script versions hardcoded in
   `wwwroot/index.html` must match `eng/Versions.props`'s `NkastWasmCanvasVersion` exactly (repo
-  issue #14); check that first if you bumped `KniVersion` or rebuilt `C:\kni-src` against a newer
-  KNI tag.
-- **Build fails referencing `C:\kni-src\Platforms\Kni.Platform.Blazor.GL.csproj`** - see
-  **Prerequisites** above; the patched clone is expected to already exist and build cleanly on its
-  own (`dotnet build` inside `C:\kni-src`) before this project can reference it.
+  issue #14); check that first if you bumped `KniVersion`.
+- **`MissingMemberException` from `KniStateInvalidation`** - KNI renamed an internal member; see the
+  pin tests in `tests/Tests.Kni.WebGL.Reflection`.
 
 ## Comparing against Option D
 
