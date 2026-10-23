@@ -229,9 +229,9 @@ namespace SkiaGameRendering.Core.OGL
             gl.BindTexture(0x0DE1, previous);
         }
 
+        /// <summary>Deletes the FBO and renderbuffer. Call it on Skia's context, through <see cref="SkiaGlTeardown.Run"/>.</summary>
         public static void DisposeRenderState(GlFunctions gl, GlFramebufferState state)
-        {
-            if (state.FramebufferId > 0)
+        {            if (state.FramebufferId > 0)
             {
                 gl.BindFramebuffer(FramebufferTarget.Framebuffer, state.FramebufferId);
                 gl.InvalidateFramebuffer?.Invoke(FramebufferTarget.Framebuffer, 3, new[]

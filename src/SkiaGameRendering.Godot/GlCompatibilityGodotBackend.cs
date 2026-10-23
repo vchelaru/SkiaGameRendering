@@ -112,20 +112,24 @@ namespace SkiaGameRendering.Godot
 
         void EndDraw() => _platform!.RestoreHostContext();
 
+        /// <summary>
+        /// Runs <paramref name="teardown"/> on the Skia context (see <see cref="SkiaGlTeardown"/>). Teardown
+        /// runs on Godot's render thread while its renderer, and so its context, is still up.
+        /// </summary>
+        void RunOnSkiaContext(Action<bool> teardown)
+        {
+            var platform = _platform!;
+            SkiaGlTeardown.Run(hostAlive: true, _grContext,
+                platform.MakeSkiaContextCurrent, platform.RestoreHostContext, teardown);
+        }
+
         public override void Dispose()
         {
             if (_grContext != null)
             {
-                BeginDraw();
-                try
-                {
-                    _grContext.Dispose();
-                    _grContext = null;
-                }
-                finally
-                {
-                    EndDraw();
-                }
+                var grContext = _grContext;
+                RunOnSkiaContext(_ => grContext.Dispose());
+                _grContext = null;
             }
             _platform?.Dispose();
             _platform = null;
@@ -218,21 +222,16 @@ namespace SkiaGameRendering.Godot
                 _disposed = true;
                 _backend.Untrack(this);
 
-                _backend.BeginDraw();
-                try
+                _backend.RunOnSkiaContext(glUsable =>
                 {
                     _surface?.Dispose();
                     _surface = null;
                     _renderTarget?.Dispose();
                     _renderTarget = null;
-                    if (_framebuffer != null)
+                    if (glUsable && _framebuffer != null)
                         GlSkiaSurfaceFactory.DisposeRenderState(_backend._gl!, _framebuffer);
                     _framebuffer = null;
-                }
-                finally
-                {
-                    _backend.EndDraw();
-                }
+                });
                 // Refcounted; a node still showing it keeps it (and its last contents) alive.
                 _texture = null;
             }

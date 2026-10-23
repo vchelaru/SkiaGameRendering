@@ -54,8 +54,47 @@ namespace SkiaGameRendering
 
         internal override void UnbindAfterDrawing() => GlSkiaSurfaceFactory.UnbindAfterDrawing(_gl);
 
-        internal override void DisposeRenderState(object renderState) =>
-            GlSkiaSurfaceFactory.DisposeRenderState(_gl, (GlFramebufferState)renderState);
+        // --- Teardown ---
+        //
+        // Every Skia-side GL object is freed on Skia's context, through RunOnSkiaContext (see SkiaGlTeardown
+        // for why). There is deliberately no DisposeRenderState override: nothing frees a framebuffer
+        // outside it.
+
+        /// <summary>
+        /// Runs <paramref name="teardown"/> on Skia's context, then hands the engine its context back. Gets
+        /// false, and must make no GL calls, once the engine's device is disposed or Skia's context cannot
+        /// be made current.
+        /// </summary>
+        private protected void RunOnSkiaContext(Action<bool> teardown) =>
+            SkiaGlTeardown.Run(GraphicsDevice is { IsDisposed: false }, _grContext,
+                MakeSkiaContextCurrent, MakeEngineContextCurrent, teardown);
+
+        /// <summary>Destroys Skia's GL context. Called once its <see cref="GRContext"/> is gone; must be safe to call twice.</summary>
+        private protected abstract void DestroySkiaContext();
+
+        internal sealed override void DisposeTargetSkiaResources(SKSurface? surface, GRBackendRenderTarget? renderTarget, object? renderState) =>
+            RunOnSkiaContext(glUsable =>
+            {
+                surface?.Dispose();
+                renderTarget?.Dispose();
+                if (glUsable && renderState != null)
+                    GlSkiaSurfaceFactory.DisposeRenderState(_gl, (GlFramebufferState)renderState);
+            });
+
+        public sealed override void Dispose()
+        {
+            if (_grContext != null)
+            {
+                var grContext = _grContext;
+                RunOnSkiaContext(glUsable =>
+                {
+                    DisposeDirectTargets(glUsable);
+                    grContext.Dispose();
+                });
+                _grContext = null!;
+            }
+            DestroySkiaContext();
+        }
 
         // Skia rewrites the shared texture on its own GL context while the engine's context keeps
         // sampling it, and a context only sees another context's writes to a shared texture when the
@@ -242,37 +281,25 @@ namespace SkiaGameRendering
             _disposedRenderTargets.Clear();
         }
 
-        private void DisposeDirectTarget(DirectTarget target)
+        /// <summary>Only called with Skia's context current: inside a direct-draw pass, or from <see cref="DisposeDirectTargets"/>.</summary>
+        private void DisposeDirectTarget(DirectTarget target, bool glUsable = true)
         {
             target.Surface.Dispose();
             target.RenderTarget.Dispose();
-            GlSkiaSurfaceFactory.DisposeRenderState(_gl, target.Framebuffer);
+            if (glUsable)
+                GlSkiaSurfaceFactory.DisposeRenderState(_gl, target.Framebuffer);
         }
 
-        /// <summary>
-        /// Frees the surfaces and FBOs <see cref="SkiaDirectCanvas"/> cached, on the Skia context. Call
-        /// from <see cref="SkiaBackend.Dispose"/> before disposing the <see cref="GRContext"/>.
-        /// </summary>
-        private protected void DisposeDirectTargets()
+        /// <summary>Frees the surfaces and FBOs <see cref="SkiaDirectCanvas"/> cached. Runs inside <see cref="Dispose"/>'s <see cref="RunOnSkiaContext"/>.</summary>
+        private void DisposeDirectTargets(bool glUsable)
         {
-            if (_backBufferTarget == null && _renderTargetTargets.Count == 0)
-                return;
+            if (_backBufferTarget != null)
+                DisposeDirectTarget(_backBufferTarget, glUsable);
+            _backBufferTarget = null;
 
-            MakeSkiaContextCurrent();
-            try
-            {
-                if (_backBufferTarget != null)
-                    DisposeDirectTarget(_backBufferTarget);
-                _backBufferTarget = null;
-
-                foreach (var target in _renderTargetTargets.Values)
-                    DisposeDirectTarget(target);
-                _renderTargetTargets.Clear();
-            }
-            finally
-            {
-                MakeEngineContextCurrent();
-            }
+            foreach (var target in _renderTargetTargets.Values)
+                DisposeDirectTarget(target, glUsable);
+            _renderTargetTargets.Clear();
         }
     }
 }

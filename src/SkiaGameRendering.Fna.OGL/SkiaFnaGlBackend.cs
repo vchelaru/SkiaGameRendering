@@ -133,22 +133,10 @@ namespace SkiaGameRendering
             return (int)glTextureId;
         }
 
-        public override void Dispose()
+        private protected override void DestroySkiaContext()
         {
             if (_skiaContext == IntPtr.Zero)
                 return;
-
-            // The GRContext belongs to the Skia context, so it has to be current while Skia frees
-            // its GL objects; the context itself goes once that's done.
-            MakeSkiaContextCurrent();
-            try
-            {
-                _grContext?.Dispose();
-            }
-            finally
-            {
-                MakeEngineContextCurrent();
-            }
             SDL_GL_DestroyContext(_skiaContext);
             _skiaContext = IntPtr.Zero;
         }

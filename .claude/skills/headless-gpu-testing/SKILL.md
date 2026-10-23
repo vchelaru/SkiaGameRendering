@@ -71,6 +71,10 @@ no-op, not a build error.
   `ReusedTargetGame` (stale shared texture) passes on llvmpipe and on this dev box's own GL driver even with
   `SkiaSharedGlBackend.RefreshEngineView` disabled, so a pass there does not prove the refresh is needed.
   To run on the real driver, delete `opengl32.dll` and `libgallium_wgl.dll` from the test's output directory.
+- **Mesa and NVIDIA share FBO names across shared contexts, though GL says FBOs are per context.** A test that
+  relies on Skia's and the engine's FBO names colliding passes on both even when Skia frees its FBO on the
+  wrong context. `tests/Shared/SkiaTeardownCheck.cs` instead checks that an engine target bound across the
+  teardown still takes a clear, since a delete on the engine's context also rebinds its framebuffer.
 - **`dotnet test` runs the assembly inside a vstest `testhost` process.** `AppContext.BaseDirectory`
   there is still the test assembly's own output directory (not some shared vstest install location),
   so app-local DLL probing works the same as any other .NET Core host - this was checked directly,

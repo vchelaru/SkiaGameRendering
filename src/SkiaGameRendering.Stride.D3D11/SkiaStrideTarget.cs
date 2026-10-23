@@ -90,24 +90,10 @@ namespace SkiaGameRendering.Stride.D3D11
                 return;
             _disposed = true;
 
-            _context.BeginDraw();
-            try
-            {
-                _surface?.Dispose();
-                _surface = null;
-                _renderTarget?.Dispose();
-                _renderTarget = null;
-
-                if (_renderState != null)
-                {
-                    _context.DisposeRenderState(_renderState);
-                    _renderState = null;
-                }
-            }
-            finally
-            {
-                _context.EndDraw();
-            }
+            _context.DisposeSurface(_renderState, _surface, _renderTarget);
+            _surface = null;
+            _renderTarget = null;
+            _renderState = null;
 
             _texture?.Dispose();
             _texture = null;

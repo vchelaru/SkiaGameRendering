@@ -26,6 +26,7 @@ namespace SkiaGameRendering
         static readonly Delegate _sdl_GL_CreateContext;
         static readonly Delegate _sdl_GL_SetAttribute;
         static readonly Delegate _makeCurrent;
+        static readonly Delegate _deleteContext;
         static readonly Delegate _getProcAddress;
 
         // Every type and member below is named by a string literal passed straight to
@@ -52,6 +53,7 @@ namespace SkiaGameRendering
             _sdl_GL_CreateContext = ReadDelegate(sdlGlType.GetField("SDL_GL_CreateContext", NonPublicStatic), "SDL_GL_CreateContext");
             _sdl_GL_SetAttribute = ReadDelegate(sdlGlType.GetField("SDL_GL_SetAttribute", NonPublicStatic), "SDL_GL_SetAttribute");
             _makeCurrent = ReadDelegate(sdlGlType.GetField("MakeCurrent", PublicStatic), "MakeCurrent");
+            _deleteContext = ReadDelegate(sdlGlType.GetField("DeleteContext", PublicStatic), "DeleteContext");
             _getProcAddress = ReadDelegate(sdlGlType.GetField("GetProcAddress", PublicStatic), "GetProcAddress");
         }
 
@@ -93,6 +95,11 @@ namespace SkiaGameRendering
         internal static int MakeCurrent(IntPtr window, IntPtr context)
         {
             return (int)_makeCurrent.DynamicInvoke(window, context)!;
+        }
+
+        internal static void DeleteContext(IntPtr context)
+        {
+            _deleteContext.DynamicInvoke(context);
         }
 
         /// <summary>

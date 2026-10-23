@@ -69,7 +69,8 @@ namespace SkiaGameRendering.Stride.D3D11
 
         internal void UnbindAfterDrawing() => _factory.UnbindAfterDrawing();
 
-        internal void DisposeRenderState(AngleTextureState state) => _factory.DisposeRenderState(state);
+        internal void DisposeSurface(AngleTextureState? state, SKSurface? surface, GRBackendRenderTarget? renderTarget) =>
+            _factory.DisposeSurface(state, surface, renderTarget);
 
         static IntPtr GetD3DResourcePtr(Texture texture)
         {

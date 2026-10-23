@@ -48,11 +48,12 @@ namespace SkiaGameRendering.Kni.DesktopGL
 
         private protected override RenderTarget2D? GetBoundRenderTarget() => _boundRenderTarget.Get(GraphicsDevice);
 
-        public override void Dispose()
+        private protected override void DestroySkiaContext()
         {
-            if (_grContext != null)
-                DisposeDirectTargets();
-            _grContext?.Dispose();
+            if (_skiaContextId == IntPtr.Zero)
+                return;
+            KniGlWrapper.DeleteContext(_skiaContextId);
+            _skiaContextId = IntPtr.Zero;
         }
     }
 }

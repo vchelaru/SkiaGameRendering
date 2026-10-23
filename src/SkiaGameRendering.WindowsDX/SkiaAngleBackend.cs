@@ -99,6 +99,9 @@ namespace SkiaGameRendering
 
         internal override void DisposeRenderState(object renderState) => _factory.DisposeRenderState((AngleTextureState)renderState);
 
+        internal override void DisposeTargetSkiaResources(SKSurface? surface, GRBackendRenderTarget? renderTarget, object? renderState) =>
+            _factory.DisposeSurface((AngleTextureState?)renderState, surface, renderTarget);
+
         public override void Dispose() => _factory.Dispose();
     }
 }

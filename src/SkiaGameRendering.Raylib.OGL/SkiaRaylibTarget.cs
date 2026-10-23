@@ -70,26 +70,21 @@ namespace SkiaGameRendering.Raylib.OGL
                 return;
             _disposed = true;
 
-            _context.BeginDraw();
-            try
+            _context.RunOnSkiaContext(glUsable =>
             {
                 _surface?.Dispose();
                 _surface = null;
                 _renderTarget?.Dispose();
                 _renderTarget = null;
 
-                if (_renderState != null)
-                {
+                if (glUsable && _renderState != null)
                     _context.DisposeRenderState(_renderState);
-                    _renderState = null;
-                }
-            }
-            finally
-            {
-                _context.EndDraw();
-            }
+                _renderState = null;
+            });
 
-            Rlgl.UnloadTexture(_texture.Id);
+            // Raylib's own texture, freed on raylib's context, which closed with its window.
+            if (Raylib_cs.Raylib.IsWindowReady())
+                Rlgl.UnloadTexture(_texture.Id);
         }
     }
 }

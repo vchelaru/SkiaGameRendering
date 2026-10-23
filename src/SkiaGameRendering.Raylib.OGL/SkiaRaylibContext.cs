@@ -84,6 +84,14 @@ namespace SkiaGameRendering.Raylib.OGL
         internal void UnbindAfterDrawing() =>
             GlSkiaSurfaceFactory.UnbindAfterDrawing(Gl);
 
+        /// <summary>
+        /// Runs <paramref name="teardown"/> on the Skia context (see <see cref="SkiaGlTeardown"/>). Gets false,
+        /// and must make no GL calls, once raylib's window is closed.
+        /// </summary>
+        internal void RunOnSkiaContext(Action<bool> teardown) =>
+            SkiaGlTeardown.Run(Raylib_cs.Raylib.IsWindowReady(), _grContext,
+                _platform.MakeSkiaContextCurrent, _platform.RestoreHostContext, teardown);
+
         internal void DisposeRenderState(GlFramebufferState renderState) =>
             GlSkiaSurfaceFactory.DisposeRenderState(Gl, renderState);
 
@@ -95,17 +103,16 @@ namespace SkiaGameRendering.Raylib.OGL
             if (_grContext == null)
                 return;
 
-            BeginDraw();
-            try
-            {
-                _grContext.Dispose();
-                _grContext = null;
-            }
-            finally
-            {
-                EndDraw();
-            }
-            _platform.Dispose();
+            var grContext = _grContext;
+            _grContext = null;
+            var windowOpen = Raylib_cs.Raylib.IsWindowReady();
+            SkiaGlTeardown.Run(windowOpen, grContext,
+                _platform.MakeSkiaContextCurrent, _platform.RestoreHostContext, _ => grContext.Dispose());
+
+            // A closed window can take the native display a GLX context needs with it (GLFW closes the X
+            // display on terminate), so the context then goes with the process.
+            if (windowOpen)
+                _platform.Dispose();
         }
     }
 }

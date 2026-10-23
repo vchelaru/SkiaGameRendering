@@ -313,6 +313,51 @@ namespace SkiaGameRendering.Core.ANGLE
             }
         }
 
+        /// <summary>
+        /// Frees a target's Skia surface with ANGLE's context current, then its EGL pbuffer. Skia frees GL
+        /// objects as it goes, and with no context current ANGLE drops those calls.
+        /// </summary>
+        public void DisposeSurface(AngleTextureState? state, SKSurface? surface, GRBackendRenderTarget? renderTarget)
+        {
+            lock (AngleLock)
+            {
+                RunOnAngleContext(() =>
+                {
+                    surface?.Dispose();
+                    renderTarget?.Dispose();
+                });
+                if (state != null)
+                    DisposeRenderState(state);
+            }
+        }
+
+        /// <summary>
+        /// Runs a teardown with ANGLE's context current, inside the D3D11 state swap like any other ANGLE
+        /// work. Inside a draw span both are already in place, so it runs as is.
+        /// </summary>
+        void RunOnAngleContext(Action teardown)
+        {
+            if (_holdsDrawLock)
+            {
+                teardown();
+                return;
+            }
+
+            BeginDraw();
+            try
+            {
+                if (eglMakeCurrent(_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, _eglContext))
+                    _grContext.ResetContext();
+                else
+                    _grContext.AbandonContext();
+                teardown();
+            }
+            finally
+            {
+                EndDraw();
+            }
+        }
+
         public void Dispose()
         {
             lock (AngleLock)
@@ -325,6 +370,12 @@ namespace SkiaGameRendering.Core.ANGLE
 
         void DisposeCore()
         {
+            if (_grContext != null && _eglContext != EGL_NO_CONTEXT && _context1 != IntPtr.Zero)
+            {
+                var grContext = _grContext;
+                RunOnAngleContext(grContext.Dispose);
+                _grContext = null!;
+            }
             _grContext?.Dispose();
 
             if (_savedState != IntPtr.Zero)
