@@ -65,12 +65,6 @@ namespace SkiaGameRendering.Kni.Android
         // back buffer needs it current on KNI's window surface.
         private protected override void MakeSkiaContextCurrentOnEngineWindow() => _egl.MakeSkiaContextCurrentOnHostSurface();
 
-        public override void Dispose()
-        {
-            if (_grContext != null)
-                DisposeDirectTargets();
-            _grContext?.Dispose();
-            _egl.Dispose();
-        }
+        private protected override void DestroySkiaContext() => _egl.Dispose();
     }
 }

@@ -50,6 +50,7 @@ public sealed class MonoGameDesktopGlReflectionTests
         EngineReflectionPin.RequireDelegateField(sdlGl, "SDL_GL_CreateContext", NonPublicStatic, parameterCount: 1);
         EngineReflectionPin.RequireDelegateField(sdlGl, "SDL_GL_SetAttribute", NonPublicStatic, parameterCount: 2);
         EngineReflectionPin.RequireDelegateField(sdlGl, "MakeCurrent", BindingFlags.Public | BindingFlags.Static, parameterCount: 2);
+        EngineReflectionPin.RequireDelegateField(sdlGl, "DeleteContext", BindingFlags.Public | BindingFlags.Static, parameterCount: 1);
         EngineReflectionPin.RequireDelegateField(sdlGl, "GetProcAddress", BindingFlags.Public | BindingFlags.Static, parameterCount: 1);
     }
 

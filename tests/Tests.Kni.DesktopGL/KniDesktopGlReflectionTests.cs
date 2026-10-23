@@ -47,6 +47,7 @@ public sealed class KniDesktopGlReflectionTests
     public void SdlGlDelegateFields_Resolve()
     {
         EngineReflectionPin.RequireDelegateField(SdlGlType, "MakeCurrent", PublicInstance, parameterCount: 2);
+        EngineReflectionPin.RequireDelegateField(SdlGlType, "DeleteContext", PublicInstance, parameterCount: 1);
         EngineReflectionPin.RequireDelegateField(SdlGlType, "GetProcAddress", PublicInstance, parameterCount: 1);
     }
 

@@ -18,6 +18,7 @@ namespace SkiaGameRendering.Kni.DesktopGL
         static readonly MethodInfo _getCurrentContextMethod;
         static readonly MethodInfo _setAttributeMethod;
         static readonly FieldInfo _makeCurrentField;
+        static readonly FieldInfo _deleteContextField;
         static readonly FieldInfo _getProcAddressField;
         static readonly object _shareWithCurrentContextAttribute;
 
@@ -49,6 +50,8 @@ namespace SkiaGameRendering.Kni.DesktopGL
                 ?? throw new InvalidOperationException("Sdl.GL.SetAttribute method not found.");
             _makeCurrentField = glType.GetField("MakeCurrent", BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("Sdl.GL.MakeCurrent field not found.");
+            _deleteContextField = glType.GetField("DeleteContext", BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Sdl.GL.DeleteContext field not found.");
             _getProcAddressField = glType.GetField("GetProcAddress", BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("Sdl.GL.GetProcAddress field not found.");
 
@@ -80,6 +83,12 @@ namespace SkiaGameRendering.Kni.DesktopGL
             var result = (int)makeCurrentDelegate.DynamicInvoke(window, context)!;
             if (result < 0)
                 throw new Exception("Sdl.GL.MakeCurrent failed.");
+        }
+
+        internal static void DeleteContext(IntPtr context)
+        {
+            var deleteContextDelegate = (Delegate)_deleteContextField.GetValue(_glInstance)!;
+            deleteContextDelegate.DynamicInvoke(context);
         }
 
         internal static IntPtr GetProcAddress(string name)

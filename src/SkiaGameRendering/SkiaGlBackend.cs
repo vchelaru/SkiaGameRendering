@@ -74,11 +74,12 @@ namespace SkiaGameRendering
             return renderTarget;
         }
 
-        public override void Dispose()
+        private protected override void DestroySkiaContext()
         {
-            if (_grContext != null)
-                DisposeDirectTargets();
-            _grContext?.Dispose();
+            if (_skContextId == IntPtr.Zero)
+                return;
+            DeleteContext(_skContextId);
+            _skContextId = IntPtr.Zero;
         }
     }
 }

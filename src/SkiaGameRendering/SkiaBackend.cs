@@ -145,6 +145,18 @@ namespace SkiaGameRendering
         internal virtual void UnbindAfterDrawing() => throw NativeTextureHandlePathNotSupported();
         internal virtual void DisposeRenderState(object renderState) => throw NativeTextureHandlePathNotSupported();
 
+        /// <summary>
+        /// Frees one target's Skia-side objects. A backend whose Skia objects live on a context of its own
+        /// overrides this to free them with that context current.
+        /// </summary>
+        internal virtual void DisposeTargetSkiaResources(SKSurface? surface, GRBackendRenderTarget? renderTarget, object? renderState)
+        {
+            surface?.Dispose();
+            renderTarget?.Dispose();
+            if (renderState != null)
+                DisposeRenderState(renderState);
+        }
+
         private NotSupportedException NativeTextureHandlePathNotSupported([CallerMemberName] string? memberName = null) =>
             new($"{GetType().Name} does not support the native-texture-handle interop path ({memberName}). " +
                 "It overrides CreateTarget/BeginRender/EndRender directly instead.");
@@ -205,17 +217,10 @@ namespace SkiaGameRendering
 
             internal override void DisposeSkiaResources()
             {
-                _surface?.Dispose();
+                _backend.DisposeTargetSkiaResources(_surface, _backendRenderTarget, _renderState);
                 _surface = null;
-                _backendRenderTarget?.Dispose();
                 _backendRenderTarget = null;
-
-                if (_renderState != null)
-                {
-                    _backend.DisposeRenderState(_renderState);
-                    _renderState = null;
-                }
-
+                _renderState = null;
                 _textureHandle = null;
             }
 
