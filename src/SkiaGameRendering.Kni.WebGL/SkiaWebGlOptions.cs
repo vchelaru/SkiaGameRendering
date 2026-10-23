@@ -29,4 +29,10 @@ public sealed class SkiaWebGlDiagnostics
     public long ContextLossCount { get; internal set; }
     public long BytesUploaded { get; internal set; }
     public long DroppedFrameCount { get; internal set; }
+
+    /// <summary>Completed <see cref="SkiaGameRendering.SkiaDirectCanvas"/> passes.</summary>
+    public long DirectDrawCount { get; internal set; }
+
+    /// <summary>Times KNI's WebGL context was lost and rebuilt under a <see cref="SkiaGameRendering.SkiaDirectCanvas"/>.</summary>
+    public long DirectContextLossCount { get; internal set; }
 }

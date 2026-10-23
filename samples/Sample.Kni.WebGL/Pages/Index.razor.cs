@@ -39,7 +39,7 @@ public partial class Index
     }
 
     [JSInvokable]
-    public string? Tick(int physicalWidth, int physicalHeight, bool diagnosticTexImage)
+    public string? Tick(int physicalWidth, int physicalHeight, bool diagnosticTexImage, string drawMode)
     {
         if (_game == null)
         {
@@ -47,10 +47,13 @@ public partial class Index
             _game.Run();
         }
 
-        _game.SetBrowserState(physicalWidth, physicalHeight, diagnosticTexImage);
+        _game.SetBrowserState(physicalWidth, physicalHeight, diagnosticTexImage, drawMode);
         _game.Tick();
         return ++_frame % 30 == 0 ? _game.GetDiagnostics() : null;
     }
+
+    [JSInvokable]
+    public void Recreate() => _game?.RecreateSkia();
 
     public async ValueTask DisposeAsync()
     {

@@ -90,6 +90,52 @@ A `SkiaRenderTarget2D`'s `Begin()`/`Canvas`/`End()` must run after any SpriteBat
 
 Dispose in this order: stop the game loop, dispose your `SkiaRenderTarget2D` instances, call `SkiaRenderer.Dispose()` to release the backend, then dispose the host.
 
+## Drawing straight into KNI's canvas
+
+`SkiaDirectCanvas` draws into whatever KNI is rendering to when `Begin()` is called, the canvas's own
+back buffer or the bound `RenderTarget2D`, with no second canvas and no upload. It needs the same host
+attached as above, and has the same `Begin`/`Canvas`/`End` shape as `SkiaRenderTarget2D`:
+
+```cs
+_skia = new SkiaDirectCanvas(GraphicsDevice); // once
+
+spriteBatch.Begin(); /* background */ spriteBatch.End();
+_skia.Begin();
+_skia.Canvas.DrawCircle(100, 100, 50, paint);
+_skia.End();
+spriteBatch.Begin(); /* foreground */ spriteBatch.End();
+```
+
+`Begin()` does not clear, and coordinates are target pixels from the top left; KNI's `Viewport` and
+scissor rectangle are ignored. A multisampled back buffer or render target works. Only one bound
+`SurfaceFormat.Color` `RenderTarget2D` is supported (not a cube map, not several at once). Use it
+instead of `SkiaRenderTarget2D` where the upload is the problem: on Firefox, `SkiaRenderTarget2D`'s upload costs
+32 ms or more a frame at 1080p, and `SkiaDirectCanvas` has none (see `validated-baseline.md`).
+
+How it works, and what to know:
+
+- WebGL cannot share objects between contexts, so Skia and KNI drive the one context. KNI's
+  `WebGL2RenderingContext` is registered with SkiaSharp's Emscripten GL runtime on the first `Begin()`,
+  and a bound `RenderTarget2D`'s framebuffer is registered with it the same way.
+- Skia leaves GL state behind that KNI's cache does not know about. Each pass saves the bindings KNI
+  relies on and restores them in `End()`, then resets KNI's cache by reflection (`KniStateInvalidation`),
+  so KNI's next draw re-applies everything. You do nothing extra.
+- A pass costs a few GL calls and one reset of KNI's state, on top of Skia's own work. Use few, large
+  passes rather than one per element.
+- KNI does not recover from a lost WebGL context (its buffers, programs and textures are gone). While it
+  is lost, `Begin()` throws `InvalidOperationException`; catch it and skip the frame. When the context
+  comes back, Skia's context and surfaces are rebuilt on the next `Begin()` and
+  `SkiaWebGlBackend.Diagnostics.DirectContextLossCount` goes up.
+- Skia's surface follows the canvas's drawing buffer, so a canvas resize needs nothing from you. KNI's
+  BlazorGL platform cannot resize its own back buffer, though (see the sample's `Viewport` handling).
+- It works alongside `SkiaRenderTarget2D` and the host's hidden canvas; losing that canvas does not affect it.
+- In a trimmed or AOT build the reflected KNI members are kept by `[DynamicDependency]`;
+  `tests/Tests.Kni.WebGL.Reflection` fails on a KNI bump that renames one.
+
+`samples/Sample.Kni.WebGL` has a draw-mode selector (or `?mode=direct`) that runs it between SpriteBatch
+draws on the back buffer, a render target and a 4x multisampled one; `?mode=scene` draws only the Scene
+through it.
+
 ## Build and run the sample in this repo
 
 If you're working from a clone of this repo rather than a fresh project:
@@ -104,4 +150,4 @@ That sample draws the shared scene every other sample draws. `samples\Sample.Gum
 
 ## Packages
 
-`SkiaGameRendering.Kni.WebGL` consumes stock KNI from NuGet (`nkast.Kni.Platform.Blazor.GL`) — no fork or source patch. Getting the destination `WebGLTexture`/rendering-context handles KNI doesn't expose publicly (see `WebGlCanvasUpload.cs`'s `KniWebGlInternals`) is done via reflection into KNI internals instead.
+`SkiaGameRendering.Kni.WebGL` consumes stock KNI from NuGet (`nkast.Kni.Platform.Blazor.GL`) — no fork or source patch. Getting the destination `WebGLTexture`/rendering-context handles KNI doesn't expose publicly (see `WebGlCanvasUpload.cs`'s `KniWebGlInternals`), and resetting KNI's state cache for `SkiaDirectCanvas` (`KniStateInvalidation.cs`), is done via reflection into KNI internals instead.

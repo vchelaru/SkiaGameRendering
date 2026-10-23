@@ -8,7 +8,7 @@ using SkiaSharp;
 namespace SkiaGameRendering.Kni.WebGL;
 
 [SupportedOSPlatform("browser")]
-public sealed class SkiaWebGlBackend : SkiaBackend
+public sealed partial class SkiaWebGlBackend : SkiaBackend
 {
     private readonly SkiaGameWebGlHost _host;
     private readonly SkiaWebGlOptions _options;
@@ -183,6 +183,7 @@ public sealed class SkiaWebGlBackend : SkiaBackend
         if (_isDisposed)
             return;
         _isDisposed = true;
+        DisposeDirect();
         _host.ContextLost -= OnContextLost;
         _host.ContextRestored -= OnContextRestored;
     }

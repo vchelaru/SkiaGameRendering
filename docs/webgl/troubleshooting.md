@@ -26,4 +26,4 @@ Initialize the backend explicitly. Do not rely on assembly scanning in a trimmed
 
 ## Firefox or Safari is slow
 
-Run `Benchmarks.WebGL` (`benchmarks/Benchmarks.WebGL/`, served over HTTP) for all paths and export JSON. Do not infer an internal readback from throughput alone. A mandatory browser that misses the budget triggers the separately designed shared-context "Option A" work (see [WebGL-KNI-Integration.md](../../WebGL-KNI-Integration.md), section 3); there is no silent managed-buffer fallback.
+Run `Benchmarks.WebGL` (`benchmarks/Benchmarks.WebGL/`, served over HTTP) for all paths and export JSON. Do not infer an internal readback from throughput alone. A mandatory browser that misses the budget triggers the shared-context "Option A" work, which is `SkiaDirectCanvas` (see [WebGL-KNI-Integration.md](../../WebGL-KNI-Integration.md), section 3, and the quick start): draw with it instead of `SkiaRenderTarget2D` on that browser. There is no silent managed-buffer fallback.

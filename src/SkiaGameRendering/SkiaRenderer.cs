@@ -90,8 +90,8 @@ namespace SkiaGameRendering
 
         /// <summary>
         /// True when <see cref="SkiaDirectCanvas"/> works on this platform: MonoGame and KNI on DesktopGL
-        /// and WindowsDX, MonoGame WindowsDX12 (on a verified native runtime), KNI Android, and FNA's D3D11 and OpenGL
-        /// drivers. False until the renderer is initialized.
+        /// and WindowsDX, MonoGame WindowsDX12 (on a verified native runtime), KNI Android and WebGL, and FNA's D3D11 and
+        /// OpenGL drivers. False until the renderer is initialized.
         /// </summary>
         public static bool SupportsDirectCanvas => _backend?.SupportsDirectCanvas ?? false;
 

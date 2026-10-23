@@ -98,8 +98,9 @@ as the Chrome/Edge runs. `uploadGpu` is unavailable because Firefox does not exp
   case 1080p vs. a 500 µs target), consistent with an internal CPU readback as suspected. This
   answers the issue's open sub-question: **`OffscreenCanvas + transferToImageBitmap` does not
   rescue Firefox** — it's the least-bad of the four alternative paths but still nowhere near
-  budget. Per `docs/webgl/troubleshooting.md`'s stated policy, this triggers the Option A
-  (shared-context) fallback gate — see `validated-baseline.md`.
+  budget. Per `docs/webgl/troubleshooting.md`'s stated policy, this triggered the Option A
+  (shared-context) gate, which shipped as `SkiaDirectCanvas`: no upload, so it does not have this cost —
+  see `validated-baseline.md`.
 - **Missed-frame counts (~50-55%) on Chrome/Edge despite sub-millisecond upload/GPU times** are a
   benchmark-harness artifact (jitter around the strict `> 16.67 ms` threshold relative to actual
   vsync timing), not a real regression — the timing stats they're paired with are the numbers that

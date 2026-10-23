@@ -1,8 +1,8 @@
 const { defineConfig, devices } = require("@playwright/test");
 
-// Each spec runs against its own sample, served on its own port.
+// Each spec runs against its own sample, served on its own port. A sample can have more specs (extraSpecs).
 const samples = [
-  { name: "scene", project: "Sample.Kni.WebGL", port: 5099 },
+  { name: "scene", project: "Sample.Kni.WebGL", port: 5099, extraSpecs: ["scene-direct.spec.js"] },
   { name: "gum", project: "Sample.Gum.Kni.WebGL", port: 5100 },
 ];
 
@@ -35,7 +35,7 @@ module.exports = defineConfig({
   },
   projects: samples.flatMap(sample => browsers.map(browser => ({
     name: `${sample.name}-${browser.name}`,
-    testMatch: `${sample.name}.spec.js`,
+    testMatch: [`${sample.name}.spec.js`, ...(sample.extraSpecs ?? [])],
     use: { ...browser.use, baseURL: `http://127.0.0.1:${sample.port}` },
   }))),
   webServer: samples.map(sample => ({

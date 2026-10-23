@@ -143,7 +143,7 @@ internal static class KniWebGlInternals
         return GetUid(glTexture);
     }
 
-    private static int GetGlContextUid(GraphicsDevice graphicsDevice)
+    internal static int GetGlContextUid(GraphicsDevice graphicsDevice)
     {
         var currentContext = ((IPlatformGraphicsDevice)graphicsDevice).Strategy.CurrentContext;
         var contextStrategy = ((IPlatformGraphicsContext)currentContext).Strategy;

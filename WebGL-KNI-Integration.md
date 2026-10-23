@@ -4,9 +4,11 @@ Comprehensive notes on how to extend SkiaGameRendering's zero-copy Skia-to-MG-te
 
 This is a sibling document to `SkiaGameRendering-Notes.md`, focused entirely on the WebGL/KNI target. The general background on the SkiaGameRendering library (mechanism, current OpenGL implementation, WindowsDX/ANGLE port) lives in that document; read sections 1–7 there before reading this.
 
-## Implementation status (2026-07-10)
+## Implementation status
 
-Option D is implemented in `SkiaGameRendering.Kni.WebGL` with a synchronous Skia host and a pinned public KNI canvas-upload patch. The integrated sample (`samples/Sample.Gum.Kni.WebGL`) covers interleaving, render targets, shader sampling, Gum rendering, pointer/touch/wheel/text input, fractional DPR, upload-path diagnostics, context loss, and backend recreation. See `docs/webgl/validated-baseline.md` for the exact pins and the remaining browser/hardware acceptance gates.
+Option A shipped as `SkiaDirectCanvas`: Skia drives KNI's own WebGL2 context (registered with SkiaSharp's Emscripten GL runtime) and draws into the back buffer or a bound `RenderTarget2D`, with no upload. It resets KNI's state cache by reflection on stock KNI (`KniStateInvalidation`), not by the source patch §6 describes, so no KNI release is needed; §6 and §8.2 stay as the design history and the case for an upstream `InvalidateStateCache()`. See `docs/webgl/validated-baseline.md` for the Firefox 158 results.
+
+Option D (below, 2026-07-10) is implemented in `SkiaGameRendering.Kni.WebGL` with a synchronous Skia host and a pinned public KNI canvas-upload patch, and still backs `SkiaRenderTarget2D`. The integrated sample (`samples/Sample.Gum.Kni.WebGL`) covers interleaving, render targets, shader sampling, Gum rendering, pointer/touch/wheel/text input, fractional DPR, upload-path diagnostics, context loss, and backend recreation. See `docs/webgl/validated-baseline.md` for the exact pins and the remaining browser/hardware acceptance gates.
 
 ---
 

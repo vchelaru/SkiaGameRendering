@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Platform.Graphics;
+using SkiaGameRendering.Kni.WebGL;
 using Tests.Shared;
 using Xunit;
 
@@ -62,6 +63,54 @@ public sealed class KniWebGlReflectionTests
         foreach (var declared in glTextures.Concat(glContexts))
             foreach (var runtimeType in RuntimeTypes(declared))
                 EngineReflectionPin.RequirePropertyOfType(runtimeType, "Uid", PublicInstance, typeof(int));
+    }
+
+    /// <summary>
+    /// The dirty flags <c>KniStateInvalidation</c> sets so KNI re-applies every piece of state after Skia has
+    /// driven its context (SkiaDirectCanvas). They are bools on the strategy base class, which is public; most are
+    /// protected internal, two (the buffer flags) public.
+    /// </summary>
+    [Fact]
+    public void ContextStrategyDirtyFlags_Resolve()
+    {
+        foreach (var name in KniStateInvalidation.DirtyFlagNames)
+        {
+            var field = EngineReflectionPin.RequireField(typeof(GraphicsContextStrategy), name, PublicInstance | NonPublicInstance);
+            Assert.True(field.FieldType == typeof(bool), $"{name} is {field.FieldType.Name}, expected Boolean.");
+        }
+    }
+
+    /// <summary>
+    /// The caches the concrete context keeps of what it last applied, which the dirty flags alone do not
+    /// reset. The types are what <c>KniStateInvalidation</c> writes (null, 0) or clears (the set).
+    /// </summary>
+    [Fact]
+    public void ConcreteContextCaches_Resolve()
+    {
+        foreach (var strategy in GraphicsContextStrategies())
+        {
+            var program = EngineReflectionPin.RequireField(strategy, KniStateInvalidation.ShaderProgramField, NonPublicInstance);
+            Assert.False(program.FieldType.IsValueType, $"{program.Name} is {program.FieldType.Name}; null cannot be assigned to it.");
+
+            var attributes = EngineReflectionPin.RequireField(strategy, KniStateInvalidation.LastVertexAttribsField, NonPublicInstance);
+            Assert.True(attributes.FieldType == typeof(int), $"{attributes.Name} is {attributes.FieldType.Name}, expected Int32.");
+
+            var enabled = EngineReflectionPin.RequireField(strategy, KniStateInvalidation.EnabledAttributesField, NonPublicInstance);
+            Assert.True(enabled.FieldType == typeof(HashSet<int>), $"{enabled.Name} is {enabled.FieldType.Name}, expected HashSet<Int32>.");
+        }
+    }
+
+    /// <summary>
+    /// <c>KniStateInvalidation</c> keeps the concrete context's members through trimming with a
+    /// DynamicDependency that names the type and assembly by string; a rename of either leaves the
+    /// attribute pointing at nothing and the trimmer silently dropping the members.
+    /// </summary>
+    [Fact]
+    public void TrimmingRootTarget_Resolves()
+    {
+        Assert.Equal(KniStateInvalidation.PlatformAssembly, KniPlatform.GetName().Name);
+        var type = EngineReflectionPin.RequireType(KniPlatform, KniStateInvalidation.ContextTypeName);
+        Assert.Contains(type, GraphicsContextStrategies());
     }
 
     static IReadOnlyList<Type> Texture2DStrategies() =>
