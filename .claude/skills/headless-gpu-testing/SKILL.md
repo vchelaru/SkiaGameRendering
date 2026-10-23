@@ -224,6 +224,11 @@ the same thread:** MonoGame fixes its UI thread once per process and throws `NoS
 ("Operation not called on UI thread") on any other, so `OneFrameGame.Render` queues all games onto one
 dedicated thread. That thread is not the process main thread, which macOS's SDL requires, so these tests only run on Windows.
 
+**FNA3D's OpenGL readbacks have two quirks of their own, both reproduced with no Skia drawing.**
+`GetBackBufferData` with a rectangle takes its Y from the bottom, and `GetData` on a multisampled
+target just unbound can read the multisampled FBO and fail with `GL_INVALID_OPERATION`.
+`tests/Tests.Fna.OGL/FnaOglDirectDrawTests.cs` shows the workarounds.
+
 ## Per-frame leak checks
 
 `tests/Shared/FrameLeakCheck.cs` (and `EngineFrameLeak.cs` for MonoGame/KNI/FNA) warms up, then

@@ -240,8 +240,8 @@ Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or 
 
 ## Drawing straight into the current target
 
-On MonoGame DesktopGL, KNI DesktopGL, KNI Android, MonoGame WindowsDX, KNI WindowsDX and FNA on its
-D3D11 driver, `SkiaDirectCanvas` draws into whatever the
+On MonoGame DesktopGL, KNI DesktopGL, KNI Android, MonoGame WindowsDX, KNI WindowsDX and FNA (on its
+D3D11 or OpenGL driver), `SkiaDirectCanvas` draws into whatever the
 engine is rendering to when `Begin()` is called, the back buffer or the bound `RenderTarget2D`, with
 no intermediate texture and no `SpriteBatch` composite. It has the same `Begin`/`Canvas`/`End` shape as
 `SkiaRenderTarget2D`, without the size or the texture:
