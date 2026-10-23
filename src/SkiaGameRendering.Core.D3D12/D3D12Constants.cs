@@ -23,6 +23,10 @@ namespace SkiaGameRendering.Core.D3D12
         public const uint BarrierLayoutCopyDest = 8;
 
         public const uint FormatR16G16B16A16Unorm = 11;
+        public const uint FormatR8G8B8A8Typeless = 27;
+        public const uint FormatR8G8B8A8UnormSrgb = 29;
+        public const uint FormatB8G8R8A8Typeless = 90;
+        public const uint FormatB8G8R8A8UnormSrgb = 91;
         public const uint FormatR10G10B10A2Unorm = 24;
         public const uint FormatR8G8B8A8Unorm = 28;
         public const uint FormatB8G8R8A8Unorm = 87;

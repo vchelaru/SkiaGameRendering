@@ -35,12 +35,15 @@ which also draw straight into the current target (`SkiaDirectCanvas`, `SkiaStrid
 | KNI | ✅ DesktopGL, Android | ✅ | ❌? | ❌? | ❌ | 🟦 |
 | FNA | ✅ | ✅ | ❌ | ❌ | ❌ | ❌? |
 | raylib | 🟦 | ❌ | ❌ | ❌ | ❌ | ❌? |
-| Stride | 🟡? | ✅ | 🟦 | 🟦 | ❌ | ❌ |
+| Stride | 🟡? | ✅ | ✅ | 🟦 | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌? |
 | Unity 6 | 🟡 | 🟦 | 🟦 | 🟡 | 🟦 | 🟡? |
 
 FNA's D3D12, Vulkan and Metal are ❌ because FNA3D reaches them through its SDL_GPU driver, which
 exposes no native device handles.
+
+MonoGame's D3D12 stays 🟦: its managed API and native interop table give no way to get the current
+target's `ID3D12Resource`, or to submit what MonoGame has recorded ahead of Skia's draw (Notes section 12).
 
 Shared code to reuse when moving a 🟦 to ✅:
 
@@ -48,7 +51,11 @@ Shared code to reuse when moving a 🟦 to ✅:
   `SkiaSharedGlBackend` only overrides `CanDrawToCurrentTarget` and `GetBoundRenderTarget`.
 - D3D11: `AngleSkiaSurfaceFactory.BeginDirectDraw`/`EndDirectDraw` in `Core.ANGLE`, which reads the bound
   view off the immediate context. Used by `SkiaSharedAngleBackend` and `SkiaStrideDirectCanvas`.
-- D3D12, Vulkan and Metal have no direct-draw code yet.
+- D3D12: `D3D12SkiaSurfaceFactory.DescribeDirectTarget`/`BeginDirectDraw`/`EndDirectDraw` in `Core.D3D12`,
+  which take the target's `ID3D12Resource` from the engine adapter (no bound-target query exists). The
+  adapter has to put it in `RENDER_TARGET` first and submit the engine's recorded commands ahead of
+  Skia's; `SkiaStrideD3D12Context.BeginDirectDraw` is the one user.
+- Vulkan and Metal have no direct-draw code yet.
 
 ## Architecture
 

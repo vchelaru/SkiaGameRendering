@@ -26,4 +26,18 @@ public sealed class StrideD3D12FrameLeakTests(ITestOutputHelper output)
             SkiaStrideD3D12Renderer.Dispose();
         }
     }
+
+    [Fact]
+    public void DirectDrawingFrames_GrowsNothing()
+    {
+        using var graphicsDevice = WarpStrideDevice.Create(ColorSpace.Gamma);
+        try
+        {
+            StrideSkiaGolden.AssertNoPerFrameGrowthDirect(graphicsDevice, output);
+        }
+        finally
+        {
+            SkiaStrideD3D12Renderer.Dispose();
+        }
+    }
 }

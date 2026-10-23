@@ -505,3 +505,43 @@ formats, so RGBA8 only; and only the native `opengl3` driver on Windows (WGL) an
 here yet, and web exports cannot P/Invoke GL at all. Verified on Windows; the GLX path compiles
 from the raylib adapter's code but has not been run under Godot.
 
+
+## 12. SkiaDirectCanvas on D3D12 (Stride; MonoGame WindowsDX12 cannot)
+
+D3D12 has no "currently bound render target" to read off a context the way D3D11 does, so
+`D3D12SkiaSurfaceFactory.DescribeDirectTarget`/`BeginDirectDraw`/`EndDirectDraw` take the target's
+`ID3D12Resource` from the host adapter. They read its `D3D12_RESOURCE_DESC` (`ID3D12Resource::GetDesc`,
+vtable slot 10) and accept a single-sample 2D `R8G8B8A8_UNORM` or `B8G8R8A8_UNORM` texture with the
+render-target flag. Typeless formats are refused because Skia creates its render target view with the
+resource's own format, and sRGB-format ones because Skia would encode what it writes. An sRGB *view* of
+a UNORM resource, which Stride's back buffer is in Linear color space, is just the UNORM case: Skia draws
+unencoded.
+
+**Stride.** `SkiaStrideD3D12Context.BeginDirectDraw` flushes, hands the target to Skia like
+`AcquireForSkia` does for a render target, and `EndDirectDraw` hands it back. Three things came out of
+decompiling and testing it:
+- Skia submits at `End`; Stride submits when its command list closes. For Skia's pixels to land over
+  Stride's earlier draws, the list has to be submitted first. The public `CommandList.Flush()` is not that:
+  it closes and executes and nothing more, leaving a list that throws a `NullReferenceException` the next
+  time anything records into it. The private `FlushInternal(bool wait)` is what Stride runs before a
+  read-back: it closes, executes, resets, then rebinds the pipeline state, descriptor heaps and render targets.
+  It is reached by reflection (pinned in `StrideD3D12ReflectionTests`).
+- `FlushInternal` does not rebind viewports or scissors, and Stride only sets them on the native list while
+  `viewportDirty`/`scissorsDirty` say they changed, which setting the same values again does not do. Without
+  marking them, the first Stride draw after the pass records fine and draws nothing.
+- Stride records layout changes into its own per-resource tracker at record time, not at execute time. After
+  the pass the tracker says `Common` (the handoff list moved it there), so `EndDirectDraw` records a
+  `Common` to `RenderTarget` barrier on the main list; Stride's later draws into the bound target do not
+  record one themselves.
+Cost: one submission plus the three small ones of the render-target path, per pass. Verified on WARP in
+`StrideD3D12DirectDrawTests` (back buffer in both color spaces and both 8-bit formats, offscreen targets,
+interleaving, refusals) and in the real `Sample.Stride.D3D12` game loop on WARP. The D3D12 debug layer with
+GPU-based validation, which WARP's pixels cannot replace, runs the same cycle in
+`StrideD3D12BarrierValidationTests` on CI (the dev box that built this has no Graphics Tools).
+
+**MonoGame WindowsDX12 cannot.** `GraphicsDevice.GetNativeHandles()` gives the device and queue and
+`RenderTarget2D.FromNativeHandle` wraps a resource, but nothing returns the `ID3D12Resource` behind a
+`Texture` (its `Handle` is an opaque `MGG_Texture*`) or behind the back buffer, and the native interop
+table (`MonoGame.Interop.MGG`) has no submit or flush call: MonoGame's recorded commands would run after
+Skia's. A CPU readback such as `Texture_GetData` would flush as a side effect, and is not an option here.
+The cell stays render-target-only until MonoGame exposes both.

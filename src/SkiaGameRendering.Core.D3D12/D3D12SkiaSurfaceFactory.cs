@@ -22,6 +22,45 @@ namespace SkiaGameRendering.Core.D3D12
     }
 
     /// <summary>
+    /// What <see cref="D3D12SkiaSurfaceFactory.DescribeDirectTarget"/> found out about an engine's current
+    /// render target resource, checked once so a host can refuse before it disturbs anything.
+    /// </summary>
+    public readonly struct D3D12DirectTarget
+    {
+        internal D3D12DirectTarget(IntPtr resource, uint format, int width, int height, SKColorType colorType)
+        {
+            Resource = resource;
+            Format = format;
+            Width = width;
+            Height = height;
+            ColorType = colorType;
+        }
+
+        internal IntPtr Resource { get; }
+        internal uint Format { get; }
+        internal int Width { get; }
+        internal int Height { get; }
+
+        /// <summary>The Skia pixel layout matching the resource's <c>DXGI_FORMAT</c>.</summary>
+        public SKColorType ColorType { get; }
+    }
+
+    /// <summary>One <see cref="D3D12SkiaSurfaceFactory.BeginDirectDraw"/> pass, ended by <see cref="D3D12SkiaSurfaceFactory.EndDirectDraw"/>.</summary>
+    public sealed class D3D12DirectPass
+    {
+        internal D3D12DirectPass(SKSurface surface, GRBackendRenderTarget renderTarget, int saveCount)
+        {
+            Surface = surface;
+            RenderTarget = renderTarget;
+            SaveCount = saveCount;
+        }
+
+        internal SKSurface Surface { get; }
+        internal GRBackendRenderTarget RenderTarget { get; }
+        internal int SaveCount { get; }
+    }
+
+    /// <summary>
     /// Engine-agnostic D3D12/Skia interop, built on Skia's Ganesh D3D12 backend. Google has flagged
     /// Ganesh (Skia's whole GPU-backend generation, D3D12 included) for eventual replacement by
     /// Graphite - a real cost, knowingly accepted here rather than waited out, per issue #24: new
@@ -288,6 +327,105 @@ namespace SkiaGameRendering.Core.D3D12
             {
                 _queueLockHandle?.Dispose();
                 _queueLockHandle = null;
+            }
+        }
+
+        // --- Drawing straight into the engine's current target (direct draw) ---
+        //
+        // D3D12 has no "currently bound render target" to ask the device for, so the host adapter finds the
+        // engine's current target resource itself and hands it over. Everything else is the same as a
+        // render-target draw: Skia draws into a wrapped ID3D12Resource on the engine's queue, which must be in
+        // RENDER_TARGET when BeginDirectDraw is called (the host transitions it, see D3D12ResourceTransitioner)
+        // and is left there by EndDirectDraw. Ordering against the engine's own work is the host's job too: Skia
+        // submits at EndDirectDraw, so anything the engine recorded earlier has to be submitted before
+        // BeginDirectDraw for it to land underneath Skia's pixels.
+
+        /// <summary>
+        /// Checks that <paramref name="resource"/> is something Skia can draw into directly, and says what it
+        /// is. Throws <see cref="NotSupportedException"/> for a resource that is not a single-sample 2D texture
+        /// with the render-target flag, or whose format is not 8-bit RGBA or BGRA UNORM: Skia creates its render
+        /// target view with the resource's own format, so a typeless format has none and an sRGB one would have
+        /// Skia encode what it writes. Throws <see cref="InvalidOperationException"/> if the resource is not
+        /// <paramref name="expectedWidth"/> by <paramref name="expectedHeight"/>, which means the engine's target
+        /// is a view of something other than a whole texture.
+        /// </summary>
+        public static D3D12DirectTarget DescribeDirectTarget(IntPtr resource, int expectedWidth, int expectedHeight)
+        {
+            if (resource == IntPtr.Zero)
+                throw new ArgumentException("ID3D12Resource handle is null.", nameof(resource));
+
+            var desc = D3D12Com.GetResourceDesc(resource);
+            if (desc.Dimension != D3D12Com.D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+                throw new NotSupportedException("SkiaDirectCanvas draws into a 2D render target; the engine's target is not a 2D texture.");
+            if ((desc.Flags & D3D12Com.D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) == 0)
+                throw new NotSupportedException("The engine's target resource does not allow render target use.");
+            if (desc.SampleDesc.Count != 1)
+                throw new NotSupportedException($"SkiaDirectCanvas does not draw into multisampled targets ({desc.SampleDesc.Count} samples).");
+            if (desc.DepthOrArraySize != 1)
+                throw new NotSupportedException($"SkiaDirectCanvas draws into a single 2D texture, not an array of {desc.DepthOrArraySize}.");
+
+            SKColorType colorType;
+            switch (desc.Format)
+            {
+                case D3D12Constants.FormatR8G8B8A8Unorm:
+                    colorType = SKColorType.Rgba8888;
+                    break;
+                case D3D12Constants.FormatB8G8R8A8Unorm:
+                    colorType = SKColorType.Bgra8888;
+                    break;
+                default:
+                    throw new NotSupportedException(
+                        $"SkiaDirectCanvas supports R8G8B8A8_UNORM and B8G8R8A8_UNORM targets, not DXGI_FORMAT {desc.Format} " +
+                        "(typeless, sRGB-format and HDR targets are refused).");
+            }
+
+            if (desc.Width != (ulong)expectedWidth || desc.Height != (uint)expectedHeight)
+                throw new InvalidOperationException(
+                    $"The engine says its target is {expectedWidth}x{expectedHeight}, but the resource is {desc.Width}x{desc.Height}.");
+
+            return new D3D12DirectTarget(resource, desc.Format, expectedWidth, expectedHeight, colorType);
+        }
+
+        /// <summary>
+        /// Starts a pass that draws into the resource <paramref name="target"/> describes, which the host has
+        /// already put in <c>RENDER_TARGET</c>, and returns its canvas. Takes the host's queue lock until
+        /// <see cref="EndDirectDraw"/>. Does not clear.
+        /// </summary>
+        public SKCanvas BeginDirectDraw(in D3D12DirectTarget target, out D3D12DirectPass pass)
+        {
+            BeginDraw();
+            try
+            {
+                var state = CreateTextureState(target.Resource, target.Format, D3D12Constants.ResourceStateRenderTarget);
+                var (surface, renderTarget) = CreateSurface(state, target.Width, target.Height, target.ColorType);
+                pass = new D3D12DirectPass(surface, renderTarget, surface.Canvas.Save());
+                return surface.Canvas;
+            }
+            catch
+            {
+                _queueLockHandle?.Dispose();
+                _queueLockHandle = null;
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Ends a pass started by <see cref="BeginDirectDraw"/>: submits Skia's draws to the shared queue and
+        /// releases the queue lock, even if it throws. The resource is left in <c>RENDER_TARGET</c>.
+        /// <paramref name="synchronous"/> blocks until the GPU has finished, as for <see cref="EndDraw(bool)"/>.
+        /// </summary>
+        public void EndDirectDraw(D3D12DirectPass pass, bool synchronous = false)
+        {
+            try
+            {
+                pass.Surface.Canvas.RestoreToCount(pass.SaveCount);
+                pass.Surface.Flush();
+                pass.Surface.Dispose();
+                pass.RenderTarget.Dispose();
+            }
+            finally
+            {
+                EndDraw(synchronous);
             }
         }
 

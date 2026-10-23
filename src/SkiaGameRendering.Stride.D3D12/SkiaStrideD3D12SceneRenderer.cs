@@ -17,28 +17,55 @@ namespace SkiaGameRendering.Stride.D3D12
     /// </summary>
     public class SkiaStrideD3D12SceneRenderer : SceneRendererBase
     {
-        /// <summary>The render target drawn into and composited every frame. No-op while null.</summary>
+        /// <summary>
+        /// The render target drawn into and composited every frame. Set this or <see cref="DirectCanvas"/>,
+        /// not both. No-op while both are null.
+        /// </summary>
         public SkiaStrideD3D12RenderTarget2D? Canvas { get; set; }
 
         /// <summary>
-        /// Raised once per frame, between <see cref="SkiaStrideD3D12RenderTarget2D.Begin"/> and
-        /// <c>End</c>, with the canvas to draw on. No-op while unset.
+        /// Draws straight into the compositor's current output every frame, with no intermediate texture.
+        /// Set this or <see cref="Canvas"/>, not both.
+        /// </summary>
+        public SkiaStrideD3D12DirectCanvas? DirectCanvas { get; set; }
+
+        /// <summary>
+        /// Raised once per frame, between <c>Begin</c> and <c>End</c> of whichever canvas is set, with the
+        /// canvas to draw on. No-op while unset.
         /// </summary>
         public event Action<SKCanvas>? SkiaDraw;
 
         protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
         {
-            if (Canvas == null || SkiaDraw == null)
+            if (SkiaDraw == null)
                 return;
+            if (Canvas != null && DirectCanvas != null)
+                throw new InvalidOperationException(
+                    "SkiaStrideD3D12SceneRenderer has both Canvas and DirectCanvas set; set only one.");
 
-            Canvas.Begin();
-            try
+            if (DirectCanvas != null)
             {
-                SkiaDraw.Invoke(Canvas.Canvas);
+                DirectCanvas.Begin(drawContext.GraphicsContext);
+                try
+                {
+                    SkiaDraw.Invoke(DirectCanvas.Canvas);
+                }
+                finally
+                {
+                    DirectCanvas.End();
+                }
             }
-            finally
+            else if (Canvas != null)
             {
-                Canvas.End(drawContext.GraphicsContext);
+                Canvas.Begin();
+                try
+                {
+                    SkiaDraw.Invoke(Canvas.Canvas);
+                }
+                finally
+                {
+                    Canvas.End(drawContext.GraphicsContext);
+                }
             }
         }
     }

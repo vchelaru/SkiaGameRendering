@@ -46,6 +46,10 @@ canvas.End();
   MonoGame tracks the resource's state itself, so every draw after the first is wrapped in a pair of
   transitions that keep its record and the real state equal. That assumes the texture is sampled
   between two draws, which `SkiaRenderTarget2D.End()` does.
+- No `SkiaDirectCanvas`: `SkiaRenderer.SupportsDirectCanvas` is false here. Drawing into MonoGame's
+  current target needs that target's `ID3D12Resource` and MonoGame's recorded commands submitted ahead
+  of Skia's, and MonoGame's managed API and native interop table expose neither (only `GetNativeHandles`
+  and `RenderTarget2D.FromNativeHandle`). Use `SkiaRenderTarget2D`.
 - Skia, this backend and MonoGame submit to one queue, and MonoGame exposes no lock for it: draw from
   the thread that runs `Draw`.
 - A disposed target's resource is released a few draws later, since MonoGame may still have frames
