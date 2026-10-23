@@ -22,10 +22,10 @@
     <EmbeddedResource Include="..\Sample.MonoGame.WindowsDX\Icon.bmp" Link="Icon.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.6-preview.2" />
-    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.6-preview.2" />
-    <PackageReference Include="MonoGame.Runtime.Windows.Vulkan" Version="3.8.6-preview.2" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
-    <PackageReference Include="MonoGame.Runtime.Linux.Vulkan" Version="3.8.6-preview.2" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.6" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.6" />
+    <PackageReference Include="MonoGame.Runtime.Windows.Vulkan" Version="3.8.6" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <PackageReference Include="MonoGame.Runtime.Linux.Vulkan" Version="3.8.6" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\SkiaGameRendering.DesktopVK\SkiaGameRendering.DesktopVK.csproj" />

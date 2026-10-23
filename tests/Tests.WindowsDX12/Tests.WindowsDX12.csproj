@@ -15,7 +15,7 @@
     </PackageReference>
     <!-- The same native runtime package the sample references, so the test sees the mgruntime.dll a game ships.
          Keep its version equal to the sample's (samples/Sample.MonoGame.WindowsDX12). -->
-    <PackageReference Include="MonoGame.Runtime.Windows.DX12" Version="3.8.6-preview.2" />
+    <PackageReference Include="MonoGame.Runtime.Windows.DX12" Version="3.8.6" />
   </ItemGroup>
 
   <ItemGroup>

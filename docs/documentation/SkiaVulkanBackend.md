@@ -45,7 +45,7 @@ canvas.End();
 
 ## Remarks
 
-- Needs `MonoGame.Framework.Native` 3.8.6-preview.2 or later, which added `GetNativeHandles()` and
+- Needs `MonoGame.Framework.Native` 3.8.6 or later, which added `GetNativeHandles()` and
   `RenderTarget2D.FromNativeHandle()`. The game also references the native runtime for its OS,
   `MonoGame.Runtime.Windows.Vulkan` or `MonoGame.Runtime.Linux.Vulkan`.
 - Windows and Linux. SkiaSharp's macOS native build has no Vulkan backend, so MoltenVK is out.

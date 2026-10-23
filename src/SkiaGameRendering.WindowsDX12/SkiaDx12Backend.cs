@@ -8,7 +8,7 @@ namespace SkiaGameRendering
 {
     /// <summary>
     /// SkiaBackend for MonoGame's native WindowsDX12 platform (<c>MonoGame.Framework.Native</c>
-    /// 3.8.6-preview.2+). Windows only.
+    /// 3.8.6+). Windows only.
     ///
     /// Adapter over <see cref="D3D12SkiaSurfaceFactory"/> (see that class for how the D3D12 interop
     /// itself works). Skia draws on the very <c>ID3D12Device</c>/<c>ID3D12CommandQueue</c> MonoGame

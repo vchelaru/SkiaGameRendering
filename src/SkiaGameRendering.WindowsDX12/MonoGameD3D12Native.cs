@@ -21,8 +21,8 @@ namespace SkiaGameRendering
     ///   was then confirmed against the shipped DLL by probing a live device: the pointer chains by following them,
     ///   the dirty flags by diffing <c>MGG_GraphicsDevice</c> across a Present (which sets them all), the pipeline hash
     ///   by diffing its object across draws with different pipeline state. Comments name the field each one is.
-    /// - <b>Bumping MonoGame.</b> 3.8.6-preview.2 and 3.8.6 ship the same native code (the two x64 DLLs differ in 28
-    ///   bytes: the PE timestamp and debug GUID). For any other build, diff the structs against the source at that tag,
+    /// - <b>Bumping MonoGame.</b> 3.8.6-preview.2 and 3.8.6 shipped the same native code (the two x64 DLLs differed in
+    ///   28 bytes: the PE timestamp and debug GUID), so only 3.8.6 is listed. For any other build, diff the structs against the source at that tag,
     ///   re-probe, add the DLL's SHA-256 to <see cref="KnownRuntimes"/>. Until then <see cref="SkiaRenderer.SupportsDirectCanvas"/>
     ///   is false on that build and the render-target path keeps working.
     /// - <b>What a cut has to put back.</b> <c>CommandContext::Reset</c> binds the root signature and descriptor heaps;
@@ -36,7 +36,6 @@ namespace SkiaGameRendering
         // SHA-256 of the win-x64 mgruntime.dll in MonoGame.Runtime.Windows.DX12 at each verified version.
         static readonly Dictionary<string, string> KnownRuntimes = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["234ba4b1a9ce5adc24b34432c10727db55ff9c902e3fde59e87ae56e60e81e36"] = "3.8.6-preview.2",
             ["1179b04b0aa1f983dd50e37f03d797040e35e9a3a13a50b34d7a776cf0de8ab0"] = "3.8.6",
         };
 

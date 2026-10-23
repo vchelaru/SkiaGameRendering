@@ -9,7 +9,7 @@ namespace SkiaGameRendering
 {
     /// <summary>
     /// SkiaBackend for MonoGame's native DesktopVK platform (<c>MonoGame.Framework.Native</c>
-    /// 3.8.6-preview.2+). Windows and Linux; SkiaSharp's macOS native build has no Vulkan backend.
+    /// 3.8.6+). Windows and Linux; SkiaSharp's macOS native build has no Vulkan backend.
     ///
     /// Adapter over <see cref="VkSkiaSurfaceFactory"/> (see that class for how the Vulkan interop
     /// itself works). Skia draws on the very <c>VkDevice</c>/<c>VkQueue</c> MonoGame renders with,

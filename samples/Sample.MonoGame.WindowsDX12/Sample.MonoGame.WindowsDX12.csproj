@@ -23,9 +23,9 @@
     <EmbeddedResource Include="..\Sample.MonoGame.WindowsDX\Icon.bmp" Link="Icon.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.6-preview.2" />
-    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.6-preview.2" />
-    <PackageReference Include="MonoGame.Runtime.Windows.DX12" Version="3.8.6-preview.2" />
+    <PackageReference Include="MonoGame.Framework.Native" Version="3.8.6" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.6" />
+    <PackageReference Include="MonoGame.Runtime.Windows.DX12" Version="3.8.6" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\SkiaGameRendering.WindowsDX12\SkiaGameRendering.WindowsDX12.csproj" />
