@@ -10,7 +10,7 @@ namespace Benchmarks.DirectDraw;
 /// <summary>
 /// Draws <see cref="BenchmarkScene"/> every frame, either into a <see cref="SkiaRenderTarget2D"/> that
 /// SpriteBatch composites onto the back buffer ("offscreen", the old path) or straight onto the back buffer
-/// with <see cref="SkiaRenderer.DrawToCurrentTarget"/> ("direct"). "ab" alternates the two in blocks of
+/// with a <see cref="SkiaDirectCanvas"/> ("direct"). "ab" alternates the two in blocks of
 /// <see cref="BlockFrames"/> frames inside one process, so GPU clock and power-state drift lands on both
 /// alike. Vsync and fixed time step are off. After the warmup frames it records, per mode, the
 /// frame-to-frame interval, the CPU time of the Skia section, and the GPU span of the frame, then appends
@@ -34,7 +34,7 @@ sealed class DirectDrawBenchmarkGame : Game
     BenchmarkScene _scene = null!;
     SkiaRenderTarget2D? _offscreen;
     GpuTimestamps _gpu = null!;
-    Action<SKCanvas> _drawScene = null!;
+    SkiaDirectCanvas? _direct;
     long _lastFrame;
     string? _lastMode;
     int _frame;
@@ -84,9 +84,10 @@ sealed class DirectDrawBenchmarkGame : Game
     {
         SkiaRenderer.Initialize(GraphicsDevice);
         _scene = new BenchmarkScene(_options.Width, _options.Height);
-        _drawScene = canvas => _scene.Draw(canvas, _frame);
         if (_options.Mode != "direct")
             _offscreen = new SkiaRenderTarget2D(GraphicsDevice, _options.Width, _options.Height);
+        if (_options.Mode != "offscreen")
+            _direct = new SkiaDirectCanvas(GraphicsDevice);
         _gpu = new GpuTimestamps();
     }
 
@@ -110,12 +111,14 @@ sealed class DirectDrawBenchmarkGame : Game
         if (mode == "offscreen")
         {
             _offscreen!.Begin();
-            _drawScene(_offscreen.Canvas);
+            _scene.Draw(_offscreen.Canvas, _frame);
             _offscreen.End();
         }
         else
         {
-            SkiaRenderer.DrawToCurrentTarget(GraphicsDevice, _drawScene);
+            _direct!.Begin();
+            _scene.Draw(_direct.Canvas, _frame);
+            _direct.End();
         }
         var skiaMs = Stopwatch.GetElapsedTime(skiaStart).TotalMilliseconds;
         _gpu.End(_frame);
@@ -174,6 +177,7 @@ sealed class DirectDrawBenchmarkGame : Game
     protected override void UnloadContent()
     {
         _offscreen?.Dispose();
+        _direct?.Dispose();
         _scene.Dispose();
         SkiaRenderer.Dispose();
         base.UnloadContent();

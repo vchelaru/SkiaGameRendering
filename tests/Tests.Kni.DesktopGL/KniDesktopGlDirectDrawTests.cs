@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 
 namespace Tests.Kni.DesktopGL;
 
-/// <summary><see cref="SkiaRenderer.DrawToCurrentTarget"/> on KNI DesktopGL. See <see cref="DirectDrawLayering"/>.</summary>
+/// <summary><see cref="SkiaDirectCanvas"/> on KNI DesktopGL. See <see cref="DirectDrawLayering"/>.</summary>
 public sealed class KniDesktopGlDirectDrawTests(ITestOutputHelper output)
 {
     const string Golden = "kni-desktopgl-scene.png";

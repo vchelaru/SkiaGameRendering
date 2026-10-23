@@ -89,35 +89,14 @@ namespace SkiaGameRendering
         }
 
         /// <summary>
-        /// True when <see cref="DrawToCurrentTarget"/> works on this platform: MonoGame DesktopGL and
-        /// KNI DesktopGL. False until the renderer is initialized.
+        /// True when <see cref="SkiaDirectCanvas"/> works on this platform: MonoGame DesktopGL and KNI
+        /// DesktopGL. False until the renderer is initialized.
         /// </summary>
-        public static bool SupportsDrawToCurrentTarget => _backend?.SupportsDrawToCurrentTarget ?? false;
+        public static bool SupportsDirectCanvas => _backend?.SupportsDirectCanvas ?? false;
 
         /// <summary>
-        /// Runs <paramref name="draw"/> on a canvas that draws straight into whatever the engine is
-        /// rendering to right now: the back buffer, or the bound <see cref="RenderTarget2D"/>. No
-        /// intermediate texture and no SpriteBatch composite, so it costs less than a
-        /// <see cref="SkiaRenderTarget2D"/>. It draws on top of what is already there and does not
-        /// clear. Coordinates are target pixels with the origin at the top left; the engine's
-        /// <see cref="GraphicsDevice.Viewport"/> and scissor rectangle are ignored. Engine draws
-        /// before and after keep their order. Throws <see cref="NotSupportedException"/> where
-        /// <see cref="SupportsDrawToCurrentTarget"/> is false, and for more than one bound render target.
-        /// <code>
-        /// spriteBatch.Begin(); /* background */ spriteBatch.End();
-        /// SkiaRenderer.DrawToCurrentTarget(GraphicsDevice, canvas => canvas.DrawCircle(100, 100, 50, paint));
-        /// spriteBatch.Begin(); /* foreground */ spriteBatch.End();
-        /// </code>
-        /// </summary>
-        public static void DrawToCurrentTarget(GraphicsDevice graphicsDevice, Action<SKCanvas> draw)
-        {
-            ArgumentNullException.ThrowIfNull(draw);
-            EnsureInitialized(graphicsDevice).DrawToCurrentTarget(draw);
-        }
-
-        /// <summary>
-        /// Called by <see cref="SkiaRenderTarget2D"/>'s constructor. Auto-initializes against
-        /// <paramref name="graphicsDevice"/> if nothing has initialized the renderer yet.
+        /// Called by the <see cref="SkiaRenderTarget2D"/> and <see cref="SkiaDirectCanvas"/> constructors. Auto-initializes
+        /// against <paramref name="graphicsDevice"/> if nothing has initialized the renderer yet.
         /// </summary>
         internal static SkiaBackend EnsureInitialized(GraphicsDevice graphicsDevice)
         {
@@ -128,7 +107,7 @@ namespace SkiaGameRendering
             else if (!ReferenceEquals(_graphicsDevice, graphicsDevice))
             {
                 throw new InvalidOperationException(
-                    "A SkiaRenderTarget2D or DrawToCurrentTarget call used a different GraphicsDevice than the one " +
+                    "A SkiaRenderTarget2D or SkiaDirectCanvas used a different GraphicsDevice than the one " +
                     "SkiaRenderer is currently initialized with.");
             }
 

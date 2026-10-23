@@ -45,7 +45,7 @@ namespace SkiaGameRendering.Kni.DesktopGL
         // KNI's HiDef profile allows four simultaneous targets; GetRenderTargets needs room for all of them.
         private readonly RenderTargetBinding[] _boundRenderTargets = new RenderTargetBinding[4];
 
-        private protected override bool CanDrawToCurrentTarget => true;
+        private protected override bool CanDrawDirect => true;
 
         private protected override RenderTarget2D? GetBoundRenderTarget()
         {
@@ -56,9 +56,9 @@ namespace SkiaGameRendering.Kni.DesktopGL
             if (count == 0)
                 return null;
             if (count > 1)
-                throw new NotSupportedException("DrawToCurrentTarget needs a single bound render target, not " + count + ".");
+                throw new NotSupportedException("SkiaDirectCanvas needs a single bound render target, not " + count + ".");
             return first as RenderTarget2D
-                ?? throw new NotSupportedException("DrawToCurrentTarget supports a RenderTarget2D, not a cube or 3D target.");
+                ?? throw new NotSupportedException("SkiaDirectCanvas supports a RenderTarget2D, not a cube or 3D target.");
         }
 
         public override void Dispose()

@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace Tests.DesktopGL;
 
-/// <summary><see cref="SkiaRenderer.DrawToCurrentTarget"/> on MonoGame DesktopGL. See <see cref="DirectDrawLayering"/>.</summary>
+/// <summary><see cref="SkiaDirectCanvas"/> on MonoGame DesktopGL. See <see cref="DirectDrawLayering"/>.</summary>
 public sealed class MonoGameDesktopGlDirectDrawTests(ITestOutputHelper output)
 {
     const string Golden = "monogame-desktopgl-scene.png";

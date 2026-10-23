@@ -6,7 +6,7 @@ using SkiaSharp;
 namespace Tests.Shared;
 
 /// <summary>
-/// Checks <see cref="SkiaRenderer.DrawToCurrentTarget"/> against the engine's own draws: a SpriteBatch rect
+/// Checks <see cref="SkiaDirectCanvas"/> against the engine's own draws: a SpriteBatch rect
 /// before, a Skia rect over it, then a SpriteBatch rect over the Skia one, read back through the engine.
 /// Each probe pixel is covered by a known set of layers, so a vertical flip, a channel swap or a Skia draw
 /// landing out of order each fails a specific probe. Linked into both DesktopGL test projects.
@@ -35,15 +35,15 @@ static class DirectDrawLayering
         spriteBatch.Draw(white, new Rectangle(0, 0, Size / 2, Size / 2), Before);
         spriteBatch.End();
 
-        // Skia: a strip along the top, across the middle half. Drawn twice so the second call reuses the
+        // Skia: a strip along the top, across the middle half. Drawn twice so the second pass reuses the
         // cached surface.
+        using var direct = new SkiaDirectCanvas(graphicsDevice);
+        using var paint = new SKPaint { Color = Skia };
         for (var i = 0; i < 2; i++)
         {
-            SkiaRenderer.DrawToCurrentTarget(graphicsDevice, canvas =>
-            {
-                using var paint = new SKPaint { Color = Skia };
-                canvas.DrawRect(Size / 4, 0, Size / 2, Size / 4, paint);
-            });
+            direct.Begin();
+            direct.Canvas.DrawRect(Size / 4, 0, Size / 2, Size / 4, paint);
+            direct.End();
         }
 
         // After: the right half, from 1/8 down to 1/2.

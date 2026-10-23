@@ -181,6 +181,31 @@ public sealed class SkiaRendererTests : IDisposable
 
         internal override void EndRender(SkiaTarget target) => EndRenderCount++;
 
+        public bool DirectCanvasSupported { get; set; }
+        public int BeginDirectDrawCount { get; private set; }
+        public int EndDirectDrawCount { get; private set; }
+        public Exception? BeginDirectDrawException { get; set; }
+        public Exception? EndDirectDrawException { get; set; }
+        private readonly SKSurface _directSurface = SKSurface.Create(new SKImageInfo(1, 1));
+
+        internal override bool SupportsDirectCanvas => DirectCanvasSupported;
+
+        internal override SKCanvas BeginDirectDraw(out object pass)
+        {
+            BeginDirectDrawCount++;
+            if (BeginDirectDrawException != null)
+                throw BeginDirectDrawException;
+            pass = new object();
+            return _directSurface.Canvas;
+        }
+
+        internal override void EndDirectDraw(object pass)
+        {
+            EndDirectDrawCount++;
+            if (EndDirectDrawException != null)
+                throw EndDirectDrawException;
+        }
+
         internal override object CaptureTextureHandle(Texture2D texture) => throw new NotSupportedException();
         internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
             object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState) =>
