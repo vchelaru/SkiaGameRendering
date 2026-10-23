@@ -80,10 +80,11 @@ namespace SkiaGameRendering.Core.OGL
             if (framebufferId == 0)
                 return default;
 
+            // GL_FRAMEBUFFER means the draw framebuffer here, and unlike GL_DRAW_FRAMEBUFFER it is valid on GLES 2.
             var type = gl.GetFramebufferAttachmentParameter(
-                GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+                (int)FramebufferTarget.Framebuffer, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
             var name = gl.GetFramebufferAttachmentParameter(
-                GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+                (int)FramebufferTarget.Framebuffer, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
             return new GlDrawTarget(framebufferId, type, name);
         }
 

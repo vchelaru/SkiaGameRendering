@@ -5,7 +5,6 @@ namespace SkiaGameRendering.Core.OGL
         public const int GL_SAMPLES = 0x80a9;
         public const int GL_STENCIL_BITS = 0x0D57;
         public const int GL_DRAW_FRAMEBUFFER_BINDING = 0x8CA6;
-        public const int GL_DRAW_FRAMEBUFFER = 0x8CA9;
         public const int GL_COLOR_ATTACHMENT0 = 0x8CE0;
         public const int GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE = 0x8CD0;
         public const int GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME = 0x8CD1;

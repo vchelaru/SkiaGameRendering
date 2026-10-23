@@ -9,12 +9,13 @@ namespace Tests.Shared;
 /// Checks <see cref="SkiaDirectCanvas"/> against the engine's own draws: a SpriteBatch rect
 /// before, a Skia rect over it, then a SpriteBatch rect over the Skia one, read back through the engine.
 /// Each probe pixel is covered by a known set of layers, so a vertical flip, a channel swap or a Skia draw
-/// landing out of order each fails a specific probe. Linked into both DesktopGL test projects.
+/// landing out of order each fails a specific probe. Linked into both DesktopGL test projects and the KNI
+/// Android sample's smoke test.
 /// </summary>
 static class DirectDrawLayering
 {
-    // OneFrameGame's back buffer size, so both cases probe the same pixels.
-    internal const int Size = GoldenScene.Width;
+    // OneFrameGame's back buffer size (GoldenScene.Width), so both cases probe the same pixels.
+    internal const int Size = 128;
 
     static readonly Color Background = new(20, 30, 200);
     static readonly Color Before = new(30, 180, 40);
@@ -70,17 +71,18 @@ static class DirectDrawLayering
         return string.Join("; ", errors);
     }
 
+    /// <summary>Probes the top-left <see cref="Size"/> square, so a phone's full-screen back buffer works too.</summary>
     internal static string BackBuffer(GraphicsDevice graphicsDevice)
     {
         graphicsDevice.SetRenderTarget(null);
         var parameters = graphicsDevice.PresentationParameters;
-        if (parameters.BackBufferWidth != Size || parameters.BackBufferHeight != Size)
-            return $"back buffer is {parameters.BackBufferWidth}x{parameters.BackBufferHeight}, expected {Size}x{Size}";
+        if (parameters.BackBufferWidth < Size || parameters.BackBufferHeight < Size)
+            return $"back buffer is {parameters.BackBufferWidth}x{parameters.BackBufferHeight}, smaller than {Size}x{Size}";
 
         return DrawAndCheck(graphicsDevice, () =>
         {
             var pixels = new Color[Size * Size];
-            graphicsDevice.GetBackBufferData(pixels);
+            graphicsDevice.GetBackBufferData(new Rectangle(0, 0, Size, Size), pixels, 0, pixels.Length);
             return pixels;
         });
     }

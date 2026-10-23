@@ -139,6 +139,24 @@ namespace SkiaGameRendering.Core.OGL
                 throw new InvalidOperationException($"eglMakeCurrent(Skia) failed (EGL error 0x{eglGetError():X}).");
         }
 
+        /// <summary>
+        /// Makes the Skia context current on the host's current draw and read surfaces, so its default
+        /// framebuffer is the host's window. A surfaceless context has no default framebuffer at all. Read
+        /// each time because the host recreates its window surface, on Android when the app resumes.
+        /// </summary>
+        public void MakeSkiaContextCurrentOnHostSurface()
+        {
+            _previousDisplay = eglGetCurrentDisplay();
+            _previousDrawSurface = eglGetCurrentSurface(0x3059);
+            _previousReadSurface = eglGetCurrentSurface(0x305A);
+            _previousContext = eglGetCurrentContext();
+
+            if (_previousDrawSurface == EGL_NO_SURFACE)
+                throw new InvalidOperationException("The host context has no current draw surface.");
+            if (!eglMakeCurrent(Display, _previousDrawSurface, _previousReadSurface, SkiaContext))
+                throw new InvalidOperationException($"eglMakeCurrent(Skia, host surface) failed (EGL error 0x{eglGetError():X}).");
+        }
+
         public void RestoreHostContext()
         {
             var display = _previousDisplay != IntPtr.Zero ? _previousDisplay : Display;

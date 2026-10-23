@@ -42,24 +42,11 @@ namespace SkiaGameRendering.Kni.DesktopGL
 
         private protected override int CaptureGlTextureId(Texture2D texture) => (int)texture.GetSharedHandle();
 
-        // KNI's HiDef profile allows four simultaneous targets; GetRenderTargets needs room for all of them.
-        private readonly RenderTargetBinding[] _boundRenderTargets = new RenderTargetBinding[4];
+        private readonly KniBoundRenderTarget _boundRenderTarget = new();
 
         private protected override bool CanDrawDirect => true;
 
-        private protected override RenderTarget2D? GetBoundRenderTarget()
-        {
-            var count = GraphicsDevice.GetRenderTargets(_boundRenderTargets);
-            var first = _boundRenderTargets[0].RenderTarget;
-            Array.Clear(_boundRenderTargets);
-
-            if (count == 0)
-                return null;
-            if (count > 1)
-                throw new NotSupportedException("SkiaDirectCanvas needs a single bound render target, not " + count + ".");
-            return first as RenderTarget2D
-                ?? throw new NotSupportedException("SkiaDirectCanvas supports a RenderTarget2D, not a cube or 3D target.");
-        }
+        private protected override RenderTarget2D? GetBoundRenderTarget() => _boundRenderTarget.Get(GraphicsDevice);
 
         public override void Dispose()
         {
