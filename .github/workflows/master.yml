@@ -487,7 +487,7 @@ jobs:
         run: |
           image="$ANDROID_HOME/system-images/android-35/google_apis/x86_64/system.img"
           for attempt in 1 2 3; do
-            yes | sdkmanager --install 'system-images;android-35;google_apis;x86_64' > /dev/null || true
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'system-images;android-35;google_apis;x86_64' > /dev/null || true
             [ -f "$image" ] && exit 0
             echo "System image missing after attempt $attempt; retrying."
             rm -rf "$ANDROID_HOME/system-images"
