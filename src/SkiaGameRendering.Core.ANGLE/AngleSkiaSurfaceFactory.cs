@@ -536,7 +536,7 @@ namespace SkiaGameRendering.Core.ANGLE
                         throw new NotSupportedException(
                             "SkiaDirectCanvas cannot draw into a render target with mipmaps or array slices " +
                             $"({desc.MipLevels} mips, {desc.ArraySize} slices).");
-                    colorType = ToColorType(viewDesc.Format);
+                    colorType = ToColorType(viewDesc.Format, desc.Format);
                     return texture;
                 }
                 catch
@@ -552,15 +552,20 @@ namespace SkiaGameRendering.Core.ANGLE
         }
 
         /// <summary>
-        /// The Skia color type for a bound render target view's format. sRGB views are refused: ANGLE would
-        /// encode Skia's writes, which no other backend's direct canvas does.
+        /// The Skia color type for a bound render target. ANGLE wraps the texture in the texture's own
+        /// format, so the texture decides whether Skia's writes get encoded. An sRGB-typed texture is
+        /// refused, since ANGLE would encode Skia's writes, which no other backend's direct canvas does. An
+        /// sRGB view of a UNORM texture (a flip-model swap chain's back buffer, as Stride binds it in its
+        /// default Linear color space) is drawn through the UNORM format, so Skia writes the same bytes it
+        /// writes into any other target.
         /// </summary>
-        internal static SKColorType ToColorType(DxgiFormat format) => format switch
+        internal static SKColorType ToColorType(DxgiFormat viewFormat, DxgiFormat textureFormat) => (viewFormat, textureFormat) switch
         {
-            DxgiFormat.R8G8B8A8Unorm => SKColorType.Rgba8888,
-            DxgiFormat.B8G8R8A8Unorm => SKColorType.Bgra8888,
+            (DxgiFormat.R8G8B8A8Unorm or DxgiFormat.R8G8B8A8UnormSrgb, DxgiFormat.R8G8B8A8Unorm) => SKColorType.Rgba8888,
+            (DxgiFormat.B8G8R8A8Unorm or DxgiFormat.B8G8R8A8UnormSrgb, DxgiFormat.B8G8R8A8Unorm) => SKColorType.Bgra8888,
             _ => throw new NotSupportedException(
-                $"SkiaDirectCanvas supports 8-bit RGBA or BGRA render targets, not DXGI format {(uint)format}."),
+                "SkiaDirectCanvas supports 8-bit RGBA or BGRA render targets, or an sRGB view of one, not a view " +
+                $"of DXGI format {(uint)viewFormat} on a texture of DXGI format {(uint)textureFormat}."),
         };
 
         public void Dispose()

@@ -69,6 +69,11 @@ namespace SkiaGameRendering.Stride.D3D11
 
         internal void UnbindAfterDrawing() => _factory.UnbindAfterDrawing();
 
+        internal SKCanvas BeginDirectDraw(int expectedWidth, int expectedHeight, out AngleDirectPass pass) =>
+            _factory.BeginDirectDraw(expectedWidth, expectedHeight, out pass);
+
+        internal void EndDirectDraw(AngleDirectPass pass) => _factory.EndDirectDraw(pass);
+
         internal void DisposeSurface(AngleTextureState? state, SKSurface? surface, GRBackendRenderTarget? renderTarget) =>
             _factory.DisposeSurface(state, surface, renderTarget);
 

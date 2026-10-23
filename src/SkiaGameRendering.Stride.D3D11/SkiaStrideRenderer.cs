@@ -36,7 +36,7 @@ namespace SkiaGameRendering.Stride.D3D11
         }
 
         /// <summary>
-        /// Called by <see cref="SkiaStrideRenderTarget2D"/>'s constructor. Auto-initializes against
+        /// Called by the <see cref="SkiaStrideRenderTarget2D"/> and <see cref="SkiaStrideDirectCanvas"/> constructors. Auto-initializes against
         /// <paramref name="graphicsDevice"/> if nothing has initialized the renderer yet.
         /// </summary>
         internal static SkiaStrideContext EnsureInitialized(GraphicsDevice graphicsDevice)
@@ -48,7 +48,7 @@ namespace SkiaGameRendering.Stride.D3D11
             else if (!ReferenceEquals(_graphicsDevice, graphicsDevice))
             {
                 throw new InvalidOperationException(
-                    "A SkiaStrideRenderTarget2D was constructed with a different GraphicsDevice than the one " +
+                    "A SkiaStrideRenderTarget2D or SkiaStrideDirectCanvas was constructed with a different GraphicsDevice than the one " +
                     "SkiaStrideRenderer is currently initialized with.");
             }
 

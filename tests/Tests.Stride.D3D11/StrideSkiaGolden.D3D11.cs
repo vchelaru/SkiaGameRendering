@@ -39,6 +39,28 @@ static partial class StrideSkiaGolden
         public void Dispose() { }
     }
 
+    /// <summary>
+    /// Draws the scene with <c>SkiaStrideDirectCanvas</c> straight into a bound Stride render target cleared
+    /// as the other paths clear theirs, so it matches the same golden. D3D11 only: the other Stride backends
+    /// have no direct canvas.
+    /// </summary>
+    internal static byte[] RenderSceneDirect(GraphicsDevice graphicsDevice)
+    {
+        using var target = Texture.New2D(
+            graphicsDevice, GoldenScene.Width, GoldenScene.Height, PixelFormat.R8G8B8A8_UNorm,
+            TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+        using var direct = new SkiaGameRendering.Stride.D3D11.SkiaStrideDirectCanvas(graphicsDevice);
+
+        Composite(graphicsDevice, target, graphicsContext =>
+        {
+            direct.Begin(graphicsContext);
+            GoldenScene.Draw(direct.Canvas);
+            direct.End();
+        });
+
+        return ReadRgba(graphicsDevice, target);
+    }
+
     private static partial byte[] ReadRgba(GraphicsDevice graphicsDevice, Texture texture) =>
         PackRgba(texture.GetData<Color>(new GraphicsContext(graphicsDevice).CommandList));
 }

@@ -40,7 +40,8 @@ public sealed class SkiaStrideRenderTarget2D : IDisposable
 | Type | Role |
 | --- | --- |
 | `SkiaStrideRenderer` | Static holder for the shared `SkiaStrideContext`, mirroring `SkiaRenderer`/`SkiaRaylibRenderer`. `Initialize(GraphicsDevice)` is optional - call it explicitly only to fail fast on ANGLE/EGL setup instead of lazily on first render target. `Dispose()` releases it. |
-| `SkiaStrideSceneRenderer` | A `SceneRendererBase` you add to Stride's `GraphicsCompositor` (e.g. via the Stride Community Toolkit's `Game.AddSceneRenderer`). Stride drives rendering through the compositor rather than a user-owned `Draw()` call, so this is the hook that runs `Begin`/`End` every frame - set its `Canvas` and subscribe to its `SkiaDraw` event. |
+| `SkiaStrideSceneRenderer` | A `SceneRendererBase` you add to Stride's `GraphicsCompositor` (e.g. via the Stride Community Toolkit's `Game.AddSceneRenderer`). Stride drives rendering through the compositor rather than a user-owned `Draw()` call, so this is the hook that runs `Begin`/`End` every frame - set its `Canvas` (or `DirectCanvas`) and subscribe to its `SkiaDraw` event. |
+| `SkiaStrideDirectCanvas` | Draws straight into the target bound when `Begin(GraphicsContext)` is called, with no texture and no composite; `End()` hands it back. See the README's "Drawing straight into the current target". |
 
 ## Example
 

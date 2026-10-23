@@ -131,22 +131,17 @@ using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 
 using var game = new Game();
-SkiaStrideRenderTarget2D? canvas = null;
+SkiaStrideDirectCanvas? canvas = null;
 var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
 
 // Called as a static method because Game.Run(GameContext) hides the toolkit's Run extension.
 Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: rootScene =>
 {
     game.SetupBase3DScene();
-    var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
-    canvas = new SkiaStrideRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
+    canvas = new SkiaStrideDirectCanvas(game.GraphicsDevice);
 
-    var renderer = new SkiaStrideSceneRenderer { Canvas = canvas };
-    renderer.SkiaDraw += skCanvas =>
-    {
-        skCanvas.Clear(SKColors.Transparent);
-        skCanvas.DrawCircle(100, 100, 100, paint);
-    };
+    var renderer = new SkiaStrideSceneRenderer { DirectCanvas = canvas };
+    renderer.SkiaDraw += skCanvas => skCanvas.DrawCircle(100, 100, 100, paint);
     game.AddSceneRenderer(renderer); // draws on top of the 3D scene every frame
 });
 
@@ -155,8 +150,14 @@ SkiaStrideRenderer.Dispose();
 paint.Dispose();
 ```
 
+`DirectCanvas` draws straight into the back buffer (see
+[Drawing straight into the current target](#drawing-straight-into-the-current-target)). To draw into
+a texture and composite it instead, set `Canvas` to a `SkiaStrideRenderTarget2D` sized to the back
+buffer and clear it in `SkiaDraw`.
+
 For Vulkan, use the `SkiaGameRendering.Stride.VK` namespace and the `SkiaStrideVulkan*` types
 (`SkiaStrideVulkanRenderTarget2D`, `SkiaStrideVulkanSceneRenderer`, `SkiaStrideVulkanRenderer`).
+Those, and the D3D12 types below, have no direct canvas yet, so set the scene renderer's `Canvas`.
 On Windows, also set `<StrideGraphicsApi>Vulkan</StrideGraphicsApi>` in your project; see
 `docs/stride/vulkan-quickstart.md`.
 
@@ -259,9 +260,18 @@ spriteBatch.Begin(); /* foreground */ spriteBatch.End();
 `Begin()` does not clear; Skia draws on top of what is there. Coordinates are target pixels from the
 top left; the engine's `Viewport` and scissor rectangle are ignored. Multisampled back buffers and render
 targets work. Only one bound `RenderTarget2D` with `SurfaceFormat.Color` is supported; on the D3D11
-platforms an sRGB back buffer is refused too. `SkiaRenderer.SupportsDirectCanvas`
+platforms a back buffer whose texture has an sRGB format is refused too. `SkiaRenderer.SupportsDirectCanvas`
 is false on every other platform, where the constructor throws `NotSupportedException`; use
 `SkiaRenderTarget2D` there.
+
+Stride on Direct3D 11 has the same thing as `SkiaStrideDirectCanvas`. `Begin` takes the
+`GraphicsContext`, where Stride keeps its current target, and `End` takes nothing; or set
+`SkiaStrideSceneRenderer.DirectCanvas` (see the Stride quick start). Inside the compositor that target
+is the back buffer. In Stride's default Linear color space the back buffer is an sRGB view of an
+8-bit texture: Skia writes into it without encoding, so an `SKColor` shows as that color, and Skia
+blends in sRGB space while Stride blends in linear. One bound 8-bit RGBA or BGRA target is supported;
+sRGB-format textures and HDR targets throw `NotSupportedException`. Stride's Vulkan and Direct3D 12
+backends have no direct canvas yet.
 
 ## Performance
 
