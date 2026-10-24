@@ -341,10 +341,11 @@ jobs:
         working-directory: tests/Tests.Raylib.WebGL
         run: |
           npm ci
-          npx playwright install --with-deps chromium
-      - name: Pixel tests
+          npx playwright install --with-deps chromium firefox webkit
+      - name: Pixel tests (Chromium, Firefox, WebKit)
         working-directory: tests/Tests.Raylib.WebGL
-        run: npm test
+        # Firefox needs an X display to get a GL context; see the webgl-functional-shard job.
+        run: xvfb-run --auto-servernum -e /dev/stderr -s "-screen 0 1280x1024x24 -noreset" -- npm run test:all
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -389,10 +390,11 @@ jobs:
         working-directory: tests/Tests.Fna.WebGL
         run: |
           npm ci
-          npx playwright install --with-deps chromium
-      - name: Browser pixel tests
+          npx playwright install --with-deps chromium firefox webkit
+      - name: Browser pixel tests (Chromium, Firefox, WebKit)
         working-directory: tests/Tests.Fna.WebGL
-        run: npm test
+        # Firefox needs an X display to get a GL context; see the webgl-functional-shard job.
+        run: xvfb-run --auto-servernum -e /dev/stderr -s "-screen 0 1280x1024x24 -noreset" -- npm run test:all
       - uses: actions/upload-artifact@v4
         if: always()
         with:
