@@ -14,7 +14,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>SkiaGameRendering.Stride.D3D12</PackageId>
-    <!-- Prerelease for the same reason as SkiaGameRendering.Stride.D3D11: Stride 4.4.0-beta5 is one (NU5104). -->
+    <!-- Prerelease suffix kept for the same reason as SkiaGameRendering.Stride.D3D11. -->
     <Version>$(LibraryVersion)-beta</Version>
     <Description>GPU SkiaSharp rendering into Stride Texture targets via Skia's Direct3D 12 backend on Stride's own device and queue, with zero-copy GPU texture sharing.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>

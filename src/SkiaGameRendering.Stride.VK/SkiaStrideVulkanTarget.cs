@@ -14,7 +14,7 @@ namespace SkiaGameRendering
     /// <para>
     /// <b>Linear-color-space compensation (repo issue: Sample.Stride.VK's crimson rectangle rendering
     /// pink).</b> Stride's <c>GraphicsDeviceManager</c> defaults <c>PreferredColorSpace</c> to
-    /// <c>ColorSpace.Linear</c> (confirmed by decompiling Stride 4.4.0-beta5's actual
+    /// <c>ColorSpace.Linear</c> (confirmed by decompiling Stride 4.4.1's actual
     /// <c>Stride.Games.dll</c>/<c>Stride.Graphics.dll</c>, not assumed), and under that default it
     /// converts the swapchain's back-buffer format to its sRGB variant at device-creation time
     /// (<c>GraphicsDeviceManager.ChangeOrCreateDevice</c>: <c>PreferredBackBufferFormat =

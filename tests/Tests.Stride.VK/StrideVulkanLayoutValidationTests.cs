@@ -70,6 +70,9 @@ public sealed class VulkanValidationLayerFactAttribute : FactAttribute
 /// either way, so only the layer catches a wrong handoff. Stride routes the layer's messages to its
 /// logger from the debug messenger it installs for <c>DeviceCreationFlags.Debug</c>. The Vulkan
 /// analog of <c>Tests.Stride.D3D12</c>'s <c>StrideD3D12BarrierValidationTests</c>.
+/// Synchronization validation is on too (see <c>VK_LAYER_ENABLES</c> below): it reports the
+/// READ_AFTER_WRITE hazard that Stride before 4.4.1 had when its render target barrier carried no
+/// <c>COLOR_ATTACHMENT_READ</c> access for a pass that loads the target (issue #122).
 /// </summary>
 public sealed class StrideVulkanLayoutValidationTests
 {
@@ -85,6 +88,11 @@ public sealed class StrideVulkanLayoutValidationTests
             if (message.Type >= LogMessageType.Warning && message.Text.StartsWith("[Vulkan]"))
                 lock (errors) errors.Add(message.Text);
         }
+
+        // The layer reads this when the instance is created, which Stride does inside GraphicsDevice.New.
+        const string EnablesVariable = "VK_LAYER_ENABLES";
+        var previousEnables = Environment.GetEnvironmentVariable(EnablesVariable);
+        Environment.SetEnvironmentVariable(EnablesVariable, "VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT");
 
         GlobalLogger.GlobalMessageLogged += OnMessage;
         try
@@ -145,6 +153,7 @@ public sealed class StrideVulkanLayoutValidationTests
         finally
         {
             GlobalLogger.GlobalMessageLogged -= OnMessage;
+            Environment.SetEnvironmentVariable(EnablesVariable, previousEnables);
         }
 
         Assert.True(layerEnabled, "Stride did not report enabling the validation layer, so nothing was validated.");

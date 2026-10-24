@@ -9,9 +9,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>SkiaGameRendering.Stride.D3D11</PackageId>
     <!--
-      Prerelease, unlike every other package here: Stride.Engine 4.4.0-beta5 is itself a
-      prerelease, and NuGet rejects a stable package that depends on one (NU5104, an error under
-      TreatWarningsAsErrors). Drop the suffix once Stride 4.4.0 ships stable.
+      Still a prerelease suffix by choice: Stride 4.4.1 is stable, so NU5104 no longer forces it.
+      Dropping the suffix is a release decision.
     -->
     <Version>$(LibraryVersion)-beta</Version>
     <Description>GPU SkiaSharp rendering into Stride Texture targets via D3D11/ANGLE, with zero-copy GPU texture sharing.</Description>
@@ -23,7 +22,7 @@
   <ItemGroup>
     <PackageReference Include="Stride.Engine" Version="$(StrideVersion)" />
     <!--
-      Stride.Engine already depends on these transitively (Stride.Graphics 4.4.0-beta5's D3D11
+      Stride.Engine already depends on these transitively (Stride.Graphics 4.4.1's D3D11
       backend is Silk.NET, not SharpDX), but this project names their types directly
       (ComPtr<ID3D11Device>, ID3D11Resource*), so the versions are pinned explicitly here rather than
       left to whatever Stride.Engine happens to pull in.

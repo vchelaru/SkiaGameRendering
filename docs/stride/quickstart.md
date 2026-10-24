@@ -8,7 +8,7 @@ support is structured differently.
 ## Prerequisites
 
 - .NET 10
-- Stride 4.4.0-beta5 or newer (prerelease - see "Known limitations" below)
+- Stride 4.4.1 or newer
 - Windows and D3D11 only
 
 ## Add the package
@@ -82,7 +82,7 @@ dotnet run --project samples\Sample.Stride.D3D11\Sample.Stride.D3D11.csproj -c R
 
 - Windows and D3D11 only. Stride on Vulkan, Linux, or macOS is unsupported (Vulkan is a separate
   future adapter - repo issue #23).
-- Depends on Stride 4.4.0-beta5, a prerelease, because that's the first version whose D3D11 backend
+- Depends on Stride 4.4.1 or newer, because 4.4 is the first release line whose D3D11 backend
   exposes `GraphicsDevice.NativeDevice` publicly (see
   [SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.Stride.md#remarks)). Expect version
   churn until Stride 4.4 stabilizes.

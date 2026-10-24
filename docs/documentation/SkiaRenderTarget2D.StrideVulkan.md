@@ -57,7 +57,7 @@ game.AddSceneRenderer(renderer);
 
 ## Remarks
 
-- Requires Stride 4.4.0-beta5 or newer, built with `StrideGraphicsApi=Vulkan` (Stride's default on
+- Requires Stride 4.4.1 or newer, built with `StrideGraphicsApi=Vulkan` (Stride's default on
   Linux/macOS; must be forced explicitly on Windows - see `docs/stride/vulkan-quickstart.md`).
 - Reaches Stride Vulkan internals via reflection: `GraphicsDevice.NativeInstance`/
   `NativePhysicalDevice`/`NativeDevice` (properties) and `NativeCommandQueue`/`QueueLock` (fields),

@@ -22,7 +22,7 @@ jobs:
           git -C external/FNA submodule update --init lib/SDL2-CS lib/SDL3-CS lib/FAudio lib/Theorafile lib/dav1dfile
       - uses: actions/setup-dotnet@v4
         with:
-          # The Stride packages target net10.0 (Stride 4.4.0-beta5's own packages do), everything
+          # The Stride packages target net10.0 (Stride 4.4.1's own packages do), everything
           # else still needs 8.0.x - hence both, not a replacement. Mirrors master.yml.
           dotnet-version: |
             8.0.x

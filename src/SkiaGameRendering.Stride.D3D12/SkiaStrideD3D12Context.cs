@@ -18,7 +18,7 @@ namespace SkiaGameRendering
     /// tracking and Skia's.
     ///
     /// MAINTENANCE NOTES (read from the <c>StrideGraphicsApi=Direct3D12</c> build of Stride.Graphics
-    /// 4.4.0-beta5 by decompiling it; every member reached by name is pinned by
+    /// 4.4.1 by decompiling it; every member reached by name is pinned by
     /// <c>tests/Tests.Stride.D3D12/StrideD3D12ReflectionTests.cs</c>):
     /// <list type="bullet">
     /// <item>

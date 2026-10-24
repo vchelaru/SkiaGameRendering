@@ -11,7 +11,7 @@ namespace SkiaGameRendering
     /// device/context/texture pointers and handing them to the shared factory.
     ///
     /// MAINTENANCE NOTES:
-    /// - Targets Stride 4.4.0-beta5+, whose D3D11 backend is Silk.NET rather than SharpDX (see
+    /// - Targets Stride 4.4.1+, whose D3D11 backend is Silk.NET rather than SharpDX (see
     ///   eng/Versions.props). <see cref="GraphicsDevice.NativeDevice"/> is a public
     ///   <c>ComPtr&lt;ID3D11Device&gt;</c> on this version, unlike MonoGame/KNI WindowsDX, so no
     ///   reflection is needed for the device.
