@@ -192,8 +192,17 @@ jobs:
           ./eng/build-unity-package.ps1 -PackageOnly
           ./eng/publish-unity-package.ps1 -Version 0.0.0-ci
 
-  webgl-functional:
+  # The Playwright suite runs serially (workers: 1) and was most of this job's time, so it is
+  # sharded one browser project per runner. Each shard builds both samples itself (~2.5 min) and
+  # installs only its own browser.
+  webgl-functional-shard:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Must match the browser names in tests/Tests.Kni.WebGL/playwright.config.js; each shard
+        # runs that browser against both samples (scene-<name> and gum-<name>).
+        browser: [chromium, chromium-dpr-1.25, chromium-dpr-1.5, chromium-dpr-2, firefox, webkit]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -214,35 +223,61 @@ jobs:
         working-directory: tests/Tests.Kni.WebGL
         run: |
           npm ci
-          npx playwright install --with-deps chromium firefox webkit
+          npx playwright install --with-deps ${{ startsWith(matrix.browser, 'chromium') && 'chromium' || matrix.browser }}
       - name: Functional browser tests
         working-directory: tests/Tests.Kni.WebGL
         # Firefox's WebGL implementation needs a real (even virtual) X display to get a GLX-backed
         # GL context - unlike Chromium, which bundles its own software renderer and works headless
         # with no X server at all. Without this, Firefox exhausts every GL driver route and WebGL2
         # never initializes ("Exhausted GL driver options" - see repo issue #12).
-        run: xvfb-run --auto-servernum -- npm test
-      # AOT + trimming take ~8 of this job's ~13 minutes. They're the shippable release build (and
-      # the strictest check on the reflection path in WebGlCanvasUpload.cs, which trimming can
-      # strip), but that doesn't need to block every PR - only push (i.e. post-merge to master)
-      # runs them, so a broken trim/AOT build surfaces within minutes of merge without slowing down
-      # per-PR iteration.
-      - name: Publish trimmed WASM AOT
-        if: github.event_name == 'push'
-        run: |
-          dotnet publish samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
-          dotnet publish samples/Sample.Gum.Kni.WebGL/Sample.Gum.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
-      - name: Pack WebGL library
-        if: github.event_name == 'push'
-        run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -o .artifacts/packages
+        # The list reporter prints per-test durations and a passed/skipped summary per shard.
+        run: xvfb-run --auto-servernum -- npx playwright test --reporter=list,html --project "scene-${{ matrix.browser }}" --project "gum-${{ matrix.browser }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: webgl-browser-artifacts
+          name: webgl-browser-artifacts-${{ matrix.browser }}
           path: |
             tests/Tests.Kni.WebGL/playwright-report
             tests/Tests.Kni.WebGL/test-results
-            .artifacts/packages
+
+  # Aggregate under the job's original name so anything keyed on "webgl-functional" still reports.
+  # always() plus an explicit result check: a failed, cancelled or skipped shard must fail this.
+  webgl-functional:
+    if: always()
+    needs: webgl-functional-shard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every shard to succeed
+        run: |
+          echo "shards: ${{ needs.webgl-functional-shard.result }}"
+          test "${{ needs.webgl-functional-shard.result }}" = "success"
+
+  # AOT + trimming take ~14 minutes. They're the shippable release build (and the strictest check
+  # on the reflection path in WebGlCanvasUpload.cs, which trimming can strip), but that doesn't
+  # need to block every PR - only push (i.e. post-merge to master) runs them, in parallel with the
+  # tests, so a broken trim/AOT build surfaces within minutes of merge without slowing down
+  # per-PR iteration.
+  webgl-aot:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.415
+      - name: Install WASM toolchain
+        run: dotnet workload install wasm-tools-net8
+      # No --no-restore: this job has no earlier build to restore for it.
+      - name: Publish trimmed WASM AOT
+        run: |
+          dotnet publish samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release -p:RunAOTCompilation=true -p:PublishTrimmed=true
+          dotnet publish samples/Sample.Gum.Kni.WebGL/Sample.Gum.Kni.WebGL.csproj -c Release -p:RunAOTCompilation=true -p:PublishTrimmed=true
+      - name: Pack WebGL library
+        run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -o .artifacts/packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webgl-packages
+          path: .artifacts/packages
 
   raylib-linux:
     runs-on: ubuntu-latest
