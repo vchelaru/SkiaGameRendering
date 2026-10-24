@@ -6,8 +6,8 @@ using Xunit;
 namespace Tests.Fna.WindowsDX;
 
 /// <summary>
-/// Pins the private FNA fields <c>SkiaFnaAngleBackend</c> reaches by string
-/// (src/SkiaGameRendering.Fna.WindowsDX/SkiaFnaAngleBackend.cs). Both are raw FNA3D pointers, so
+/// Pins the private FNA fields <c>SkiaAngleBackend</c> reaches by string
+/// (src/SkiaGameRendering.Fna.WindowsDX/SkiaAngleBackend.cs). Both are raw FNA3D pointers, so
 /// an FNA bump that renames or retypes one turns every Skia draw into an exception (or a black
 /// texture) behind a green build.
 ///

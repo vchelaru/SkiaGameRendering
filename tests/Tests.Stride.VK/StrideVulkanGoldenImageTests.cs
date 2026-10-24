@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.VK;
+using SkiaGameRendering;
 using Stride.Graphics;
 using Tests.Shared;
 using Xunit;
@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 namespace Tests.StrideVK;
 
 /// <summary>
-/// Renders <see cref="GoldenScene"/> through <c>SkiaStrideVulkanRenderTarget2D</c> on a real,
+/// Renders <see cref="GoldenScene"/> through <c>SkiaRenderTarget2D</c> on a real,
 /// headless Stride Vulkan <see cref="GraphicsDevice"/> and compares the pixels against a checked-in
 /// reference. Vulkan analog of <c>Tests.Stride.D3D11</c>'s <c>StrideGoldenImageTests</c> - see that
 /// class for why a whole-image comparison covers what
@@ -39,7 +39,7 @@ public sealed class StrideVulkanGoldenImageTests : IDisposable
 
     public void Dispose()
     {
-        SkiaStrideVulkanRenderer.Dispose();
+        SkiaRenderer.Dispose();
         _graphicsDevice.Dispose();
     }
 

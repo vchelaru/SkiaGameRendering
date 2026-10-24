@@ -1,29 +1,29 @@
-# SkiaStrideVulkanRenderTarget2D
+# SkiaRenderTarget2D
 
 ## Definition
 
-`SkiaStrideVulkanRenderTarget2D` is a GPU surface that SkiaSharp renders directly into. It mirrors
-`SkiaStrideRenderTarget2D`'s Begin/Canvas/End shape via Vulkan (the interop `SkiaGameRendering.Core.VK`
+`SkiaRenderTarget2D` is a GPU surface that SkiaSharp renders directly into. It has the same name and
+Begin/Canvas/End shape as the [MonoGame `SkiaRenderTarget2D`](SkiaRenderTarget2D.md), via Vulkan (the interop `SkiaGameRendering.Core.VK`
 provides), but is a standalone class: like the D3D11 Stride adapter, it does **not** go through
-`SkiaBackend`/`SkiaRenderer` - Stride has neither `Texture2D` nor `GraphicsDevice` typed the way
+`SkiaBackend` - Stride has neither `Texture2D` nor `GraphicsDevice` typed the way
 MonoGame's are, so `src/SkiaGameRendering.Stride.VK/` is a hand-rolled sibling typed to Stride's own
 `Texture`/`GraphicsDevice` throughout, duplicated from (not shared with) the D3D11 adapter -
-see `SkiaStrideRenderTarget2D.md` for why this repo duplicates rather than generalizes across
+see [the D3D11 page](SkiaRenderTarget2D.Stride.md) for why this repo duplicates rather than generalizes across
 Stride's two graphics APIs.
 
-Namespace: `SkiaGameRendering.Stride.VK`
+Namespace: `SkiaGameRendering`
 
 Assembly/package: `SkiaGameRendering.Stride.VK`
 
 ```csharp
-public sealed class SkiaStrideVulkanRenderTarget2D : IDisposable
+public sealed class SkiaRenderTarget2D : IDisposable
 ```
 
 ## Constructor
 
 | Signature | Description |
 | --- | --- |
-| `SkiaStrideVulkanRenderTarget2D(GraphicsDevice graphicsDevice, int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaStrideVulkanRenderer` on first use and allocates a fixed-size target. |
+| `SkiaRenderTarget2D(GraphicsDevice graphicsDevice, int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size target. |
 
 ## Members
 
@@ -32,7 +32,7 @@ public sealed class SkiaStrideVulkanRenderTarget2D : IDisposable
 | `Texture` | The Stride `Texture`. Mainly useful alongside `EndWithoutDrawing`. |
 | `Canvas` | The `SKCanvas` to draw on. Only valid between `Begin` and `End`/`EndWithoutDrawing`. |
 | `Begin(bool clear = true)` | Acquires Stride's Vulkan queue lock so Skia's and Stride's `vkQueueSubmit` calls stay externally synchronized. |
-| `End(GraphicsContext graphicsContext)` | Flushes Skia's queued GPU work and submits it to the shared `VkQueue` (releasing the queue lock), then composites the whole surface at native size and the origin via a `SpriteBatch`. Needs a `GraphicsContext` (unlike the other backends' parameterless `End()`) because Stride's `SpriteBatch` requires one - normally `RenderDrawContext.GraphicsContext` from inside a `SceneRendererBase.DrawCore` (see `SkiaStrideVulkanSceneRenderer` below). |
+| `End(GraphicsContext graphicsContext)` | Flushes Skia's queued GPU work and submits it to the shared `VkQueue` (releasing the queue lock), then composites the whole surface at native size and the origin via a `SpriteBatch`. Needs a `GraphicsContext` (unlike the other backends' parameterless `End()`) because Stride's `SpriteBatch` requires one - normally `RenderDrawContext.GraphicsContext` from inside a `SceneRendererBase.DrawCore` (see `SkiaSceneRenderer` below). |
 | `EndWithoutDrawing()` | Same as `End`, but skips the composite. |
 | `Dispose()` | Releases the texture and Skia surface. Must not be called between `Begin`/`End`. |
 
@@ -40,17 +40,17 @@ public sealed class SkiaStrideVulkanRenderTarget2D : IDisposable
 
 | Type | Role |
 | --- | --- |
-| `SkiaStrideVulkanRenderer` | Static holder for the shared `SkiaStrideVulkanContext`, mirroring `SkiaStrideRenderer`. `Initialize(GraphicsDevice)` is optional - call it explicitly only to fail fast on Vulkan handle setup instead of lazily on first render target. `Dispose()` releases it. |
-| `SkiaStrideVulkanSceneRenderer` | A `SceneRendererBase` you add to Stride's `GraphicsCompositor` (e.g. via the Stride Community Toolkit's `Game.AddSceneRenderer`). Stride drives rendering through the compositor rather than a user-owned `Draw()` call, so this is the hook that runs `Begin`/`End` every frame - set its `Canvas` and subscribe to its `SkiaDraw` event. |
+| `SkiaRenderer` | Static holder for the shared `SkiaStrideVulkanContext`, mirroring `SkiaRenderer`. `Initialize(GraphicsDevice)` is optional - call it explicitly only to fail fast on Vulkan handle setup instead of lazily on first render target. `Dispose()` releases it. |
+| `SkiaSceneRenderer` | A `SceneRendererBase` you add to Stride's `GraphicsCompositor` (e.g. via the Stride Community Toolkit's `Game.AddSceneRenderer`). Stride drives rendering through the compositor rather than a user-owned `Draw()` call, so this is the hook that runs `Begin`/`End` every frame - set its `Canvas` and subscribe to its `SkiaDraw` event. |
 
 ## Example
 
 ```csharp
-using SkiaGameRendering.Stride.VK;
+using SkiaGameRendering;
 using SkiaSharp;
 
-var canvas = new SkiaStrideVulkanRenderTarget2D(game.GraphicsDevice, 200, 200);
-var renderer = new SkiaStrideVulkanSceneRenderer { Canvas = canvas };
+var canvas = new SkiaRenderTarget2D(game.GraphicsDevice, 200, 200);
+var renderer = new SkiaSceneRenderer { Canvas = canvas };
 renderer.SkiaDraw += skCanvas => skCanvas.DrawCircle(100, 100, 100, paint);
 game.AddSceneRenderer(renderer);
 ```

@@ -2,6 +2,6 @@ namespace SkiaGameRendering
 {
     public static partial class SkiaRenderer
     {
-        internal static partial SkiaBackend CreateDefaultBackend() => new SkiaFnaAngleBackend();
+        internal static partial SkiaBackend CreateDefaultBackend() => new SkiaAngleBackend();
     }
 }

@@ -9,7 +9,7 @@
 types are typed directly to MonoGame's `Texture2D`, and raylib is the first non-MonoGame engine
 this library supports, so `src/SkiaGameRendering.Raylib.OGL/` is a hand-rolled sibling typed to
 raylib's own `Texture2D` throughout, reusing the same engine-agnostic GL/Skia FBO interop
-(`Core.OGL`) that `SkiaGlBackend`/`SkiaKniGlBackend` use.
+(`Core.OGL`) that `SkiaGlBackend` use.
 
 Namespace: `SkiaGameRendering.Raylib.OGL`
 

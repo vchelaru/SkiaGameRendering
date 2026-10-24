@@ -1,9 +1,9 @@
-using SkiaGameRendering.Kni.WindowsDX;
+using SkiaGameRendering;
 
 namespace SkiaGameRendering
 {
     public static partial class SkiaRenderer
     {
-        internal static partial SkiaBackend CreateDefaultBackend() => new SkiaKniAngleBackend();
+        internal static partial SkiaBackend CreateDefaultBackend() => new SkiaAngleBackend();
     }
 }

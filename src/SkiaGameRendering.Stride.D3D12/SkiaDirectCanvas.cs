@@ -1,18 +1,18 @@
 using SkiaSharp;
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride.D3D12
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Draws with SkiaSharp straight into whatever Stride is rendering to when <see cref="Begin"/> is called:
     /// the back buffer, or the render target bound on the <see cref="GraphicsContext"/>'s command list. Same
-    /// shape as <see cref="SkiaStrideD3D12RenderTarget2D"/>, minus the size and the texture: there is no
+    /// shape as <see cref="SkiaRenderTarget2D"/>, minus the size and the texture: there is no
     /// intermediate texture and no <see cref="SpriteBatch"/> composite. <see cref="Begin"/> takes the
     /// <see cref="GraphicsContext"/> because that is where Stride keeps its current target; normally it is
     /// <c>RenderDrawContext.GraphicsContext</c> inside a <c>SceneRendererBase</c>'s <c>DrawCore</c> (see
-    /// <see cref="SkiaStrideD3D12SceneRenderer.DirectCanvas"/>).
+    /// <see cref="SkiaSceneRenderer.DirectCanvas"/>).
     /// <code>
-    /// var skia = new SkiaStrideD3D12DirectCanvas(graphicsDevice);
+    /// var skia = new SkiaDirectCanvas(graphicsDevice);
     /// skia.Begin(drawContext.GraphicsContext);
     /// skia.Canvas.DrawCircle(100, 100, 50, paint);
     /// skia.End();
@@ -28,7 +28,7 @@ namespace SkiaGameRendering.Stride.D3D12
     /// under Stride's earlier draws. Use it once per frame, not once per widget.
     /// </para>
     /// </summary>
-    public sealed class SkiaStrideD3D12DirectCanvas : IDisposable
+    public sealed class SkiaDirectCanvas : IDisposable
     {
         readonly SkiaStrideD3D12Context _context;
         SKCanvas? _canvas;
@@ -36,10 +36,10 @@ namespace SkiaGameRendering.Stride.D3D12
         bool _hasBegun;
         bool _isDisposed;
 
-        public SkiaStrideD3D12DirectCanvas(GraphicsDevice graphicsDevice)
+        public SkiaDirectCanvas(GraphicsDevice graphicsDevice)
         {
             ArgumentNullException.ThrowIfNull(graphicsDevice);
-            _context = SkiaStrideD3D12Renderer.EnsureInitialized(graphicsDevice);
+            _context = SkiaRenderer.EnsureInitialized(graphicsDevice);
         }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace SkiaGameRendering.Stride.D3D12
         {
             ArgumentNullException.ThrowIfNull(graphicsContext);
             if (_isDisposed)
-                throw new ObjectDisposedException(nameof(SkiaStrideD3D12DirectCanvas));
+                throw new ObjectDisposedException(nameof(SkiaDirectCanvas));
             if (_hasBegun)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 
@@ -69,7 +69,7 @@ namespace SkiaGameRendering.Stride.D3D12
                 throw new InvalidOperationException("The command list has no render target bound.");
             if (commandList.RenderTargetCount > 1)
                 throw new NotSupportedException(
-                    $"SkiaStrideD3D12DirectCanvas needs a single bound render target, not {commandList.RenderTargetCount}.");
+                    $"SkiaDirectCanvas needs a single bound render target, not {commandList.RenderTargetCount}.");
 
             _canvas = _context.BeginDirectDraw(commandList, commandList.RenderTarget, out var pass);
             _pass = pass;

@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.D3D12;
+using SkiaGameRendering;
 using SkiaSharp;
 using Silk.NET.Core.Native;
 using Silk.NET.Direct3D12;
@@ -62,7 +62,7 @@ public sealed class StrideD3D12BarrierValidationTests
         {
             using var compositeTarget = Texture.New2D(
                 device, 8, 8, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
-            using var canvas = new SkiaStrideD3D12RenderTarget2D(device, 8, 8);
+            using var canvas = new SkiaRenderTarget2D(device, 8, 8);
 
             foreach (var color in new[] { SKColors.Red, SKColors.Blue, SKColors.Green })
             {
@@ -85,7 +85,7 @@ public sealed class StrideD3D12BarrierValidationTests
         }
         finally
         {
-            SkiaStrideD3D12Renderer.Dispose();
+            SkiaRenderer.Dispose();
             GlobalLogger.GlobalMessageLogged -= OnMessage;
         }
 
@@ -93,7 +93,7 @@ public sealed class StrideD3D12BarrierValidationTests
     }
 
     /// <summary>
-    /// The same check for <see cref="SkiaStrideD3D12DirectCanvas"/>: Stride sprite, Skia, Stride sprite, Skia,
+    /// The same check for <see cref="SkiaDirectCanvas"/>: Stride sprite, Skia, Stride sprite, Skia,
     /// into an offscreen render target and into a swap chain back buffer, for several frames, with each frame's
     /// Stride submit between the passes. The handoff moves the target between Stride's enhanced-barrier layouts and
     /// Skia's legacy states twice a pass, and nothing but the debug layer sees that go wrong on WARP.
@@ -127,7 +127,7 @@ public sealed class StrideD3D12BarrierValidationTests
                 device, 16, 16, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
             using var white = Texture.New2D(device, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { Color.White });
             using var spriteBatch = new SpriteBatch(device);
-            using var direct = new SkiaStrideD3D12DirectCanvas(device);
+            using var direct = new SkiaDirectCanvas(device);
 
             Color pixel = default;
             foreach (var target in new[] { offscreen, presenter.BackBuffer, offscreen, presenter.BackBuffer })
@@ -165,7 +165,7 @@ public sealed class StrideD3D12BarrierValidationTests
         }
         finally
         {
-            SkiaStrideD3D12Renderer.Dispose();
+            SkiaRenderer.Dispose();
             GlobalLogger.GlobalMessageLogged -= OnMessage;
         }
 

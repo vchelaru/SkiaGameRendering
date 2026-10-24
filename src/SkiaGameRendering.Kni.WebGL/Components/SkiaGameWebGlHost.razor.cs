@@ -2,10 +2,10 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using SkiaGameRendering.Kni.WebGL;
+using SkiaGameRendering;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Kni.WebGL.Components;
+namespace SkiaGameRendering;
 
 [SupportedOSPlatform("browser")]
 public partial class SkiaGameWebGlHost : ComponentBase, IAsyncDisposable

@@ -6,8 +6,8 @@ using Xunit;
 namespace Tests.Kni.WindowsDX;
 
 /// <summary>
-/// Pins the internal KNI strategy members <c>SkiaKniAngleBackend</c> reaches by string
-/// (src/SkiaGameRendering.Kni.WindowsDX/SkiaKniAngleBackend.cs). KNI's Strategy bridge is public down
+/// Pins the internal KNI strategy members <c>SkiaAngleBackend</c> reaches by string
+/// (src/SkiaGameRendering.Kni.WindowsDX/SkiaAngleBackend.cs). KNI's Strategy bridge is public down
 /// to the concrete class, but the last hop to the SharpDX device, context and texture is not, so a
 /// KNI bump renaming one leaves the build green and breaks every Skia draw.
 ///

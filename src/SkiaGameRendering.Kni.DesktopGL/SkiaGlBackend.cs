@@ -2,9 +2,9 @@ using Microsoft.Xna.Framework.Graphics;
 using SkiaGameRendering.Core.OGL;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Kni.DesktopGL
+namespace SkiaGameRendering
 {
-    public class SkiaKniGlBackend : SkiaSharedGlBackend
+    public class SkiaGlBackend : SkiaSharedGlBackend
     {
         IntPtr _windowId;
         IntPtr _engineContextId;

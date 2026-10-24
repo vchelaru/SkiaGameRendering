@@ -2,14 +2,14 @@ using SkiaSharp;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride.D3D12
+namespace SkiaGameRendering
 {
     /// <summary>
     /// A GPU surface that SkiaSharp renders directly into, sized to match whatever you intend to
     /// draw it onto. D3D12 analog of <c>SkiaGameRendering.Stride.D3D11</c>'s
-    /// <c>SkiaStrideRenderTarget2D</c>, with the same Begin/Canvas/End shape:
+    /// <c>SkiaRenderTarget2D</c>, with the same Begin/Canvas/End shape:
     /// <code>
-    /// var canvas = new SkiaStrideD3D12RenderTarget2D(graphicsDevice, 200, 200);
+    /// var canvas = new SkiaRenderTarget2D(graphicsDevice, 200, 200);
     /// canvas.Begin();
     /// canvas.Canvas.DrawCircle(100, 100, 100, paint);
     /// canvas.End(drawContext.GraphicsContext);
@@ -19,7 +19,7 @@ namespace SkiaGameRendering.Stride.D3D12
     /// runs, ahead of whatever Stride's current command list recorded earlier (see
     /// <see cref="SkiaStrideD3D12Context"/>).
     /// </summary>
-    public sealed class SkiaStrideD3D12RenderTarget2D : IDisposable
+    public sealed class SkiaRenderTarget2D : IDisposable
     {
         readonly SkiaStrideD3D12Context _context;
         readonly GraphicsDevice _graphicsDevice;
@@ -27,7 +27,7 @@ namespace SkiaGameRendering.Stride.D3D12
         SpriteBatch? _spriteBatch;
         bool _hasBegun;
 
-        public SkiaStrideD3D12RenderTarget2D(
+        public SkiaRenderTarget2D(
             GraphicsDevice graphicsDevice, int width, int height, SKColorType colorType = SKColorType.Rgba8888)
         {
             ArgumentNullException.ThrowIfNull(graphicsDevice);
@@ -37,12 +37,12 @@ namespace SkiaGameRendering.Stride.D3D12
                 throw new ArgumentOutOfRangeException(nameof(height));
 
             _graphicsDevice = graphicsDevice;
-            _context = SkiaStrideD3D12Renderer.EnsureInitialized(graphicsDevice);
+            _context = SkiaRenderer.EnsureInitialized(graphicsDevice);
             _target = new SkiaStrideD3D12Target(_context, graphicsDevice, width, height, colorType);
         }
 
         public Texture Texture =>
-            (_target ?? throw new ObjectDisposedException(nameof(SkiaStrideD3D12RenderTarget2D))).Texture;
+            (_target ?? throw new ObjectDisposedException(nameof(SkiaRenderTarget2D))).Texture;
 
         /// <summary>
         /// The canvas to draw on. Only valid between <see cref="Begin"/> and <see cref="End"/>;
@@ -60,7 +60,7 @@ namespace SkiaGameRendering.Stride.D3D12
         public void Begin(bool clear = true)
         {
             if (_target == null)
-                throw new ObjectDisposedException(nameof(SkiaStrideD3D12RenderTarget2D));
+                throw new ObjectDisposedException(nameof(SkiaRenderTarget2D));
             if (_hasBegun)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 
@@ -76,7 +76,7 @@ namespace SkiaGameRendering.Stride.D3D12
         /// (releasing the queue lock), then composites the whole surface at native size and the
         /// origin via a <see cref="SpriteBatch"/>. <paramref name="graphicsContext"/> is normally
         /// <c>RenderDrawContext.GraphicsContext</c>, available inside a <c>SceneRendererBase</c>'s
-        /// <c>DrawCore</c> (see <see cref="SkiaStrideD3D12SceneRenderer"/>).
+        /// <c>DrawCore</c> (see <see cref="SkiaSceneRenderer"/>).
         /// </summary>
         public void End(GraphicsContext graphicsContext)
         {

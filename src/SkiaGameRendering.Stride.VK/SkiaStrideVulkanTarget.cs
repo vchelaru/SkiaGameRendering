@@ -2,10 +2,10 @@ using SkiaGameRendering.Core.VK;
 using SkiaSharp;
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride.VK
+namespace SkiaGameRendering
 {
     /// <summary>
-    /// Owns the GPU resources backing one <see cref="SkiaStrideVulkanRenderTarget2D"/>: the Stride
+    /// Owns the GPU resources backing one <see cref="SkiaRenderTarget2D"/>: the Stride
     /// <see cref="Texture"/>, the wrapped-image state, and the <see cref="SKSurface"/>/
     /// <see cref="GRBackendRenderTarget"/> wrapping it. Mirrors <c>SkiaGameRendering.Stride.D3D11</c>'s
     /// D3D11 <c>SkiaStrideTarget</c>, minus the ANGLE-specific bind/unbind step - Vulkan has no
@@ -21,10 +21,10 @@ namespace SkiaGameRendering.Stride.VK
     /// PixelFormatExtensions.ToSRgb(...)</c> whenever <c>PreferredColorSpace == Linear</c>). An
     /// sRGB-formatted render target auto-encodes (gamma-encodes) whatever a shader writes to it, on
     /// the GPU, unconditionally - that is what makes it "sRGB". <see
-    /// cref="SkiaStrideVulkanRenderTarget2D.End"/> composites this class's <see cref="Texture"/> via
+    /// cref="SkiaRenderTarget2D.End"/> composites this class's <see cref="Texture"/> via
     /// <c>SpriteBatch.Draw</c> straight onto whatever render target Stride's
     /// <c>GraphicsCompositor</c> currently has bound - which, for a renderer appended via
-    /// <c>Game.AddSceneRenderer</c> (see <see cref="SkiaStrideVulkanSceneRenderer"/>), is the real,
+    /// <c>Game.AddSceneRenderer</c> (see <see cref="SkiaSceneRenderer"/>), is the real,
     /// already-tonemapped, presented back buffer (Stride Community Toolkit's
     /// <c>AddSceneRenderer</c> appends as a sibling drawn after the existing top-level renderer, not
     /// into some earlier intermediate stage - checked against that library's actual source, not

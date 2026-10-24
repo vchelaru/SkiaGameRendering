@@ -1,5 +1,4 @@
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.DesktopGL;
 using Tests.Shared;
 using Xunit;
 using Xunit.Abstractions;
@@ -16,7 +15,7 @@ public sealed class KniDesktopGlFrameLeakTests(ITestOutputHelper output)
 {
     [Fact]
     public void DrawingFrames_GrowsNothing() =>
-        OneFrameGame.Render(() => new SkiaKniGlBackend(), device =>
+        OneFrameGame.Render(() => new SkiaGlBackend(), device =>
         {
             EngineFrameLeak.AssertNoPerFrameGrowth(device, output);
             return string.Empty;

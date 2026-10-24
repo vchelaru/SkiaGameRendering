@@ -43,7 +43,7 @@ namespace SkiaGameRendering
     /// stays right; the only GL calls made there are queries, a flush, and a texture rebind that puts
     /// back what was bound.
     /// </summary>
-    public class SkiaFnaGlBackend : SkiaSharedGlBackend
+    public class SkiaGlBackend : SkiaSharedGlBackend
     {
         delegate byte IsTextureDelegate(uint texture);
 
@@ -163,7 +163,7 @@ namespace SkiaGameRendering
             if (glTextureId == 0 || _isTexture(glTextureId) == 0)
                 throw new InvalidOperationException(
                     $"The first field of FNA3D's OpenGL texture struct ({glTextureId}) is not a GL texture name. " +
-                    "The vendored FNA3D.dll's OpenGLTexture layout has changed; see SkiaFnaGlBackend's MAINTENANCE NOTES.");
+                    "The vendored FNA3D.dll's OpenGLTexture layout has changed; see SkiaGlBackend's MAINTENANCE NOTES.");
 
             return (int)glTextureId;
         }

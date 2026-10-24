@@ -28,12 +28,12 @@ public sealed class FnaOglDirectDrawTests(ITestOutputHelper output)
 
     [Fact]
     public void SupportsDirectCanvas() =>
-        Assert.Equal("True", OneFrameGame.Render(() => new SkiaFnaGlBackend(),
+        Assert.Equal("True", OneFrameGame.Render(() => new SkiaGlBackend(),
             _ => SkiaRenderer.SupportsDirectCanvas.ToString()));
 
     [Fact]
     public void BackBuffer_LayersInOrderAndUpright() =>
-        NoErrors(OneFrameGame.Render(() => new SkiaFnaGlBackend(), device =>
+        NoErrors(OneFrameGame.Render(() => new SkiaGlBackend(), device =>
         {
             device.SetRenderTarget(null);
             if (DrawFramebuffer() != 0)
@@ -46,7 +46,7 @@ public sealed class FnaOglDirectDrawTests(ITestOutputHelper output)
     [InlineData(0)]
     [InlineData(4)]
     public void FauxBackBuffer_LayersInOrderAndUpright(int multiSampleCount) =>
-        NoErrors(OneFrameGame.Render(() => new SkiaFnaGlBackend(),
+        NoErrors(OneFrameGame.Render(() => new SkiaGlBackend(),
             device => ResetToFauxBackBuffer(device, multiSampleCount) ?? DrawAndCheckFauxBackBuffer(device)));
 
     /// <summary>
@@ -55,7 +55,7 @@ public sealed class FnaOglDirectDrawTests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     public void FauxBackBuffer_RebuiltByReset_DrawsIntoTheNewOne() =>
-        NoErrors(OneFrameGame.Render(() => new SkiaFnaGlBackend(), device =>
+        NoErrors(OneFrameGame.Render(() => new SkiaGlBackend(), device =>
         {
             var error = ResetToFauxBackBuffer(device, 0);
             if (error != null)
@@ -77,7 +77,7 @@ public sealed class FnaOglDirectDrawTests(ITestOutputHelper output)
     [InlineData(0)]
     [InlineData(4)]
     public void RenderTarget_LayersInOrderAndUpright(int multiSampleCount) =>
-        NoErrors(OneFrameGame.Render(() => new SkiaFnaGlBackend(), device =>
+        NoErrors(OneFrameGame.Render(() => new SkiaGlBackend(), device =>
         {
             using var renderTarget = new RenderTarget2D(device, Size, Size, false, SurfaceFormat.Color,
                 DepthFormat.None, multiSampleCount, RenderTargetUsage.DiscardContents);
@@ -110,12 +110,12 @@ public sealed class FnaOglDirectDrawTests(ITestOutputHelper output)
 
     [Fact]
     public void Scene_DrawnToRenderTarget_MatchesGolden() =>
-        OneFrameGame.RenderAndAssertGolden(() => new SkiaFnaGlBackend(),
+        OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),
             EngineSkiaGolden.RenderSceneDirectToRenderTarget, Golden, output);
 
     [Fact]
     public void Scene_DrawnToBackBuffer_MatchesGolden() =>
-        OneFrameGame.RenderAndAssertGolden(() => new SkiaFnaGlBackend(),
+        OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),
             EngineSkiaGolden.RenderSceneDirectToBackBuffer, Golden, output);
 
     /// <summary>Assert.Equal truncates a long string; every probe failure matters.</summary>

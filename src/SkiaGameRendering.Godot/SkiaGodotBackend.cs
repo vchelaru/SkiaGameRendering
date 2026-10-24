@@ -1,15 +1,15 @@
 using Godot;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Godot
+namespace SkiaGameRendering
 {
     /// <summary>
-    /// The per-driver half of the Godot adapter. <see cref="SkiaGodotRenderer"/> picks one from
+    /// The per-driver half of the Godot adapter. <see cref="SkiaRenderer"/> picks one from
     /// <see cref="RenderingServer.GetCurrentRenderingDriverName"/>: <see cref="VulkanGodotBackend"/> and
     /// <see cref="D3D12GodotBackend"/> for the two <see cref="RenderingDevice"/> drivers (sharing
     /// <see cref="RenderingDeviceGodotBackend"/>), <see cref="GlCompatibilityGodotBackend"/> for the
     /// Compatibility renderer, which has no RenderingDevice at all and shares a native GL context
-    /// instead. The public <see cref="SkiaGodotRenderTarget2D"/> API is identical over all of them.
+    /// instead. The public <see cref="SkiaRenderTarget2D"/> API is identical over all of them.
     ///
     /// Unlike every other engine adapter in this repo, nothing here is reached by reflection:
     /// <see cref="RenderingDevice.GetDriverResource"/>, <see cref="RenderingServer.TextureGetNativeHandle"/>
@@ -73,7 +73,7 @@ namespace SkiaGameRendering.Godot
 
         /// <summary>
         /// Disposes every target still alive, before the backend itself goes. A
-        /// <see cref="SkiaGodotRenderTarget2D"/> left holding one then throws
+        /// <see cref="SkiaRenderTarget2D"/> left holding one then throws
         /// <see cref="ObjectDisposedException"/> instead of calling into a disposed Skia context. Render thread.
         /// </summary>
         internal void DisposeLiveTargets()
@@ -89,9 +89,9 @@ namespace SkiaGameRendering.Godot
     }
 
     /// <summary>
-    /// Everything behind one <see cref="SkiaGodotRenderTarget2D"/>: the Godot-side texture the scene
+    /// Everything behind one <see cref="SkiaRenderTarget2D"/>: the Godot-side texture the scene
     /// tree displays and whatever Skia draws into on that backend. Disposal is split in two because
-    /// Godot's "Separate" thread model needs it (see <see cref="SkiaGodotRenderTarget2D.Dispose"/>):
+    /// Godot's "Separate" thread model needs it (see <see cref="SkiaRenderTarget2D.Dispose"/>):
     /// <see cref="ReleaseSceneTexture"/> is the main-thread half, <see cref="Dispose"/> the render-thread half.
     /// </summary>
     internal abstract class SkiaGodotTargetResources : IDisposable

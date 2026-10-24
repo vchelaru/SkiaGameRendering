@@ -8,8 +8,8 @@ Actions artifacts, which need an authenticated download and expire. ~7.5 MB tota
 
 Only the Windows x64 set is vendored; the Fna.WindowsDX backend is Windows-only. The archive's D3D12
 folder (Agility SDK) is left out - it only matters for FNA3D's SDL_GPU driver, which this backend
-can't use (see SkiaFnaAngleBackend).
+can't use (see SkiaAngleBackend).
 
 SkiaGameRendering.Fna.WindowsDX reads the ID3D11Resource* out of FNA3D's internal D3D11Texture struct
 (first field), so the FNA3D.dll here is the one that layout was verified against. Re-verify when
-updating it - see SkiaFnaAngleBackend's MAINTENANCE NOTES.
+updating it - see SkiaAngleBackend's MAINTENANCE NOTES.

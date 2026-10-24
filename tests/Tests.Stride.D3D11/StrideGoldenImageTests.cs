@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.D3D11;
+using SkiaGameRendering;
 using Stride.Graphics;
 using Tests.Shared;
 using Xunit;
@@ -6,7 +6,7 @@ using Xunit;
 namespace Tests.Stride;
 
 /// <summary>
-/// Renders <see cref="GoldenScene"/> through <c>SkiaStrideRenderTarget2D</c> on a real, headless
+/// Renders <see cref="GoldenScene"/> through <c>SkiaRenderTarget2D</c> on a real, headless
 /// Stride D3D11 <see cref="GraphicsDevice"/> and compares the pixels against a checked-in reference.
 /// <para>
 /// <see cref="StrideCompositeColorTests"/> already proves a solid color survives the composite at
@@ -53,7 +53,7 @@ public sealed class StrideGoldenImageTests : IDisposable
 
     public void Dispose()
     {
-        SkiaStrideRenderer.Dispose();
+        SkiaRenderer.Dispose();
         _graphicsDevice.Dispose();
         Environment.SetEnvironmentVariable("STRIDE_GRAPHICS_SOFTWARE_RENDERING", null);
     }

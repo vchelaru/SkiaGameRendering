@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.VK;
+using SkiaGameRendering;
 using Stride.Graphics;
 using Tests.Shared;
 using Xunit;
@@ -24,7 +24,7 @@ public sealed class StrideVulkanFrameLeakTests(ITestOutputHelper output)
         }
         finally
         {
-            SkiaStrideVulkanRenderer.Dispose();
+            SkiaRenderer.Dispose();
         }
     }
 }

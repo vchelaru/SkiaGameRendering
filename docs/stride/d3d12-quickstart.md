@@ -30,14 +30,14 @@ your game's project. `samples/Sample.Stride.D3D12` does this.
 The same code as the D3D11 quick start, with the `SkiaStrideD3D12*` types:
 
 ```cs
-using SkiaGameRendering.Stride.D3D12;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 
 using var game = new Game();
-SkiaStrideD3D12DirectCanvas? canvas = null;
+SkiaDirectCanvas? canvas = null;
 var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
 
 // Called as a static method because Game.Run(GameContext) hides the toolkit's Run extension.
@@ -46,22 +46,22 @@ Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: rootScene =>
     game.SetupBase3DScene();
 
     // Draws straight into the back buffer. To draw into a texture and composite it instead, set
-    // Canvas to a SkiaStrideD3D12RenderTarget2D sized to the back buffer and clear it in SkiaDraw.
-    canvas = new SkiaStrideD3D12DirectCanvas(game.GraphicsDevice);
+    // Canvas to a SkiaRenderTarget2D sized to the back buffer and clear it in SkiaDraw.
+    canvas = new SkiaDirectCanvas(game.GraphicsDevice);
 
-    var renderer = new SkiaStrideD3D12SceneRenderer { DirectCanvas = canvas };
+    var renderer = new SkiaSceneRenderer { DirectCanvas = canvas };
     renderer.SkiaDraw += skCanvas => skCanvas.DrawCircle(100, 100, 100, paint);
     game.AddSceneRenderer(renderer); // draws on top of the 3D scene every frame
 });
 
 canvas?.Dispose();
-SkiaStrideD3D12Renderer.Dispose();
+SkiaRenderer.Dispose();
 paint.Dispose();
 ```
 
 ## Things to know
 
-- `SkiaStrideD3D12DirectCanvas.Begin(GraphicsContext)` draws into the render target bound on that
+- `SkiaDirectCanvas.Begin(GraphicsContext)` draws into the render target bound on that
   context's command list, which inside the compositor is the back buffer. It does not clear. In
   Stride's default Linear color space the back buffer is an sRGB view of a UNORM texture: Skia writes
   into it without encoding, so an `SKColor` shows as that color. One single-sample 8-bit RGBA or BGRA
@@ -70,7 +70,7 @@ paint.Dispose();
   with the same targets, pipeline state and viewport, because Skia's work reaches the GPU when `End`
   runs. Each pass costs a submission and a few small barrier submissions, so use one direct canvas
   pass per frame rather than one per widget.
-- With a `SkiaStrideD3D12RenderTarget2D`, Skia submits its work as soon as `End` runs, ahead of
+- With a `SkiaRenderTarget2D`, Skia submits its work as soon as `End` runs, ahead of
   whatever Stride's current command list recorded earlier in the frame. Draw each target once per
   frame, before anything samples it.
 - `EndWithoutDrawing` leaves the texture in Stride's `Common` layout. Before sampling it yourself,

@@ -1,4 +1,4 @@
-using SkiaGameRendering.Kni.DesktopGL;
+using SkiaGameRendering;
 using Tests.Shared;
 using Xunit;
 using Xunit.Abstractions;
@@ -21,11 +21,11 @@ public sealed class KniDesktopGlGoldenImageTests(ITestOutputHelper output)
 
     [Fact]
     public void Scene_DrawnThroughSkiaRenderTarget2D_MatchesGolden() =>
-        OneFrameGame.RenderAndAssertGolden(() => new SkiaKniGlBackend(),
+        OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),
             EngineSkiaGolden.RenderSceneToSkiaTexture, Golden, output);
 
     [Fact]
     public void Scene_CompositedOntoEngineRenderTarget_MatchesGolden() =>
-        OneFrameGame.RenderAndAssertGolden(() => new SkiaKniGlBackend(),
+        OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),
             EngineSkiaGolden.RenderSceneCompositedByEngine, Golden, output);
 }

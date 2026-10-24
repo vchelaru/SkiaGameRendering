@@ -1,14 +1,14 @@
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride.D3D12
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Holds the shared <see cref="SkiaStrideD3D12Context"/> for a Stride <see cref="GraphicsDevice"/>.
-    /// D3D12 analog of <c>SkiaGameRendering.Stride.D3D11</c>'s <c>SkiaStrideRenderer</c>. Constructing a
-    /// <see cref="SkiaStrideD3D12RenderTarget2D"/> auto-initializes it; call <see cref="Initialize"/>
+    /// D3D12 analog of <c>SkiaGameRendering.Stride.D3D11</c>'s <c>SkiaRenderer</c>. Constructing a
+    /// <see cref="SkiaRenderTarget2D"/> auto-initializes it; call <see cref="Initialize"/>
     /// explicitly only to make initialization (and any failure) happen at a known point.
     /// </summary>
-    public static class SkiaStrideD3D12Renderer
+    public static class SkiaRenderer
     {
         static SkiaStrideD3D12Context? _context;
         static GraphicsDevice? _graphicsDevice;
@@ -25,7 +25,7 @@ namespace SkiaGameRendering.Stride.D3D12
                     return;
 
                 throw new InvalidOperationException(
-                    "SkiaStrideD3D12Renderer is already initialized. Call SkiaStrideD3D12Renderer.Dispose() before switching GraphicsDevice.");
+                    "SkiaRenderer is already initialized. Call SkiaRenderer.Dispose() before switching GraphicsDevice.");
             }
 
             var context = new SkiaStrideD3D12Context();
@@ -43,7 +43,7 @@ namespace SkiaGameRendering.Stride.D3D12
         }
 
         /// <summary>
-        /// Called by <see cref="SkiaStrideD3D12RenderTarget2D"/>'s constructor. Auto-initializes
+        /// Called by <see cref="SkiaRenderTarget2D"/>'s constructor. Auto-initializes
         /// against <paramref name="graphicsDevice"/> if nothing has initialized the renderer yet.
         /// </summary>
         internal static SkiaStrideD3D12Context EnsureInitialized(GraphicsDevice graphicsDevice)
@@ -55,15 +55,15 @@ namespace SkiaGameRendering.Stride.D3D12
             else if (!ReferenceEquals(_graphicsDevice, graphicsDevice))
             {
                 throw new InvalidOperationException(
-                    "A SkiaStrideD3D12RenderTarget2D was constructed with a different GraphicsDevice than the one " +
-                    "SkiaStrideD3D12Renderer is currently initialized with.");
+                    "A SkiaRenderTarget2D was constructed with a different GraphicsDevice than the one " +
+                    "SkiaRenderer is currently initialized with.");
             }
 
             return _context!;
         }
 
         /// <summary>
-        /// Disposes the shared context. Dispose any live <see cref="SkiaStrideD3D12RenderTarget2D"/>
+        /// Disposes the shared context. Dispose any live <see cref="SkiaRenderTarget2D"/>
         /// instances first - this does not track or dispose them for you.
         /// </summary>
         public static void Dispose()

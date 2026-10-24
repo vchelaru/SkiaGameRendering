@@ -206,7 +206,7 @@ ANGLE requires `libEGL.dll` and `libGLESv2.dll` at runtime, and `libGLESv2.dll` 
 
 ### Later: extraction into Core.ANGLE
 
-Everything above (`AngleEgl`, the surface/texture-state factory, the `SwapDeviceContextState` fix) was later pulled out of `SkiaAngleBackend` into engine-agnostic `src/SkiaGameRendering.Core.ANGLE/` (`AngleEgl.cs`, `AngleSkiaSurfaceFactory.cs`), per [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3)'s step 3. `SkiaAngleBackend` (MonoGame WindowsDX) is now a thin adapter over that factory, and `SkiaKniAngleBackend` (`src/SkiaGameRendering.Kni.WindowsDX/`) is a second adapter reusing it for KNI's WinForms DX11 platform — see TODO.md's Architecture section for the split.
+Everything above (`AngleEgl`, the surface/texture-state factory, the `SwapDeviceContextState` fix) was later pulled out of `SkiaAngleBackend` into engine-agnostic `src/SkiaGameRendering.Core.ANGLE/` (`AngleEgl.cs`, `AngleSkiaSurfaceFactory.cs`), per [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3)'s step 3. `SkiaAngleBackend` (MonoGame WindowsDX) is now a thin adapter over that factory, and `src/SkiaGameRendering.Kni.WindowsDX/` ships a second `SkiaAngleBackend` reusing it for KNI's WinForms DX11 platform — see TODO.md's Architecture section for the split.
 
 ### SkiaDirectCanvas on D3D11
 
@@ -271,7 +271,7 @@ opaque and SDL3's only device properties are name/driver strings, no native hand
 requires the D3D11 driver, selected with `FNA3D_FORCE_DRIVER=D3D11` before the window exists.
 Verified in SDL3's `SDL_hints.c` that `SDL_GetHint` reads the environment variable of the same name
 first, which is why a plain `Environment.SetEnvironmentVariable` in `Program.cs` is enough.
-`SkiaFnaAngleBackend.Initialize` checks `rendererType` and throws with that instruction otherwise.
+`SkiaAngleBackend.Initialize` checks `rendererType` and throws with that instruction otherwise.
 Same shape as MG 3.8.5's native backends (section 9): the fix is upstream exports, in SDL and then
 FNA3D.
 
@@ -389,7 +389,7 @@ affected. Under "Separate" (experimental in Godot, verified with
 and throws with that instruction. `Dispose` is the one call that has to straddle both threads there:
 clearing `Texture2DRD.texture_rd_rid` emits `changed`, and a `Sprite2D` showing the texture answers
 with `queue_redraw`, which Godot only allows from the node's thread (the main thread), while freeing
-the RD texture must happen on the render thread. So `SkiaGodotRenderTarget2D.Dispose` runs the half
+the RD texture must happen on the render thread. So `SkiaRenderTarget2D.Dispose` runs the half
 that belongs to the calling thread immediately and hands the other half over (`CallOnRenderThread`
 or `CallDeferred`), and the Texture2DRD wrapper itself is never `Dispose()`d - it is a refcounted
 resource other nodes may still hold.
@@ -412,7 +412,7 @@ is the observable signal that a texture was detached.
   macOS to `metal`. macOS is unsupported on every driver: no Metal interop here, and SkiaSharp
   3.119.4's macOS native library has no Vulkan backend (`GRContext.CreateVulkan` returns null on
   MoltenVK; the dylib has none of the `vk*` entry-point names the Windows build carries).
-  `SkiaGodotRenderer.Initialize` throws on macOS.
+  `SkiaRenderer.Initialize` throws on macOS.
 - Godot's default 2D pipeline is gamma-space (`hdr_2d` off), so a plain UNORM texture holding
   Skia's sRGB bytes displays 1:1 - none of the Stride adapter's linear-space compensation. The
   sample's pure red and CornflowerBlue read back exactly.
@@ -458,7 +458,7 @@ different from Vulkan:
   backend renders into a typed `ID3D12Resource` this library allocates
   (`D3D12SkiaSurfaceFactory.CreateRenderTargetResource`, raw COM) and `End()` queues one
   `CopyResource` into Godot's texture - typed UNORM into TYPELESS of the same family is a legal
-  copy. GPU-to-GPU, no CPU readback, but not zero-copy; `SkiaGodotRenderer.IsZeroCopy` reports it.
+  copy. GPU-to-GPU, no CPU readback, but not zero-copy; `SkiaRenderer.IsZeroCopy` reports it.
   A side benefit: Skia owns its surface outright, so nothing is re-wrapped per frame and no
   sentinel draw is needed - the copy returns Skia's resource to `RENDER_TARGET`, which is what
   Skia believes.
@@ -478,7 +478,7 @@ different from Vulkan:
   vertex or compute shader on the legacy path moves Godot's belief, and the hand-back state no
   longer matches (the debug layer reports it; hardware mostly tolerates it). 2D canvas use is
   fragment-only. The dev box that verified all this runs Godot's D3D12 with enhanced barriers
-  (`SkiaGodotRenderer.D3D12UsesEnhancedBarriers` reports it); the legacy path is implemented from
+  (`SkiaRenderer.D3D12UsesEnhancedBarriers` reports it); the legacy path is implemented from
   the driver source but not yet exercised on hardware.
 
 `Core.D3D12` gained `D3D12ResourceTransitioner` (a ring of command allocator/list pairs and a

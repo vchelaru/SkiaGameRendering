@@ -1,4 +1,4 @@
-using SkiaGameRendering.Godot;
+using SkiaGameRendering;
 using Xunit;
 
 namespace Tests.Godot;

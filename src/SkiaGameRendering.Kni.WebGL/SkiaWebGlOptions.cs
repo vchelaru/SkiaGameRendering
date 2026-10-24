@@ -1,4 +1,4 @@
-namespace SkiaGameRendering.Kni.WebGL;
+namespace SkiaGameRendering;
 
 public enum WebGlUploadMode
 {

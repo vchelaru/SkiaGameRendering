@@ -2,7 +2,7 @@ using Godot;
 using SkiaGameRendering.Core.VK;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Godot
+namespace SkiaGameRendering
 {
     /// <summary>
     /// The Vulkan backend: hands Godot's own <c>VkInstance</c>/<c>VkPhysicalDevice</c>/<c>VkDevice</c>/

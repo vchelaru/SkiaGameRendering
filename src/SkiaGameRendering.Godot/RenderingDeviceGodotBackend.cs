@@ -2,7 +2,7 @@ using Godot;
 using Godot.Collections;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Godot
+namespace SkiaGameRendering
 {
     /// <summary>
     /// What the Vulkan, D3D12 and Metal backends share: creating the RD texture Godot will
@@ -284,7 +284,7 @@ namespace SkiaGameRendering.Godot
         };
 
         /// <summary>
-        /// Owns what one <see cref="SkiaGodotRenderTarget2D"/> holds on an RD backend: the RD texture,
+        /// Owns what one <see cref="SkiaRenderTarget2D"/> holds on an RD backend: the RD texture,
         /// the <see cref="Texture2Drd"/> that exposes it to the scene tree, and the backend's per-target
         /// GPU resources.
         /// <para>
@@ -292,7 +292,7 @@ namespace SkiaGameRendering.Godot
         /// blend mode (Mix) expects straight alpha. Opaque content is unaffected; anti-aliased edges
         /// over a transparent clear come out slightly dark unless the displaying node uses
         /// <see cref="CanvasItemMaterial.BlendModeEnum.PremultAlpha"/> -
-        /// <see cref="SkiaGodotRenderTarget2D.CreatePremultipliedAlphaMaterial"/> hands one back.
+        /// <see cref="SkiaRenderTarget2D.CreatePremultipliedAlphaMaterial"/> hands one back.
         /// </para>
         /// <para>
         /// <b>Color space.</b> The RD texture is a plain UNORM format and the Skia surface carries no
@@ -338,9 +338,9 @@ namespace SkiaGameRendering.Godot
                 }
             }
 
-            internal override Texture2D Texture => _texture ?? throw new ObjectDisposedException(nameof(SkiaGodotRenderTarget2D));
+            internal override Texture2D Texture => _texture ?? throw new ObjectDisposedException(nameof(SkiaRenderTarget2D));
 
-            internal override Rid TextureRid => _disposed ? throw new ObjectDisposedException(nameof(SkiaGodotRenderTarget2D)) : _textureRid;
+            internal override Rid TextureRid => _disposed ? throw new ObjectDisposedException(nameof(SkiaRenderTarget2D)) : _textureRid;
 
             internal override SKSurface BeginFrame()
             {
@@ -407,7 +407,7 @@ namespace SkiaGameRendering.Godot
     }
 
     /// <summary>
-    /// The per-target, per-graphics-API GPU state behind one RD-backed <see cref="SkiaGodotRenderTarget2D"/>:
+    /// The per-target, per-graphics-API GPU state behind one RD-backed <see cref="SkiaRenderTarget2D"/>:
     /// whatever wraps (or stands in for) the RD texture on Skia's side. <see cref="BeginFrame"/> returns
     /// the surface to draw on; <see cref="EndFrame"/> submits the draw and hands the RD texture back to
     /// Godot in the state it expects.

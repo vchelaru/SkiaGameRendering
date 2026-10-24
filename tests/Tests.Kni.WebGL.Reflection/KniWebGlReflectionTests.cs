@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Platform.Graphics;
-using SkiaGameRendering.Kni.WebGL;
+using SkiaGameRendering;
 using Tests.Shared;
 using Xunit;
 

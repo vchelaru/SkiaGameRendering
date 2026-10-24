@@ -1,7 +1,7 @@
 using Xunit;
 
 // Both Stride backends hold their Skia context in a static keyed to one GraphicsDevice
-// (SkiaStrideRenderer / SkiaStrideVulkanRenderer), and every device-backed test here creates its own
+// (the Stride D3D11 and Vulkan SkiaRenderer), and every device-backed test here creates its own
 // device and disposes the renderer afterwards. xunit's default is to run separate test classes in
 // parallel, which would let two of those overlap - the second construction throws "already
 // initialized ... call Dispose before switching GraphicsDevice", and even without the static there

@@ -37,7 +37,7 @@ state. `EglSharedContext` (in `Core.OGL`) reads that with the native `eglGetCurr
 creates a second context with the host's `EGLConfig` and GLES version sharing the host's objects,
 and Skia draws into an FBO around the `RenderTarget2D`'s GL texture (`GetSharedHandle()`, public
 API, so no reflection). The Skia context runs surfaceless where the driver allows it and on the
-host's draw surface otherwise; `SkiaKniAndroidBackend.Description` says which.
+host's draw surface otherwise; `SkiaAndroidBackend.Description` says which.
 
 `SkiaDirectCanvas` works here too. A surfaceless context has no default framebuffer, so for direct
 drawing the Skia context is made current on KNI's current window surface, read again on every

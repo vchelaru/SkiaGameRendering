@@ -2,10 +2,10 @@ using SkiaGameRendering.Core.D3D12;
 using SkiaSharp;
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride.D3D12
+namespace SkiaGameRendering
 {
     /// <summary>
-    /// Owns the GPU resources backing one <see cref="SkiaStrideD3D12RenderTarget2D"/>: the Stride
+    /// Owns the GPU resources backing one <see cref="SkiaRenderTarget2D"/>: the Stride
     /// <see cref="Texture"/>, the wrapped-resource state, and the <see cref="SKSurface"/>/
     /// <see cref="GRBackendRenderTarget"/> wrapping it. Zero-copy: Skia draws straight into Stride's
     /// own <c>ID3D12Resource</c>, which Stride creates with a typed format (only depth formats go

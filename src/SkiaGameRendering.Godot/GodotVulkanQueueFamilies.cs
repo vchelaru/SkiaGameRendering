@@ -1,6 +1,6 @@
 using SkiaGameRendering.Core.VK;
 
-namespace SkiaGameRendering.Godot
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Works out which Vulkan queue family Godot puts its texture/buffer uploads on, so

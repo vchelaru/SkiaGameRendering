@@ -1,5 +1,4 @@
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.WindowsDX;
 using Tests.Shared;
 using Xunit;
 using Xunit.Abstractions;
@@ -17,7 +16,7 @@ public sealed class KniWindowsDxFrameLeakTests(ITestOutputHelper output)
     public void DrawingFrames_GrowsNothing()
     {
         using var headless = new HeadlessGraphicsDevice(GoldenScene.Width, GoldenScene.Height);
-        SkiaRenderer.Initialize(new SkiaKniAngleBackend(), headless.GraphicsDevice);
+        SkiaRenderer.Initialize(new SkiaAngleBackend(), headless.GraphicsDevice);
         try
         {
             EngineFrameLeak.AssertNoPerFrameGrowth(headless.GraphicsDevice, output);

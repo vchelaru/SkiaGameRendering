@@ -21,7 +21,7 @@ public sealed class FnaWindowsDxFrameLeakTests(ITestOutputHelper output)
 
     [Fact]
     public void DrawingFrames_GrowsNothing() =>
-        OneFrameGame.Render(() => new SkiaFnaAngleBackend(), device =>
+        OneFrameGame.Render(() => new SkiaAngleBackend(), device =>
         {
             EngineFrameLeak.AssertNoPerFrameGrowth(device, output);
             return string.Empty;

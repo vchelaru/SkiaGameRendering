@@ -114,11 +114,11 @@ track or dispose them for you.
 | Backend | Engine/platform | How it works | Reference |
 | --- | --- | --- | --- |
 | `SkiaGlBackend` | MonoGame DesktopGL | Second SDL GL context sharing MonoGame's GL namespace | [docs](../documentation/SkiaGlBackend.md) |
-| `SkiaKniGlBackend` | KNI DesktopGL | Same trick, adapted to KNI's SDL bridge | [docs](../documentation/SkiaKniGlBackend.md) |
+| `SkiaGlBackend` | KNI DesktopGL | Same trick, adapted to KNI's SDL bridge | [docs](../documentation/SkiaGlBackend.md) |
 | `SkiaAngleBackend` | MonoGame WindowsDX | ANGLE (GL ES → D3D11) on MonoGame's own D3D11 device | [docs](../documentation/SkiaAngleBackend.md) |
-| `SkiaKniAngleBackend` | KNI WindowsDX | Same ANGLE interop, on KNI's D3D11 device via its Strategy bridge | [docs](../documentation/SkiaKniAngleBackend.md) |
+| `SkiaAngleBackend` | KNI WindowsDX | Same ANGLE interop, on KNI's D3D11 device via its Strategy bridge | [docs](../documentation/SkiaAngleBackend.md) |
 | `SkiaAndroidBackend` | MonoGame Android | Second EGL context sharing MonoGame's GLES context (see the [MonoGame Android quick start](../android/monogame-quickstart.md)) | [docs](../documentation/SkiaAndroidBackend.md) |
-| `SkiaKniAndroidBackend` | KNI Android | Second EGL context sharing KNI's GLES context (see the [Android quick start](../android/quickstart.md)) | [docs](../documentation/SkiaKniAndroidBackend.md) |
+| `SkiaAndroidBackend` | KNI Android | Second EGL context sharing KNI's GLES context (see the [Android quick start](../android/quickstart.md)) | [docs](../documentation/SkiaAndroidBackend.md) |
 | `SkiaDx12Backend` | MonoGame native WindowsDX12 | Skia's D3D12 backend on MonoGame's own device and queue | [docs](../documentation/SkiaDx12Backend.md) |
 | `SkiaVulkanBackend` | MonoGame native DesktopVK | Skia's Vulkan backend on MonoGame's own device and queue | [docs](../documentation/SkiaVulkanBackend.md) |
 
@@ -132,7 +132,7 @@ project, with core source files shared via linked includes (`src/SkiaGameRenderi
 
 ## ANGLE
 
-The WindowsDX backends (`SkiaAngleBackend`, `SkiaKniAngleBackend`) run on ANGLE (GL ES → D3D11).
+The WindowsDX backends (`SkiaAngleBackend` in the MonoGame, KNI and FNA packages) run on ANGLE (GL ES → D3D11).
 `SkiaGameRendering.Core.ANGLE` vendors ANGLE's `libEGL.dll`/`libGLESv2.dll`, plus the zlib `z.dll` that `libGLESv2.dll`
 imports, for win-x64 and win-arm64 directly in its NuGet package (`runtimes/<rid>/native`), built from ANGLE's own source
 via vcpkg's `angle` port — see `eng/angle-provenance.json` for the exact vcpkg commit/version/hash

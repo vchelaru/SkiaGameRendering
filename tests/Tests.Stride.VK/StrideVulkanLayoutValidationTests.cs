@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
-using SkiaGameRendering.Stride.VK;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
@@ -94,7 +94,7 @@ public sealed class StrideVulkanLayoutValidationTests
 
             using var compositeTarget = Texture.New2D(
                 device, 8, 8, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
-            using var canvas = new SkiaStrideVulkanRenderTarget2D(device, 8, 8);
+            using var canvas = new SkiaRenderTarget2D(device, 8, 8);
 
             try
             {
@@ -119,7 +119,7 @@ public sealed class StrideVulkanLayoutValidationTests
             {
                 // The context is static and pinned to this device; see StrideVulkanCompositeColorTests.
                 canvas.Dispose();
-                SkiaStrideVulkanRenderer.Dispose();
+                SkiaRenderer.Dispose();
             }
         }
         finally

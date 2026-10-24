@@ -5,7 +5,7 @@ using SkiaSharp;
 using Stride.Graphics;
 using Vortice.Vulkan;
 
-namespace SkiaGameRendering.Stride.VK
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Stride-specific adapter over <see cref="VkSkiaSurfaceFactory"/> (see that class for how the

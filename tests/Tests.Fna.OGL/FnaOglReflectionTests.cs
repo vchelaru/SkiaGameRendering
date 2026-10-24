@@ -6,8 +6,8 @@ using Xunit;
 namespace Tests.Fna.OGL;
 
 /// <summary>
-/// Pins the private FNA fields <c>SkiaFnaGlBackend</c> reaches by string
-/// (src/SkiaGameRendering.Fna.OGL/SkiaFnaGlBackend.cs). Same two members as
+/// Pins the private FNA fields <c>SkiaGlBackend</c> reaches by string
+/// (src/SkiaGameRendering.Fna.OGL/SkiaGlBackend.cs). Same two members as
 /// <c>Tests.Fna.WindowsDX</c> pins for the D3D11 adapter; the FNA side of the interop is
 /// driver-agnostic. What this can't pin is the OpenGLTexture struct layout inside FNA3D.dll that
 /// <c>CaptureTextureHandle</c> reads through; <see cref="FnaOglGoldenImageTests"/> exercises that.

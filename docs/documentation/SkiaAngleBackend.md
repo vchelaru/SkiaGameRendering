@@ -27,7 +27,7 @@ public class SkiaAngleBackend : SkiaBackend
 | --- | --- |
 | `GRContext` | The Skia GPU context, valid after `Initialize` returns. |
 | `Ready` | Inherited from `SkiaBackend`; already complete — the D3D11 device exists as soon as MonoGame creates its `GraphicsDevice`. |
-| `Initialize(GraphicsDevice)` | Extracts MonoGame's internal D3D11 device/context via reflection and wraps them as an ANGLE EGL device (`AngleSkiaSurfaceFactory`, shared with `SkiaKniAngleBackend`). |
+| `Initialize(GraphicsDevice)` | Extracts MonoGame's internal D3D11 device/context via reflection and wraps them as an ANGLE EGL device (`AngleSkiaSurfaceFactory`, shared with the KNI and FNA `SkiaAngleBackend`). |
 | `Dispose()` | Releases the ANGLE/EGL resources. |
 
 ## Example
@@ -53,4 +53,21 @@ var canvas = new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
 - ANGLE modifies D3D11 pipeline state (shaders, blend, render targets, viewport) when it renders;
   MonoGame caches its own copy and only re-applies on detected changes, so its state cache goes
   stale after ANGLE runs. `AngleSkiaSurfaceFactory` handles resetting this — you don't need to.
+- See also the [desktop quick start](../desktop/quickstart.md).
+
+## KNI WindowsDX
+
+The `SkiaGameRendering.Kni.WindowsDX` package ships a `SkiaAngleBackend` with the same name and namespace, for KNI's WinForms DX11 platform. It reuses the same ANGLE/D3D11 interop and reaches KNI's own D3D11 device/context/texture.
+
+Assembly/package: `SkiaGameRendering.Kni.WindowsDX`
+
+
+- Windows only.
+- KNI exposes a public Strategy-pattern bridge down to its platform internals
+  (`IPlatformGraphicsDevice`, `IPlatformGraphicsContext`, `IPlatformTexture`), so only the last hop
+  into each concrete strategy's SharpDX field (`D3DDevice`, `D3dContext`, `GetTexture`) needs
+  reflection — narrower than the MonoGame adapter, which reflects into MonoGame's private fields
+  directly.
+- Unlike MonoGame WindowsDX, KNI's `RenderTarget2D` allocates its D3D11 resource eagerly, so no
+  `SetData` allocation workaround is needed here.
 - See also the [desktop quick start](../desktop/quickstart.md).

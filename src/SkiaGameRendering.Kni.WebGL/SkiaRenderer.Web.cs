@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
-using SkiaGameRendering.Kni.WebGL;
-using SkiaGameRendering.Kni.WebGL.Components;
+using SkiaGameRendering;
 
 namespace SkiaGameRendering
 {

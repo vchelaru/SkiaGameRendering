@@ -8,7 +8,7 @@ using Silk.NET.DXGI;
 using Stride.Graphics;
 using BarrierLayout = Stride.Graphics.BarrierLayout;
 
-namespace SkiaGameRendering.Stride.D3D12
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Stride-specific adapter over <see cref="D3D12SkiaSurfaceFactory"/> (see that class for how the
@@ -51,7 +51,7 @@ namespace SkiaGameRendering.Stride.D3D12
     /// <item>
     /// <b>Stride's D3D12 <c>SpriteBatch</c> does not transition what it samples.</b> Its callers do
     /// (Stride.Rendering's <c>ImageEffect</c>, <c>RenderTextureSceneRenderer</c>), so the composite in
-    /// <see cref="SkiaStrideD3D12RenderTarget2D"/> records the move to <c>ShaderResource</c> itself.
+    /// <see cref="SkiaRenderTarget2D"/> records the move to <c>ShaderResource</c> itself.
     /// </item>
     /// <item>
     /// <b>Skia submits immediately; Stride submits at the end of its command list.</b> A Skia draw runs

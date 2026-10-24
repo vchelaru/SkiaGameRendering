@@ -6,7 +6,7 @@ and `RenderingServer.TextureGetNativeHandle` a GL texture, so `SkiaGameRendering
 reflection at all. It is also the first engine here where one package covers three graphics APIs,
 because Godot picks its renderer and driver at run time (project settings, a command-line switch,
 or an automatic fallback), so the backend is chosen when the renderer initializes. Like the raylib and Stride adapters it does not go through
-`SkiaBackend`/`SkiaRenderer` - see [SkiaGodotRenderTarget2D](../documentation/SkiaGodotRenderTarget2D.md)
+`SkiaBackend` - see [SkiaRenderTarget2D (Godot)](../documentation/SkiaRenderTarget2D.Godot.md)
 for how it is structured.
 
 ## Prerequisites
@@ -41,13 +41,13 @@ game's `.csproj` instead; the package's dependencies (`SkiaSharp`, `GodotSharp`)
 Godot 4.6+ configures **new** Windows projects for `d3d12`. D3D12, Vulkan and the Compatibility
 renderer's `opengl3` all work with this package, so no setting needs changing on Windows or Linux.
 
-`SkiaGodotRenderer.Initialize` throws with this instruction on an unsupported driver.
+`SkiaRenderer.Initialize` throws with this instruction on an unsupported driver.
 `--rendering-driver vulkan` (or `d3d12`; or `--rendering-method gl_compatibility` for OpenGL) on the
 command line overrides the settings for one run.
 
 ## Initialize and render
 
-Godot has no user-owned `Draw()` loop. A node draws Skia content into a `SkiaGodotRenderTarget2D`
+Godot has no user-owned `Draw()` loop. A node draws Skia content into a `SkiaRenderTarget2D`
 in `_Process`, and the scene tree displays its `Texture` (a stock `Texture2DRD`, or an `ImageTexture` on the
 Compatibility renderer) through any node
 that takes a `Texture2D` - a `Sprite2D`, `TextureRect`, material, and so on. The same code runs on
@@ -55,23 +55,23 @@ every supported renderer:
 
 ```cs
 using Godot;
-using SkiaGameRendering.Godot;
+using SkiaGameRendering;
 using SkiaSharp;
 
 public partial class SkiaOverlay : Node2D
 {
-    SkiaGodotRenderTarget2D? _canvas;
+    SkiaRenderTarget2D? _canvas;
     readonly SKPaint _paint = new() { Color = SKColors.Crimson, IsAntialias = true };
 
     public override void _Ready()
     {
         // Optional - the render target auto-initializes on first use. Calling this explicitly
         // fails fast if the project is not on a supported rendering driver.
-        SkiaGodotRenderer.Initialize();
-        GD.Print($"Skia on {SkiaGodotRenderer.Driver}"); // "vulkan", "d3d12" or "opengl3"
+        SkiaRenderer.Initialize();
+        GD.Print($"Skia on {SkiaRenderer.Driver}"); // "vulkan", "d3d12" or "opengl3"
 
         var size = GetViewportRect().Size;
-        _canvas = new SkiaGodotRenderTarget2D((int)size.X, (int)size.Y);
+        _canvas = new SkiaRenderTarget2D((int)size.X, (int)size.Y);
 
         AddChild(new Sprite2D
         {
@@ -79,7 +79,7 @@ public partial class SkiaOverlay : Node2D
             Centered = false,
             // Skia's output is premultiplied; Godot's default Mix blend expects straight alpha.
             // Only matters when the canvas has transparent areas.
-            Material = SkiaGodotRenderTarget2D.CreatePremultipliedAlphaMaterial(),
+            Material = SkiaRenderTarget2D.CreatePremultipliedAlphaMaterial(),
         });
     }
 
@@ -93,20 +93,20 @@ public partial class SkiaOverlay : Node2D
     public override void _ExitTree()
     {
         _canvas?.Dispose();          // dispose render targets before...
-        SkiaGodotRenderer.Dispose(); // ...tearing down the shared interop
+        SkiaRenderer.Dispose(); // ...tearing down the shared interop
         _paint.Dispose();
     }
 }
 ```
 
-`Begin`/`End`, the constructor, and `SkiaGodotRenderer.Initialize` must run on Godot's render
+`Begin`/`End`, the constructor, and `SkiaRenderer.Initialize` must run on Godot's render
 thread. Under the default `rendering/driver/threads/thread_model` ("Safe") that is the main thread,
 so `_Ready`, `_Process` and `_Draw` all qualify. Under "Separate" (experimental in Godot), wrap them
 in `RenderingServer.CallOnRenderThread`; they throw with that instruction otherwise. `Dispose` can
 be called from either thread.
 
 Full member list and other remarks are documented on
-[SkiaGodotRenderTarget2D](../documentation/SkiaGodotRenderTarget2D.md).
+[SkiaRenderTarget2D (Godot)](../documentation/SkiaRenderTarget2D.Godot.md).
 
 ## Build and run the sample in this repo
 
@@ -131,7 +131,7 @@ to the Godot executable to enable that test; it skips otherwise).
 - **Vulkan and OpenGL are zero-copy; D3D12 is one GPU copy per frame.** Godot's D3D12 driver
   allocates every texture with a typeless format and Skia's D3D12 backend cannot render into
   those, so on D3D12 Skia draws into a typed texture this library owns and `End()` queues a
-  `CopyResource` into Godot's texture. No CPU readback anywhere; `SkiaGodotRenderer.IsZeroCopy`
+  `CopyResource` into Godot's texture. No CPU readback anywhere; `SkiaRenderer.IsZeroCopy`
   tells you which path is active.
 - **Compatibility renderer: native `opengl3` on Windows (WGL) and Linux X11 (GLX) only, RGBA8
   only.** Godot's `opengl3_angle` (ANGLE on Windows/macOS), `opengl3_es` (Android), Wayland and
@@ -151,7 +151,7 @@ to the Godot executable to enable that test; it skips otherwise).
 - **Vulkan without a dedicated transfer queue.** Godot submits texture uploads under a queue lock
   this library cannot take. When the GPU has no separate transfer queue (common on integrated,
   mobile and MoltenVK devices), those uploads share Skia's queue, and one made off the render thread
-  (threaded resource loading) can race Skia's submit. `SkiaGodotRenderer.Initialize` prints a Godot
+  (threaded resource loading) can race Skia's submit. `SkiaRenderer.Initialize` prints a Godot
   warning when that applies; avoid loading textures off the render thread while Skia draws there.
 - **`TextureRid` is for fragment-shader sampling only.** Binding it in your own CanvasItem or
   spatial fragment shader is fine; copying to or from it, clearing it, or using it as a storage

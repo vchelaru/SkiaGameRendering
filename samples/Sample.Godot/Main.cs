@@ -1,11 +1,11 @@
 using Godot;
-using SkiaGameRendering.Godot;
+using SkiaGameRendering;
 using SkiaSharp;
 using SharedScene = Sample.Shared.Scene;
 
 /// <summary>
 /// The scene root (see Main.tscn). Godot has no user-owned Draw() loop the way MonoGame/raylib do:
-/// a node draws Skia content into a <see cref="SkiaGodotRenderTarget2D"/> in <c>_Process</c>, and
+/// a node draws Skia content into a <see cref="SkiaRenderTarget2D"/> in <c>_Process</c>, and
 /// the scene tree displays its <c>Texture</c> through an ordinary <see cref="Sprite2D"/> - the same
 /// way a Godot project would show any other <see cref="Texture2D"/>.
 ///
@@ -17,26 +17,26 @@ using SharedScene = Sample.Shared.Scene;
 /// </summary>
 public partial class Main : Node2D
 {
-    SkiaGodotRenderTarget2D? _canvas;
+    SkiaRenderTarget2D? _canvas;
     string? _screenshotPath;
     int _framesRendered;
 
     public override void _Ready()
     {
-        // Optional: SkiaGodotRenderTarget2D auto-initializes on first use. Initializing explicitly
+        // Optional: SkiaRenderTarget2D auto-initializes on first use. Initializing explicitly
         // fails fast (with a clear stack) if the project is not on a supported rendering driver.
-        SkiaGodotRenderer.Initialize();
-        GD.Print($"SkiaGameRendering.Godot on {SkiaGodotRenderer.Driver} (zero-copy: {SkiaGodotRenderer.IsZeroCopy}, D3D12 enhanced barriers: {SkiaGodotRenderer.D3D12UsesEnhancedBarriers?.ToString() ?? "n/a"})");
+        SkiaRenderer.Initialize();
+        GD.Print($"SkiaGameRendering.Godot on {SkiaRenderer.Driver} (zero-copy: {SkiaRenderer.IsZeroCopy}, D3D12 enhanced barriers: {SkiaRenderer.D3D12UsesEnhancedBarriers?.ToString() ?? "n/a"})");
 
         var size = GetViewportRect().Size;
-        _canvas = new SkiaGodotRenderTarget2D((int)size.X, (int)size.Y);
+        _canvas = new SkiaRenderTarget2D((int)size.X, (int)size.Y);
 
         AddChild(new Sprite2D
         {
             Texture = _canvas.Texture,
             Centered = false,
             // Skia's output is premultiplied; Godot's default Mix blend expects straight alpha.
-            Material = SkiaGodotRenderTarget2D.CreatePremultipliedAlphaMaterial(),
+            Material = SkiaRenderTarget2D.CreatePremultipliedAlphaMaterial(),
         });
 
         var userArgs = OS.GetCmdlineUserArgs();
@@ -90,6 +90,6 @@ public partial class Main : Node2D
         // Dispose render targets before tearing down the shared interop they depend on.
         _canvas?.Dispose();
         _canvas = null;
-        SkiaGodotRenderer.Dispose();
+        SkiaRenderer.Dispose();
     }
 }

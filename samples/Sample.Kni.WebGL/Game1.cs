@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework.Graphics;
 using System.Runtime.Versioning;
 using Sample.Shared;
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.WebGL;
-using SkiaGameRendering.Kni.WebGL.Components;
 using SkiaSharp;
 
 namespace Sample.Kni.WebGL;
