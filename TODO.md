@@ -30,12 +30,12 @@ which also draw straight into the current target (`SkiaDirectCanvas`).
 | Engine | OpenGL / GLES | D3D11 | D3D12 | Vulkan | Metal | WebGL |
 |---|---|---|---|---|---|---|
 | MonoGame | ✅ DesktopGL, Android, iOS | ✅ | ✅ | 🟦 (unpublished) | ❌ | ❌ |
-| KNI | ✅ DesktopGL, Android<br>🟡 iOS | ✅ | ❌ | ❌ | ❌ | ✅ |
-| FNA | ✅ | ✅ | ❌ | ❌ | ❌ | 🟡 |
-| raylib | ✅ | ❌ | ❌ | ❌ | ❌ | 🟡 |
+| KNI | ✅ DesktopGL, Android, iOS | ✅ | ❌ | ❌ | ❌ | ✅ |
+| FNA | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| raylib | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Stride | ❌ | ✅ | ✅ | 🟦 | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌ |
-| Unity 6 | 🟡 | 🟦 | 🟦 | 🟡 | 🟦 | 🟡 |
+| Unity 6 | 🟦 Windows<br>🟡 Android | 🟦 | 🟦 | 🟦 | 🟦 | 🟡 |
 
 FNA's D3D12, Vulkan and Metal are ❌ because FNA3D reaches them through its SDL_GPU driver, which
 exposes no native device handles.
