@@ -54,15 +54,11 @@ _skia.End();
 
 Setup differs per engine; pick yours from the [table above](#platform-support).
 
-## Performance
-
-Draw vector shapes, text and SVG with Skia, and keep drawing sprites with `SpriteBatch`; the two
-interleave freely. See [docs/performance.md](docs/performance.md) for measurements and tips.
-
 ## More
 
 - API: [SkiaRenderTarget2D](docs/documentation/SkiaRenderTarget2D.md), [SkiaDirectCanvas](docs/documentation/SkiaDirectCanvas.md)
 - [Samples](samples/README.md)
+- [Performance measurements](docs/performance.md)
 - [Architecture](docs/architecture.md) and [interop notes](SkiaGameRendering-Notes.md)
 - [SkiaSharp drawing docs](https://learn.microsoft.com/en-us/previous-versions/xamarin/xamarin-forms/user-interface/graphics/skiasharp/basics/)
 

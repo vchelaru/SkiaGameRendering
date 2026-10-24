@@ -18,10 +18,6 @@ scene has a page with a screenshot, what each side does, and a table per platfor
 
 ## Tips
 
-Skia is a general-purpose vector renderer, not a sprite batcher, so draw sprites with the engine's own
-`SpriteBatch`. Use Skia for what the engine and its shape libraries cannot do: arbitrary paths, text at any
-size, SVG. The two interleave freely.
-
 - **If sprites must go through Skia, use `SKCanvas.DrawAtlas`.** From about 10k sprites one `DrawAtlas`
   call per texture sheet reaches 65-100% of `SpriteBatch`'s frame rate, depending on the backend; below
   that the fixed cost of a Skia pass (about 0.1-0.3 ms) dominates. One `DrawImage` per sprite is about
