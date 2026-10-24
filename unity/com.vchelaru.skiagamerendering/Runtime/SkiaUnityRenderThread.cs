@@ -38,6 +38,15 @@ namespace SkiaGameRendering
             internal SkiaRenderTarget2D.RenderState? Target;
             // null means "dispose the target's render-thread state".
             internal SKPicture? Picture;
+            // A direct draw (SkiaDirectCanvas): Picture is played onto whatever render target is bound
+            // when the command runs, and Target is null.
+            internal bool Direct;
+            internal int Width;
+            internal int Height;
+            // Whether row 0 of the bound target is Unity's bottom row, so the picture is played back flipped.
+            internal bool Flip;
+            // Any texture on Unity's device, for a backend that finds the device through one.
+            internal IntPtr DeviceTexture;
         }
 
         delegate void RenderEventDelegate(int eventId);
@@ -72,6 +81,11 @@ namespace SkiaGameRendering
             }
             _anyIssued = true;
             Commands.Enqueue(command);
+            if (command.Direct)
+            {
+                GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.DrawEventId);
+                return;
+            }
             // A draw needs its prepare event first when the backend asks for one. Events run in
             // order, so the prepare event finds its draw's command still at the head of the queue.
             if (SkiaUnityBackend.UsesPrepareEvent && command.Target != null && command.Picture != null)
@@ -108,7 +122,9 @@ namespace SkiaGameRendering
 
             try
             {
-                if (command.Target == null)
+                if (command.Direct)
+                    DrawDirect(command);
+                else if (command.Target == null)
                     ReleaseOnRenderThread();
                 else if (command.Picture == null)
                     DisposeTarget(command.Target);
@@ -123,7 +139,7 @@ namespace SkiaGameRendering
             finally
             {
                 command.Picture?.Dispose();
-                if (command.Target == null)
+                if (command.Target == null && !command.Direct)
                     Released.Set();
             }
         }
@@ -157,6 +173,12 @@ namespace SkiaGameRendering
             _backend ??= SkiaUnityBackend.Create(target.NativeTexture);
             LiveTargets.Add(target);
             _backend.Draw(target, picture);
+        }
+
+        static void DrawDirect(Command command)
+        {
+            _backend ??= SkiaUnityBackend.Create(command.DeviceTexture);
+            _backend.DrawDirect(command.Picture!, command.Width, command.Height, command.Flip);
         }
 
         static void DisposeTarget(SkiaRenderTarget2D.RenderState target)

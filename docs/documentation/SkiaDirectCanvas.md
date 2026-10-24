@@ -65,3 +65,12 @@ and `End`. MonoGame gives no way to get its current target's `ID3D12Resource` or
 so this reads MonoGame's native objects by offset and is only enabled for a `mgruntime.dll` whose layout has
 been verified (3.8.6); on any other build `SkiaRenderer.SupportsDirectCanvas` is false and
 `SkiaRenderTarget2D` still works.
+
+Unity on Direct3D 11 (Windows) has `SkiaDirectCanvas`, constructed with no arguments. Call `Begin`/`End` from the
+main thread while a camera renders, for example in `Camera.onPostRender` or a `MonoBehaviour.OnPostRender`
+(built-in render pipeline). Skia then draws onto the target that camera has bound, after what the camera drew so
+far and before anything drawn later, such as a camera with a higher depth. `Canvas` records on the main thread and
+the drawing is played back on Unity's render thread. The size is the active `RenderTexture`, or the screen when
+there is none. The camera must not be HDR (`Camera.allowHDR = false`): a 16-bit float target throws on the render
+thread, which logs it. On every other Unity graphics API the constructor throws `NotSupportedException`; use
+`SkiaRenderTarget2D` there.

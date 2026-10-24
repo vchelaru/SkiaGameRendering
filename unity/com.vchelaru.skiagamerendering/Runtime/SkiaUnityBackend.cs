@@ -21,6 +21,13 @@ namespace SkiaGameRendering
         /// </summary>
         internal static bool UsesPrepareEvent { get; private set; }
 
+        /// <summary>
+        /// Whether the backend overrides <see cref="DrawDirect"/>, for <see cref="SkiaDirectCanvas"/>. Set by
+        /// <see cref="PrepareOnMainThread"/>; a backend adds its direct canvas by overriding
+        /// <see cref="DrawDirect"/> and setting this for its graphics API there.
+        /// </summary>
+        internal static bool SupportsDirectCanvas { get; private set; }
+
         /// <summary>The plugin event id <see cref="SkiaUnityRenderThread"/> issues the prepare event with.</summary>
         internal const int PrepareEventId = VulkanUnityBackend.PrepareEventId;
 
@@ -37,7 +44,10 @@ namespace SkiaGameRendering
             // SystemInfo can't be read from the render thread; Create runs there.
             _graphicsDeviceType = api;
             if (api == GraphicsDeviceType.Direct3D11)
+            {
+                SupportsDirectCanvas = true;
                 return;
+            }
             // Skia draws on a second context that shares Unity's; only the Windows (WGL) one exists so far.
             if (api == GraphicsDeviceType.OpenGLCore
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
@@ -86,6 +96,13 @@ namespace SkiaGameRendering
 
         /// <summary>Plays <paramref name="picture"/> back onto the target's texture, creating its surface on the first draw.</summary>
         internal abstract void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture);
+
+        /// <summary>
+        /// Plays <paramref name="picture"/> onto the render target Unity has bound right now, on top of what
+        /// it holds, with the origin at the target's top left (flipped first when <paramref name="flip"/>).
+        /// </summary>
+        internal virtual void DrawDirect(SKPicture picture, int width, int height, bool flip) =>
+            throw new NotSupportedException("SkiaDirectCanvas is not supported on this graphics API yet.");
 
         /// <summary>Clears the surface and draws the picture onto it the way Unity expects.</summary>
         protected static void PlayBack(SKSurface surface, SKPicture picture, int height)

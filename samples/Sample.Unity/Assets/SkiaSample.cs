@@ -20,10 +20,15 @@ using UnityEngine.UI;
 /// precompiled from <c>Scene/Sample.Unity.Scene.csproj</c>, copied into <c>Assets/Plugins/Scene</c>
 /// by <c>eng/build-unity-package.ps1</c>.
 ///
+/// The bottom right area is a <see cref="SkiaDirectCanvas"/> check on Direct3D 11: the main camera draws a
+/// yellow square, its <c>onPostRender</c> has Skia draw red, red and magenta shapes straight into the back
+/// buffer, and a second camera (higher depth, clears nothing but depth) then draws a green square on top.
+///
 /// --smoke-test renders a few frames and quits with 0 if the texture holds Scene's red circle and
 /// blue SVG drop the right way up, and in every copy Skia's squares match Unity's references on
 /// screen, or 1 otherwise. Unity's own drawing is the oracle so the check holds in both color spaces:
-/// it fails if Skia's premultiplied alpha is blended as straight alpha, or if a Linear project
+/// On Direct3D 11 it also checks the direct canvas area: Skia over what the first camera drew,
+/// under what the second drew, the right way up and with red as red. It fails if Skia's premultiplied alpha is blended as straight alpha, or if a Linear project
 /// displays Skia's sRGB bytes as linear values.
 /// </summary>
 public sealed class SkiaSample : MonoBehaviour
@@ -38,6 +43,11 @@ public sealed class SkiaSample : MonoBehaviour
     // Screen positions of the quad and RawImage copies; the GUI copy sits at 0, 0.
     const int QuadX = Width;
     const int UiY = Height;
+    // The direct canvas area: three Cell-wide squares in a row at the bottom right.
+    const int DirectX = QuadX;
+    const int DirectY = UiY;
+    static readonly Color32 Yellow = new Color32(255, 255, 0, 255);
+    static readonly Color32 Green = new Color32(0, 255, 0, 255);
     static readonly Color Background = Color.blue;
     static readonly Color32 Grey = new Color32(128, 128, 128, 255);
     // Translucent, and with a channel between 0 and 255, where Gamma and Linear blending disagree.
@@ -52,6 +62,12 @@ public sealed class SkiaSample : MonoBehaviour
     RawImage _rawImage;
     Texture2D _greyReference;
     Texture2D _translucentReference;
+    SkiaDirectCanvas _direct;
+    SKPaint _red;
+    SKPaint _magenta;
+    Camera _frontCamera;
+    Texture2D _yellowTexture;
+    Texture2D _greenTexture;
     bool _smokeTest;
     int _frame;
 
@@ -70,9 +86,13 @@ public sealed class SkiaSample : MonoBehaviour
         _translucentReference = SolidTexture(Translucent);
 
         var camera = Camera.main;
+        // Layer 1 is only for the second camera's green square.
+        camera.cullingMask &= ~(1 << 1);
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = Background;
         camera.orthographic = true;
+        // A HDR camera renders into a 16-bit float texture, which SkiaDirectCanvas cannot draw into.
+        camera.allowHDR = false;
 
         // Built by hand: CreatePrimitive adds a collider, which needs the Physics module.
         var quad = new GameObject("Skia quad");
@@ -86,6 +106,23 @@ public sealed class SkiaSample : MonoBehaviour
         Place(quad.transform, QuadX, 0, Width, Height, 0);
         AddSprite(_translucentReference, QuadX + SquareX);
         AddSprite(_greyReference, QuadX + GreyX);
+
+        if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11)
+        {
+            _yellowTexture = SolidTexture(Yellow);
+            _greenTexture = SolidTexture(Green);
+            // Skia draws red over the right half of this yellow square, so its left half must stay yellow.
+            AddSpriteAt(_yellowTexture, DirectX + Cell, DirectY, Cell, Cell, 0);
+            // The second camera draws on top of what the first one and Skia drew, without clearing color.
+            var front = new GameObject("Front camera");
+            _frontCamera = front.AddComponent<Camera>();
+            _frontCamera.CopyFrom(camera);
+            _frontCamera.clearFlags = CameraClearFlags.Depth;
+            _frontCamera.depth = camera.depth + 1;
+            _frontCamera.cullingMask = 1 << 1;
+            // Covers the right half of the cell Skia fills with red.
+            AddSpriteAt(_greenTexture, DirectX + Cell / 2, DirectY, Cell / 2, Cell, 1).gameObject.layer = 1;
+        }
 
         var canvas = new GameObject("Canvas").AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -105,6 +142,15 @@ public sealed class SkiaSample : MonoBehaviour
         rect.anchoredPosition = new Vector2(x, -y);
         rect.sizeDelta = new Vector2(width, height);
         return image;
+    }
+
+    static SpriteRenderer AddSpriteAt(Texture2D texture, float x, float y, float width, float height, int layer)
+    {
+        var sprite = new GameObject("Direct reference").AddComponent<SpriteRenderer>();
+        sprite.sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1);
+        sprite.gameObject.layer = layer;
+        Place(sprite.transform, x, y, width, height, 0);
+        return sprite;
     }
 
     static void AddSprite(Texture2D texture, int x)
@@ -129,6 +175,11 @@ public sealed class SkiaSample : MonoBehaviour
         var camera = Camera.main;
         camera.orthographicSize = Screen.height / 2f;
         camera.transform.position = new Vector3(Screen.width / 2f, -Screen.height / 2f, -10);
+        if (_frontCamera != null)
+        {
+            _frontCamera.orthographicSize = camera.orthographicSize;
+            _frontCamera.transform.position = camera.transform.position;
+        }
 
         _target.Begin();
         Scene.Draw(_target.Canvas, Width, Height);
@@ -138,6 +189,22 @@ public sealed class SkiaSample : MonoBehaviour
 
         if (_smokeTest && ++_frame == 5)
             StartCoroutine(RunSmokeTest());
+    }
+
+    // After the main camera has drawn and before the front camera starts.
+    void DrawDirect(Camera camera)
+    {
+        if (_direct == null || camera != Camera.main)
+            return;
+        _direct.Begin();
+        var canvas = _direct.Canvas;
+        // The whole cell, under the front camera's green half.
+        canvas.DrawRect(DirectX, DirectY, Cell, Cell, _red);
+        // Only the right half of the cell with the yellow square behind it.
+        canvas.DrawRect(DirectX + Cell + Cell / 2, DirectY, Cell / 2, Cell, _red);
+        // The top quarter only, so a vertical flip puts it at the bottom.
+        canvas.DrawRect(DirectX + 2 * Cell, DirectY, Cell, Cell / 4, _magenta);
+        _direct.End();
     }
 
     void OnGUI()
@@ -161,6 +228,13 @@ public sealed class SkiaSample : MonoBehaviour
     void OnEnable()
     {
         _target = new SkiaRenderTarget2D(Width, Height);
+        if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11)
+        {
+            _direct = new SkiaDirectCanvas();
+            _red = new SKPaint { Color = SKColors.Red };
+            _magenta = new SKPaint { Color = SKColors.Magenta };
+            Camera.onPostRender += DrawDirect;
+        }
         _translucent = new SKPaint { Color = new SKColor(Translucent.r, Translucent.g, Translucent.b, Translucent.a) };
         _grey = new SKPaint { Color = new SKColor(Grey.r, Grey.g, Grey.b, Grey.a) };
         if (_quadMaterial != null)
@@ -173,6 +247,11 @@ public sealed class SkiaSample : MonoBehaviour
     // object or serializable, so the Skia objects are released here and recreated in OnEnable.
     void OnDisable()
     {
+        Camera.onPostRender -= DrawDirect;
+        _direct?.Dispose();
+        _direct = null;
+        _red?.Dispose();
+        _magenta?.Dispose();
         _target?.Dispose();
         _target = null;
         _translucent?.Dispose();
@@ -183,6 +262,10 @@ public sealed class SkiaSample : MonoBehaviour
     {
         Destroy(_greyReference);
         Destroy(_translucentReference);
+        if (_yellowTexture != null)
+            Destroy(_yellowTexture);
+        if (_greenTexture != null)
+            Destroy(_greenTexture);
     }
 
     IEnumerator RunSmokeTest()
@@ -226,6 +309,23 @@ public sealed class SkiaSample : MonoBehaviour
             bool referencesDrawn = greyReference.r > 20 && greyReference.b < 250 && squareReference.r > 20;
             pass &= referencesDrawn && Matches(square, squareReference) && Matches(grey, greyReference);
             report += $" {name}: square={square} reference={squareReference} grey={grey} reference={greyReference}";
+        }
+        if (_frontCamera != null)
+        {
+            // Pure colors, so a Linear project's sRGB handling cannot move them.
+            var fill = ScreenPixel(DirectX + Cell / 4, DirectY + Cell / 2);
+            var front = ScreenPixel(DirectX + 3 * Cell / 4, DirectY + Cell / 2);
+            var behind = ScreenPixel(DirectX + Cell + Cell / 4, DirectY + Cell / 2);
+            var over = ScreenPixel(DirectX + Cell + 3 * Cell / 4, DirectY + Cell / 2);
+            var markTop = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell / 8);
+            var markBottom = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell - Cell / 8);
+            pass &= Matches(fill, new Color32(255, 0, 0, 255))        // channel order: red stays red
+                && Matches(front, Green)                              // the second camera draws over Skia
+                && Matches(behind, Yellow)                            // Skia leaves what the first camera drew
+                && Matches(over, new Color32(255, 0, 0, 255))         // Skia draws over it
+                && Matches(markTop, new Color32(255, 0, 255, 255))    // the right way up
+                && Matches(markBottom, new Color32(0, 0, 255, 255));
+            report += $" direct: fill={fill} front={front} behind={behind} over={over} markTop={markTop} markBottom={markBottom}";
         }
         Destroy(readback);
         Destroy(screen);
