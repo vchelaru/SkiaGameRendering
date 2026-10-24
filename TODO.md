@@ -34,7 +34,7 @@ which also draw straight into the current target (`SkiaDirectCanvas`, `SkiaStrid
 | MonoGame | ✅ DesktopGL, Android<br>🟡 iOS | ✅ | ✅ | 🟦 (unpublished) | ❌ | ❌ |
 | KNI | ✅ DesktopGL, Android | ✅ | ❌? | ❌? | ❌ | ✅ |
 | FNA | ✅ | ✅ | ❌ | ❌ | ❌ | 🟡 |
-| raylib | 🟦 | ❌ | ❌ | ❌ | ❌ | 🟡 |
+| raylib | ✅ | ❌ | ❌ | ❌ | ❌ | 🟡 |
 | Stride | ❌ | ✅ | ✅ | 🟦 | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌? |
 | Unity 6 | 🟡 | 🟦 | 🟦 | 🟡 | 🟦 | 🟡? |
