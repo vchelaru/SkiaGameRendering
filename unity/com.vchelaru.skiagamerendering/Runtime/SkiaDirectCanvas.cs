@@ -2,6 +2,7 @@
 using System;
 using SkiaSharp;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace SkiaGameRendering
 {
@@ -25,7 +26,7 @@ namespace SkiaGameRendering
     /// on the render thread by <see cref="SkiaUnityRenderThread"/>. <see cref="Begin"/> does not clear;
     /// Skia draws on top of what is there. Coordinates are target pixels with the origin at the top left.
     /// The target's size is read when <see cref="Begin"/> runs: the active <see cref="RenderTexture"/>, or the
-    /// screen. Supported on Direct3D 11 and on OpenGL (Windows) so far; the constructor throws <see cref="NotSupportedException"/>
+    /// screen. Supported on Direct3D 11, Direct3D 12 and OpenGL (Windows) so far; the constructor throws <see cref="NotSupportedException"/>
     /// elsewhere.
     /// </summary>
     public sealed class SkiaDirectCanvas : IDisposable
@@ -35,6 +36,7 @@ namespace SkiaGameRendering
         int _width;
         int _height;
         bool _flip;
+        IntPtr _renderBuffer;
         bool _isDisposed;
 
         public SkiaDirectCanvas()
@@ -61,6 +63,9 @@ namespace SkiaGameRendering
             _height = active != null ? active.height : Screen.height;
             // A texture's row 0 is Unity's bottom row; the back buffer's is the top.
             _flip = active != null;
+            _renderBuffer = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12
+                ? Graphics.activeColorBuffer.GetNativeRenderBufferPtr()
+                : IntPtr.Zero;
             _recorder ??= new SKPictureRecorder();
             _canvas = _recorder.BeginRecording(new SKRect(0, 0, _width, _height));
         }
@@ -85,6 +90,8 @@ namespace SkiaGameRendering
                 Flip = _flip,
                 // Texture2D.whiteTexture is always there, and D3D11 finds its device through any texture.
                 DeviceTexture = Texture2D.whiteTexture.GetNativeTexturePtr(),
+                // Only Direct3D 12 needs it: it has no "currently bound target" to ask the device for.
+                RenderBuffer = _renderBuffer,
             });
         }
 

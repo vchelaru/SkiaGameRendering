@@ -47,6 +47,9 @@ namespace SkiaGameRendering
             internal bool Flip;
             // Any texture on Unity's device, for a backend that finds the device through one.
             internal IntPtr DeviceTexture;
+            // The UnityRenderBuffer of the target being rendered to, for a backend that cannot ask the
+            // device for its bound target (Direct3D 12).
+            internal IntPtr RenderBuffer;
         }
 
         delegate void RenderEventDelegate(int eventId);
@@ -83,7 +86,7 @@ namespace SkiaGameRendering
             Commands.Enqueue(command);
             if (command.Direct)
             {
-                GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.DrawEventId);
+                GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.DirectEventId);
                 return;
             }
             // A draw needs its prepare event first when the backend asks for one. Events run in
@@ -178,7 +181,7 @@ namespace SkiaGameRendering
         static void DrawDirect(Command command)
         {
             _backend ??= SkiaUnityBackend.Create(command.DeviceTexture);
-            _backend.DrawDirect(command.Picture!, command.Width, command.Height, command.Flip);
+            _backend.DrawDirect(command.Picture!, command.Width, command.Height, command.Flip, command.RenderBuffer);
         }
 
         static void DisposeTarget(SkiaRenderTarget2D.RenderState target)

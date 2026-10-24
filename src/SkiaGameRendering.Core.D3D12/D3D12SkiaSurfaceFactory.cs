@@ -45,6 +45,18 @@ namespace SkiaGameRendering.Core.D3D12
         public SKColorType ColorType { get; }
     }
 
+    /// <summary>The parts of an <c>ID3D12Resource</c>'s <c>D3D12_RESOURCE_DESC</c> that decide whether Skia can draw into it.</summary>
+    public struct D3D12ResourceDescription
+    {
+        public bool IsTexture2D;
+        public bool AllowsRenderTarget;
+        public uint SampleCount;
+        public int DepthOrArraySize;
+        public uint Format;
+        public ulong Width;
+        public uint Height;
+    }
+
     /// <summary>One <see cref="D3D12SkiaSurfaceFactory.BeginDirectDraw"/> pass, ended by <see cref="D3D12SkiaSurfaceFactory.EndDirectDraw"/>.</summary>
     public sealed class D3D12DirectPass
     {
@@ -341,15 +353,9 @@ namespace SkiaGameRendering.Core.D3D12
         // BeginDirectDraw for it to land underneath Skia's pixels.
 
 #if NET8_0_OR_GREATER
-        // Reads the resource's descriptor through D3D12Com, which the netstandard2.1 (Unity) build leaves out.
         /// <summary>
-        /// Checks that <paramref name="resource"/> is something Skia can draw into directly, and says what it
-        /// is. Throws <see cref="NotSupportedException"/> for a resource that is not a single-sample 2D texture
-        /// with the render-target flag, or whose format is not 8-bit RGBA or BGRA UNORM: Skia creates its render
-        /// target view with the resource's own format, so a typeless format has none and an sRGB one would have
-        /// Skia encode what it writes. Throws <see cref="InvalidOperationException"/> if the resource is not
-        /// <paramref name="expectedWidth"/> by <paramref name="expectedHeight"/>, which means the engine's target
-        /// is a view of something other than a whole texture.
+        /// Reads <paramref name="resource"/>'s descriptor through D3D12Com, which the netstandard2.1 (Unity)
+        /// build leaves out, and checks it as <see cref="DescribeDirectTarget(IntPtr, in D3D12ResourceDescription, int, int)"/> does.
         /// </summary>
         public static D3D12DirectTarget DescribeDirectTarget(IntPtr resource, int expectedWidth, int expectedHeight)
         {
@@ -357,12 +363,40 @@ namespace SkiaGameRendering.Core.D3D12
                 throw new ArgumentException("ID3D12Resource handle is null.", nameof(resource));
 
             var desc = D3D12Com.GetResourceDesc(resource);
-            if (desc.Dimension != D3D12Com.D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+            return DescribeDirectTarget(resource, new D3D12ResourceDescription
+            {
+                IsTexture2D = desc.Dimension == D3D12Com.D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+                AllowsRenderTarget = (desc.Flags & D3D12Com.D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) != 0,
+                SampleCount = desc.SampleDesc.Count,
+                DepthOrArraySize = desc.DepthOrArraySize,
+                Format = desc.Format,
+                Width = desc.Width,
+                Height = desc.Height,
+            }, expectedWidth, expectedHeight);
+        }
+#endif
+
+        /// <summary>
+        /// Checks that a resource with the descriptor <paramref name="desc"/> is something Skia can draw into
+        /// directly, and says what it is. For a host that reads the descriptor itself (the Unity plugin does,
+        /// since this assembly's netstandard2.1 build has no COM access). Throws <see cref="NotSupportedException"/>
+        /// for a resource that is not a single-sample 2D texture with the render-target flag, or whose format is
+        /// not 8-bit RGBA or BGRA UNORM: Skia creates its render target view with the resource's own format, so
+        /// a typeless format has none and an sRGB one would have Skia encode what it writes. Throws
+        /// <see cref="InvalidOperationException"/> if the resource is not <paramref name="expectedWidth"/> by
+        /// <paramref name="expectedHeight"/>, which means the engine's target is a view of something other than
+        /// a whole texture.
+        /// </summary>
+        public static D3D12DirectTarget DescribeDirectTarget(IntPtr resource, in D3D12ResourceDescription desc, int expectedWidth, int expectedHeight)
+        {
+            if (resource == IntPtr.Zero)
+                throw new ArgumentException("ID3D12Resource handle is null.", nameof(resource));
+            if (!desc.IsTexture2D)
                 throw new NotSupportedException("SkiaDirectCanvas draws into a 2D render target; the engine's target is not a 2D texture.");
-            if ((desc.Flags & D3D12Com.D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) == 0)
+            if (!desc.AllowsRenderTarget)
                 throw new NotSupportedException("The engine's target resource does not allow render target use.");
-            if (desc.SampleDesc.Count != 1)
-                throw new NotSupportedException($"SkiaDirectCanvas does not draw into multisampled targets ({desc.SampleDesc.Count} samples).");
+            if (desc.SampleCount != 1)
+                throw new NotSupportedException($"SkiaDirectCanvas does not draw into multisampled targets ({desc.SampleCount} samples).");
             if (desc.DepthOrArraySize != 1)
                 throw new NotSupportedException($"SkiaDirectCanvas draws into a single 2D texture, not an array of {desc.DepthOrArraySize}.");
 
@@ -387,7 +421,6 @@ namespace SkiaGameRendering.Core.D3D12
 
             return new D3D12DirectTarget(resource, desc.Format, expectedWidth, expectedHeight, colorType);
         }
-#endif
 
         /// <summary>
         /// Starts a pass that draws into the resource <paramref name="target"/> describes, which the host has

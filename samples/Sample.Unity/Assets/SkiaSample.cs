@@ -20,14 +20,14 @@ using UnityEngine.UI;
 /// precompiled from <c>Scene/Sample.Unity.Scene.csproj</c>, copied into <c>Assets/Plugins/Scene</c>
 /// by <c>eng/build-unity-package.ps1</c>.
 ///
-/// The bottom right area is a <see cref="SkiaDirectCanvas"/> check on Direct3D 11 and OpenGL: the main camera draws a
+/// The bottom right area is a <see cref="SkiaDirectCanvas"/> check on Direct3D 11, Direct3D 12 and OpenGL: the main camera draws a
 /// yellow square, its <c>onPostRender</c> has Skia draw red, red and magenta shapes straight into the back
 /// buffer, and a second camera (higher depth, clears nothing but depth) then draws a green square on top.
 ///
 /// --smoke-test renders a few frames and quits with 0 if the texture holds Scene's red circle and
 /// blue SVG drop the right way up, and in every copy Skia's squares match Unity's references on
 /// screen, or 1 otherwise. Unity's own drawing is the oracle so the check holds in both color spaces:
-/// On Direct3D 11 and OpenGL it also checks the direct canvas area: Skia over what the first camera drew,
+/// On Direct3D 11, Direct3D 12 and OpenGL it also checks the direct canvas area: Skia over what the first camera drew,
 /// under what the second drew, the right way up and with red as red. It fails if Skia's premultiplied alpha is blended as straight alpha, or if a Linear project
 /// displays Skia's sRGB bytes as linear values.
 /// </summary>
@@ -63,7 +63,7 @@ public sealed class SkiaSample : MonoBehaviour
     Texture2D _greyReference;
     Texture2D _translucentReference;
     static bool DirectCanvasSupported =>
-        SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore;
+        SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore;
 
     SkiaDirectCanvas _direct;
     SKPaint _red;
@@ -96,6 +96,8 @@ public sealed class SkiaSample : MonoBehaviour
         camera.orthographic = true;
         // A HDR camera renders into a 16-bit float texture, which SkiaDirectCanvas cannot draw into.
         camera.allowHDR = false;
+        // Skia cannot draw into a multisampled target, which the project's Ultra quality level would give Direct3D 12.
+        QualitySettings.antiAliasing = 0;
 
         // Built by hand: CreatePrimitive adds a collider, which needs the Physics module.
         var quad = new GameObject("Skia quad");

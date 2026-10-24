@@ -90,7 +90,7 @@ namespace SkiaGameRendering
             GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, (int)target.NativeTexture);
         }
 
-        internal override void DrawDirect(SKPicture picture, int width, int height, bool flip)
+        internal override void DrawDirect(SKPicture picture, int width, int height, bool flip, IntPtr renderBuffer)
         {
             // Still on Unity's context: what it is drawing into, and its draws so far submitted.
             var glTarget = GlSkiaSurfaceFactory.QueryDrawTarget(_gl);
