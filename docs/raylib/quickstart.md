@@ -3,7 +3,7 @@
 raylib is the first engine this library supports that isn't MonoGame/KNI. Its package has
 `SkiaRenderTarget2D`, `SkiaDirectCanvas` and `SkiaRenderer` under the same names and namespace
 (`SkiaGameRendering`) as the MonoGame/KNI ones, with raylib's own constructors; see the
-[raylib SkiaRenderTarget2D page](../documentation/SkiaRenderTarget2D.Raylib.md).
+[raylib SkiaRenderTarget2D page](../documentation/SkiaRenderTarget2D.md#raylib).
 
 ## Prerequisites
 
@@ -67,7 +67,7 @@ composite, use `SkiaDirectCanvas` instead; see [SkiaDirectCanvas](../documentati
 The sample toggles between the two with D.
 
 Full member list, the WGL/GLX context-sharing mechanism, and other remarks are in the
-[raylib SkiaRenderTarget2D page](../documentation/SkiaRenderTarget2D.Raylib.md).
+[raylib SkiaRenderTarget2D page](../documentation/SkiaRenderTarget2D.md#raylib).
 
 ## Build and run the sample in this repo
 

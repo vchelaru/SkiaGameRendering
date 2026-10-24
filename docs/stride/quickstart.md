@@ -2,7 +2,7 @@
 
 Stride is the second engine this library supports that isn't MonoGame/KNI. Like raylib, it does not
 go through `SkiaBackend` - see
-[SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.Stride.md) for why and how the Stride
+[SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.md#stride-d3d11) for why and how the Stride
 support is structured differently.
 
 ## Prerequisites
@@ -31,7 +31,7 @@ project with its own `GraphicsCompositor` can skip the toolkit entirely.
 
 Stride drives rendering through its `GraphicsCompositor`, not a user-owned `Draw()` call, so the
 Skia draw runs inside a `SceneRendererBase.DrawCore` override -
-[SkiaSceneRenderer](../documentation/SkiaRenderTarget2D.Stride.md) is that hook:
+[SkiaSceneRenderer](../documentation/SkiaRenderTarget2D.md#stride-d3d11) is that hook:
 
 ```cs
 using SkiaGameRendering;
@@ -69,7 +69,7 @@ paint.Dispose();
 ```
 
 Full member list and other remarks are documented on
-[SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.Stride.md).
+[SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.md#stride-d3d11).
 
 ## Build and run the sample in this repo
 
@@ -84,7 +84,7 @@ dotnet run --project samples\Sample.Stride.D3D11\Sample.Stride.D3D11.csproj -c R
   future adapter - repo issue #23).
 - Depends on Stride 4.4.0-beta5, a prerelease, because that's the first version whose D3D11 backend
   exposes `GraphicsDevice.NativeDevice` publicly (see
-  [SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.Stride.md#remarks)). Expect version
+  [SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.md#stride-d3d11-remarks)). Expect version
   churn until Stride 4.4 stabilizes.
 - The sample builds and its reflection pins run in CI, but actual Skia-drawing-into-Stride-texture
   behavior needs a real window and D3D11 device to verify manually - it hasn't been run yet.
