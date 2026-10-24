@@ -40,13 +40,36 @@ namespace SkiaGameRendering
         internal override object CaptureTextureHandle(Texture2D texture) =>
             new GlTextureState { TextureId = CaptureGlTextureId(texture) };
 
+        /// <summary>
+        /// Samples per pixel for render targets, from the SKIAGAMERENDERING_RENDERTARGET_MSAA environment variable
+        /// (for example 4). Off by default: it cuts shape recording CPU, but costs memory, and shadow scenes got
+        /// a few percent slower. Falls back to a plain surface when the GPU has no such sample count.
+        /// </summary>
+        private static readonly int RenderTargetSampleCount =
+            int.TryParse(Environment.GetEnvironmentVariable("SKIAGAMERENDERING_RENDERTARGET_MSAA"), out var n) ? n : 0;
+
         internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
             object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
         {
+            if (RenderTargetSampleCount > 1 && GlSkiaSurfaceFactory.TryCreateMultisampledSurface(
+                    _grContext, ((GlTextureState)textureHandle).TextureId, width, height, colorType, RenderTargetSampleCount) is { } multisampled)
+            {
+                renderState = multisampled.state;
+                return (multisampled.surface, multisampled.renderTarget);
+            }
+
             var result = GlSkiaSurfaceFactory.CreateSurface(
                 _grContext, _gl, ((GlTextureState)textureHandle).TextureId, width, height, colorType, out var framebufferState);
             renderState = framebufferState;
             return result;
+        }
+
+        // Skia leaves a multisampled surface over a texture unresolved at flush; taking a snapshot resolves it
+        // into the texture on the GPU (verified by pixels: without it the texture stays empty).
+        internal override void ResolveMultisampled(SKSurface surface)
+        {
+            if (RenderTargetSampleCount > 1)
+                surface.Snapshot().Dispose();
         }
 
         internal override void BindForDrawing(object renderState) =>

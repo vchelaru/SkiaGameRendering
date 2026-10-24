@@ -44,12 +44,15 @@ namespace Performance
 
         protected override IEnumerable<PerfEntry> Entries(PerfScene scene)
         {
-            yield return new PerfEntry(scene, "skia", TargetLabel);
-            yield return new PerfEntry(scene, "skia", DirectLabel);
+            if (Environment.GetEnvironmentVariable("DIRECTONLY") != "1")
+                yield return new PerfEntry(scene, "skia", TargetLabel);
+            if (Environment.GetEnvironmentVariable("TARGETONLY") != "1")
+                yield return new PerfEntry(scene, "skia", DirectLabel);
             if (scene.Kind == SceneKind.Svg)
             {
                 yield return new PerfEntry(scene, "skia", TargetLabel + PreRasterizedSuffix);
-                yield return new PerfEntry(scene, "skia", DirectLabel + PreRasterizedSuffix);
+                if (Environment.GetEnvironmentVariable("TARGETONLY") != "1")
+                    yield return new PerfEntry(scene, "skia", DirectLabel + PreRasterizedSuffix);
             }
         }
 

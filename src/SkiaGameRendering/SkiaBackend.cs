@@ -101,6 +101,7 @@ namespace SkiaGameRendering
 
             try
             {
+                ResolveMultisampled(nativeTarget.Surface!);
                 nativeTarget.Surface!.Flush();
             }
             finally
@@ -141,6 +142,12 @@ namespace SkiaGameRendering
         internal virtual (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
             object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState) =>
             throw NativeTextureHandlePathNotSupported();
+        /// <summary>
+        /// Called before the flush that ends a render pass. A backend whose surface is multisampled over the
+        /// target's texture makes Skia resolve it into the texture here. The default does nothing.
+        /// </summary>
+        internal virtual void ResolveMultisampled(SKSurface surface) { }
+
         internal virtual void BindForDrawing(object renderState) => throw NativeTextureHandlePathNotSupported();
         internal virtual void UnbindAfterDrawing() => throw NativeTextureHandlePathNotSupported();
         internal virtual void DisposeRenderState(object renderState) => throw NativeTextureHandlePathNotSupported();
