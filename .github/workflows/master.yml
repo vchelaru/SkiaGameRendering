@@ -49,6 +49,14 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
+      # Restore is ~1 min per Windows job with a cold NuGet cache. Keyed on every project and props file;
+      # a changed dependency misses the exact key and starts from the newest older cache.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
       # windows-latest has no GPU. Its default OpenGL driver is 1.1 with no FBO support, and it has
       # no Vulkan ICD at all, so every test that ends up on either API needs a software driver
       # dropped in first. Mesa's llvmpipe (OpenGL) and lavapipe (Vulkan) both ship in the same
@@ -181,6 +189,14 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
+      # Restore is ~1 min per Windows job with a cold NuGet cache. Keyed on every project and props file;
+      # a changed dependency misses the exact key and starts from the newest older cache.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
       # Every src/ project builds here so warnings-as-errors (Directory.Build.props) has something
       # to fire on. Each package's sample builds too, since a sample is the only thing that compiles
       # against the package's public API the way a consumer does. The two KNI WebGL samples are the
