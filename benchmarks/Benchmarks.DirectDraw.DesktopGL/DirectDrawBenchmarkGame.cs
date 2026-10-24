@@ -63,10 +63,30 @@ sealed class DirectDrawBenchmarkGame : Game
 
     internal bool Finished { get; private set; }
 
+    /// <summary>
+    /// <c>DD_VISIBLE=1</c> shows the window without activating it, to check that hiding it changes no number.
+    /// </summary>
+    void ShowWithoutActivation()
+    {
+#if WINDOWSDX
+        ShowWindow(Window.Handle, 4 /* SW_SHOWNOACTIVATE */);
+#else
+        SDL_ShowWindow(Window.Handle);
+#endif
+    }
+
+#if WINDOWSDX
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern bool ShowWindow(IntPtr window, int command);
+#else
+    [System.Runtime.InteropServices.DllImport("SDL2", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+    static extern void SDL_ShowWindow(IntPtr window);
+
     [System.Runtime.InteropServices.DllImport("SDL2", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
     static extern uint SDL_GetWindowFlags(IntPtr window);
 
     const uint SDL_WINDOW_SHOWN = 0x4;
+#endif
 
     /// <summary>
     /// Runs every frame through <see cref="Game.RunOneFrame"/> instead of <see cref="Game.Run()"/>. MonoGame
@@ -75,11 +95,16 @@ sealed class DirectDrawBenchmarkGame : Game
     /// </summary>
     internal void RunHidden()
     {
+        var visible = Environment.GetEnvironmentVariable("DD_VISIBLE") == "1";
+        if (visible)
+            ShowWithoutActivation();
         while (!Finished)
         {
             RunOneFrame();
-            if ((SDL_GetWindowFlags(Window.Handle) & SDL_WINDOW_SHOWN) != 0)
+#if !WINDOWSDX
+            if (!visible && (SDL_GetWindowFlags(Window.Handle) & SDL_WINDOW_SHOWN) != 0)
                 throw new InvalidOperationException("The benchmark window became visible.");
+#endif
         }
     }
 

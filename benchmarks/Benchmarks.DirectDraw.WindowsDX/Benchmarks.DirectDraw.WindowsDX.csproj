@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RollForward>Major</RollForward>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);WINDOWSDX</DefineConstants>
+    <ApplicationManifest>..\Benchmarks.ShapeRendering.WindowsDX\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.4.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.WindowsDX\SkiaGameRendering.WindowsDX.csproj" />
+  </ItemGroup>
+  <!-- Same benchmark as Benchmarks.DirectDraw.DesktopGL; only the GPU timing differs. -->
+  <ItemGroup>
+    <Compile Include="..\Benchmarks.DirectDraw.DesktopGL\Program.cs" Link="Program.cs" />
+    <Compile Include="..\Benchmarks.DirectDraw.DesktopGL\BenchmarkScene.cs" Link="BenchmarkScene.cs" />
+    <Compile Include="..\Benchmarks.DirectDraw.DesktopGL\DirectDrawBenchmarkGame.cs" Link="DirectDrawBenchmarkGame.cs" />
+  </ItemGroup>
+</Project>
