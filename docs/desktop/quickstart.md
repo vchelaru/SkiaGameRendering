@@ -10,6 +10,9 @@ DesktopGL, KNI WindowsDX. All four share the same public API (`SkiaRenderer`,
 - MonoGame 3.8.4.1 (DesktopGL or WindowsDX), MonoGame 3.8.6 (native WindowsDX12 or DesktopVK), or KNI (DesktopGL or WindowsDX)
 - SkiaSharp 4.153.1 (3.119.4 for `SkiaGameRendering.DesktopVK` 0.17.4-preview)
 
+The MonoGame DesktopGL and WindowsDX packages are trim- and NativeAOT-compatible; CI publishes and
+runs their samples with `PublishAot`. The other packages are not yet verified under NativeAOT.
+
 ## Add the package
 
 ```powershell
@@ -20,6 +23,10 @@ dotnet add package SkiaGameRendering.DesktopVK --version 0.17.4-preview         
 dotnet add package SkiaGameRendering.Kni.DesktopGL       # KNI DesktopGL
 dotnet add package SkiaGameRendering.Kni.WindowsDX       # KNI WindowsDX
 ```
+
+Keep DesktopVK on 0.17.4-preview. Later releases use SkiaSharp 4.x, which needs Vulkan 1.1, and
+MonoGame creates its device at 1.0, so Skia fails on AMD and Mesa drivers. Newer DesktopVK versions
+won't be published until [MonoGame#9588](https://github.com/MonoGame/MonoGame/issues/9588) is fixed.
 
 ## Initialize
 
