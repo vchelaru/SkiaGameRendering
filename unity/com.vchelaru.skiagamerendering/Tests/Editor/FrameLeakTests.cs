@@ -77,11 +77,11 @@ namespace SkiaGameRendering.Unity.Tests
             (GpuProbe.DeviceRefCount(), emptyState == IntPtr.Zero ? 0 : RefCount(emptyState), GpuProbe.PrivateBytes());
 
         // The ID3D11DeviceContextState AngleSkiaSurfaceFactory swaps in for every draw, or zero on
-        // Metal, which has none. The fields are private, so a rename fails this test with a null
+        // Metal and OpenGL, which have none. The fields are private, so a rename fails this test with a null
         // reference rather than passing silently.
         static IntPtr EmptyStateOfTheFactory()
         {
-            if (GpuProbe.IsMetal)
+            if (GpuProbe.IsMetal || GpuProbe.IsOpenGl)
                 return IntPtr.Zero;
             const System.Reflection.BindingFlags nonPublic = System.Reflection.BindingFlags.NonPublic;
             var backend = typeof(SkiaUnityRenderTarget).Assembly

@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- netstandard2.1 is for Unity, whose Mono runtime can't load a net8.0 assembly (issue #95). -->
+    <TargetFrameworks>net8.0;netstandard2.1</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -12,6 +14,11 @@
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
   </PropertyGroup>
+
+  <!-- These two load native libraries through NativeLibrary, which netstandard2.1 lacks. Unity doesn't use them yet. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <Compile Remove="CglSharedContext.cs;EglSharedContext.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
