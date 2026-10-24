@@ -1,6 +1,6 @@
 # SkiaDirectCanvas
 
-On MonoGame DesktopGL, KNI DesktopGL, KNI Android, KNI WebGL, MonoGame WindowsDX and WindowsDX12, KNI WindowsDX and FNA
+On MonoGame DesktopGL, KNI DesktopGL, MonoGame and KNI Android, KNI WebGL, MonoGame WindowsDX and WindowsDX12, KNI WindowsDX and FNA
 (on its D3D11 or OpenGL driver), `SkiaDirectCanvas` draws into whatever the
 engine is rendering to when `Begin()` is called, the back buffer or the bound `RenderTarget2D`, with
 no intermediate texture and no `SpriteBatch` composite. It has the same `Begin`/`Canvas`/`End` shape as

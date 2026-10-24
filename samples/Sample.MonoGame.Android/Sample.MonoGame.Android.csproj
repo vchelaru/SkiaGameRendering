@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-android36.0</TargetFramework>
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Sample</RootNamespace>
+    <ApplicationId>com.vchelaru.skiagamerendering.monogame.sample</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <!-- Same runtime list as Sample.Kni.Android: -p:EmulatorRuntime=true adds x86_64 for an emulator. -->
+    <RuntimeIdentifiers>android-arm64;android-arm</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(EmulatorRuntime)' == 'true'">$(RuntimeIdentifiers);android-x64</RuntimeIdentifiers>
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.Android" Version="3.8.5.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Android\SkiaGameRendering.Android.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
+    <!-- The smoke test's SkiaDirectCanvas checks, shared with the DesktopGL test projects. -->
+    <Compile Include="..\..\tests\Shared\DirectDrawLayering.cs" Link="DirectDrawLayering.cs" />
+    <Compile Include="..\Shared\AndroidDirectCanvasCheck.cs" Link="AndroidDirectCanvasCheck.cs" />
+  </ItemGroup>
+  <Import Project="..\Shared\Scene.props" />
+</Project>

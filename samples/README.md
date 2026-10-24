@@ -4,6 +4,7 @@
 - `Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
 - `Sample.Kni.DesktopGL/` — KNI DesktopGL sample (cross-platform: Windows, Linux, macOS)
 - `Sample.Kni.WindowsDX/` — KNI WindowsDX sample (Windows only)
+- `Sample.MonoGame.Android/`: MonoGame Android sample (.NET 10; install the APK, or run with `--ez smoke true` to check the pixels)
 - `Sample.Kni.Android/`: KNI Android sample (.NET 10; install the APK, or run with `--ez smoke true` to check the pixels)
 - `Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample
 - `Sample.Gum.Kni.WebGL/` — KNI Blazor WebAssembly sample of Gum UI interleaved with SpriteBatch, render targets, shaders, and browser input

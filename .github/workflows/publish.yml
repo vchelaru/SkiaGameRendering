@@ -44,6 +44,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering/SkiaGameRendering.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.WindowsDX
         run: dotnet pack src/SkiaGameRendering.WindowsDX/SkiaGameRendering.WindowsDX.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Android
+        run: dotnet pack src/SkiaGameRendering.Android/SkiaGameRendering.Android.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.WindowsDX12
         run: dotnet pack src/SkiaGameRendering.WindowsDX12/SkiaGameRendering.WindowsDX12.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       # SkiaGameRendering.DesktopVK is not packed: it stays at 0.17.4-preview until MonoGame creates its Vulkan

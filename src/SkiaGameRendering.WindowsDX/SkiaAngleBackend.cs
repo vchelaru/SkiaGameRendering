@@ -76,22 +76,8 @@ namespace SkiaGameRendering
             return _factory.CreateTextureState(d3dPtr);
         }
 
-        // MonoGame's HiDef profile allows four simultaneous targets.
-        readonly RenderTargetBinding[] _boundRenderTarget = new RenderTargetBinding[4];
+        readonly MonoGameBoundRenderTarget _boundRenderTarget = new();
 
-        private protected override RenderTarget2D? GetBoundRenderTarget()
-        {
-            var count = GraphicsDevice.RenderTargetCount;
-            if (count == 0)
-                return null;
-            if (count > 1)
-                throw new NotSupportedException("SkiaDirectCanvas needs a single bound render target, not " + count + ".");
-
-            GraphicsDevice.GetRenderTargets(_boundRenderTarget);
-            var renderTarget = _boundRenderTarget[0].RenderTarget as RenderTarget2D;
-            Array.Clear(_boundRenderTarget);
-            return renderTarget
-                ?? throw new NotSupportedException("SkiaDirectCanvas supports a RenderTarget2D, not a cube or 3D target.");
-        }
+        private protected override RenderTarget2D? GetBoundRenderTarget() => _boundRenderTarget.Get(GraphicsDevice);
     }
 }

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Installs Sample.Kni.Android on the connected device or emulator, runs its smoke test, and exits 0
-# only if the activity logs "Exit code 0" (the pixel check plus the SkiaDirectCanvas checks).
-# Usage: eng/run-android-smoke-test.sh <apk> [timeout seconds]
+# Installs an Android sample (Sample.Kni.Android or Sample.MonoGame.Android) on the connected device or
+# emulator, runs its smoke test, and exits 0 only if the activity logs "Exit code 0" (the pixel check
+# plus the SkiaDirectCanvas checks).
+# Usage: eng/run-android-smoke-test.sh <apk> <application id> [timeout seconds]
 set -euo pipefail
 
 apk=$1
-timeout=${2:-180}
-package=com.vchelaru.skiagamerendering.sample
+package=$2
+timeout=${3:-180}
 
 adb install -r "$apk"
 # The activity's Java name carries a crc64 hash, so ask the package manager for it.
