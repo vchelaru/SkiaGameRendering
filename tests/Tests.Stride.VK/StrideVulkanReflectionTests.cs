@@ -88,4 +88,27 @@ public sealed class StrideVulkanReflectionTests
 
         Assert.Equal(typeof(VkFormat), field.FieldType);
     }
+
+    [Fact]
+    public void ParentTextureProperty_ResolvesToTexture()
+    {
+        EngineReflectionPin.RequirePropertyOfType(typeof(Texture), "ParentTexture", NonPublicInstance, typeof(Texture));
+    }
+
+    [Fact]
+    public void ActivePipelineField_ResolvesToPipelineState()
+    {
+        var field = EngineReflectionPin.RequireField(typeof(CommandList), "activePipeline", NonPublicInstance);
+
+        Assert.Equal(typeof(PipelineState), field.FieldType);
+    }
+
+    [Fact]
+    public void FlushInternal_TakesBoolAndReturnsVoid()
+    {
+        var method = typeof(CommandList).GetMethod("FlushInternal", NonPublicInstance, [typeof(bool)]);
+
+        Assert.NotNull(method);
+        Assert.Equal(typeof(void), method.ReturnType);
+    }
 }

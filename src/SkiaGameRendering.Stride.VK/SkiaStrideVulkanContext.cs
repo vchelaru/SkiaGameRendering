@@ -78,6 +78,9 @@ namespace SkiaGameRendering
         static FieldInfo? _nativeImageField;
         static FieldInfo? _nativeLayoutField;
         static FieldInfo? _nativeFormatField;
+        static PropertyInfo? _parentTextureProperty;
+        static FieldInfo? _activePipelineField;
+        static Action<CommandList, bool>? _flushInternal;
 
         internal GRContext GRContext => _factory.GRContext;
 
@@ -153,7 +156,135 @@ namespace SkiaGameRendering
             _graphicsDevice!.ExecuteCommandList(commandList.Close());
         }
 
-        internal VkTextureState CreateTextureState(Texture texture)
+        /// <summary>
+        /// Starts a pass that draws into the render target bound on <paramref name="commandList"/>. Vulkan has
+        /// no bound-target query, so the caller passes the texture Stride has bound. Stride submits what it has
+        /// recorded at the end of its command list, but Skia submits straight away, so the list is flushed
+        /// first: that is what puts Skia's pixels over everything Stride drew before this call (and the flush is
+        /// the cost of the pass). The image is then moved to <c>COLOR_ATTACHMENT_OPTIMAL</c> through Stride's own
+        /// barrier, as <see cref="AcquireForSkia"/> does, and wrapped in a surface that lives for this pass only,
+        /// because a swap chain hands Stride a different image under the same <see cref="Texture"/> every frame.
+        /// Validation comes first, so a target Skia cannot draw into throws before anything has been flushed.
+        /// </summary>
+        internal SKCanvas BeginDirectDraw(CommandList commandList, Texture target, out DirectPass pass)
+        {
+            var (colorType, viewFormat) = GetDirectFormat(target);
+
+            SubmitRecordedCommands(commandList);
+            AcquireForSkia(target);
+
+            BeginDraw();
+            try
+            {
+                var state = CreateTextureState(GetImageOwner(target), DirectUsageFlags, viewFormat);
+                var (surface, renderTarget) = CreateSurface(state, target.ViewWidth, target.ViewHeight, colorType);
+                pass = new DirectPass(commandList, target, surface, renderTarget);
+                return surface.Canvas;
+            }
+            catch
+            {
+                EndDraw();
+                commandList.ResourceBarrierTransition(target, BarrierLayout.RenderTarget);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Submits Skia's work and hands the target back to Stride. Stride's tracker already has the image in
+        /// <c>COLOR_ATTACHMENT_OPTIMAL</c> (where Skia leaves it), so the barrier recorded on Stride's list is
+        /// a layout no-op that makes Skia's color writes available to Stride's next draw into the target.
+        /// Hands it back even if the submit throws.
+        /// </summary>
+        internal void EndDirectDraw(DirectPass pass)
+        {
+            try
+            {
+                pass.Surface.Flush();
+                _factory.EndDraw(synchronous: false);
+            }
+            finally
+            {
+                pass.Surface.Dispose();
+                pass.RenderTarget.Dispose();
+                pass.CommandList.ResourceBarrierTransition(pass.Target, BarrierLayout.RenderTarget);
+            }
+        }
+
+        /// <summary>One <see cref="BeginDirectDraw"/> pass.</summary>
+        internal sealed class DirectPass(CommandList commandList, Texture target, SKSurface surface, GRBackendRenderTarget renderTarget)
+        {
+            internal CommandList CommandList { get; } = commandList;
+            internal Texture Target { get; } = target;
+            internal SKSurface Surface { get; } = surface;
+            internal GRBackendRenderTarget RenderTarget { get; } = renderTarget;
+        }
+
+        // TRANSFER_SRC | TRANSFER_DST | COLOR_ATTACHMENT. Stride creates its own images with the transfer bits
+        // always, and its swap chain with TRANSFER_DST and, when the surface supports it, TRANSFER_SRC.
+        const uint DirectUsageFlags =
+            VkConstants.ImageUsageTransferSrc | VkConstants.ImageUsageTransferDst | VkConstants.ImageUsageColorAttachment;
+
+        /// <summary>
+        /// The color type Skia draws <paramref name="target"/> as and the <c>VkFormat</c> it is told the image
+        /// has, or <see cref="NotSupportedException"/> for a target it cannot draw into: multisampled, or any
+        /// format but 8-bit RGBA or BGRA, UNORM or sRGB. Skia cannot wrap an sRGB-format image, and the swap
+        /// chain Stride creates in its default Linear color space is exactly that, so an sRGB image is wrapped
+        /// as its UNORM twin (same texel layout): Skia then writes the bytes as given, so an
+        /// <see cref="SKColor"/> lands as that color, as on every other backend. Stride creates the image
+        /// without <c>VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT</c>, so the UNORM view is outside the spec's
+        /// letter, which drivers accept for same-size formats.
+        /// </summary>
+        static (SKColorType colorType, VkFormat viewFormat) GetDirectFormat(Texture target)
+        {
+            if (target.MultisampleCount != MultisampleCount.None)
+                throw new NotSupportedException(
+                    $"SkiaDirectCanvas needs a single-sample target, not {target.MultisampleCount}.");
+
+            _nativeFormatField ??= typeof(Texture).GetField("NativeFormat", NonPublicInstance)
+                ?? throw new Exception("Could not find Stride.Graphics.Texture.NativeFormat.");
+            var format = (VkFormat)_nativeFormatField.GetValue(GetImageOwner(target))!;
+            return format switch
+            {
+                VkFormat.R8G8B8A8Unorm or VkFormat.R8G8B8A8Srgb => (SKColorType.Rgba8888, VkFormat.R8G8B8A8Unorm),
+                VkFormat.B8G8R8A8Unorm or VkFormat.B8G8R8A8Srgb => (SKColorType.Bgra8888, VkFormat.B8G8R8A8Unorm),
+                _ => throw new NotSupportedException(
+                    $"SkiaDirectCanvas draws into 8-bit RGBA or BGRA targets, not {format}."),
+            };
+        }
+
+        static Texture GetImageOwner(Texture texture)
+        {
+            _parentTextureProperty ??= typeof(Texture).GetProperty("ParentTexture", NonPublicInstance)
+                ?? throw new Exception("Could not find Stride.Graphics.Texture.ParentTexture.");
+            return (Texture?)_parentTextureProperty.GetValue(texture) ?? texture;
+        }
+
+        /// <summary>
+        /// Submits everything <paramref name="commandList"/> has recorded and starts a new recording, which is
+        /// what Stride itself does mid-frame before a read-back. The public <c>CommandList.Flush</c> only closes
+        /// and submits, leaving a list nothing can record into; the private <c>FlushInternal(false)</c> also
+        /// resets it, which marks its viewport, scissors and render targets to be applied again. It drops the
+        /// bound pipeline, so that is put back for a caller who draws again without setting it.
+        /// </summary>
+        static void SubmitRecordedCommands(CommandList commandList)
+        {
+            _flushInternal ??= CreateFlushInternal();
+            _activePipelineField ??= typeof(CommandList).GetField("activePipeline", NonPublicInstance)
+                ?? throw new Exception("Could not find Stride.Graphics.CommandList.activePipeline.");
+
+            var pipeline = _activePipelineField.GetValue(commandList);
+            _flushInternal(commandList, false);
+            _activePipelineField.SetValue(commandList, pipeline);
+        }
+
+        static Action<CommandList, bool> CreateFlushInternal()
+        {
+            var method = typeof(CommandList).GetMethod("FlushInternal", NonPublicInstance, [typeof(bool)])
+                ?? throw new Exception("Could not find Stride.Graphics.CommandList.FlushInternal(bool).");
+            return (Action<CommandList, bool>)Delegate.CreateDelegate(typeof(Action<CommandList, bool>), method);
+        }
+
+        internal VkTextureState CreateTextureState(Texture texture, uint? usageFlags = null, VkFormat? viewFormat = null)
         {
             _nativeImageField ??= typeof(Texture).GetField("NativeImage", NonPublicInstance)
                 ?? throw new Exception("Could not find Stride.Graphics.Texture.NativeImage.");
@@ -165,12 +296,13 @@ namespace SkiaGameRendering
             var image = (VkImage)_nativeImageField.GetValue(texture)!;
             var layout = (VkImageLayout)_nativeLayoutField.GetValue(texture)!;
             var format = (VkFormat)_nativeFormatField.GetValue(texture)!;
+            format = viewFormat ?? format;
 
             if ((ulong)image == 0)
                 throw new Exception($"Vulkan image is null on Texture ({texture.Width}x{texture.Height}).");
 
             return _factory.CreateTextureState(
-                (ulong)image, (uint)format, (uint)layout, ComputeImageUsageFlags(texture.Flags),
+                (ulong)image, (uint)format, (uint)layout, usageFlags ?? ComputeImageUsageFlags(texture.Flags),
                 imageTiling: 0 /* VK_IMAGE_TILING_OPTIMAL - matches Texture.Vulkan.cs's CreateImage, which always uses Optimal tiling. */);
         }
 

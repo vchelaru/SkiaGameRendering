@@ -51,14 +51,19 @@ Stride on Direct3D 11 has the same thing as `SkiaDirectCanvas`. `Begin` takes th
 is the back buffer. In Stride's default Linear color space the back buffer is an sRGB view of an
 8-bit texture: Skia writes into it without encoding, so an `SKColor` shows as that color, and Skia
 blends in sRGB space while Stride blends in linear. One bound 8-bit RGBA or BGRA target is supported;
-sRGB-format textures and HDR targets throw `NotSupportedException`. Stride's Vulkan backend has no
-direct canvas yet.
+sRGB-format textures and HDR targets throw `NotSupportedException`.
 
 Stride on Direct3D 12 has `SkiaDirectCanvas`, used the same way, with the same color
 handling, and with single-sample targets only (a multisampled one throws `NotSupportedException`).
 `Begin` submits whatever Stride has recorded on the command list so far and starts a new recording,
 because Skia's work reaches the GPU when `End` runs and would otherwise land under Stride's earlier
 draws. That makes each pass cost a submission, so draw it once per frame rather than once per widget.
+Stride on Vulkan has `SkiaDirectCanvas` too, used the same way, with the same per-pass submission cost.
+Vulkan has no bound-target query, so `Begin` takes the target from the `GraphicsContext`'s command list, moves
+its image to `COLOR_ATTACHMENT_OPTIMAL` through Stride's own barrier and hands it back the same way. Unlike
+D3D11 and D3D12, sRGB-format targets work: Skia cannot wrap an sRGB-format `VkImage`, so the default Linear
+swap chain image is wrapped as its UNORM twin (Stride creates it without the mutable-format flag, which
+drivers accept for same-size formats but the validation layer reports).
 MonoGame's native WindowsDX12 has `SkiaDirectCanvas` too, with the Stride D3D12 limits (single-sample targets, no
 multisampled back buffer) and the same per-pass submission cost, and no drawing with MonoGame between `Begin`
 and `End`. MonoGame gives no way to get its current target's `ID3D12Resource` or to submit what it has recorded,

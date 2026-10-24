@@ -114,6 +114,26 @@ public sealed class StrideVulkanLayoutValidationTests
                 device.ExecuteCommandList(readback.Close());
 
                 Assert.Equal(new Color(0, 128, 0, 255), pixel);
+
+                // Then the same cycle through SkiaDirectCanvas, which hands the bound target to Skia and back.
+                // In this test because the layer-enabled message is logged once per process.
+                using var direct = new SkiaDirectCanvas(device);
+                foreach (var color in new[] { SKColors.Red, SKColors.Blue, SKColors.Green })
+                {
+                    using var commandList = CommandList.New(device);
+                    commandList.SetRenderTargetAndViewport(null, compositeTarget);
+                    commandList.Clear(compositeTarget, new Color4(0f, 0f, 0f, 0f));
+                    direct.Begin(new GraphicsContext(device, commandList: commandList));
+                    direct.Canvas.Clear(color);
+                    direct.End();
+                    device.ExecuteCommandList(commandList.Close());
+                }
+
+                using var directReadback = CommandList.New(device);
+                var directPixel = compositeTarget.GetData<Color>(directReadback)[0];
+                device.ExecuteCommandList(directReadback.Close());
+
+                Assert.Equal(new Color(0, 128, 0, 255), directPixel);
             }
             finally
             {
