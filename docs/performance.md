@@ -55,7 +55,7 @@ wall-clock time, so it covers the whole frame: update, draw submission, the Skia
 the composite and `Present`.
 
 Each table row gives three numbers: **Native FPS**, the fastest engine-side renderer for that scene (named in
-brackets); **SkiaGameRendering FPS**; and **Change**, how much faster (+) or slower (-) SkiaGameRendering is.
+brackets); **SkiaGameRendering FPS**; and **SkiaGameRendering / Native**, where 100% is the same speed, 200% twice as fast and 50% half as fast.
 Pre-rasterized SVG is measured on both sides but left out of the tables. Median and 95th-percentile frame
 times and draw CPU time are in the result files under `performance/results/`.
 

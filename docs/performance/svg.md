@@ -17,31 +17,31 @@ Screenshots: 500 drops, KNI DesktopGL. The scenes are 1600x900 and animate every
 
 ### MonoGame DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | Change |
+| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
-| SVG 100 | 655 (Apos.Shapes SVG) | 74 | -89% |
-| SVG 500 | 144 (Apos.Shapes SVG) | 18 | -88% |
-| SVG 2k | 38 (Apos.Shapes SVG) | 4 | -89% |
+| SVG 100 | 655 (Apos.Shapes SVG) | 74 | 11% |
+| SVG 500 | 144 (Apos.Shapes SVG) | 18 | 13% |
+| SVG 2k | 38 (Apos.Shapes SVG) | 4 | 11% |
 
 ### KNI DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | Change |
+| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
-| SVG 100 | 655 (Apos.Shapes SVG) | 73 | -89% |
-| SVG 500 | 161 (Apos.Shapes SVG) | 18 | -89% |
-| SVG 2k | 32 (Apos.Shapes SVG) | 4 | -88% |
+| SVG 100 | 655 (Apos.Shapes SVG) | 73 | 11% |
+| SVG 500 | 161 (Apos.Shapes SVG) | 18 | 11% |
+| SVG 2k | 32 (Apos.Shapes SVG) | 4 | 13% |
 
 ### KNI WebGL (Chrome), H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | Change |
+| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
-| SVG 100 | 214 (Apos.Shapes SVG) | 354 | +65% |
-| SVG 500 | 49 (Apos.Shapes SVG) | 73 | +49% |
-| SVG 2k | 13 (Apos.Shapes SVG) | 25 | +92% |
+| SVG 100 | 214 (Apos.Shapes SVG) | 354 | 165% |
+| SVG 500 | 49 (Apos.Shapes SVG) | 73 | 149% |
+| SVG 2k | 13 (Apos.Shapes SVG) | 25 | 192% |
 
 <!-- results:end -->
 
 ## Reading the numbers
 
-- Desktop: Skia is about 89% slower. Its path and stroke tessellation is what costs.
-- Browser: Skia is 49-92% faster, for the same reason as the shapes page.
+- Desktop: Skia runs at about 11%. Its path and stroke tessellation is what costs.
+- Browser: Skia runs at 149-192%, for the same reason as the shapes page.

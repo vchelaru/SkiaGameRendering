@@ -17,31 +17,31 @@ Screenshots: 200 labels, KNI DesktopGL. The scenes are 1600x900 and animate ever
 
 ### MonoGame DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | Change |
+| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
-| Text 50 | 1679 (SpriteFont) | 1026 | -39% |
-| Text 200 | 1636 (FontStashSharp) | 673 | -59% |
-| Text 1k | 1093 (SpriteFont) | 199 | -82% |
+| Text 50 | 1679 (SpriteFont) | 1026 | 61% |
+| Text 200 | 1636 (FontStashSharp) | 673 | 41% |
+| Text 1k | 1093 (SpriteFont) | 199 | 18% |
 
 ### KNI DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | Change |
+| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
-| Text 50 | 2641 (FontStashSharp) | 1053 | -60% |
-| Text 200 | 2295 (SpriteFont) | 747 | -67% |
-| Text 1k | 1383 (SpriteFont) | 190 | -86% |
+| Text 50 | 2641 (FontStashSharp) | 1053 | 40% |
+| Text 200 | 2295 (SpriteFont) | 747 | 33% |
+| Text 1k | 1383 (SpriteFont) | 190 | 14% |
 
 ### KNI WebGL (Chrome), H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | Change |
+| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
-| Text 50 | 2112 (FontStashSharp) | 1082 | -49% |
-| Text 200 | 1520 (SpriteFont) | 611 | -60% |
-| Text 1k | 509 (SpriteFont) | 162 | -68% |
+| Text 50 | 2112 (FontStashSharp) | 1082 | 51% |
+| Text 200 | 1520 (SpriteFont) | 611 | 40% |
+| Text 1k | 509 (SpriteFont) | 162 | 32% |
 
 <!-- results:end -->
 
 ## Reading the numbers
 
-- Skia is 39-86% slower than the faster of `SpriteFont` and FontStashSharp on the desktop, and 49-68% slower in the browser. The gap grows with the label count.
+- Skia runs at 14-61% of the faster of `SpriteFont` and FontStashSharp on the desktop, and 32-51% in the browser, dropping with the label count.
 - Skia draws text at any size with no atlas to bake; see the mixed-fonts page.

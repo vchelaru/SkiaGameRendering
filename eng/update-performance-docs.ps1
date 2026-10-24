@@ -72,14 +72,13 @@ function Build-PageTables([object[]] $runs, [string] $page) {
                     Sort-Object { Row-Fps $_ } -Descending | Select-Object -First 1
                 if (-not $skia -or -not $native) { continue }
                 $nativeFps = Row-Fps $native
-                $change = 100.0 * ($skia / $nativeFps - 1)
-                '| {0} | {1:0} ({2}) | {3:0} | {4}{5:0}% |' -f $scene, $nativeFps, $native.Renderer, $skia, $(if ($change -ge 0) { '+' } else { '' }), $change
+                '| {0} | {1:0} ({2}) | {3:0} | {4:0}% |' -f $scene, $nativeFps, $native.Renderer, $skia, (100.0 * $skia / $nativeFps)
             }
             if (-not $lines) { continue }
             $any = $true
             [void] $out.AppendLine("### $platform, $hardware")
             [void] $out.AppendLine()
-            [void] $out.AppendLine('| Scene | Native FPS | SkiaGameRendering FPS | Change |')
+            [void] $out.AppendLine('| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |')
             [void] $out.AppendLine('|---|---:|---:|---:|')
             foreach ($line in $lines) { [void] $out.AppendLine($line) }
             [void] $out.AppendLine()

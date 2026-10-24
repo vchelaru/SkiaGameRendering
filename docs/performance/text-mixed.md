@@ -17,30 +17,30 @@ Screenshots: 200 labels, KNI DesktopGL. The scenes are 1600x900 and animate ever
 
 ### MonoGame DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | Change |
+| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
-| Mixed text 50 | 1606 (FontStashSharp) | 1019 | -37% |
-| Mixed text 200 | 1381 (FontStashSharp) | 690 | -50% |
-| Mixed text 1k | 810 (FontStashSharp) | 164 | -80% |
+| Mixed text 50 | 1606 (FontStashSharp) | 1019 | 63% |
+| Mixed text 200 | 1381 (FontStashSharp) | 690 | 50% |
+| Mixed text 1k | 810 (FontStashSharp) | 164 | 20% |
 
 ### KNI DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | Change |
+| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
-| Mixed text 50 | 2535 (FontStashSharp) | 1001 | -61% |
-| Mixed text 200 | 2037 (FontStashSharp) | 674 | -67% |
-| Mixed text 1k | 945 (FontStashSharp) | 167 | -82% |
+| Mixed text 50 | 2535 (FontStashSharp) | 1001 | 39% |
+| Mixed text 200 | 2037 (FontStashSharp) | 674 | 33% |
+| Mixed text 1k | 945 (FontStashSharp) | 167 | 18% |
 
 ### KNI WebGL (Chrome), H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | Change |
+| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
-| Mixed text 50 | 1874 (FontStashSharp) | 1128 | -40% |
-| Mixed text 200 | 886 (FontStashSharp) | 615 | -31% |
-| Mixed text 1k | 257 (FontStashSharp) | 157 | -39% |
+| Mixed text 50 | 1874 (FontStashSharp) | 1128 | 60% |
+| Mixed text 200 | 886 (FontStashSharp) | 615 | 69% |
+| Mixed text 1k | 257 (FontStashSharp) | 157 | 61% |
 
 <!-- results:end -->
 
 ## Reading the numbers
 
-- Native is FontStashSharp, which packs every size into shared atlases. Skia is 37-82% slower on the desktop and 31-40% slower in the browser, with the gap growing with the label count.
+- Native is FontStashSharp, which packs every size into shared atlases. Skia runs at 18-63% of it on the desktop and 60-69% in the browser, dropping with the label count.
