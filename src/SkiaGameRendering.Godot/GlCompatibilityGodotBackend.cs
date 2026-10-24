@@ -2,7 +2,7 @@ using Godot;
 using SkiaGameRendering.Core.OGL;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Godot
+namespace SkiaGameRendering
 {
     /// <summary>
     /// The backend for Godot's Compatibility renderer (<c>rendering_method = gl_compatibility</c>,
@@ -180,9 +180,9 @@ namespace SkiaGameRendering.Godot
                 backend.EndDraw();
             }
 
-            internal override Texture2D Texture => _texture ?? throw new ObjectDisposedException(nameof(SkiaGodotRenderTarget2D));
+            internal override Texture2D Texture => _texture ?? throw new ObjectDisposedException(nameof(SkiaRenderTarget2D));
 
-            internal override Rid TextureRid => _disposed ? throw new ObjectDisposedException(nameof(SkiaGodotRenderTarget2D)) : default;
+            internal override Rid TextureRid => _disposed ? throw new ObjectDisposedException(nameof(SkiaRenderTarget2D)) : default;
 
             internal override SKSurface BeginFrame()
             {

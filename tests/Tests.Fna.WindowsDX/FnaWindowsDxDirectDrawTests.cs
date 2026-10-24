@@ -26,34 +26,34 @@ public sealed class FnaWindowsDxDirectDrawTests
 
     [Fact]
     public void SupportsDirectCanvas() =>
-        Assert.True(OneFrameGame.Render(() => new SkiaFnaAngleBackend(), _ => (object)SkiaRenderer.SupportsDirectCanvas) is true);
+        Assert.True(OneFrameGame.Render(() => new SkiaAngleBackend(), _ => (object)SkiaRenderer.SupportsDirectCanvas) is true);
 
     [Fact]
     public void BackBuffer_LayersInOrderAndUpright() =>
-        Assert.Equal("", OneFrameGame.Render(() => new SkiaFnaAngleBackend(), DirectDrawLayering.BackBuffer));
+        Assert.Equal("", OneFrameGame.Render(() => new SkiaAngleBackend(), DirectDrawLayering.BackBuffer));
 
     [Theory]
     [InlineData(0)]
     [InlineData(4)]
     public void RenderTarget_LayersInOrderAndUpright(int multiSampleCount) =>
-        Assert.Equal("", OneFrameGame.Render(() => new SkiaFnaAngleBackend(),
+        Assert.Equal("", OneFrameGame.Render(() => new SkiaAngleBackend(),
             device => DirectDrawLayering.RenderTarget(device, multiSampleCount)));
 
     [Fact]
     public void Scene_DrawnToRenderTarget_MatchesGolden() =>
         GoldenImage.AssertMatchesGolden(
-            OneFrameGame.Render(() => new SkiaFnaAngleBackend(), EngineSkiaGolden.RenderSceneDirectToRenderTarget),
+            OneFrameGame.Render(() => new SkiaAngleBackend(), EngineSkiaGolden.RenderSceneDirectToRenderTarget),
             Golden);
 
     [Fact]
     public void Scene_DrawnToBackBuffer_MatchesGolden() =>
         GoldenImage.AssertMatchesGolden(
-            OneFrameGame.Render(() => new SkiaFnaAngleBackend(), EngineSkiaGolden.RenderSceneDirectToBackBuffer),
+            OneFrameGame.Render(() => new SkiaAngleBackend(), EngineSkiaGolden.RenderSceneDirectToBackBuffer),
             Golden);
 
     [Fact]
     public void SkiaRenderTarget2D_AroundDirectDraw_MatchesGolden() =>
         GoldenImage.AssertMatchesGolden(
-            OneFrameGame.Render(() => new SkiaFnaAngleBackend(), EngineSkiaGolden.RenderSceneToSkiaTextureAroundDirectDraw),
+            OneFrameGame.Render(() => new SkiaAngleBackend(), EngineSkiaGolden.RenderSceneToSkiaTextureAroundDirectDraw),
             Golden);
 }

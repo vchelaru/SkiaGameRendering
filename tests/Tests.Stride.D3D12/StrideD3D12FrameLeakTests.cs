@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.D3D12;
+using SkiaGameRendering;
 using Stride.Graphics;
 using Tests.Shared;
 using Xunit;
@@ -23,7 +23,7 @@ public sealed class StrideD3D12FrameLeakTests(ITestOutputHelper output)
         }
         finally
         {
-            SkiaStrideD3D12Renderer.Dispose();
+            SkiaRenderer.Dispose();
         }
     }
 
@@ -37,7 +37,7 @@ public sealed class StrideD3D12FrameLeakTests(ITestOutputHelper output)
         }
         finally
         {
-            SkiaStrideD3D12Renderer.Dispose();
+            SkiaRenderer.Dispose();
         }
     }
 }

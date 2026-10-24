@@ -4,7 +4,7 @@ using System.Runtime.Versioning;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Platform.Graphics;
 
-namespace SkiaGameRendering.Kni.WebGL;
+namespace SkiaGameRendering;
 
 public enum WebGLCanvasUploadMode
 {

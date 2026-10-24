@@ -1,8 +1,8 @@
 # Stride Vulkan quick start
 
 Vulkan analog of `docs/stride/quickstart.md` (D3D11). Like that adapter, this does not go through
-`SkiaBackend`/`SkiaRenderer` - see
-[SkiaStrideVulkanRenderTarget2D](../documentation/SkiaStrideVulkanRenderTarget2D.md) for why and how
+`SkiaBackend` - see
+[SkiaRenderTarget2D (Stride Vulkan)](../documentation/SkiaRenderTarget2D.StrideVulkan.md) for why and how
 the Stride Vulkan support is structured.
 
 ## Prerequisites
@@ -46,10 +46,10 @@ dependency; `SkiaGameRendering.Stride.VK` itself doesn't need it.
 
 Stride drives rendering through its `GraphicsCompositor`, not a user-owned `Draw()` call, so the
 Skia draw runs inside a `SceneRendererBase.DrawCore` override -
-[SkiaStrideVulkanSceneRenderer](../documentation/SkiaStrideVulkanRenderTarget2D.md) is that hook:
+[SkiaSceneRenderer](../documentation/SkiaRenderTarget2D.StrideVulkan.md) is that hook:
 
 ```cs
-using SkiaGameRendering.Stride.VK;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
@@ -57,7 +57,7 @@ using Stride.Engine;
 
 using var game = new Game();
 
-SkiaStrideVulkanRenderTarget2D? canvas = null;
+SkiaRenderTarget2D? canvas = null;
 var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
 
 // Not game.Run(...): Stride.Games.GameBase already declares an instance Run(GameContext) method,
@@ -70,9 +70,9 @@ void Start(Scene rootScene)
     game.SetupBase3DScene();
 
     var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
-    canvas = new SkiaStrideVulkanRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
+    canvas = new SkiaRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
 
-    var renderer = new SkiaStrideVulkanSceneRenderer { Canvas = canvas };
+    var renderer = new SkiaSceneRenderer { Canvas = canvas };
     renderer.SkiaDraw += skCanvas =>
     {
         skCanvas.Clear(SKColors.Transparent);
@@ -82,12 +82,12 @@ void Start(Scene rootScene)
 }
 
 canvas?.Dispose();
-SkiaStrideVulkanRenderer.Dispose();
+SkiaRenderer.Dispose();
 paint.Dispose();
 ```
 
 Full member list and other remarks are documented on
-[SkiaStrideVulkanRenderTarget2D](../documentation/SkiaStrideVulkanRenderTarget2D.md).
+[SkiaRenderTarget2D (Stride Vulkan)](../documentation/SkiaRenderTarget2D.StrideVulkan.md).
 
 ## Build (and run) the sample in this repo
 

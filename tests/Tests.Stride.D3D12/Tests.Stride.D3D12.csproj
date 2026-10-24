@@ -41,6 +41,6 @@
 
   <ItemGroup>
     <!-- See Tests.Stride.D3D11.csproj's matching alias for why this is here. -->
-    <Using Include="SkiaGameRendering.Stride.D3D12.SkiaStrideD3D12RenderTarget2D" Alias="SkiaStrideCanvas" />
+    <Using Include="SkiaGameRendering.SkiaRenderTarget2D" Alias="SkiaStrideCanvas" />
   </ItemGroup>
 </Project>

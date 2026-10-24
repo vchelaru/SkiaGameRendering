@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework.Graphics;
 using SkiaGameRendering.Core.OGL;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Kni.Android
+namespace SkiaGameRendering
 {
     /// <summary>
     /// SkiaBackend for KNI's Android (GLES) platform. Same design as the desktop GL backends: a second
@@ -15,7 +15,7 @@ namespace SkiaGameRendering.Kni.Android
     /// <c>eglGetCurrent*</c> calls, and <c>Texture2D.GetSharedHandle()</c> is public.
     /// </para>
     /// </summary>
-    public class SkiaKniAndroidBackend : SkiaSharedGlBackend
+    public class SkiaAndroidBackend : SkiaSharedGlBackend
     {
         readonly EglSharedContext _egl = new();
 

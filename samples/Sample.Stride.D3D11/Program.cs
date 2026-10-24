@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.D3D11;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
@@ -13,7 +13,7 @@ using SharedScene = Sample.Shared.Scene;
 // for a pure-code Game like this one - see Sample.Stride.D3D11.csproj's comment.
 using var game = new Game();
 
-SkiaStrideDirectCanvas? canvas = null;
+SkiaDirectCanvas? canvas = null;
 
 // Not game.Run(start: Start, ...): Stride.Games.GameBase already declares an instance
 // Run(GameContext) method, and C# hides same-named extension methods behind ANY instance method of
@@ -26,15 +26,15 @@ void Start(Scene rootScene)
     // Camera, lighting, and a ground plane - the minimum a Stride scene needs to render anything.
     game.SetupBase3DScene();
 
-    // SkiaStrideDirectCanvas auto-initializes SkiaStrideRenderer against game.GraphicsDevice on first
+    // SkiaDirectCanvas auto-initializes SkiaRenderer against game.GraphicsDevice on first
     // use, and draws straight into the back buffer the compositor is rendering to.
-    canvas = new SkiaStrideDirectCanvas(game.GraphicsDevice);
+    canvas = new SkiaDirectCanvas(game.GraphicsDevice);
 
-    // SkiaStrideSceneRenderer is the DrawCore hook Stride needs to run a Skia draw every frame -
+    // SkiaSceneRenderer is the DrawCore hook Stride needs to run a Skia draw every frame -
     // Stride drives rendering through its GraphicsCompositor, not a user-owned Draw() call the way
     // MonoGame/KNI do. game.AddSceneRenderer appends it after the existing scene renderer, so it
     // draws on top of the 3D scene SetupBase3DScene created.
-    var renderer = new SkiaStrideSceneRenderer { DirectCanvas = canvas };
+    var renderer = new SkiaSceneRenderer { DirectCanvas = canvas };
     renderer.SkiaDraw += skCanvas =>
     {
         var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
@@ -46,4 +46,4 @@ void Start(Scene rootScene)
 // Not a `using` declaration above: both must happen after game.Run() returns (the game loop owns
 // canvas for its whole lifetime) but before `game`'s own `using` disposal runs.
 canvas?.Dispose();
-SkiaStrideRenderer.Dispose();
+SkiaRenderer.Dispose();

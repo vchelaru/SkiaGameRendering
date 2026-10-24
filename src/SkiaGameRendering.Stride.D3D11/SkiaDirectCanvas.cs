@@ -2,18 +2,18 @@ using SkiaGameRendering.Core.ANGLE;
 using SkiaSharp;
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride.D3D11
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Draws with SkiaSharp straight into whatever Stride is rendering to when <see cref="Begin"/> is called:
     /// the back buffer, or the render target bound on the <see cref="GraphicsContext"/>'s command list. Same
-    /// shape as <see cref="SkiaStrideRenderTarget2D"/>, minus the size and the texture: there is no
+    /// shape as <see cref="SkiaRenderTarget2D"/>, minus the size and the texture: there is no
     /// intermediate texture and no <see cref="SpriteBatch"/> composite. <see cref="Begin"/> takes the
     /// <see cref="GraphicsContext"/> because that is where Stride keeps its current target; normally it is
     /// <c>RenderDrawContext.GraphicsContext</c> inside a <c>SceneRendererBase</c>'s <c>DrawCore</c> (see
-    /// <see cref="SkiaStrideSceneRenderer.DirectCanvas"/>).
+    /// <see cref="SkiaSceneRenderer.DirectCanvas"/>).
     /// <code>
-    /// var skia = new SkiaStrideDirectCanvas(graphicsDevice);
+    /// var skia = new SkiaDirectCanvas(graphicsDevice);
     /// skia.Begin(drawContext.GraphicsContext);
     /// skia.Canvas.DrawCircle(100, 100, 50, paint);
     /// skia.End();
@@ -24,7 +24,7 @@ namespace SkiaGameRendering.Stride.D3D11
     /// Stride's back buffer is in its default Linear color space, is drawn without encoding, so an
     /// <see cref="SKColor"/> lands on screen as that color.
     /// </summary>
-    public sealed class SkiaStrideDirectCanvas : IDisposable
+    public sealed class SkiaDirectCanvas : IDisposable
     {
         readonly SkiaStrideContext _context;
         SKCanvas? _canvas;
@@ -32,10 +32,10 @@ namespace SkiaGameRendering.Stride.D3D11
         bool _hasBegun;
         bool _isDisposed;
 
-        public SkiaStrideDirectCanvas(GraphicsDevice graphicsDevice)
+        public SkiaDirectCanvas(GraphicsDevice graphicsDevice)
         {
             ArgumentNullException.ThrowIfNull(graphicsDevice);
-            _context = SkiaStrideRenderer.EnsureInitialized(graphicsDevice);
+            _context = SkiaRenderer.EnsureInitialized(graphicsDevice);
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace SkiaGameRendering.Stride.D3D11
         {
             ArgumentNullException.ThrowIfNull(graphicsContext);
             if (_isDisposed)
-                throw new ObjectDisposedException(nameof(SkiaStrideDirectCanvas));
+                throw new ObjectDisposedException(nameof(SkiaDirectCanvas));
             if (_hasBegun)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 
@@ -64,7 +64,7 @@ namespace SkiaGameRendering.Stride.D3D11
                 throw new InvalidOperationException("The command list has no render target bound.");
             if (commandList.RenderTargetCount > 1)
                 throw new NotSupportedException(
-                    $"SkiaStrideDirectCanvas needs a single bound render target, not {commandList.RenderTargetCount}.");
+                    $"SkiaDirectCanvas needs a single bound render target, not {commandList.RenderTargetCount}.");
 
             // The factory reads the D3D11 binding itself; Stride's view of it is only checked against it.
             var target = commandList.RenderTarget;

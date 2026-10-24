@@ -6,7 +6,6 @@ using Android.Views;
 using Microsoft.Xna.Framework;
 using Sample.Shared;
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.Android;
 
 namespace Sample
 {
@@ -68,7 +67,7 @@ namespace Sample
             protected override void Draw(GameTime gameTime)
             {
                 base.Draw(gameTime);
-                if (!_logged && SkiaRenderer.CurrentBackend is SkiaKniAndroidBackend backend)
+                if (!_logged && SkiaRenderer.CurrentBackend is SkiaAndroidBackend backend)
                 {
                     _logged = true;
                     Log.Info("SkiaSample", $"Skia backend: {backend.Description}");

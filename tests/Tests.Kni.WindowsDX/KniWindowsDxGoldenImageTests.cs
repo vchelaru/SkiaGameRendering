@@ -1,5 +1,4 @@
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.WindowsDX;
 using Tests.Shared;
 using Xunit;
 
@@ -22,7 +21,7 @@ public sealed class KniWindowsDxGoldenImageTests : IDisposable
     readonly HeadlessGraphicsDevice _headless = new(GoldenScene.Width, GoldenScene.Height);
 
     public KniWindowsDxGoldenImageTests() =>
-        SkiaRenderer.Initialize(new SkiaKniAngleBackend(), _headless.GraphicsDevice);
+        SkiaRenderer.Initialize(new SkiaAngleBackend(), _headless.GraphicsDevice);
 
     public void Dispose()
     {

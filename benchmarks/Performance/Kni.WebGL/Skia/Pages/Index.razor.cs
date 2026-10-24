@@ -1,8 +1,6 @@
 using System.Runtime.Versioning;
 using Microsoft.JSInterop;
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.WebGL;
-using SkiaGameRendering.Kni.WebGL.Components;
 
 namespace Performance.Pages;
 

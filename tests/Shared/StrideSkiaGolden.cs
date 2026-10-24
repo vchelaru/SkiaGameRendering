@@ -8,7 +8,7 @@ namespace Tests.Shared;
 /// the backend's own render-target type and reads the result back as tightly packed RGBA.
 /// <para>
 /// The Stride backends expose the same members under different type names
-/// (<c>SkiaStrideRenderTarget2D</c>, <c>SkiaStrideVulkanRenderTarget2D</c>, <c>SkiaStrideD3D12RenderTarget2D</c>), so each test
+/// (<c>SkiaRenderTarget2D</c> in each of the Stride D3D11, Vulkan and D3D12 packages), so each test
 /// project aliases its own to <c>SkiaStrideCanvas</c> in its csproj and this one file serves both.
 /// Everything else here is <c>Stride.Graphics</c>, whose type names are identical in the D3D11 and
 /// Vulkan builds of the assembly. What genuinely differs - how a command list is obtained and
@@ -130,7 +130,7 @@ static partial class StrideSkiaGolden
     /// <paramref name="draw"/> against a <see cref="GraphicsContext"/> wrapping the same command
     /// list, and submits whatever that recorded. Real <c>GraphicsCompositor</c>/
     /// <c>RenderDrawContext</c> machinery is <c>Game</c>-only; this is the same shape by hand, and
-    /// the exact path <c>SkiaStrideSceneRenderer.DrawCore</c> drives every frame.
+    /// the exact path <c>SkiaSceneRenderer.DrawCore</c> drives every frame.
     /// <para>
     /// The bind happens before <paramref name="draw"/> deliberately: the canvas's <c>Begin</c> swaps
     /// the engine's own graphics state out and its <c>End</c> swaps it back in right before the

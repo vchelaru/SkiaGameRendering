@@ -26,16 +26,16 @@ is false on every other platform, where the constructor throws `NotSupportedExce
 On KNI WebGL, Skia and KNI drive the one WebGL context, since WebGL cannot share objects between
 contexts, and each pass resets KNI's cached GL state afterward; see the [WebGL quick start](../webgl/quickstart.md).
 
-Stride on Direct3D 11 has the same thing as `SkiaStrideDirectCanvas`. `Begin` takes the
+Stride on Direct3D 11 has the same thing as `SkiaDirectCanvas`. `Begin` takes the
 `GraphicsContext`, where Stride keeps its current target, and `End` takes nothing; or set
-`SkiaStrideSceneRenderer.DirectCanvas` (see the [Stride quick start](../stride/quickstart.md)). Inside the compositor that target
+`SkiaSceneRenderer.DirectCanvas` (see the [Stride quick start](../stride/quickstart.md)). Inside the compositor that target
 is the back buffer. In Stride's default Linear color space the back buffer is an sRGB view of an
 8-bit texture: Skia writes into it without encoding, so an `SKColor` shows as that color, and Skia
 blends in sRGB space while Stride blends in linear. One bound 8-bit RGBA or BGRA target is supported;
 sRGB-format textures and HDR targets throw `NotSupportedException`. Stride's Vulkan backend has no
 direct canvas yet.
 
-Stride on Direct3D 12 has `SkiaStrideD3D12DirectCanvas`, used the same way, with the same color
+Stride on Direct3D 12 has `SkiaDirectCanvas`, used the same way, with the same color
 handling, and with single-sample targets only (a multisampled one throws `NotSupportedException`).
 `Begin` submits whatever Stride has recorded on the command list so far and starts a new recording,
 because Skia's work reaches the GPU when `End` runs and would otherwise land under Stride's earlier

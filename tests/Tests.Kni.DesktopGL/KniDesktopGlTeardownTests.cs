@@ -1,4 +1,4 @@
-using SkiaGameRendering.Kni.DesktopGL;
+using SkiaGameRendering;
 using Tests.Shared;
 using Xunit;
 
@@ -10,7 +10,7 @@ public sealed class KniDesktopGlTeardownTests
     [Fact]
     public void DisposingSkia_LeavesEngineRenderTargetsWorking()
     {
-        var errors = OneFrameGame.Render(() => new SkiaKniGlBackend(), SkiaTeardownCheck.EngineTargetsSurvive);
+        var errors = OneFrameGame.Render(() => new SkiaGlBackend(), SkiaTeardownCheck.EngineTargetsSurvive);
         Assert.True(errors.Length == 0, errors);
     }
 }

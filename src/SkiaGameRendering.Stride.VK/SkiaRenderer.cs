@@ -1,17 +1,18 @@
 using Stride.Graphics;
 
-namespace SkiaGameRendering.Stride.D3D11
+namespace SkiaGameRendering
 {
     /// <summary>
-    /// Holds the shared <see cref="SkiaStrideContext"/> for a Stride <see cref="GraphicsDevice"/>.
-    /// Most code never calls this directly - constructing a <see cref="SkiaStrideRenderTarget2D"/>
+    /// Holds the shared <see cref="SkiaStrideVulkanContext"/> for a Stride <see cref="GraphicsDevice"/>.
+    /// Vulkan analog of <c>SkiaGameRendering.Stride.D3D11</c>'s D3D11 <c>SkiaRenderer</c>. Most code
+    /// never calls this directly - constructing a <see cref="SkiaRenderTarget2D"/>
     /// auto-initializes it. Call <see cref="Initialize"/> explicitly only to make initialization
     /// (and any failure) happen at a known point rather than lazily on first render target
     /// construction.
     /// </summary>
-    public static class SkiaStrideRenderer
+    public static class SkiaRenderer
     {
-        static SkiaStrideContext? _context;
+        static SkiaStrideVulkanContext? _context;
         static GraphicsDevice? _graphicsDevice;
 
         public static bool IsInitialized => _context != null;
@@ -26,20 +27,20 @@ namespace SkiaGameRendering.Stride.D3D11
                     return;
 
                 throw new InvalidOperationException(
-                    "SkiaStrideRenderer is already initialized. Call SkiaStrideRenderer.Dispose() before switching GraphicsDevice.");
+                    "SkiaRenderer is already initialized. Call SkiaRenderer.Dispose() before switching GraphicsDevice.");
             }
 
-            var context = new SkiaStrideContext();
+            var context = new SkiaStrideVulkanContext();
             context.Initialize(graphicsDevice);
             _context = context;
             _graphicsDevice = graphicsDevice;
         }
 
         /// <summary>
-        /// Called by the <see cref="SkiaStrideRenderTarget2D"/> and <see cref="SkiaStrideDirectCanvas"/> constructors. Auto-initializes against
-        /// <paramref name="graphicsDevice"/> if nothing has initialized the renderer yet.
+        /// Called by <see cref="SkiaRenderTarget2D"/>'s constructor. Auto-initializes
+        /// against <paramref name="graphicsDevice"/> if nothing has initialized the renderer yet.
         /// </summary>
-        internal static SkiaStrideContext EnsureInitialized(GraphicsDevice graphicsDevice)
+        internal static SkiaStrideVulkanContext EnsureInitialized(GraphicsDevice graphicsDevice)
         {
             if (_context == null)
             {
@@ -48,15 +49,15 @@ namespace SkiaGameRendering.Stride.D3D11
             else if (!ReferenceEquals(_graphicsDevice, graphicsDevice))
             {
                 throw new InvalidOperationException(
-                    "A SkiaStrideRenderTarget2D or SkiaStrideDirectCanvas was constructed with a different GraphicsDevice than the one " +
-                    "SkiaStrideRenderer is currently initialized with.");
+                    "A SkiaRenderTarget2D was constructed with a different GraphicsDevice than the one " +
+                    "SkiaRenderer is currently initialized with.");
             }
 
             return _context!;
         }
 
         /// <summary>
-        /// Disposes the shared context. Dispose any live <see cref="SkiaStrideRenderTarget2D"/>
+        /// Disposes the shared context. Dispose any live <see cref="SkiaRenderTarget2D"/>
         /// instances first - this does not track or dispose them for you.
         /// </summary>
         public static void Dispose()

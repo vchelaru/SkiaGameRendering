@@ -26,11 +26,11 @@ public sealed class FnaOglGoldenImageTests(ITestOutputHelper output)
 
     [Fact]
     public void Scene_DrawnThroughSkiaRenderTarget2D_MatchesGolden() =>
-        OneFrameGame.RenderAndAssertGolden(() => new SkiaFnaGlBackend(),
+        OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),
             EngineSkiaGolden.RenderSceneToSkiaTexture, Golden, output);
 
     [Fact]
     public void Scene_CompositedOntoEngineRenderTarget_MatchesGolden() =>
-        OneFrameGame.RenderAndAssertGolden(() => new SkiaFnaGlBackend(),
+        OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),
             EngineSkiaGolden.RenderSceneCompositedByEngine, Golden, output);
 }

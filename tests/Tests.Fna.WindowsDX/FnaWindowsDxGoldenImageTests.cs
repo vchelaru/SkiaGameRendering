@@ -37,12 +37,12 @@ public sealed class FnaWindowsDxGoldenImageTests
     [Fact]
     public void Scene_DrawnThroughSkiaRenderTarget2D_MatchesGolden() =>
         GoldenImage.AssertMatchesGolden(
-            OneFrameGame.Render(() => new SkiaFnaAngleBackend(), EngineSkiaGolden.RenderSceneToSkiaTexture),
+            OneFrameGame.Render(() => new SkiaAngleBackend(), EngineSkiaGolden.RenderSceneToSkiaTexture),
             Golden);
 
     [Fact]
     public void Scene_CompositedOntoEngineRenderTarget_MatchesGolden() =>
         GoldenImage.AssertMatchesGolden(
-            OneFrameGame.Render(() => new SkiaFnaAngleBackend(), EngineSkiaGolden.RenderSceneCompositedByEngine),
+            OneFrameGame.Render(() => new SkiaAngleBackend(), EngineSkiaGolden.RenderSceneCompositedByEngine),
             Golden);
 }

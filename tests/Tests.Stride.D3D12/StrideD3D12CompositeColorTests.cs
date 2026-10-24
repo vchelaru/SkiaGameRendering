@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.D3D12;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
@@ -7,7 +7,7 @@ using Xunit;
 namespace Tests.StrideD3D12;
 
 /// <summary>
-/// Solid-color round trips through <see cref="SkiaStrideD3D12RenderTarget2D"/>'s own
+/// Solid-color round trips through <see cref="SkiaRenderTarget2D"/>'s own
 /// <c>SpriteBatch</c> composite on a headless Stride D3D12 device on WARP.
 /// </summary>
 public sealed class StrideD3D12CompositeColorTests : IDisposable
@@ -19,7 +19,7 @@ public sealed class StrideD3D12CompositeColorTests : IDisposable
     public void Dispose()
     {
         // The renderer's context is static and pinned to this test's device.
-        SkiaStrideD3D12Renderer.Dispose();
+        SkiaRenderer.Dispose();
         _device?.Dispose();
     }
 
@@ -35,7 +35,7 @@ public sealed class StrideD3D12CompositeColorTests : IDisposable
         _device = WarpStrideDevice.Create(ColorSpace.Linear);
 
         using var compositeTarget = NewTarget(PixelFormat.R8G8B8A8_UNorm_SRgb);
-        using var canvas = new SkiaStrideD3D12RenderTarget2D(_device, Size, Size);
+        using var canvas = new SkiaRenderTarget2D(_device, Size, Size);
 
         DrawAndComposite(canvas, compositeTarget, crimson);
 
@@ -53,7 +53,7 @@ public sealed class StrideD3D12CompositeColorTests : IDisposable
         _device = WarpStrideDevice.Create(ColorSpace.Gamma);
 
         using var compositeTarget = NewTarget(PixelFormat.R8G8B8A8_UNorm);
-        using var canvas = new SkiaStrideD3D12RenderTarget2D(_device, Size, Size);
+        using var canvas = new SkiaRenderTarget2D(_device, Size, Size);
 
         DrawAndComposite(canvas, compositeTarget, SKColors.Red);
         AssertColor(SKColors.Red, ReadFirstPixel(compositeTarget), tolerance: 0);
@@ -66,8 +66,8 @@ public sealed class StrideD3D12CompositeColorTests : IDisposable
     Texture NewTarget(PixelFormat format) =>
         Texture.New2D(_device!, Size, Size, format, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
 
-    /// <summary>The shape <c>SkiaStrideD3D12SceneRenderer.DrawCore</c> drives each frame, with the compositor's command list built by hand.</summary>
-    void DrawAndComposite(SkiaStrideD3D12RenderTarget2D canvas, Texture compositeTarget, SKColor color)
+    /// <summary>The shape <c>SkiaSceneRenderer.DrawCore</c> drives each frame, with the compositor's command list built by hand.</summary>
+    void DrawAndComposite(SkiaRenderTarget2D canvas, Texture compositeTarget, SKColor color)
     {
         using var commandList = CommandList.New(_device!);
         commandList.SetRenderTargetAndViewport(null, compositeTarget);

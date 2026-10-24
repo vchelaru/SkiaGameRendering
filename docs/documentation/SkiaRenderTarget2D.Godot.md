@@ -1,30 +1,30 @@
-# SkiaGodotRenderTarget2D
+# SkiaRenderTarget2D
 
 ## Definition
 
-`SkiaGodotRenderTarget2D` is a GPU texture that SkiaSharp renders into and Godot displays like any
+`SkiaRenderTarget2D` is a GPU texture that SkiaSharp renders into and Godot displays like any
 other `Texture2D`. It mirrors the other engines' Begin/Canvas/End shape, over `SkiaGameRendering.Core.VK`
 when Godot runs on Vulkan, `SkiaGameRendering.Core.D3D12` on D3D12, `SkiaGameRendering.Core.Metal` on
 Metal, and `SkiaGameRendering.Core.OGL`
 on the Compatibility renderer (the backend is chosen at run time from
 `RenderingServer.GetCurrentRenderingDriverName()`). Like the raylib and
-Stride adapters it is a standalone class: it does **not** go through `SkiaBackend`/`SkiaRenderer`,
-which are typed to MonoGame's `Texture2D`/`GraphicsDevice`. In Godot the scene tree draws the
+Stride adapters it is a standalone class: it does **not** go through `SkiaBackend`, and its `SkiaRenderer` is Godot's own static class,
+while `SkiaBackend` is typed to MonoGame's `Texture2D`/`GraphicsDevice`. In Godot the scene tree draws the
 texture, so unlike the other adapters there is no composite step - `End()` only submits.
 
-Namespace: `SkiaGameRendering.Godot`
+Namespace: `SkiaGameRendering`
 
 Assembly/package: `SkiaGameRendering.Godot`
 
 ```csharp
-public sealed class SkiaGodotRenderTarget2D : IDisposable
+public sealed class SkiaRenderTarget2D : IDisposable
 ```
 
 ## Constructor
 
 | Signature | Description |
 | --- | --- |
-| `SkiaGodotRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaGodotRenderer` on first use and allocates a fixed-size texture. Must be called on the render thread (the main thread under the default "Safe" thread model). On the RenderingDevice drivers it stalls the GPU once, briefly, to hand the texture to Godot in a known state - create targets up front. The Compatibility renderer accepts `Rgba8888` only. |
+| `SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size texture. Must be called on the render thread (the main thread under the default "Safe" thread model). On the RenderingDevice drivers it stalls the GPU once, briefly, to hand the texture to Godot in a known state - create targets up front. The Compatibility renderer accepts `Rgba8888` only. |
 
 ## Members
 
@@ -36,24 +36,24 @@ public sealed class SkiaGodotRenderTarget2D : IDisposable
 | `Canvas` | The `SKCanvas` to draw on. Only valid between `Begin` and `End`. |
 | `Begin(bool clear = true)` | Starts a render pass; with `clear` false the previous contents are kept. Throws off the render thread. |
 | `End()` | Submits Skia's GPU work and hands the texture back in the state Godot expects (Vulkan: a layout barrier; D3D12: a `CopyResource` into Godot's texture with barriers around it; OpenGL: just a flush on the shared context), without waiting on the GPU. No composite. |
-| `Dispose()` | Frees Skia's resources. On the RenderingDevice drivers it also detaches the `Texture2DRD` view and frees the RD texture, so nodes still showing `Texture` go blank; on the Compatibility renderer the `ImageTexture` keeps its last contents. Must not be called between `Begin`/`End`. `SkiaGodotRenderer.Dispose()` disposes every target still alive. Under the "Separate" thread model the GPU half is handed to the render thread and completes a frame or so later. |
+| `Dispose()` | Frees Skia's resources. On the RenderingDevice drivers it also detaches the `Texture2DRD` view and frees the RD texture, so nodes still showing `Texture` go blank; on the Compatibility renderer the `ImageTexture` keeps its last contents. Must not be called between `Begin`/`End`. `SkiaRenderer.Dispose()` disposes every target still alive. Under the "Separate" thread model the GPU half is handed to the render thread and completes a frame or so later. |
 | `static CreatePremultipliedAlphaMaterial()` | A `CanvasItemMaterial` with `BlendMode = PremultAlpha`, matching Skia's premultiplied output. Assign to the displaying node when the canvas has transparent areas. |
 
 ## Related types
 
 | Type | Role |
 | --- | --- |
-| `SkiaGodotRenderer` | Static holder for the shared backend, mirroring `SkiaRaylibRenderer`/`SkiaStrideVulkanRenderer`. `Initialize(RenderingDevice? = null)` is optional - call it to fail fast on an unsupported driver. `Driver` reports `"vulkan"`, `"d3d12"` or `"opengl3"`, `IsZeroCopy` whether Skia draws straight into Godot's texture, `D3D12UsesEnhancedBarriers` which state-tracking mode Godot's D3D12 device runs in. `Dispose()` releases the backend and every target still alive on it; a target used afterward throws `ObjectDisposedException`. `Initialize` accepts only Godot's global `RenderingDevice`. |
+| `SkiaRenderer` | Static holder for the shared backend, mirroring `SkiaRaylibRenderer`/`SkiaRenderer`. `Initialize(RenderingDevice? = null)` is optional - call it to fail fast on an unsupported driver. `Driver` reports `"vulkan"`, `"d3d12"` or `"opengl3"`, `IsZeroCopy` whether Skia draws straight into Godot's texture, `D3D12UsesEnhancedBarriers` which state-tracking mode Godot's D3D12 device runs in. `Dispose()` releases the backend and every target still alive on it; a target used afterward throws `ObjectDisposedException`. `Initialize` accepts only Godot's global `RenderingDevice`. |
 | `SkiaGameRendering.Core.VK.VkImageLayoutTransitioner` | Added for this adapter: queues `vkCmdPipelineBarrier` layout transitions on the host's queue through a ring of command buffers, resolving its entry points through `vkGetDeviceProcAddr`. Any Vulkan host whose engine tracks image layouts needs it. |
 | `SkiaGameRendering.Core.D3D12.D3D12ResourceTransitioner` | Its D3D12 twin: queues resource-state transitions and a `CopyResource` bracketed by transitions through a ring of command lists, over raw COM vtables. |
 
 ## Example
 
 ```csharp
-using SkiaGameRendering.Godot;
+using SkiaGameRendering;
 using SkiaSharp;
 
-var skia = new SkiaGodotRenderTarget2D(512, 512);
+var skia = new SkiaRenderTarget2D(512, 512);
 AddChild(new Sprite2D { Texture = skia.Texture, Centered = false });
 
 // every frame:
@@ -114,7 +114,7 @@ skia.End();
 - **Threading.** Under the default "Safe" thread model Godot renders on the main thread and
   submits once per frame after `_Process`, so Skia's submits from `_Process` are serialized with
   Godot's by construction; no queue lock is needed. Under "Separate" (experimental in Godot),
-  construct, `Begin`/`End` and `SkiaGodotRenderer.Initialize` inside
+  construct, `Begin`/`End` and `SkiaRenderer.Initialize` inside
   `RenderingServer.CallOnRenderThread`; `Dispose` may be called from either thread and splits
   itself across both. Verified against `--render-thread separate`.
 - **No CPU stall per frame.** `End()` submits without waiting for the GPU

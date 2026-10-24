@@ -3,7 +3,7 @@ using System.Reflection;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Platform.Graphics;
 
-namespace SkiaGameRendering.Kni.WebGL;
+namespace SkiaGameRendering;
 
 // Makes KNI's WebGL context forget everything it believes is bound, so its next draw re-applies all state
 // after Skia has driven the same context (SkiaDirectCanvas). KNI keeps a cache of the GL state it has

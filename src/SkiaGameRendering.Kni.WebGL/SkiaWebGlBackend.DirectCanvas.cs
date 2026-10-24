@@ -3,7 +3,7 @@ using System.Runtime.Versioning;
 using Microsoft.Xna.Framework.Graphics;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Kni.WebGL;
+namespace SkiaGameRendering;
 
 // Drawing straight into the engine's current target (SkiaDirectCanvas).
 //

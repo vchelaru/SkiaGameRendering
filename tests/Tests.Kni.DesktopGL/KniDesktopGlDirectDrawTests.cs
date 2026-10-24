@@ -1,5 +1,4 @@
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.DesktopGL;
 using Tests.Shared;
 using Xunit;
 using Xunit.Abstractions;
@@ -13,22 +12,22 @@ public sealed class KniDesktopGlDirectDrawTests(ITestOutputHelper output)
 
     [Fact]
     public void BackBuffer_LayersInOrderAndUpright() =>
-        Assert.Equal("", OneFrameGame.Render(() => new SkiaKniGlBackend(), DirectDrawLayering.BackBuffer));
+        Assert.Equal("", OneFrameGame.Render(() => new SkiaGlBackend(), DirectDrawLayering.BackBuffer));
 
     [Theory]
     [InlineData(0)]
     [InlineData(4)]
     public void RenderTarget_LayersInOrderAndUpright(int multiSampleCount) =>
-        Assert.Equal("", OneFrameGame.Render(() => new SkiaKniGlBackend(),
+        Assert.Equal("", OneFrameGame.Render(() => new SkiaGlBackend(),
             device => DirectDrawLayering.RenderTarget(device, multiSampleCount)));
 
     [Fact]
     public void Scene_DrawnToRenderTarget_MatchesGolden() =>
-        OneFrameGame.RenderAndAssertGolden(() => new SkiaKniGlBackend(),
+        OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),
             EngineSkiaGolden.RenderSceneDirectToRenderTarget, Golden, output);
 
     [Fact]
     public void Scene_DrawnToBackBuffer_MatchesGolden() =>
-        OneFrameGame.RenderAndAssertGolden(() => new SkiaKniGlBackend(),
+        OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),
             EngineSkiaGolden.RenderSceneDirectToBackBuffer, Golden, output);
 }

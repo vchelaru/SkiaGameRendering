@@ -2,10 +2,10 @@ using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework.Graphics;
-using SkiaGameRendering.Kni.WebGL.Components;
+using SkiaGameRendering;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Kni.WebGL;
+namespace SkiaGameRendering;
 
 [SupportedOSPlatform("browser")]
 public sealed partial class SkiaWebGlBackend : SkiaBackend

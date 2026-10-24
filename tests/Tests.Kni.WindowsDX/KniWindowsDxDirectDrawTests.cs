@@ -1,5 +1,4 @@
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.WindowsDX;
 using Tests.Shared;
 using Xunit;
 
@@ -14,7 +13,7 @@ public sealed class KniWindowsDxDirectDrawTests : IDisposable
     readonly HeadlessGraphicsDevice _headless = new(GoldenScene.Width, GoldenScene.Height);
 
     public KniWindowsDxDirectDrawTests() =>
-        SkiaRenderer.Initialize(new SkiaKniAngleBackend(), _headless.GraphicsDevice);
+        SkiaRenderer.Initialize(new SkiaAngleBackend(), _headless.GraphicsDevice);
 
     public void Dispose()
     {
@@ -38,7 +37,7 @@ public sealed class KniWindowsDxDirectDrawTests : IDisposable
     {
         SkiaRenderer.Dispose();
         using var headless = new HeadlessGraphicsDevice(GoldenScene.Width, GoldenScene.Height, multiSampleCount: 4);
-        SkiaRenderer.Initialize(new SkiaKniAngleBackend(), headless.GraphicsDevice);
+        SkiaRenderer.Initialize(new SkiaAngleBackend(), headless.GraphicsDevice);
         try
         {
             Assert.Equal(4, headless.GraphicsDevice.PresentationParameters.MultiSampleCount);

@@ -1,7 +1,7 @@
 using System.Reflection;
 using SkiaGameRendering.Core.OGL;
 
-namespace SkiaGameRendering.Kni.DesktopGL
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Reflects into KNI's SDL2 GL platform (assembly "Kni.Platform", type "Sdl") to create and

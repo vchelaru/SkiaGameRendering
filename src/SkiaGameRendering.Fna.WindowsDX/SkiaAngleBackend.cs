@@ -33,7 +33,7 @@ namespace SkiaGameRendering
     ///   before ANGLE touches it, so a reordered struct is an exception rather than a silent black
     ///   texture. (If a non-pointer field ever moves first, that check itself is what crashes.)
     /// </summary>
-    public class SkiaFnaAngleBackend : SkiaSharedAngleBackend
+    public class SkiaAngleBackend : SkiaSharedAngleBackend
     {
         // Reflection handles for FNA internals
         static FieldInfo? _glDeviceField;
@@ -98,7 +98,7 @@ namespace SkiaGameRendering
             {
                 throw new InvalidOperationException(
                     "The first field of FNA3D's D3D11 texture struct is not an ID3D11Texture2D. The vendored " +
-                    "FNA3D.dll's D3D11Texture layout has changed; see SkiaFnaAngleBackend's MAINTENANCE NOTES.",
+                    "FNA3D.dll's D3D11Texture layout has changed; see SkiaAngleBackend's MAINTENANCE NOTES.",
                     exception);
             }
             D3D11Com.Release(texture2d);

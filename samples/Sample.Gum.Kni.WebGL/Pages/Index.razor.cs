@@ -2,8 +2,6 @@ using Microsoft.JSInterop;
 using Microsoft.Xna.Framework;
 using System.Runtime.Versioning;
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.WebGL;
-using SkiaGameRendering.Kni.WebGL.Components;
 
 namespace Sample.Gum.Kni.WebGL.Pages;
 

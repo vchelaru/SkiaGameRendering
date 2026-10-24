@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.VK;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
@@ -12,7 +12,7 @@ namespace Tests.StrideVK;
 /// <see cref="GraphicsDevice"/>, an offscreen sRGB-formatted render target standing in for the real
 /// presented back buffer Stride's default Linear color-space pipeline creates (see
 /// <c>SkiaStrideVulkanTarget</c>'s doc comment for the full mechanism), a real
-/// <see cref="SkiaStrideVulkanRenderTarget2D"/> drawing a solid known color, composited via the
+/// <see cref="SkiaRenderTarget2D"/> drawing a solid known color, composited via the
 /// adapter's own <c>SpriteBatch</c> composite path, then read back to CPU and compared against the
 /// color that was drawn.
 /// <para>
@@ -47,7 +47,7 @@ public sealed class StrideVulkanCompositeColorTests
             device, width, height, PixelFormat.R8G8B8A8_UNorm_SRgb,
             TextureFlags.RenderTarget | TextureFlags.ShaderResource);
 
-        var canvas = new SkiaStrideVulkanRenderTarget2D(device, width, height);
+        var canvas = new SkiaRenderTarget2D(device, width, height);
 
         canvas.Begin();
         canvas.Canvas.Clear(crimson);
@@ -55,7 +55,7 @@ public sealed class StrideVulkanCompositeColorTests
         // Real GraphicsCompositor/RenderDrawContext machinery is Game-only; standing up the same
         // shape by hand (a CommandList with compositeTarget bound, wrapped in a GraphicsContext) is
         // enough for canvas.End's own SpriteBatch composite to run against - the exact code path
-        // SkiaStrideVulkanRenderTarget2D.End (and SkiaStrideVulkanSceneRenderer.DrawCore, in the real
+        // SkiaRenderTarget2D.End (and SkiaSceneRenderer.DrawCore, in the real
         // sample) drives every frame.
         using var commandList = CommandList.New(device);
         commandList.SetRenderTargetAndViewport(null, compositeTarget);
@@ -71,10 +71,10 @@ public sealed class StrideVulkanCompositeColorTests
         device.ExecuteCommandList(readbackCommandList.Close());
 
         canvas.Dispose();
-        // The context SkiaStrideVulkanRenderTarget2D auto-initialized is static and pinned to this
+        // The context SkiaRenderTarget2D auto-initialized is static and pinned to this
         // test's device, so leaving it behind would make the next test's device fail to initialize.
         // Canvas first: the renderer does not track or dispose live targets.
-        SkiaStrideVulkanRenderer.Dispose();
+        SkiaRenderer.Dispose();
 
         var actual = pixels[0];
 

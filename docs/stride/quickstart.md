@@ -1,8 +1,8 @@
 # Stride quick start
 
 Stride is the second engine this library supports that isn't MonoGame/KNI. Like raylib, it does not
-go through `SkiaBackend`/`SkiaRenderer` - see
-[SkiaStrideRenderTarget2D](../documentation/SkiaStrideRenderTarget2D.md) for why and how the Stride
+go through `SkiaBackend` - see
+[SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.Stride.md) for why and how the Stride
 support is structured differently.
 
 ## Prerequisites
@@ -31,10 +31,10 @@ project with its own `GraphicsCompositor` can skip the toolkit entirely.
 
 Stride drives rendering through its `GraphicsCompositor`, not a user-owned `Draw()` call, so the
 Skia draw runs inside a `SceneRendererBase.DrawCore` override -
-[SkiaStrideSceneRenderer](../documentation/SkiaStrideRenderTarget2D.md) is that hook:
+[SkiaSceneRenderer](../documentation/SkiaRenderTarget2D.Stride.md) is that hook:
 
 ```cs
-using SkiaGameRendering.Stride.D3D11;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
@@ -42,7 +42,7 @@ using Stride.Engine;
 
 using var game = new Game();
 
-SkiaStrideDirectCanvas? canvas = null;
+SkiaDirectCanvas? canvas = null;
 var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
 
 // Not game.Run(...): Stride.Games.GameBase already declares an instance Run(GameContext) method,
@@ -55,21 +55,21 @@ void Start(Scene rootScene)
     game.SetupBase3DScene();
 
     // Draws straight into the back buffer. To draw into a texture and composite it instead, set
-    // Canvas to a SkiaStrideRenderTarget2D sized to the back buffer and clear it in SkiaDraw.
-    canvas = new SkiaStrideDirectCanvas(game.GraphicsDevice);
+    // Canvas to a SkiaRenderTarget2D sized to the back buffer and clear it in SkiaDraw.
+    canvas = new SkiaDirectCanvas(game.GraphicsDevice);
 
-    var renderer = new SkiaStrideSceneRenderer { DirectCanvas = canvas };
+    var renderer = new SkiaSceneRenderer { DirectCanvas = canvas };
     renderer.SkiaDraw += skCanvas => skCanvas.DrawCircle(100, 100, 100, paint);
     game.AddSceneRenderer(renderer); // draws on top of the 3D scene, every frame
 }
 
 canvas?.Dispose();
-SkiaStrideRenderer.Dispose();
+SkiaRenderer.Dispose();
 paint.Dispose();
 ```
 
 Full member list and other remarks are documented on
-[SkiaStrideRenderTarget2D](../documentation/SkiaStrideRenderTarget2D.md).
+[SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.Stride.md).
 
 ## Build and run the sample in this repo
 
@@ -84,7 +84,7 @@ dotnet run --project samples\Sample.Stride.D3D11\Sample.Stride.D3D11.csproj -c R
   future adapter - repo issue #23).
 - Depends on Stride 4.4.0-beta5, a prerelease, because that's the first version whose D3D11 backend
   exposes `GraphicsDevice.NativeDevice` publicly (see
-  [SkiaStrideRenderTarget2D](../documentation/SkiaStrideRenderTarget2D.md#remarks)). Expect version
+  [SkiaRenderTarget2D (Stride)](../documentation/SkiaRenderTarget2D.Stride.md#remarks)). Expect version
   churn until Stride 4.4 stabilizes.
 - The sample builds and its reflection pins run in CI, but actual Skia-drawing-into-Stride-texture
   behavior needs a real window and D3D11 device to verify manually - it hasn't been run yet.

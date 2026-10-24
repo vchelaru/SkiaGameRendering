@@ -37,7 +37,7 @@ static partial class StrideSkiaGolden
     }
 
     /// <summary>
-    /// Draws the scene with <c>SkiaStrideD3D12DirectCanvas</c> straight into a bound Stride render target
+    /// Draws the scene with <c>SkiaDirectCanvas</c> straight into a bound Stride render target
     /// cleared as the other paths clear theirs, so it matches the same golden.
     /// </summary>
     internal static byte[] RenderSceneDirect(GraphicsDevice graphicsDevice)
@@ -45,7 +45,7 @@ static partial class StrideSkiaGolden
         using var target = Texture.New2D(
             graphicsDevice, GoldenScene.Width, GoldenScene.Height, PixelFormat.R8G8B8A8_UNorm,
             TextureFlags.RenderTarget | TextureFlags.ShaderResource);
-        using var direct = new SkiaGameRendering.Stride.D3D12.SkiaStrideD3D12DirectCanvas(graphicsDevice);
+        using var direct = new SkiaGameRendering.SkiaDirectCanvas(graphicsDevice);
 
         Composite(graphicsDevice, target, graphicsContext =>
         {
@@ -58,7 +58,7 @@ static partial class StrideSkiaGolden
     }
 
     /// <summary>
-    /// <see cref="AssertNoPerFrameGrowth"/> for <c>SkiaStrideD3D12DirectCanvas</c>: same frame shape, with the
+    /// <see cref="AssertNoPerFrameGrowth"/> for <c>SkiaDirectCanvas</c>: same frame shape, with the
     /// scene drawn straight into the bound target. Each pass submits the command list and records into a fresh
     /// one, so this is what would show a per-pass command list, allocator or resource that is never released.
     /// </summary>
@@ -67,7 +67,7 @@ static partial class StrideSkiaGolden
         using var target = Texture.New2D(
             graphicsDevice, GoldenScene.Width, GoldenScene.Height, PixelFormat.R8G8B8A8_UNorm,
             TextureFlags.RenderTarget | TextureFlags.ShaderResource);
-        using var direct = new SkiaGameRendering.Stride.D3D12.SkiaStrideD3D12DirectCanvas(graphicsDevice);
+        using var direct = new SkiaGameRendering.SkiaDirectCanvas(graphicsDevice);
         using var frames = BeginFrames(graphicsDevice, out var runFrame);
 
         int frame = 0;

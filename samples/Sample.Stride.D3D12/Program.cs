@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.D3D12;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
@@ -12,7 +12,7 @@ using SharedScene = Sample.Shared.Scene;
 // (StrideGraphicsApi=Direct3D12 in the csproj) through SkiaGameRendering.Stride.D3D12.
 using var game = new Game();
 
-SkiaStrideD3D12DirectCanvas? canvas = null;
+SkiaDirectCanvas? canvas = null;
 
 // Not game.Run(start: Start): GameBase.Run(GameContext) hides the toolkit's Run extension method.
 Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
@@ -22,11 +22,11 @@ void Start(Scene rootScene)
     game.SetupBase3DScene();
 
     // Draws straight into the back buffer the compositor is rendering to. Constructing it initializes
-    // SkiaStrideD3D12Renderer against game.GraphicsDevice.
-    canvas = new SkiaStrideD3D12DirectCanvas(game.GraphicsDevice);
+    // SkiaRenderer against game.GraphicsDevice.
+    canvas = new SkiaDirectCanvas(game.GraphicsDevice);
 
     // Appended after the existing scene renderer, so the Skia layer draws on top of the 3D scene.
-    var renderer = new SkiaStrideD3D12SceneRenderer { DirectCanvas = canvas };
+    var renderer = new SkiaSceneRenderer { DirectCanvas = canvas };
     renderer.SkiaDraw += skCanvas =>
     {
         var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
@@ -38,4 +38,4 @@ void Start(Scene rootScene)
 // Canvas before renderer: the canvas needs the D3D12 interop the renderer owns. Both after the game
 // loop ends and before `game` itself is disposed.
 canvas?.Dispose();
-SkiaStrideD3D12Renderer.Dispose();
+SkiaRenderer.Dispose();

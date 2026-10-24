@@ -48,3 +48,17 @@ tests) instead of relying on auto-detection.
 - Reaches MonoGame's SDL window/GL context via reflection into MonoGame internals — field names
   may change between MonoGame versions.
 - See also the [desktop quick start](../desktop/quickstart.md).
+
+## KNI DesktopGL
+
+The `SkiaGameRendering.Kni.DesktopGL` package ships a `SkiaGlBackend` with the same name and namespace, adapted to KNI's own SDL bridge and shared-texture API.
+
+Assembly/package: `SkiaGameRendering.Kni.DesktopGL`
+
+
+- Cross-platform: Windows, Linux, macOS (wherever KNI DesktopGL runs).
+- The window handle and native GL texture handle (via a `shared: true` `RenderTarget2D`) are plain
+  public KNI API. Only the SDL GL-context-sharing hop still needs reflection, into public members
+  of KNI's internal `Sdl`/`Sdl.GL` types — narrower reflection surface than the MonoGame adapter,
+  which reflects into MonoGame's private fields directly.
+- See also the [desktop quick start](../desktop/quickstart.md).

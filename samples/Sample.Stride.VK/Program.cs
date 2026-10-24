@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.VK;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
@@ -15,7 +15,7 @@ using SharedScene = Sample.Shared.Scene;
 // (SkiaGameRendering.Stride.VK) rather than the default Direct3D11 path samples/Sample.Stride.D3D11 uses.
 using var game = new Game();
 
-SkiaStrideVulkanRenderTarget2D? canvas = null;
+SkiaRenderTarget2D? canvas = null;
 
 // Not game.Run(start: Start, ...): Stride.Games.GameBase already declares an instance
 // Run(GameContext) method, and C# hides same-named extension methods behind ANY instance method of
@@ -30,16 +30,16 @@ void Start(Scene rootScene)
 
     var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
 
-    // SkiaStrideVulkanRenderTarget2D auto-initializes SkiaStrideVulkanRenderer against
+    // SkiaRenderTarget2D auto-initializes SkiaRenderer against
     // game.GraphicsDevice on first use. Sized to the back buffer so
-    // SkiaStrideVulkanSceneRenderer's composite covers the screen.
-    canvas = new SkiaStrideVulkanRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
+    // SkiaSceneRenderer's composite covers the screen.
+    canvas = new SkiaRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
 
-    // SkiaStrideVulkanSceneRenderer is the DrawCore hook Stride needs to run a Skia draw every
+    // SkiaSceneRenderer is the DrawCore hook Stride needs to run a Skia draw every
     // frame - Stride drives rendering through its GraphicsCompositor, not a user-owned Draw() call
     // the way MonoGame/KNI do. game.AddSceneRenderer appends it after the existing scene renderer,
     // so it draws on top of the 3D scene SetupBase3DScene created.
-    var renderer = new SkiaStrideVulkanSceneRenderer { Canvas = canvas };
+    var renderer = new SkiaSceneRenderer { Canvas = canvas };
     renderer.SkiaDraw += skCanvas =>
     {
         skCanvas.Clear(SKColors.Transparent);
@@ -48,8 +48,8 @@ void Start(Scene rootScene)
     game.AddSceneRenderer(renderer);
 }
 
-// Not a `using` declaration above: canvas must be disposed before SkiaStrideVulkanRenderer.Dispose()
+// Not a `using` declaration above: canvas must be disposed before SkiaRenderer.Dispose()
 // tears down the Vulkan interop it depends on, and both must happen after game.Run() returns (the
 // game loop owns canvas for its whole lifetime) but before `game`'s own `using` disposal runs.
 canvas?.Dispose();
-SkiaStrideVulkanRenderer.Dispose();
+SkiaRenderer.Dispose();

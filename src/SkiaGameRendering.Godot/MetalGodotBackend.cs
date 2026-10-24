@@ -2,7 +2,7 @@ using Godot;
 using SkiaGameRendering.Core.Metal;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Godot
+namespace SkiaGameRendering
 {
     /// <summary>
     /// The Metal backend (macOS): hands Godot's <c>id&lt;MTLDevice&gt;</c>/<c>id&lt;MTLCommandQueue&gt;</c>

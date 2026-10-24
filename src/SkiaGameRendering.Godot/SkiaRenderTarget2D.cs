@@ -1,7 +1,7 @@
 using Godot;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Godot
+namespace SkiaGameRendering
 {
     /// <summary>
     /// A GPU texture that SkiaSharp renders into and Godot displays like any other
@@ -10,7 +10,7 @@ namespace SkiaGameRendering.Godot
     /// shape as the other engines' render targets in this repo, minus a composite step -
     /// in Godot the scene tree draws the texture, so <see cref="End"/> only flushes.
     /// <code>
-    /// var skia = new SkiaGodotRenderTarget2D(512, 512);
+    /// var skia = new SkiaRenderTarget2D(512, 512);
     /// AddChild(new Sprite2D { Texture = skia.Texture, Centered = false });
     ///
     /// // every frame, e.g. in _Process:
@@ -25,7 +25,7 @@ namespace SkiaGameRendering.Godot
     /// <see cref="RenderingServer.CallOnRenderThread"/> under "Separate". See <c>SkiaGodotBackend</c>
     /// and its implementations for what happens underneath.
     /// </summary>
-    public sealed class SkiaGodotRenderTarget2D : IDisposable
+    public sealed class SkiaRenderTarget2D : IDisposable
     {
         SkiaGodotTargetResources? _target;
         SKSurface? _surface;
@@ -33,23 +33,23 @@ namespace SkiaGameRendering.Godot
 
         /// <summary>
         /// Allocates a fixed-size texture. Must be called on Godot's render thread (see the class
-        /// doc comment); auto-initializes <see cref="SkiaGodotRenderer"/> on first use. On the
+        /// doc comment); auto-initializes <see cref="SkiaRenderer"/> on first use. On the
         /// RenderingDevice drivers the constructor stalls the GPU briefly once, to hand the new texture
         /// to Godot in a known state - create targets up front, not per frame. The Compatibility
         /// renderer supports <see cref="SKColorType.Rgba8888"/> only.
         /// </summary>
-        public SkiaGodotRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)
+        public SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)
         {
             if (width <= 0)
                 throw new ArgumentOutOfRangeException(nameof(width));
             if (height <= 0)
                 throw new ArgumentOutOfRangeException(nameof(height));
 
-            SkiaGodotRenderer.RequireRenderThread("The SkiaGodotRenderTarget2D constructor");
+            SkiaRenderer.RequireRenderThread("The SkiaRenderTarget2D constructor");
 
             Width = width;
             Height = height;
-            var backend = SkiaGodotRenderer.EnsureInitialized();
+            var backend = SkiaRenderer.EnsureInitialized();
             _target = backend.CreateTarget(width, height, colorType);
         }
 
@@ -64,7 +64,7 @@ namespace SkiaGameRendering.Godot
         /// RenderingDevice drivers, an <see cref="ImageTexture"/> on the Compatibility renderer.
         /// </summary>
         public Texture2D Texture =>
-            (_target ?? throw new ObjectDisposedException(nameof(SkiaGodotRenderTarget2D))).Texture;
+            (_target ?? throw new ObjectDisposedException(nameof(SkiaRenderTarget2D))).Texture;
 
         /// <summary>
         /// The underlying <see cref="RenderingDevice"/> texture RID, for <b>sampling</b> at the RD level
@@ -75,7 +75,7 @@ namespace SkiaGameRendering.Godot
         /// renderer, which has no RenderingDevice.
         /// </summary>
         public Rid TextureRid =>
-            (_target ?? throw new ObjectDisposedException(nameof(SkiaGodotRenderTarget2D))).TextureRid;
+            (_target ?? throw new ObjectDisposedException(nameof(SkiaRenderTarget2D))).TextureRid;
 
         /// <summary>
         /// The canvas to draw on. Only valid between <see cref="Begin"/> and <see cref="End"/>;
@@ -93,10 +93,10 @@ namespace SkiaGameRendering.Godot
         public void Begin(bool clear = true)
         {
             if (_target == null)
-                throw new ObjectDisposedException(nameof(SkiaGodotRenderTarget2D));
+                throw new ObjectDisposedException(nameof(SkiaRenderTarget2D));
             if (_hasBegun)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
-            SkiaGodotRenderer.RequireRenderThread("SkiaGodotRenderTarget2D.Begin");
+            SkiaRenderer.RequireRenderThread("SkiaRenderTarget2D.Begin");
 
             _surface = _target.BeginFrame();
             _hasBegun = true;
@@ -181,7 +181,7 @@ namespace SkiaGameRendering.Godot
             else
             {
                 throw new InvalidOperationException(
-                    "SkiaGodotRenderTarget2D.Dispose must be called from Godot's main thread or its render thread.");
+                    "SkiaRenderTarget2D.Dispose must be called from Godot's main thread or its render thread.");
             }
         }
     }

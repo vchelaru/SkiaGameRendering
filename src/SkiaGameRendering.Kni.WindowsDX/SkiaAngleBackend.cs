@@ -4,7 +4,7 @@ using SkiaGameRendering.Core.ANGLE;
 using SkiaSharp;
 using System.Reflection;
 
-namespace SkiaGameRendering.Kni.WindowsDX
+namespace SkiaGameRendering
 {
     /// <summary>
     /// SkiaBackend for KNI's WinForms DX11 (D3D11) platform. Windows only.
@@ -20,7 +20,7 @@ namespace SkiaGameRendering.Kni.WindowsDX
     ///   ConcreteGraphicsDevice/ConcreteGraphicsContext/ConcreteTexture. They may change between
     ///   KNI versions.
     /// </summary>
-    public class SkiaKniAngleBackend : SkiaSharedAngleBackend
+    public class SkiaAngleBackend : SkiaSharedAngleBackend
     {
         static PropertyInfo? _d3dDeviceProperty;
         static PropertyInfo? _d3dContextProperty;

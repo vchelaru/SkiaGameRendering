@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework.Graphics;
 using System.Runtime.Versioning;
 using Sample.Gum.Kni.WebGL.Gum;
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.WebGL;
-using SkiaGameRendering.Kni.WebGL.Components;
 
 namespace Sample.Gum.Kni.WebGL;
 

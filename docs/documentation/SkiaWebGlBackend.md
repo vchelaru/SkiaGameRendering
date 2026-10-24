@@ -6,7 +6,7 @@
 render pass into the hidden GPU canvas owned by `SkiaGameWebGlHost`, flushes Skia, and uploads
 that canvas into the target's KNI `Texture2D`.
 
-Namespace: `SkiaGameRendering.Kni.WebGL`
+Namespace: `SkiaGameRendering`
 
 Assembly/package: `SkiaGameRendering.Kni.WebGL`
 

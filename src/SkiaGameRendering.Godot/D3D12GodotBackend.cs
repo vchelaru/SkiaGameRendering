@@ -2,7 +2,7 @@ using Godot;
 using SkiaGameRendering.Core.D3D12;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Godot
+namespace SkiaGameRendering
 {
     /// <summary>
     /// The D3D12 backend - Godot's default driver for new Windows projects since 4.6. Hands Godot's

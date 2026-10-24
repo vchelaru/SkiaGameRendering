@@ -30,8 +30,6 @@ Add these usings — to `_Imports.razor` for the `.razor` markup, and separately
 
 ```cs
 using SkiaGameRendering;
-using SkiaGameRendering.Kni.WebGL;
-using SkiaGameRendering.Kni.WebGL.Components;
 ```
 
 Render `<SkiaGameWebGlHost @ref="host" />` on the page. Then, once, right after it mounts, attach it

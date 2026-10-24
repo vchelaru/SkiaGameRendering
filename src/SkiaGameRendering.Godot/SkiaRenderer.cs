@@ -1,17 +1,17 @@
 using Godot;
 
-namespace SkiaGameRendering.Godot
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Holds the shared backend (<see cref="VulkanGodotBackend"/>, <see cref="D3D12GodotBackend"/>,
     /// <see cref="MetalGodotBackend"/> or <see cref="GlCompatibilityGodotBackend"/>, chosen from
-    /// <see cref="RenderingServer.GetCurrentRenderingDriverName"/>). Godot analog of <c>SkiaRaylibRenderer</c>/<c>SkiaStrideVulkanRenderer</c>.
-    /// Most code never calls this directly - constructing a <see cref="SkiaGodotRenderTarget2D"/>
+    /// <see cref="RenderingServer.GetCurrentRenderingDriverName"/>). Godot analog of <c>SkiaRaylibRenderer</c>/<c>SkiaRenderer</c>.
+    /// Most code never calls this directly - constructing a <see cref="SkiaRenderTarget2D"/>
     /// auto-initializes it. Call <see cref="Initialize"/> explicitly only to make initialization (and
     /// any failure, such as the project running on an unsupported driver) happen at a known point rather
     /// than lazily on first render target construction.
     /// </summary>
-    public static class SkiaGodotRenderer
+    public static class SkiaRenderer
     {
         static SkiaGodotBackend? _backend;
 
@@ -50,9 +50,9 @@ namespace SkiaGameRendering.Godot
         {
             if (_backend != null)
                 throw new InvalidOperationException(
-                    "SkiaGodotRenderer is already initialized. Call SkiaGodotRenderer.Dispose() before initializing again.");
+                    "SkiaRenderer is already initialized. Call SkiaRenderer.Dispose() before initializing again.");
 
-            RequireRenderThread("SkiaGodotRenderer.Initialize");
+            RequireRenderThread("SkiaRenderer.Initialize");
 
             var driverName = RenderingServer.GetCurrentRenderingDriverName();
             if (OperatingSystem.IsMacOS() && driverName != "metal")
@@ -106,7 +106,7 @@ namespace SkiaGameRendering.Godot
         }
 
         /// <summary>
-        /// Called by <see cref="SkiaGodotRenderTarget2D"/>'s constructor. Auto-initializes against
+        /// Called by <see cref="SkiaRenderTarget2D"/>'s constructor. Auto-initializes against
         /// Godot's global <see cref="RenderingDevice"/> if nothing has initialized the renderer yet.
         /// </summary>
         internal static SkiaGodotBackend EnsureInitialized()
@@ -117,7 +117,7 @@ namespace SkiaGameRendering.Godot
         }
 
         /// <summary>
-        /// Disposes the shared backend and every <see cref="SkiaGodotRenderTarget2D"/> still alive on
+        /// Disposes the shared backend and every <see cref="SkiaRenderTarget2D"/> still alive on
         /// it; using one of those afterward throws <see cref="ObjectDisposedException"/>. Under the
         /// "Separate" thread model, calling this from the main thread queues the GPU teardown onto
         /// the render thread.
@@ -130,12 +130,12 @@ namespace SkiaGameRendering.Godot
             bool onRenderThread = RenderingServer.IsOnRenderThread();
             bool onMainThread = OS.GetThreadCallerId() == OS.GetMainThreadId();
             if (!onRenderThread && !onMainThread)
-                throw new InvalidOperationException("SkiaGodotRenderer.Dispose must be called from Godot's main thread or its render thread.");
+                throw new InvalidOperationException("SkiaRenderer.Dispose must be called from Godot's main thread or its render thread.");
 
             var backend = _backend;
             _backend = null;
 
-            // Same split as SkiaGodotRenderTarget2D.Dispose: detaching textures from the scene is the
+            // Same split as SkiaRenderTarget2D.Dispose: detaching textures from the scene is the
             // main thread's half, freeing GPU resources the render thread's.
             if (onRenderThread && onMainThread)
             {

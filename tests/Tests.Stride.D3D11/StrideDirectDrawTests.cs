@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.D3D11;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.Core.Mathematics;
 using Stride.Games;
@@ -9,7 +9,7 @@ using Xunit;
 namespace Tests.Stride;
 
 /// <summary>
-/// <see cref="SkiaStrideDirectCanvas"/> on a WARP Stride device. Each case draws a Stride sprite, then Skia,
+/// <see cref="SkiaDirectCanvas"/> on a WARP Stride device. Each case draws a Stride sprite, then Skia,
 /// then another Stride sprite into whatever is bound, and reads the target back: a flip, a channel swap,
 /// Skia landing out of order, or Stride's cached state going stale after the Skia pass each fails a probe.
 /// The Stride colors only use 0 and 255 channels, which read back the same through an sRGB view.
@@ -42,7 +42,7 @@ public sealed class StrideDirectDrawTests : IDisposable
 
     public void Dispose()
     {
-        SkiaStrideRenderer.Dispose();
+        SkiaRenderer.Dispose();
         _graphicsDevice.Dispose();
         Environment.SetEnvironmentVariable("STRIDE_GRAPHICS_SOFTWARE_RENDERING", null);
     }
@@ -96,7 +96,7 @@ public sealed class StrideDirectDrawTests : IDisposable
         var graphicsContext = new GraphicsContext(_graphicsDevice);
         graphicsContext.CommandList.SetRenderTargetAndViewport(null, target);
 
-        using var direct = new SkiaStrideDirectCanvas(_graphicsDevice);
+        using var direct = new SkiaDirectCanvas(_graphicsDevice);
         Assert.Throws<NotSupportedException>(() => direct.Begin(graphicsContext));
 
         // A refused Begin leaves no pass open.
@@ -113,7 +113,7 @@ public sealed class StrideDirectDrawTests : IDisposable
     {
         var graphicsContext = new GraphicsContext(_graphicsDevice);
         graphicsContext.CommandList.SetRenderTargets(null, ReadOnlySpan<Texture>.Empty);
-        using var direct = new SkiaStrideDirectCanvas(_graphicsDevice);
+        using var direct = new SkiaDirectCanvas(_graphicsDevice);
         Assert.Throws<InvalidOperationException>(() => direct.Begin(graphicsContext));
     }
 
@@ -129,7 +129,7 @@ public sealed class StrideDirectDrawTests : IDisposable
     {
         using var white = Texture.New2D(_graphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { Color.White });
         using var spriteBatch = new SpriteBatch(_graphicsDevice);
-        using var direct = new SkiaStrideDirectCanvas(_graphicsDevice);
+        using var direct = new SkiaDirectCanvas(_graphicsDevice);
         using var paint = new SKPaint { Color = Skia };
 
         var graphicsContext = new GraphicsContext(_graphicsDevice);

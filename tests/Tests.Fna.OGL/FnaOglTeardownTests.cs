@@ -13,7 +13,7 @@ public sealed class FnaOglTeardownTests
     [Fact]
     public void DisposingSkia_LeavesEngineRenderTargetsWorking()
     {
-        var errors = OneFrameGame.Render(() => new SkiaFnaGlBackend(), SkiaTeardownCheck.EngineTargetsSurvive);
+        var errors = OneFrameGame.Render(() => new SkiaGlBackend(), SkiaTeardownCheck.EngineTargetsSurvive);
         Assert.True(errors.Length == 0, errors);
     }
 }

@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.D3D11;
+using SkiaGameRendering;
 using SkiaSharp;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
@@ -13,7 +13,7 @@ namespace Tests.Stride;
 /// <c>SkiaStrideTarget</c>/<c>SkiaStrideVulkanTarget</c>'s doc comments for the fix. Same shape: a
 /// real (no window, no <c>Game</c>) headless Stride D3D11 <see cref="GraphicsDevice"/>, an offscreen
 /// sRGB-formatted render target standing in for the real presented back buffer, a real
-/// <see cref="SkiaStrideRenderTarget2D"/> drawing a known solid color, composited via the adapter's
+/// <see cref="SkiaRenderTarget2D"/> drawing a known solid color, composited via the adapter's
 /// own <c>SpriteBatch</c> path, read back to CPU and compared against what was drawn.
 /// <para>
 /// <c>STRIDE_GRAPHICS_SOFTWARE_RENDERING=1</c> is Stride's own built-in switch (decompiled and
@@ -50,19 +50,19 @@ public sealed class StrideCompositeColorTests
                 device, width, height, PixelFormat.R8G8B8A8_UNorm_SRgb,
                 TextureFlags.RenderTarget | TextureFlags.ShaderResource);
 
-            var canvas = new SkiaStrideRenderTarget2D(device, width, height);
+            var canvas = new SkiaRenderTarget2D(device, width, height);
 
             // Real GraphicsCompositor/RenderDrawContext machinery is Game-only; standing up the same
             // shape by hand (a GraphicsContext with compositeTarget bound as its CommandList's render
             // target) is enough for canvas.End's own SpriteBatch composite to run against - the exact
-            // code path SkiaStrideRenderTarget2D.End (and SkiaStrideSceneRenderer.DrawCore, in the
+            // code path SkiaRenderTarget2D.End (and SkiaSceneRenderer.DrawCore, in the
             // real sample) drives every frame. D3D11 only supports one CommandList per device (it
             // wraps the immediate context, not a deferred one) - explicit CommandList.New throws
             // "Creation of additional Command Lists is not supported for Direct3D 11", so this passes
             // commandList: null and lets GraphicsContext resolve GraphicsDevice.InternalMainCommandList
             // itself instead (the same thing a real RenderDrawContext.GraphicsContext does).
             //
-            // Bound BEFORE canvas.Begin(), not after: SkiaStrideRenderTarget2D.Begin swaps the
+            // Bound BEFORE canvas.Begin(), not after: SkiaRenderTarget2D.Begin swaps the
             // engine's D3D11 device-context state OUT to ANGLE's own state (Core.ANGLE's
             // SwapDeviceContextState dance - see AngleSkiaSurfaceFactory.BeginDraw), and End swaps it
             // back in right before the SpriteBatch composite runs. Binding compositeTarget beforehand
@@ -80,10 +80,10 @@ public sealed class StrideCompositeColorTests
             var pixels = compositeTarget.GetData<Color>(commandList);
 
             canvas.Dispose();
-            // The context SkiaStrideRenderTarget2D auto-initialized is static and pinned to this
+            // The context SkiaRenderTarget2D auto-initialized is static and pinned to this
             // test's device, so leaving it behind would make the next test's device fail to
             // initialize. Canvas first: the renderer does not track or dispose live targets.
-            SkiaStrideRenderer.Dispose();
+            SkiaRenderer.Dispose();
 
             var actual = pixels[0];
 

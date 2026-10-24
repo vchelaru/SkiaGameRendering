@@ -1,4 +1,4 @@
-using SkiaGameRendering.Stride.D3D12;
+using SkiaGameRendering;
 using Stride.Graphics;
 using Tests.Shared;
 using Xunit;
@@ -6,7 +6,7 @@ using Xunit;
 namespace Tests.StrideD3D12;
 
 /// <summary>
-/// Renders <see cref="GoldenScene"/> through <c>SkiaStrideD3D12RenderTarget2D</c> on a real, headless
+/// Renders <see cref="GoldenScene"/> through <c>SkiaRenderTarget2D</c> on a real, headless
 /// Stride D3D12 <see cref="GraphicsDevice"/> on WARP and compares the pixels against a checked-in
 /// reference. D3D12 analog of <c>Tests.Stride.D3D11</c>'s <c>StrideGoldenImageTests</c>; Skia draws on
 /// Stride's own device, so both halves rasterize on WARP and no pinned-rasterizer gate is needed.
@@ -19,7 +19,7 @@ public sealed class StrideD3D12GoldenImageTests : IDisposable
 
     public void Dispose()
     {
-        SkiaStrideD3D12Renderer.Dispose();
+        SkiaRenderer.Dispose();
         _graphicsDevice.Dispose();
     }
 
