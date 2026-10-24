@@ -36,6 +36,7 @@ namespace SkiaGameRendering
         private readonly string _canvasId;
         private GRContext _grContext = null!;
         private bool _isDisposed;
+        private bool _contextLost;
         private DirectTarget? _backBufferTarget;
         private readonly Dictionary<RenderTarget2D, DirectTarget> _renderTargetTargets = new();
         private readonly RenderTargetBinding[] _boundRenderTarget = new RenderTargetBinding[1];
@@ -56,7 +57,7 @@ namespace SkiaGameRendering
             try
             {
                 if (info[0] != 0)
-                    throw new InvalidOperationException("The WebGL context is lost.");
+                    throw ContextLostException();
                 var glInterface = GRGlInterface.Create()
                     ?? throw new InvalidOperationException("GRGlInterface.Create failed; is the page's WebGL context current?");
                 _grContext = GRContext.CreateGl(glInterface)
@@ -77,18 +78,33 @@ namespace SkiaGameRendering
         private int[] BeginPass()
         {
             EnsureAlive();
+            if (_contextLost)
+                throw ContextLostException();
             var info = FnaWebGlInterop.Begin(_canvasId);
             if (info[0] != 0)
-                throw new InvalidOperationException("The WebGL context is lost.");
+            {
+                // FNA3D's buffers, programs and textures died with the context and are not rebuilt, and neither
+                // are Skia's. Stay failed even if the browser restores the context.
+                _contextLost = true;
+                _grContext.AbandonContext();
+                throw ContextLostException();
+            }
             _grContext.ResetContext();
             return info;
         }
+
+        private static InvalidOperationException ContextLostException() => new(
+            "The WebGL context was lost. FNA does not recover from a lost context, so SkiaGameRendering.Fna.WebGL " +
+            "cannot draw again; dispose the game and start a new one.");
 
         internal override void EndDraw() => FnaWebGlInterop.End(_canvasId);
 
         internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType)
         {
             EnsureAlive();
+            if (colorType != SKColorType.Rgba8888)
+                throw new NotSupportedException(
+                    $"SkiaRenderTarget2D supports SKColorType.Rgba8888 only on FNA WebGL, not {colorType}.");
             var texture = CreateTexture(width, height, ToSurfaceFormat(colorType));
             try
             {
@@ -321,7 +337,7 @@ namespace SkiaGameRendering
 
             if (_grContext == null)
                 return;
-            var deviceAlive = GraphicsDevice is { IsDisposed: false };
+            var deviceAlive = GraphicsDevice is { IsDisposed: false } && !_contextLost;
             if (deviceAlive)
                 FnaWebGlInterop.Begin(_canvasId);
             try
@@ -369,7 +385,7 @@ namespace SkiaGameRendering
             {
                 if (Surface == null)
                     return;
-                var deviceAlive = !_backend._isDisposed && _backend.GraphicsDevice is { IsDisposed: false } && _backend._grContext != null;
+                var deviceAlive = !_backend._isDisposed && !_backend._contextLost && _backend.GraphicsDevice is { IsDisposed: false } && _backend._grContext != null;
                 if (deviceAlive)
                     FnaWebGlInterop.Begin(_backend._canvasId);
                 try

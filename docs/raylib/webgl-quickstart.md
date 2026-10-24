@@ -60,5 +60,5 @@ A different canvas id: set `globalThis.skiaRaylibCanvasId` before `Blazor.start(
 
 - `SkiaRenderTarget2D` supports `SKColorType.Rgba8888` only.
 - A Skia pass cannot be nested in another (`SkiaRenderTarget2D` and `SkiaDirectCanvas` passes are exclusive).
-- Context loss is not recovered; passes throw while the context is lost.
-- Verified in Chromium (headless, SwiftShader); the package has no browser-specific code.
+- Context loss is not recovered. raylib's resources die with the context, so every pass throws `InvalidOperationException` from then on, even if the browser restores the context; close the window and start a new one.
+- Verified in Chromium, Firefox and WebKit (headless, software GL).

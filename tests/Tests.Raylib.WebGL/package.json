@@ -2,7 +2,8 @@
   "name": "skia-raylib-webgl-tests",
   "private": true,
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test --project=chromium",
+    "test:all": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "1.61.1"

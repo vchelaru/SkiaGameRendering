@@ -18,6 +18,7 @@ globalThis.fnaSample = {
   frame: () => program.Frame(),
   frames: () => program.Frames(),
   setMode: m => program.SetMode(m),
+  tryColorType: c => program.TryColorType(c),
   // Draws one frame, then reads pixels [x, y] (top-left origin) from the canvas before it is presented.
   frameAndRead(points) {
     program.Frame();
