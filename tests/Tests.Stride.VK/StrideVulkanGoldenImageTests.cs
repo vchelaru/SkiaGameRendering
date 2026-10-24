@@ -51,6 +51,10 @@ public sealed class StrideVulkanGoldenImageTests : IDisposable
     public void Scene_CompositedOntoStrideRenderTarget_MatchesGolden() =>
         AssertMatchesGolden(StrideSkiaGolden.RenderSceneCompositedByEngine(_graphicsDevice));
 
+    [Fact]
+    public void Scene_DrawnThroughSkiaDirectCanvas_MatchesGolden() =>
+        AssertMatchesGolden(StrideSkiaGolden.RenderSceneDirect(_graphicsDevice));
+
     void AssertMatchesGolden(byte[] rgba)
     {
         GoldenImage.AssertSceneOrientation(rgba);

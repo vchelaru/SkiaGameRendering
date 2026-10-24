@@ -63,7 +63,9 @@ game.AddSceneRenderer(renderer);
   `NativePhysicalDevice`/`NativeDevice` (properties) and `NativeCommandQueue`/`QueueLock` (fields),
   plus `Texture.NativeImage`/`NativeLayout`/`NativeFormat` (fields) - all `internal` in Stride's
   `GraphicsDevice.Vulkan.cs`/`Texture.Vulkan.cs`. Every one is pinned by
-  `tests/Tests.Stride.VK/StrideVulkanReflectionTests.cs`.
+  `tests/Tests.Stride.VK/StrideVulkanReflectionTests.cs`. `SkiaDirectCanvas` (see
+  [its page](SkiaDirectCanvas.md)) also reaches `Texture.ParentTexture`, `CommandList.activePipeline` and
+  `CommandList.FlushInternal(bool)`, pinned by the same tests.
 - Unlike the D3D11 adapter, there is no separate GL-style context to bind/unbind: Skia's Vulkan
   backend draws directly against Stride's shared `VkDevice`/`VkQueue`, so `Begin`/`End` only need to
   bracket the queue lock (`SkiaStrideVulkanContext.BeginDraw`/`EndDraw`), not a context switch.

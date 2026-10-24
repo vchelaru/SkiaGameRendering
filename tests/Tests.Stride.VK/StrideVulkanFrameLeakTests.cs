@@ -27,4 +27,19 @@ public sealed class StrideVulkanFrameLeakTests(ITestOutputHelper output)
             SkiaRenderer.Dispose();
         }
     }
+
+    [Fact]
+    public void DirectDrawingFrames_GrowsNothing()
+    {
+        using var graphicsDevice = GraphicsDevice.New();
+        graphicsDevice.ColorSpace = ColorSpace.Gamma;
+        try
+        {
+            StrideSkiaGolden.AssertNoPerFrameGrowthDirect(graphicsDevice, output);
+        }
+        finally
+        {
+            SkiaRenderer.Dispose();
+        }
+    }
 }
