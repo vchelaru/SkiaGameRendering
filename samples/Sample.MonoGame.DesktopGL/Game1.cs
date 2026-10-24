@@ -35,6 +35,16 @@ namespace Sample
         /// <summary>An extra pass/fail check a platform's Program adds to the smoke test; runs just before the exit code is set.</summary>
         public System.Func<GraphicsDevice, bool> ExtraSmokeCheck { get; set; }
 
+        /// <summary>
+        /// When set, saves the Scene's first row of cells to this PNG path, with a transparent
+        /// background, and exits. Makes the README image.
+        /// </summary>
+        public string ScreenshotPath { get; init; }
+
+        // In screenshot mode, cells are 400 pixels and the first row holds three of them.
+        private int CanvasWidth => ScreenshotPath != null ? 1200 : 200;
+        private int CanvasHeight => ScreenshotPath != null ? 800 : 200;
+
         public Game1(bool smokeTest = false)
         {
             _smokeTest = smokeTest;
@@ -70,9 +80,11 @@ namespace Sample
                 // The smoke test disposes a target before drawing with another, which crashed DesktopVK.
                 if (_canvas == null && _smokeTest)
                     new SkiaRenderTarget2D(GraphicsDevice, 64, 64).Dispose();
-                _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
+                _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, CanvasWidth, CanvasHeight);
                 _canvas.Begin();
-                Scene.Draw(_canvas.Canvas, 200, 200);
+                Scene.Draw(_canvas.Canvas, CanvasWidth, CanvasHeight);
+                if (ScreenshotPath != null && ++_frameCount == 3)
+                    SaveScreenshot();
                 var checkFrame = false;
                 if (_smokeTest)
                 {
@@ -165,6 +177,16 @@ namespace Sample
 
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")} (Skia surface readback): circle={circle}, drop={drop}");
             ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;
+            ExitGame();
+        }
+
+        private void SaveScreenshot()
+        {
+            using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(CanvasWidth, CanvasHeight / 2, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Premul));
+            if (!_canvas!.ReadPixels(bitmap.Info, bitmap.GetPixels(), bitmap.RowBytes, 0, 0))
+                throw new System.InvalidOperationException("Skia surface readback failed.");
+            using var stream = System.IO.File.Create(ScreenshotPath);
+            bitmap.Encode(stream, SkiaSharp.SKEncodedImageFormat.Png, 100);
             ExitGame();
         }
 

@@ -2,7 +2,7 @@
 
 `SkiaGameRendering.Android` renders with Skia's GL backend into MonoGame `Texture2D` targets on
 Android (OpenGL ES), with no CPU readback. The code inside `Game` is the same as every other
-MonoGame backend (`SkiaRenderer` plus `SkiaRenderTarget2D`, see the [README](../../README.md)).
+MonoGame backend (`SkiaRenderer` plus `SkiaRenderTarget2D`, see [SkiaRenderTarget2D](../documentation/SkiaRenderTarget2D.md)).
 For KNI, see the [KNI Android quick start](quickstart.md).
 
 ## Prerequisites
