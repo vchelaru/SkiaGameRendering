@@ -17,20 +17,40 @@ namespace SkiaGameRendering.Core.OGL
     {
         private const string OpenGLFramework = "/System/Library/Frameworks/OpenGL.framework/OpenGL";
 
-        [DllImport(OpenGLFramework)]
-        private static extern IntPtr CGLGetCurrentContext();
+        // Not DllImport: the iOS build links every framework a DllImport names, and iOS has no
+        // OpenGL.framework, so any iOS app referencing this assembly failed to link.
+        private static unsafe class Cgl
+        {
+            private static readonly IntPtr Library = NativeLibrary.Load(OpenGLFramework);
+            private static IntPtr Export(string name) => NativeLibrary.GetExport(Library, name);
 
-        [DllImport(OpenGLFramework)]
-        private static extern int CGLSetCurrentContext(IntPtr ctx);
+            internal static readonly delegate* unmanaged<IntPtr> GetCurrentContext =
+                (delegate* unmanaged<IntPtr>)Export("CGLGetCurrentContext");
+            internal static readonly delegate* unmanaged<IntPtr, int> SetCurrentContext =
+                (delegate* unmanaged<IntPtr, int>)Export("CGLSetCurrentContext");
+            internal static readonly delegate* unmanaged<IntPtr, IntPtr> GetPixelFormat =
+                (delegate* unmanaged<IntPtr, IntPtr>)Export("CGLGetPixelFormat");
+            internal static readonly delegate* unmanaged<IntPtr, IntPtr, IntPtr*, int> CreateContext =
+                (delegate* unmanaged<IntPtr, IntPtr, IntPtr*, int>)Export("CGLCreateContext");
+            internal static readonly delegate* unmanaged<IntPtr, int> DestroyContext =
+                (delegate* unmanaged<IntPtr, int>)Export("CGLDestroyContext");
+        }
 
-        [DllImport(OpenGLFramework)]
-        private static extern IntPtr CGLGetPixelFormat(IntPtr ctx);
+        private static unsafe IntPtr CGLGetCurrentContext() => Cgl.GetCurrentContext();
 
-        [DllImport(OpenGLFramework)]
-        private static extern int CGLCreateContext(IntPtr pix, IntPtr share, out IntPtr ctx);
+        private static unsafe int CGLSetCurrentContext(IntPtr ctx) => Cgl.SetCurrentContext(ctx);
 
-        [DllImport(OpenGLFramework)]
-        private static extern int CGLDestroyContext(IntPtr ctx);
+        private static unsafe IntPtr CGLGetPixelFormat(IntPtr ctx) => Cgl.GetPixelFormat(ctx);
+
+        private static unsafe int CGLCreateContext(IntPtr pix, IntPtr share, out IntPtr ctx)
+        {
+            IntPtr created;
+            var error = Cgl.CreateContext(pix, share, &created);
+            ctx = created;
+            return error;
+        }
+
+        private static unsafe int CGLDestroyContext(IntPtr ctx) => Cgl.DestroyContext(ctx);
 
         private IntPtr _openGl;
         private IntPtr _previousContext;
