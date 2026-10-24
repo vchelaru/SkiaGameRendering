@@ -18,23 +18,7 @@ scene has a page with a screenshot, what each side does, and a table per platfor
 
 ## Tips
 
-- **Draw sprites with `SKCanvas.DrawAtlas`**, one call per texture sheet. Tint through its `colors` array
-  with `SKBlendMode.Modulate`, the equivalent of `SpriteBatch.Draw`'s `color`; it costs almost nothing
-  extra. `SKColor` is unpremultiplied, so the matching `SpriteBatch` color is
-  `Color.FromNonPremultiplied(r, g, b, a)`.
-- **Upload sprite images once** with `SKImage.ToTextureImage(SkiaRenderer.CurrentBackend.GRContext)`,
-  called between `Begin()` and `End()` when Skia's GPU context is current, and reuse the result.
-- **Use few, large targets.** Every `Begin()`/`End()` pair switches GPU context and flushes Skia. On
-  WindowsDX and KNI WindowsDX, `End()` also calls `glFinish`, which stalls the CPU until the GPU
-  finishes; `SkiaDirectCanvas.End()` does not. One screen-sized target per frame beats one per element.
-- **Prefer `SkiaDirectCanvas` where it is supported.** It skips the full-screen clear and composite of a
-  `SkiaRenderTarget2D`: an empty pass costs about 0.07-0.1 ms instead of 0.15-0.3 ms, and a scene that
-  fills the screen gains the most.
-- **Do not replay an SVG every frame for many icons.** It is the slowest thing in the suite on desktop
-  OpenGL (about 4 FPS for 2k icons, against 32 for Apos.Shapes). Draw a bitmap rendered once instead.
-- **Blurred shadows through `SKMaskFilter.CreateBlur` are eight to eleven times slower** than a shadow
-  computed in a shader (Apos.Shapes), and gradients and rounded-rectangle strokes are several times slower
-  too. For many shapes of those kinds on the desktop, a shader-based library is the faster choice.
+How to draw so it runs fast is in [Performance tips](documentation/performance-tips.md). This page is the measurements.
 
 ## How it is measured
 
