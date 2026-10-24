@@ -3,20 +3,24 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace SkiaGameRendering.Unity.Tests
+namespace SkiaGameRendering.Tests
 {
     /// <summary>
     /// The numbers the leak tests watch, read the native way for Unity's graphics API: references to
-    /// Unity's device (D3D11 COM references, or the MTLDevice's retain count on Metal) and the
+    /// Unity's device (D3D11 COM references, or the MTLDevice's retain count on Metal; none on OpenGL) and the
     /// process's private memory.
     /// </summary>
     internal static class GpuProbe
     {
         internal static bool IsMetal => SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal;
+        // OpenGL has no device object to count references on; its tests check the drawing and the memory.
+        internal static bool IsOpenGl => SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore;
 
         /// <summary>References held on Unity's device, reached through a throwaway texture.</summary>
         internal static int DeviceRefCount()
         {
+            if (IsOpenGl)
+                return 0;
             var texture = new RenderTexture(4, 4, 0);
             texture.Create();
             try

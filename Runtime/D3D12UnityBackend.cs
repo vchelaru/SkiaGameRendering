@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SkiaGameRendering.Core.D3D12;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Unity
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Direct3D 12 (Windows): Skia draws with Unity's own ID3D12Device and submits to Unity's own
@@ -35,7 +35,7 @@ namespace SkiaGameRendering.Unity
             _factory.InitializeFromNative(adapter, device, SkiaUnityD3D12_CommandQueue());
         }
 
-        internal override void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture)
+        internal override void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture)
         {
             // Unity moves the texture to the render target state on the queue before Skia's commands.
             if (!SkiaUnityD3D12_PrepareForDrawing(target.NativeTexture))
@@ -62,7 +62,7 @@ namespace SkiaGameRendering.Unity
             }
         }
 
-        internal override void DisposeTarget(SkiaUnityRenderTarget.RenderState target)
+        internal override void DisposeTarget(SkiaRenderTarget2D.RenderState target)
         {
             target.Surface?.Dispose();
             target.Surface = null;

@@ -8,7 +8,7 @@ using AOT;
 using SkiaSharp;
 using UnityEngine;
 
-namespace SkiaGameRendering.Unity
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Runs every Skia call on Unity's render thread, through the <see cref="SkiaUnityBackend"/> for
@@ -35,7 +35,7 @@ namespace SkiaGameRendering.Unity
         internal sealed class Command
         {
             // null means "release every target and the factory" (see ReleaseAll).
-            internal SkiaUnityRenderTarget.RenderState? Target;
+            internal SkiaRenderTarget2D.RenderState? Target;
             // null means "dispose the target's render-thread state".
             internal SKPicture? Picture;
         }
@@ -48,7 +48,7 @@ namespace SkiaGameRendering.Unity
 
         static SkiaUnityBackend? _backend;
         // Targets with render-thread state, so ReleaseAll can reach the ones never disposed.
-        static readonly HashSet<SkiaUnityRenderTarget.RenderState> LiveTargets = new HashSet<SkiaUnityRenderTarget.RenderState>();
+        static readonly HashSet<SkiaRenderTarget2D.RenderState> LiveTargets = new HashSet<SkiaRenderTarget2D.RenderState>();
         static readonly ManualResetEventSlim Released = new ManualResetEventSlim();
         // Main thread only.
         static bool _anyIssued;
@@ -72,7 +72,11 @@ namespace SkiaGameRendering.Unity
             }
             _anyIssued = true;
             Commands.Enqueue(command);
-            GL.IssuePluginEvent(CallbackPtr, 0);
+            // A draw needs its prepare event first when the backend asks for one. Events run in
+            // order, so the prepare event finds its draw's command still at the head of the queue.
+            if (SkiaUnityBackend.UsesPrepareEvent && command.Target != null && command.Picture != null)
+                GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.PrepareEventId);
+            GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.DrawEventId);
         }
 
         /// <summary>
@@ -94,6 +98,11 @@ namespace SkiaGameRendering.Unity
         [MonoPInvokeCallback(typeof(RenderEventDelegate))]
         static void OnRenderEvent(int eventId)
         {
+            if (eventId == SkiaUnityBackend.PrepareEventId && SkiaUnityBackend.UsesPrepareEvent)
+            {
+                PrepareOnRenderThread();
+                return;
+            }
             if (!Commands.TryDequeue(out var command))
                 return;
 
@@ -119,22 +128,38 @@ namespace SkiaGameRendering.Unity
             }
         }
 
+        static void PrepareOnRenderThread()
+        {
+            if (!Commands.TryPeek(out var command) || command.Target == null || command.Picture == null)
+                return;
+            try
+            {
+                _backend ??= SkiaUnityBackend.Create(command.Target.NativeTexture);
+                _backend.Prepare(command.Target);
+            }
+            catch (Exception ex)
+            {
+                // Throwing back into Unity's native render thread would crash the player.
+                Debug.LogException(ex);
+            }
+        }
+
         static void ReleaseOnRenderThread()
         {
-            foreach (var target in new List<SkiaUnityRenderTarget.RenderState>(LiveTargets))
+            foreach (var target in new List<SkiaRenderTarget2D.RenderState>(LiveTargets))
                 DisposeTarget(target);
             _backend?.Dispose();
             _backend = null;
         }
 
-        static void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture)
+        static void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture)
         {
             _backend ??= SkiaUnityBackend.Create(target.NativeTexture);
             LiveTargets.Add(target);
             _backend.Draw(target, picture);
         }
 
-        static void DisposeTarget(SkiaUnityRenderTarget.RenderState target)
+        static void DisposeTarget(SkiaRenderTarget2D.RenderState target)
         {
             LiveTargets.Remove(target);
             _backend?.DisposeTarget(target);

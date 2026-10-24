@@ -4,7 +4,7 @@ using SkiaSharp;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace SkiaGameRendering.Unity
+namespace SkiaGameRendering
 {
     /// <summary>
     /// The graphics-API-specific half of <see cref="SkiaUnityRenderThread"/>: one Core factory wrapped
@@ -14,6 +14,18 @@ namespace SkiaGameRendering.Unity
     internal abstract class SkiaUnityBackend : IDisposable
     {
         static GraphicsDeviceType _graphicsDeviceType;
+
+        /// <summary>
+        /// Whether each draw needs a "prepare" plugin event before its draw event (see <see cref="Prepare"/>).
+        /// Set by <see cref="PrepareOnMainThread"/>.
+        /// </summary>
+        internal static bool UsesPrepareEvent { get; private set; }
+
+        /// <summary>The plugin event id <see cref="SkiaUnityRenderThread"/> issues the prepare event with.</summary>
+        internal const int PrepareEventId = VulkanUnityBackend.PrepareEventId;
+
+        /// <summary>The plugin event id the draw event is issued with.</summary>
+        internal static int DrawEventId => UsesPrepareEvent ? VulkanUnityBackend.DrawEventId : 0;
 
         /// <summary>
         /// Main thread. Throws unless one of the backends below can run on this device, and loads
@@ -26,6 +38,17 @@ namespace SkiaGameRendering.Unity
             _graphicsDeviceType = api;
             if (api == GraphicsDeviceType.Direct3D11)
                 return;
+            // Skia draws on a second context that shares Unity's; only the Windows (WGL) one exists so far.
+            if (api == GraphicsDeviceType.OpenGLCore
+                && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
+                return;
+            if (api == GraphicsDeviceType.Vulkan
+                && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
+            {
+                VulkanUnityBackend.LoadPlugin();
+                UsesPrepareEvent = true;
+                return;
+            }
             if (api == GraphicsDeviceType.Direct3D12
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
             {
@@ -40,7 +63,7 @@ namespace SkiaGameRendering.Unity
                 return;
             }
             throw new NotSupportedException(
-                $"SkiaGameRendering.Unity supports Direct3D11 and Direct3D12 on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
+                $"SkiaGameRendering.Unity supports Direct3D11, Direct3D12, Vulkan and OpenGL on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
         }
 
         /// <summary>Creates the backend for Unity's current device, the first time anything draws.</summary>
@@ -49,11 +72,20 @@ namespace SkiaGameRendering.Unity
             {
                 GraphicsDeviceType.Metal => new MetalUnityBackend(),
                 GraphicsDeviceType.Direct3D12 => new D3D12UnityBackend(),
+                GraphicsDeviceType.Vulkan => new VulkanUnityBackend(),
+                GraphicsDeviceType.OpenGLCore => new OpenGlUnityBackend(),
                 _ => new AngleUnityBackend(nativeTexture),
             };
 
+        /// <summary>
+        /// Runs in its own plugin event just before <see cref="Draw"/>, for a backend that needs a
+        /// different kind of event to ready the texture than to draw on it. Only called when
+        /// <see cref="UsesPrepareEvent"/> is set.
+        /// </summary>
+        internal virtual void Prepare(SkiaRenderTarget2D.RenderState target) { }
+
         /// <summary>Plays <paramref name="picture"/> back onto the target's texture, creating its surface on the first draw.</summary>
-        internal abstract void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture);
+        internal abstract void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture);
 
         /// <summary>Clears the surface and draws the picture onto it the way Unity expects.</summary>
         protected static void PlayBack(SKSurface surface, SKPicture picture, int height)
@@ -70,7 +102,7 @@ namespace SkiaGameRendering.Unity
         }
 
         /// <summary>Releases the target's surface and texture state.</summary>
-        internal abstract void DisposeTarget(SkiaUnityRenderTarget.RenderState target);
+        internal abstract void DisposeTarget(SkiaRenderTarget2D.RenderState target);
 
         public abstract void Dispose();
     }
