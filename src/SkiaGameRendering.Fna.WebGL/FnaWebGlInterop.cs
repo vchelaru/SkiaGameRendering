@@ -63,6 +63,19 @@ internal static partial class FnaWebGlInterop
     const gl = glOf(id);
     if (gl.isContextLost()) return [1, 0, 0, 0, 0, 0];
     passes++;
+    if (!gl.__traced) { // TEMP diagnostic: name the call that queues the error
+      gl.__traced = true;
+      for (const name of Object.getOwnPropertyNames(WebGL2RenderingContext.prototype)) {
+        const f = WebGL2RenderingContext.prototype[name];
+        if (typeof f !== 'function' || name === 'getError' || name === 'isContextLost') continue;
+        gl[name] = function (...args) {
+          const r = f.apply(this, args);
+          if (saved) { const e = f === undefined ? 0 : WebGL2RenderingContext.prototype.getError.call(this);
+            if (e !== 0) { glErrors++; errorLog.push([passes, 'call:' + name, e, args.map(x => (x && typeof x === 'object' && !ArrayBuffer.isView(x)) ? x.constructor.name : (ArrayBuffer.isView(x) ? 'view' + x.length : x))]); } }
+          return r;
+        };
+      }
+    }
     const pre = gl.getError(); if (pre !== 0) errorLog.push([passes, 'pre', pre]);
     const s = saved = { gl, caps: {}, p: {}, attribs: [], units: [] };
     for (const c of caps(gl)) s.caps[c] = gl.isEnabled(c);
