@@ -35,7 +35,7 @@ which also draw straight into the current target (`SkiaDirectCanvas`).
 | raylib | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Stride | ❌ | ✅ | ✅ | 🟦 | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌ |
-| Unity 6 | 🟦 Windows<br>🟡 Android | 🟦 | 🟦 | 🟦 | 🟦 | 🟡 |
+| Unity 6 | 🟦 Windows<br>🟡 Android | ✅ | 🟦 | 🟦 | 🟦 | 🟡 |
 
 FNA's D3D12, Vulkan and Metal are ❌ because FNA3D reaches them through its SDL_GPU driver, which
 exposes no native device handles.
