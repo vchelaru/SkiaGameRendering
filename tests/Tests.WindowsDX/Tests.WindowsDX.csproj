@@ -28,6 +28,7 @@
     <Compile Include="..\Shared\FrameLeakCheck.cs" Link="FrameLeakCheck.cs" />
     <Compile Include="..\Shared\EngineFrameLeak.cs" Link="EngineFrameLeak.cs" />
     <Compile Include="..\Shared\EngineSkiaGolden.cs" Link="EngineSkiaGolden.cs" />
+    <Compile Include="..\Shared\EngineMultiSample.cs" Link="EngineMultiSample.cs" />
     <Compile Include="..\Shared\DirectDrawLayering.cs" Link="DirectDrawLayering.cs" />
     <Compile Include="..\Shared\SkiaRendererCollection.cs" Link="SkiaRendererCollection.cs" />
     <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />

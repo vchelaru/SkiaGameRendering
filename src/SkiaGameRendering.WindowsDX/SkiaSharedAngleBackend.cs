@@ -22,7 +22,7 @@ namespace SkiaGameRendering
         internal override void EndDraw() => _factory.EndDraw();
 
         internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
+            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, int multiSampleCount, out object renderState)
         {
             var state = (AngleTextureState)textureHandle;
             var result = _factory.CreateSurface(state, width, height, colorType);

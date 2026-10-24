@@ -51,8 +51,9 @@ public sealed partial class SkiaWebGlBackend : SkiaBackend
     internal override void BeginDraw() => EnsureThread();
     internal override void EndDraw() { }
 
-    internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType)
+    internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType, int multiSampleCount)
     {
+        ThrowIfMultiSampleUnsupported(multiSampleCount);
         EnsureThread();
         var format = ToSurfaceFormat(colorType);
         if (format != SurfaceFormat.Color)

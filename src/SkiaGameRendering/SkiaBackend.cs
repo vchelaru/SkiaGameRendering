@@ -25,8 +25,9 @@ namespace SkiaGameRendering
         /// <summary>
         /// Eagerly allocates the texture and GPU render-target resources for a fixed-size target.
         /// </summary>
-        internal virtual SkiaTarget CreateTarget(int width, int height, SKColorType colorType)
+        internal virtual SkiaTarget CreateTarget(int width, int height, SKColorType colorType, int multiSampleCount)
         {
+            ThrowIfMultiSampleUnsupported(multiSampleCount);
             var texture = CreateTexture(width, height, ToSurfaceFormat(colorType));
 
             try
@@ -35,7 +36,7 @@ namespace SkiaGameRendering
                 BeginDraw();
                 try
                 {
-                    target.EnsureSurface(colorType);
+                    target.EnsureSurface(colorType, multiSampleCount);
                 }
                 finally
                 {
@@ -48,6 +49,21 @@ namespace SkiaGameRendering
                 DisposeTexture(texture);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// True when this backend can back a target with a multisampled Skia surface (see
+        /// <see cref="SkiaRenderTarget2D"/>'s <c>multiSampleCount</c>). Only the shared GL path does.
+        /// </summary>
+        internal virtual bool SupportsMultiSampledTargets => false;
+
+        /// <summary>Throws <see cref="NotSupportedException"/> for a non-zero count on a backend that cannot honor it, never falling back to none.</summary>
+        internal void ThrowIfMultiSampleUnsupported(int multiSampleCount)
+        {
+            if (multiSampleCount != 0 && !SupportsMultiSampledTargets)
+                throw new NotSupportedException(
+                    $"{GetType().Name} does not support multisampled render targets (multiSampleCount {multiSampleCount}). " +
+                    "Pass 0, or use a GL backend (DesktopGL, KNI DesktopGL, FNA OpenGL, Android, iOS).");
         }
 
         /// <summary>See <see cref="SkiaRenderer.SupportsDirectCanvas"/>.</summary>
@@ -101,6 +117,10 @@ namespace SkiaGameRendering
 
             try
             {
+                // Skia leaves a multisampled surface over a texture unresolved at flush; taking a snapshot
+                // resolves it into the texture on the GPU (no readback).
+                if (nativeTarget.SampleCount > 1)
+                    nativeTarget.Surface!.Snapshot().Dispose();
                 nativeTarget.Surface!.Flush();
             }
             finally
@@ -139,7 +159,7 @@ namespace SkiaGameRendering
         // overrides just to satisfy the compiler.
         internal virtual object CaptureTextureHandle(Texture2D texture) => throw NativeTextureHandlePathNotSupported();
         internal virtual (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState) =>
+            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, int multiSampleCount, out object renderState) =>
             throw NativeTextureHandlePathNotSupported();
         internal virtual void BindForDrawing(object renderState) => throw NativeTextureHandlePathNotSupported();
         internal virtual void UnbindAfterDrawing() => throw NativeTextureHandlePathNotSupported();
@@ -199,14 +219,16 @@ namespace SkiaGameRendering
             internal SKSurface? Surface => _surface;
             internal object? TextureHandle => _textureHandle;
             internal object? RenderState => _renderState;
+            internal int SampleCount { get; private set; }
 
-            internal void EnsureSurface(SKColorType colorType)
+            internal void EnsureSurface(SKColorType colorType, int multiSampleCount)
             {
                 if (_surface != null && _backendRenderTarget != null)
                     return;
 
                 var result = _backend.CreateSurface(
-                    _textureHandle!, Texture, Texture.Width, Texture.Height, colorType, out var renderState);
+                    _textureHandle!, Texture, Texture.Width, Texture.Height, colorType, multiSampleCount, out var renderState);
+                SampleCount = multiSampleCount;
                 _surface = result.surface;
                 _backendRenderTarget = result.renderTarget;
                 _renderState = renderState;

@@ -86,8 +86,9 @@ namespace SkiaGameRendering
 
         internal override void EndDraw() => FnaWebGlInterop.End(_canvasId);
 
-        internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType)
+        internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType, int multiSampleCount)
         {
+            ThrowIfMultiSampleUnsupported(multiSampleCount);
             EnsureAlive();
             var texture = CreateTexture(width, height, ToSurfaceFormat(colorType));
             try
