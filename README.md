@@ -35,8 +35,6 @@ canvas.Canvas.DrawCircle(100, 100, 50, paint);
 canvas.End();
 ```
 
-![200 Skia-drawn UI cards in KNI DesktopGL](docs/performance/images/ui-skia.jpg)
-
 Setup differs per engine; pick yours from the [table above](#platform-support).
 
 ## Render target or direct canvas
