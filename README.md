@@ -29,14 +29,26 @@ Unity textures on the GPU, with no CPU readback.
 
 Skia draws straight into whatever the engine is rendering to:
 
+<img src="docs/images/scene.png" width="600" alt="A red circle, a blue SVG water drop and a pink-to-purple gradient rounded rectangle">
+
 ```cs
 // once, e.g. in LoadContent
 _skia = new SkiaDirectCanvas(GraphicsDevice);
-_paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
+_red = new SKPaint { Color = SKColors.Red, IsAntialias = true };
+_drop = new SKSvg(); // Svg.Skia
+_drop.Load("drop.svg");
+_gradient = new SKPaint
+{
+    IsAntialias = true,
+    Shader = SKShader.CreateLinearGradient(new SKPoint(420, 20), new SKPoint(580, 180),
+        new[] { new SKColor(0xF7, 0x25, 0x85), new SKColor(0x72, 0x09, 0xB7) }, SKShaderTileMode.Clamp),
+};
 
 // every frame, in Draw
 _skia.Begin();
-_skia.Canvas.DrawCircle(100, 100, 50, _paint);
+_skia.Canvas.DrawCircle(100, 100, 80, _red);
+_skia.Canvas.DrawPicture(_drop.Picture, 220, 20);
+_skia.Canvas.DrawRoundRect(new SKRect(420, 20, 580, 180), 32, 32, _gradient);
 _skia.End();
 ```
 
