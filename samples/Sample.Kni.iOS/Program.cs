@@ -1,4 +1,5 @@
 using Foundation;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Sample.Shared;
 using SkiaGameRendering;
@@ -36,6 +37,12 @@ namespace Sample
         public IosGame(bool smokeTest) : base(smokeTest)
         {
             _smokeTest = smokeTest;
+
+            // KNI 4.3.9001's iOS GraphicsDeviceManager never fills in PresentationParameters.DeviceWindowHandle,
+            // and its graphics context constructor looks the game window up by it, so creating the device
+            // throws a KeyNotFoundException for any app. Setting it here is the whole workaround.
+            var manager = (GraphicsDeviceManager)Services.GetService(typeof(IGraphicsDeviceManager));
+            manager.PreparingDeviceSettings += (_, e) => e.GraphicsDeviceInformation.PresentationParameters.DeviceWindowHandle = Window.Handle;
             if (!smokeTest)
                 return;
 
@@ -73,7 +80,7 @@ namespace Sample
             Environment.Exit(ExitCode);
         }
 
-        protected override void Draw(Microsoft.Xna.Framework.GameTime gameTime)
+        protected override void Draw(GameTime gameTime)
         {
             var parameters = GraphicsDevice.PresentationParameters;
             base.Draw(gameTime);
