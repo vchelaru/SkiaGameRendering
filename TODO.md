@@ -23,11 +23,9 @@ This document tracks which framework/platform/backend combinations have been pro
 ## Direct Canvas Coverage
 
 Which engine/backend pairs have a render target (`SkiaRenderTarget2D` or the engine's equivalent) and
-which also draw straight into the current target (`SkiaDirectCanvas`, `SkiaStrideDirectCanvas`).
+which also draw straight into the current target (`SkiaDirectCanvas`).
 
 ✅ render target + direct  🟦 render target only  🟡 neither, but the engine has this API  ❌ the engine doesn't have this API
-
-`?` marks a guess about what the engine supports that nobody has checked against the engine.
 
 | Engine | OpenGL / GLES | D3D11 | D3D12 | Vulkan | Metal | WebGL |
 |---|---|---|---|---|---|---|
@@ -36,8 +34,8 @@ which also draw straight into the current target (`SkiaDirectCanvas`, `SkiaStrid
 | FNA | ✅ | ✅ | ❌ | ❌ | ❌ | 🟡 |
 | raylib | ✅ | ❌ | ❌ | ❌ | ❌ | 🟡 |
 | Stride | ❌ | ✅ | ✅ | 🟦 | ❌ | ❌ |
-| Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌? |
-| Unity 6 | 🟡 | 🟦 | 🟦 | 🟡 | 🟦 | 🟡? |
+| Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌ |
+| Unity 6 | 🟡 | 🟦 | 🟦 | 🟡 | 🟦 | 🟡 |
 
 FNA's D3D12, Vulkan and Metal are ❌ because FNA3D reaches them through its SDL_GPU driver, which
 exposes no native device handles.
@@ -51,7 +49,7 @@ Shared code to reuse when moving a 🟦 to ✅:
 - OpenGL: `GlSkiaSurfaceFactory` in `Core.OGL` and `SkiaSharedGlBackend`. An engine that derives from
   `SkiaSharedGlBackend` only overrides `CanDrawToCurrentTarget` and `GetBoundRenderTarget`.
 - D3D11: `AngleSkiaSurfaceFactory.BeginDirectDraw`/`EndDirectDraw` in `Core.ANGLE`, which reads the bound
-  view off the immediate context. Used by `SkiaSharedAngleBackend` and `SkiaStrideDirectCanvas`.
+  view off the immediate context. Used by `SkiaSharedAngleBackend` and the Stride D3D11 `SkiaDirectCanvas`.
 - D3D12: `D3D12SkiaSurfaceFactory.DescribeDirectTarget`/`BeginDirectDraw`/`EndDirectDraw` in `Core.D3D12`,
   which take the target's `ID3D12Resource` from the engine adapter (no bound-target query exists). The
   adapter has to put it in `RENDER_TARGET` first and submit the engine's recorded commands ahead of
@@ -69,11 +67,11 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 own implementation, documented per platform in `docs/`:
 
 - [`docs/desktop/quickstart.md`](docs/desktop/quickstart.md) — MonoGame/KNI DesktopGL and
-  WindowsDX (`SkiaGlBackend`, `SkiaKniGlBackend`, `SkiaAngleBackend`, `SkiaKniAngleBackend`),
+  WindowsDX (`SkiaGlBackend`, `SkiaAngleBackend`),
   project layout, and known limitations.
 - [`docs/webgl/quickstart.md`](docs/webgl/quickstart.md) — KNI WebGL/Blazor (`SkiaWebGlBackend`).
-- [`docs/android/quickstart.md`](docs/android/quickstart.md): KNI Android (`SkiaKniAndroidBackend`, `Core.OGL`'s `EglSharedContext`).
-- [`docs/raylib/quickstart.md`](docs/raylib/quickstart.md) — raylib (`SkiaRaylibRenderTarget2D`),
+- [`docs/android/quickstart.md`](docs/android/quickstart.md): KNI Android (`SkiaAndroidBackend`, `Core.OGL`'s `EglSharedContext`).
+- [`docs/raylib/quickstart.md`](docs/raylib/quickstart.md) — raylib (`SkiaRenderTarget2D`),
   the first non-MonoGame engine and the first consumer of `Core.OGL` from outside the MonoGame
   family (tracked in [issue #3](https://github.com/vchelaru/SkiaGameRendering/issues/3); it does
   *not* derive from `SkiaBackend`/`SkiaTarget`, deliberately, since those are typed to MonoGame's
