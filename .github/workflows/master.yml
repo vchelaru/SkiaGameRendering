@@ -1,10 +1,23 @@
 name: build
 
+# PRs and master pushes run only desktop-and-core (Release). Everything else runs nightly (09:00 UTC) or by hand:
+#   gh workflow run master.yml --ref <branch>                       # everything
+#   gh workflow run master.yml --ref <branch> -f only=ios-simulator # chosen jobs, comma-separated job ids, no spaces
+# `only` takes job ids (desktop-and-core, raylib-linux, metal-macos, android, ...); `webgl` selects the WebGL shards and
+# their webgl-functional aggregate together. A failed nightly opens an issue (nightly-report).
 on:
   push:
     branches: [master]
   pull_request:
     branches: [master]
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Comma-separated job ids to run, no spaces (empty = everything)'
+        default: ''
+        type: string
 
 # A new push to a PR cancels that PR's superseded run. Each master push gets its own group (github.sha),
 # so push runs are never cancelled and never queue behind each other.
@@ -14,10 +27,12 @@ concurrency:
 
 jobs:
   desktop-and-core:
+    if: github.event_name != 'workflow_dispatch' || inputs.only == '' || contains(format(',{0},', inputs.only), ',desktop-and-core,')
     runs-on: windows-latest
     strategy:
       matrix:
-        configuration: [Debug, Release]
+        # Debug only in the nightly and manual runs; PRs and pushes build Release alone.
+        configuration: ${{ fromJSON((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '["Debug","Release"]' || '["Release"]') }}
     steps:
       - uses: actions/checkout@v4
       # FNA (external/FNA) is a submodule, not a package, and needs five of its own submodules for
@@ -202,6 +217,7 @@ jobs:
   # sharded one browser project per runner. Each shard builds both samples itself (~2.5 min) and
   # installs only its own browser.
   webgl-functional-shard:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',webgl,')))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -249,7 +265,7 @@ jobs:
   # Aggregate under the job's original name so anything keyed on "webgl-functional" still reports.
   # always() plus an explicit result check: a failed, cancelled or skipped shard must fail this.
   webgl-functional:
-    if: always()
+    if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',webgl,'))))
     needs: webgl-functional-shard
     runs-on: ubuntu-latest
     steps:
@@ -260,11 +276,9 @@ jobs:
 
   # AOT + trimming take ~14 minutes. They're the shippable release build (and the strictest check
   # on the reflection path in WebGlCanvasUpload.cs, which trimming can strip), but that doesn't
-  # need to block every PR - only push (i.e. post-merge to master) runs them, in parallel with the
-  # tests, so a broken trim/AOT build surfaces within minutes of merge without slowing down
-  # per-PR iteration.
+  # need to block every PR - so it runs nightly or by hand.
   webgl-aot:
-    if: github.event_name == 'push'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',webgl-aot,')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -286,6 +300,7 @@ jobs:
           path: .artifacts/packages
 
   raylib-webgl:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',raylib-webgl,')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -320,6 +335,7 @@ jobs:
   # FNA in the browser. Separate from webgl-functional: it builds SDL2 and FNA3D for Emscripten first and needs the
   # .NET 10 wasm-tools workload (the emsdk version has to match the .NET runtime's).
   fna-webgl:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',fna-webgl,')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -365,6 +381,7 @@ jobs:
             tests/Tests.Fna.WebGL/test-results
 
   raylib-linux:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',raylib-linux,')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -396,6 +413,7 @@ jobs:
   # macos-latest is an Apple silicon VM with a paravirtualized Metal device, so Core.Metal and the
   # Godot metal driver run on real Metal here with nothing to vendor. Both skip elsewhere.
   metal-macos:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',metal-macos,')))
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -425,6 +443,7 @@ jobs:
   # library, warnings as errors); the run half catches what the analyzer can't see, such as a
   # reflected MonoGame member the trimmer removed.
   desktopgl-nativeaot:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',desktopgl-nativeaot,')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -446,6 +465,7 @@ jobs:
   # Same as desktopgl-nativeaot, for MonoGame WindowsDX (ANGLE over D3D11). --smoke-test pins the
   # sample to WARP, since windows-latest has no GPU.
   windowsdx-nativeaot:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',windowsdx-nativeaot,')))
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -470,6 +490,7 @@ jobs:
   # windows-latest's software drivers: WARP for D3D12 (the runner's only adapter), Mesa lavapipe for
   # Vulkan. The Vulkan run reads Skia's own surface instead of the back buffer; see SKIAGAMERENDERING_SMOKE_SKIA_READBACK below.
   monogame-native-windows:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',monogame-native-windows,')))
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -583,6 +604,7 @@ jobs:
   # Builds the sample for ARM and x86_64, then runs its smoke test on an x86_64 emulator with
   # SwiftShader as the GPU (the runner has none).
   android:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',android,')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -635,6 +657,7 @@ jobs:
 
   # MonoGame iOS renders with OpenGL ES, which the iOS Simulator still runs (on Metal).
   ios-simulator:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',ios-simulator,')))
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
@@ -664,6 +687,7 @@ jobs:
         run: bash eng/run-ios-smoke-test.sh "$(find samples/Sample.MonoGame.iOS/bin/Release -name '*.app' -type d | head -n 1)" com.vchelaru.skiagamerendering.monogame.sample
 
   godot-linux:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',godot-linux,')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -701,3 +725,19 @@ jobs:
           SKIAGAMERENDERING_GODOT_GPU_VALIDATION: 1
           VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
           VK_LOADER_DEBUG: layer
+
+  # Opens an issue when a nightly run fails, so a failure is never lost in the Actions tab.
+  nightly-report:
+    if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
+    needs: [desktop-and-core, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open an issue for the failed nightly
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          failed=$(echo "$NEEDS" | jq -r 'to_entries[] | select(.value.result == "failure") | .key' | paste -sd, -)
+          gh issue create --repo ${{ github.repository }}             --title "Nightly CI failed: $(date -u +%F)"             --body "Failed jobs: $failed. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
