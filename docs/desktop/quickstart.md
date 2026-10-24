@@ -110,6 +110,7 @@ track or dispose them for you.
 | `SkiaKniGlBackend` | KNI DesktopGL | Same trick, adapted to KNI's SDL bridge | [docs](../documentation/SkiaKniGlBackend.md) |
 | `SkiaAngleBackend` | MonoGame WindowsDX | ANGLE (GL ES → D3D11) on MonoGame's own D3D11 device | [docs](../documentation/SkiaAngleBackend.md) |
 | `SkiaKniAngleBackend` | KNI WindowsDX | Same ANGLE interop, on KNI's D3D11 device via its Strategy bridge | [docs](../documentation/SkiaKniAngleBackend.md) |
+| `SkiaAndroidBackend` | MonoGame Android | Second EGL context sharing MonoGame's GLES context (see the [MonoGame Android quick start](../android/monogame-quickstart.md)) | [docs](../documentation/SkiaAndroidBackend.md) |
 | `SkiaKniAndroidBackend` | KNI Android | Second EGL context sharing KNI's GLES context (see the [Android quick start](../android/quickstart.md)) | [docs](../documentation/SkiaKniAndroidBackend.md) |
 | `SkiaDx12Backend` | MonoGame native WindowsDX12 | Skia's D3D12 backend on MonoGame's own device and queue | [docs](../documentation/SkiaDx12Backend.md) |
 | `SkiaVulkanBackend` | MonoGame native DesktopVK | Skia's Vulkan backend on MonoGame's own device and queue | [docs](../documentation/SkiaVulkanBackend.md) |

@@ -29,7 +29,7 @@ namespace Sample
             base.OnCreate(bundle);
             var smoke = Intent?.GetBooleanExtra("smoke", false) ?? false;
             _game = new LoggingGame(this, smoke);
-            _game.ExtraSmokeCheck = AndroidDirectCanvasCheck.Run;
+            _game.ExtraSmokeCheck = graphicsDevice => AndroidDirectCanvasCheck.Run(graphicsDevice);
             SetContentView((View)_game.Services.GetService(typeof(View)));
             _game.Run();
         }

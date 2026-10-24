@@ -474,8 +474,10 @@ jobs:
         run: dotnet workload install android
       - name: Install the Android SDK platform and build tools
         run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -t:InstallAndroidDependencies -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:AcceptAndroidSDKLicenses=True
-      - name: Build the Android sample
+      - name: Build the KNI Android sample
         run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -c Release -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:EmulatorRuntime=true
+      - name: Build the MonoGame Android sample
+        run: dotnet build samples/Sample.MonoGame.Android/Sample.MonoGame.Android.csproj -c Release -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:EmulatorRuntime=true
       - name: Enable KVM for the emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -496,7 +498,7 @@ jobs:
           done
           echo "The system image never installed." >&2
           exit 1
-      - name: Run the smoke test on an emulator
+      - name: Run the smoke tests on an emulator
         uses: reactivecircus/android-emulator-runner@v2.38.0
         with:
           api-level: 35
@@ -506,7 +508,10 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: bash eng/run-android-smoke-test.sh "$(find samples/Sample.Kni.Android/bin/Release -name '*-Signed.apk' | head -n 1)"
+          # The runner executes each script line as its own command and stops at the first failure.
+          script: |
+            bash eng/run-android-smoke-test.sh "$(find samples/Sample.Kni.Android/bin/Release -name '*-Signed.apk' | head -n 1)" com.vchelaru.skiagamerendering.sample
+            bash eng/run-android-smoke-test.sh "$(find samples/Sample.MonoGame.Android/bin/Release -name '*-Signed.apk' | head -n 1)" com.vchelaru.skiagamerendering.monogame.sample
 
   godot-linux:
     runs-on: ubuntu-latest

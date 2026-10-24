@@ -12,6 +12,7 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 | [MonoGame 3.8.4 WindowsDX](docs/desktop/quickstart.md) | D3D11 | [![SkiaGameRendering.WindowsDX](https://img.shields.io/nuget/v/SkiaGameRendering.WindowsDX?label=SkiaGameRendering.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX) | Windows |  |
 | [MonoGame 3.8.6 WindowsDX12](docs/desktop/quickstart.md) | D3D12 | [![SkiaGameRendering.WindowsDX12](https://img.shields.io/nuget/vpre/SkiaGameRendering.WindowsDX12?label=SkiaGameRendering.WindowsDX12)](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX12) | Windows | Needs MonoGame 3.8.6 and `MonoGame.Runtime.Windows.DX12` |
 | [MonoGame 3.8.6 DesktopVK](docs/desktop/quickstart.md) | Vulkan | [![SkiaGameRendering.DesktopVK](https://img.shields.io/nuget/vpre/SkiaGameRendering.DesktopVK?label=SkiaGameRendering.DesktopVK)](https://www.nuget.org/packages/SkiaGameRendering.DesktopVK) | Windows, Linux | Prerelease; needs MonoGame 3.8.6 and `MonoGame.Runtime.Windows.Vulkan` or `MonoGame.Runtime.Linux.Vulkan`. **Stay on 0.17.4-preview (SkiaSharp 3.119.4).** Later releases use SkiaSharp 4.x, which needs Vulkan 1.1, and MonoGame creates its device at 1.0, so Skia fails on AMD and Mesa drivers. Not published until [MonoGame#9588](https://github.com/MonoGame/MonoGame/issues/9588) is fixed |
+| [MonoGame 3.8.4 Android](docs/android/monogame-quickstart.md) | OpenGL ES | [![SkiaGameRendering.Android](https://img.shields.io/nuget/v/SkiaGameRendering.Android?label=SkiaGameRendering.Android)](https://www.nuget.org/packages/SkiaGameRendering.Android) | Android 7+ (API 24), GLES 3.0+ | .NET 10; no `SkiaDirectCanvas` on MSAA targets; see the [quick start](docs/android/monogame-quickstart.md) |
 | [KNI DesktopGL](docs/desktop/quickstart.md) | OpenGL | [![SkiaGameRendering.Kni.DesktopGL](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.DesktopGL?label=SkiaGameRendering.Kni.DesktopGL)](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Windows, Linux, macOS |  |
 | [KNI WindowsDX](docs/desktop/quickstart.md) | D3D11 | [![SkiaGameRendering.Kni.WindowsDX](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.WindowsDX?label=SkiaGameRendering.Kni.WindowsDX)](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | Windows |  |
 | [KNI Android](docs/android/quickstart.md) | OpenGL ES | [![SkiaGameRendering.Kni.Android](https://img.shields.io/nuget/v/SkiaGameRendering.Kni.Android?label=SkiaGameRendering.Kni.Android)](https://www.nuget.org/packages/SkiaGameRendering.Kni.Android) | Android 7+ (API 24), GLES 3.0+ expected (run on 3.2) | .NET 10; see the [quick start](docs/android/quickstart.md) for lifecycle notes |
@@ -27,7 +28,6 @@ A library that lets MonoGame, KNI, FNA, raylib, Stride, Godot, and Unity applica
 
 Not supported yet:
 
-- **MonoGame Android**: not started (KNI Android works).
 - **FNA SDL_GPU** (Vulkan/D3D12/Metal): blocked, FNA3D's default driver exposes no native device (see [FNA](#fna)).
 - **Godot Vulkan on macOS, and Compatibility on ANGLE/EGL/Wayland**: SkiaSharp's macOS native build has no Vulkan backend (so MoltenVK is out), and the EGL/NSOpenGL-flavored GL contexts need platform code this repo does not have yet. See `TODO.md`.
 
@@ -42,7 +42,7 @@ references the native runtime package for its platform (`MonoGame.Runtime.Window
 
 - .NET 8 (.NET 10 for the Stride and Android backends)
 - Visual Studio 2022
-- MonoGame 3.8.4.1+ (DesktopGL or WindowsDX; samples use 3.8.5.1), MonoGame 3.8.6+ (native WindowsDX12 or DesktopVK), KNI (DesktopGL, WindowsDX, WebGL/Blazor, or Android), FNA 26.09+ (D3D11 on Windows, or OpenGL anywhere), raylib, Stride 4.4.0-beta5+ (D3D11 or D3D12 on Windows, or Vulkan on Windows/Linux/macOS; prerelease), or Godot 4.7+ .NET (Forward+/Mobile on Vulkan, D3D12 or Metal, or Compatibility on native OpenGL)
+- MonoGame 3.8.4.1+ (DesktopGL, WindowsDX or Android; samples use 3.8.5.1), MonoGame 3.8.6+ (native WindowsDX12 or DesktopVK), KNI (DesktopGL, WindowsDX, WebGL/Blazor, or Android), FNA 26.09+ (D3D11 on Windows, or OpenGL anywhere), raylib, Stride 4.4.0-beta5+ (D3D11 or D3D12 on Windows, or Vulkan on Windows/Linux/macOS; prerelease), or Godot 4.7+ .NET (Forward+/Mobile on Vulkan, D3D12 or Metal, or Compatibility on native OpenGL)
 - SkiaSharp 4.153.1 (3.119.4 for `SkiaGameRendering.DesktopVK` 0.17.4-preview)
 
 The MonoGame DesktopGL (`SkiaGameRendering`) and WindowsDX (`SkiaGameRendering.WindowsDX`) packages
@@ -242,7 +242,7 @@ Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or 
 
 ## Drawing straight into the current target
 
-On MonoGame DesktopGL, KNI DesktopGL, KNI Android, KNI WebGL, MonoGame WindowsDX and WindowsDX12, KNI WindowsDX and FNA
+On MonoGame DesktopGL, MonoGame and KNI Android, KNI WebGL, MonoGame WindowsDX and WindowsDX12, KNI WindowsDX and FNA
 (on its D3D11 or OpenGL driver), `SkiaDirectCanvas` draws into whatever the
 engine is rendering to when `Begin()` is called, the back buffer or the bound `RenderTarget2D`, with
 no intermediate texture and no `SpriteBatch` composite. It has the same `Begin`/`Canvas`/`End` shape as
@@ -325,6 +325,7 @@ platform and hardware, are in [docs/performance.md](docs/performance.md). The sh
 - `samples/Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
 - `samples/Sample.Kni.DesktopGL/` — KNI DesktopGL sample (cross-platform: Windows, Linux, macOS)
 - `samples/Sample.Kni.WindowsDX/` — KNI WindowsDX sample (Windows only)
+- `samples/Sample.MonoGame.Android/`: MonoGame Android sample (.NET 10; install the APK, or run with `--ez smoke true` to check the pixels)
 - `samples/Sample.Kni.Android/`: KNI Android sample (.NET 10; install the APK, or run with `--ez smoke true` to check the pixels)
 - `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample
 - `samples/Sample.Gum.Kni.WebGL/` — KNI Blazor WebAssembly sample of Gum UI interleaved with SpriteBatch, render targets, shaders, and browser input

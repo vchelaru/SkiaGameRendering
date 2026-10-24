@@ -29,8 +29,8 @@ namespace Sample
             base.OnCreate(bundle);
             var smoke = Intent?.GetBooleanExtra("smoke", false) ?? false;
             _game = new LoggingGame(this, smoke);
-            // MonoGame's multisample resolve calls glDrawBuffer, which GLES does not have, so unbinding a
-            // multisampled render target throws a NullReferenceException with or without Skia.
+            // Unbinding a multisampled render target throws a NullReferenceException inside MonoGame's own
+            // resolve (GraphicsDevice.FramebufferHelper.BlitFramebuffer) on GLES, so the check skips 4x MSAA.
             _game.ExtraSmokeCheck = graphicsDevice => AndroidDirectCanvasCheck.Run(graphicsDevice,
                 msaaSkipReason: "MonoGame cannot resolve a multisampled target on GLES");
             SetContentView((View)_game.Services.GetService(typeof(View)));
