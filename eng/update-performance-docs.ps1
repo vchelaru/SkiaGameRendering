@@ -47,16 +47,15 @@ function Read-Run([string] $path) {
     }
 }
 
-# A frame over 20 times the median (a shader compile, a garbage collection) drags the average down; flag the cell.
-function Format-Fps($row) {
-    if ($row.Fps -eq 'n/a') { return 'n/a' }
-    $median = 0.0; $p95 = 0.0
-    if ([double]::TryParse($row.MedianMs, [ref] $median) -and [double]::TryParse($row.P95Ms, [ref] $p95) -and $median -gt 0 -and $p95 -gt 20 * $median) {
-        return "$($row.Fps)*"
-    }
-    return $row.Fps
+# Average FPS over the measured window, so frequent stalls count against the side that has them.
+function Row-Fps($row) {
+    $fps = 0.0
+    if ($row -and [double]::TryParse($row.Fps, [ref] $fps) -and $fps -gt 0) { return $fps }
+    return $null
 }
 
+# Each scene compares the fastest native renderer with Skia's direct canvas. Pre-rasterized SVG is left out
+# on both sides: it measures a bitmap, not vector rendering.
 function Build-PageTables([object[]] $runs, [string] $page) {
     $out = New-Object System.Text.StringBuilder
     $platforms = $runs | Select-Object -ExpandProperty Platform -Unique |
@@ -64,96 +63,25 @@ function Build-PageTables([object[]] $runs, [string] $page) {
     $any = $false
     foreach ($platform in $platforms) {
         $platformRuns = @($runs | Where-Object { $_.Platform -eq $platform -and ($_.Rows | Where-Object Page -eq $page) })
-        if (-not $platformRuns) { continue }
-        $any = $true
-        [void] $out.AppendLine("### $platform")
-        [void] $out.AppendLine()
-
         foreach ($hardware in ($platformRuns | Select-Object -ExpandProperty Hardware -Unique | Sort-Object)) {
-            $hardwareRuns = @($platformRuns | Where-Object Hardware -eq $hardware)
-            $rows = @($hardwareRuns | ForEach-Object { $_.Rows } | Where-Object Page -eq $page)
-
-            $stamp = ($hardwareRuns | ForEach-Object { "$($_.App) $($_.Meta['Date']) at $($_.Meta['Commit'])" }) -join '; '
-            [void] $out.AppendLine("**$hardware**: $stamp")
-            [void] $out.AppendLine()
-
-            $engine = @($rows | Where-Object Kind -eq 'engine' | Select-Object -ExpandProperty Renderer -Unique)
-            $skia = @($rows | Where-Object Kind -eq 'skia' | Select-Object -ExpandProperty Renderer -Unique)
-            $columns = @($engine) + @($skia)
-            $scenes = @($rows | Select-Object -ExpandProperty Scene -Unique)
-
-            $header = '| Scene | ' + (($columns | ForEach-Object { "$_ FPS" }) -join ' | ')
-            $rule = '|---|' + (($columns | ForEach-Object { '---:' }) -join '|') + '|'
-            $ratioColumns = @($skia | Where-Object { $_ -notmatch '\(' })
-            $showRatios = $engine.Count -gt 0 -and $ratioColumns.Count -gt 0
-            if ($showRatios) {
-                $header += ' | ' + (($ratioColumns | ForEach-Object { "$_ / $($engine[0])" }) -join ' | ')
-                $rule += (($ratioColumns | ForEach-Object { '---:' }) -join '|') + '|'
+            $rows = @($platformRuns | Where-Object Hardware -eq $hardware | ForEach-Object { $_.Rows } |
+                Where-Object { $_.Page -eq $page -and $_.Renderer -notmatch 'pre-rasterized' })
+            $lines = foreach ($scene in @($rows | Select-Object -ExpandProperty Scene -Unique)) {
+                $skia = Row-Fps ($rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq 'Skia direct' } | Select-Object -First 1)
+                $native = $rows | Where-Object { $_.Scene -eq $scene -and $_.Kind -eq 'engine' -and (Row-Fps $_) } |
+                    Sort-Object { Row-Fps $_ } -Descending | Select-Object -First 1
+                if (-not $skia -or -not $native) { continue }
+                $nativeFps = Row-Fps $native
+                $change = 100.0 * ($skia / $nativeFps - 1)
+                '| {0} | {1:0} ({2}) | {3:0} | {4}{5:0}% |' -f $scene, $nativeFps, $native.Renderer, $skia, $(if ($change -ge 0) { '+' } else { '' }), $change
             }
-            [void] $out.AppendLine($header + ' |')
-            [void] $out.AppendLine($rule)
-
-            foreach ($scene in $scenes) {
-                $cells = foreach ($column in $columns) {
-                    $row = $rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq $column } | Select-Object -First 1
-                    if ($row) { Format-Fps $row } else { '' }
-                }
-                $line = "| $scene | " + ($cells -join ' | ')
-                if ($showRatios) {
-                    $base = $rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq $engine[0] } | Select-Object -First 1
-                    $ratios = foreach ($column in $ratioColumns) {
-                        $row = $rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq $column } | Select-Object -First 1
-                        if ($base -and $row -and $base.Fps -match '^\d+$' -and $row.Fps -match '^\d+$' -and [double] $base.Fps -gt 0) {
-                            '{0:0}%' -f (100.0 * [double] $row.Fps / [double] $base.Fps)
-                        } else { '' }
-                    }
-                    $line += ' | ' + ($ratios -join ' | ')
-                }
-                [void] $out.AppendLine($line + ' |')
-            }
-            if ($rows | Where-Object { (Format-Fps $_) -like '*[*]' }) {
-                [void] $out.AppendLine('\* A frame took more than 20 times the median (a shader compile or a garbage collection), which drags the average down. The median is in the table below.')
-                [void] $out.AppendLine()
-            }
-
-            $notes = @($rows | Where-Object { $_.Note } | ForEach-Object { "- $($_.Scene), $($_.Renderer): $($_.Note)" } | Select-Object -Unique)
-            if ($notes) {
-                [void] $out.AppendLine('Not supported here:')
-                [void] $out.AppendLine()
-                foreach ($note in $notes) { [void] $out.AppendLine($note) }
-                [void] $out.AppendLine()
-            }
-
-            if (-not ($rows | Where-Object DrawMs)) { continue }
-
-            [void] $out.AppendLine('<details><summary>Median draw CPU time per frame (ms)</summary>')
+            if (-not $lines) { continue }
+            $any = $true
+            [void] $out.AppendLine("### $platform, $hardware")
             [void] $out.AppendLine()
-            [void] $out.AppendLine('| Scene | ' + (($columns | ForEach-Object { $_ }) -join ' | ') + ' |')
-            [void] $out.AppendLine('|---|' + (($columns | ForEach-Object { '---:' }) -join '|') + '|')
-            foreach ($scene in $scenes) {
-                $cells = foreach ($column in $columns) {
-                    $row = $rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq $column } | Select-Object -First 1
-                    if ($row -and $row.DrawMs) { $row.DrawMs } else { '' }
-                }
-                [void] $out.AppendLine("| $scene | " + ($cells -join ' | ') + ' |')
-            }
-            [void] $out.AppendLine()
-            [void] $out.AppendLine('</details>')
-            [void] $out.AppendLine()
-
-            [void] $out.AppendLine('<details><summary>Median / 95th percentile frame time (ms)</summary>')
-            [void] $out.AppendLine()
-            [void] $out.AppendLine('| Scene | ' + (($columns | ForEach-Object { $_ }) -join ' | ') + ' |')
-            [void] $out.AppendLine('|---|' + (($columns | ForEach-Object { '---:' }) -join '|') + '|')
-            foreach ($scene in $scenes) {
-                $cells = foreach ($column in $columns) {
-                    $row = $rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq $column } | Select-Object -First 1
-                    if ($row -and $row.MedianMs) { "$($row.MedianMs) / $($row.P95Ms)" } else { '' }
-                }
-                [void] $out.AppendLine("| $scene | " + ($cells -join ' | ') + ' |')
-            }
-            [void] $out.AppendLine()
-            [void] $out.AppendLine('</details>')
+            [void] $out.AppendLine('| Scene | Native FPS | SkiaGameRendering FPS | Change |')
+            [void] $out.AppendLine('|---|---:|---:|---:|')
+            foreach ($line in $lines) { [void] $out.AppendLine($line) }
             [void] $out.AppendLine()
         }
     }

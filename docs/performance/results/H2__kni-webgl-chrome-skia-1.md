@@ -12,22 +12,16 @@
 |---|---|---:|---|---|---:|---:|---:|---:|---|
 | sprites-single | Sprites 0 | 0 | skia | Skia render target | 3344 | 0.300 | 0.500 | 0.100 |  |
 | sprites-single | Sprites 0 | 0 | skia | Skia direct | 1689 | 0.600 | 0.800 | 0.400 |  |
-| sprites-single | Sprites 0 | 0 | skia | Skia direct (DrawImage per sprite) | 1721 | 0.600 | 0.800 | 0.400 |  |
 | sprites-single | Sprites 500 | 500 | skia | Skia render target | 2050 | 0.400 | 0.900 | 0.300 |  |
 | sprites-single | Sprites 500 | 500 | skia | Skia direct | 1393 | 0.700 | 1.000 | 0.600 |  |
-| sprites-single | Sprites 500 | 500 | skia | Skia direct (DrawImage per sprite) | 960 | 1.000 | 1.300 | 0.900 |  |
 | sprites-single | Sprites 2k | 2000 | skia | Skia render target | 1063 | 0.900 | 1.700 | 0.600 |  |
 | sprites-single | Sprites 2k | 2000 | skia | Skia direct | 1064 | 0.900 | 1.300 | 0.800 |  |
-| sprites-single | Sprites 2k | 2000 | skia | Skia direct (DrawImage per sprite) | 428 | 2.300 | 2.700 | 2.200 |  |
 | sprites-single | Sprites 10k | 10000 | skia | Skia render target | 322 | 2.300 | 6.200 | 2.000 |  |
 | sprites-single | Sprites 10k | 10000 | skia | Skia direct | 322 | 3.000 | 3.900 | 2.900 |  |
-| sprites-single | Sprites 10k | 10000 | skia | Skia direct (DrawImage per sprite) | 99 | 9.900 | 11.400 | 9.600 |  |
 | sprites-single | Sprites 50k | 50000 | skia | Skia render target | 69 | 8.300 | 35.900 | 8.000 |  |
 | sprites-single | Sprites 50k | 50000 | skia | Skia direct | 72 | 13.800 | 17.800 | 13.400 |  |
-| sprites-single | Sprites 50k | 50000 | skia | Skia direct (DrawImage per sprite) | 21 | 48.500 | 51.300 | 48.000 |  |
 | sprites-single | Tinted sprites 10k | 10000 | skia | Skia render target | 340 | 1.400 | 6.400 | 1.200 |  |
 | sprites-single | Tinted sprites 10k | 10000 | skia | Skia direct | 348 | 2.800 | 3.700 | 2.600 |  |
-| sprites-single | Tinted sprites 10k | 10000 | skia | Skia direct (DrawImage per sprite) | 37 | 26.500 | 28.800 | 26.100 |  |
 | sprites-textures | Textures 0 | 0 | skia | Skia render target | 3210 | 0.300 | 0.500 | 0.100 |  |
 | sprites-textures | Textures 0 | 0 | skia | Skia direct | 1677 | 0.600 | 0.800 | 0.400 |  |
 | sprites-textures | Textures 300 | 300 | skia | Skia render target | 2268 | 0.400 | 0.800 | 0.300 |  |
