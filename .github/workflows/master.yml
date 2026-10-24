@@ -1,6 +1,6 @@
 name: build
 
-# PRs and master pushes run only desktop-and-core (Release). Everything else runs nightly (09:00 UTC) or by hand:
+# PRs and master pushes run desktop-and-core (Release), metal-macos and godot-linux. Everything else runs nightly (09:00 UTC) or by hand:
 #   gh workflow run master.yml --ref <branch>                       # everything
 #   gh workflow run master.yml --ref <branch> -f only=ios-simulator # chosen jobs, comma-separated job ids, no spaces
 # `only` takes job ids (desktop-and-core, raylib-linux, metal-macos, android, ...); `webgl` selects the WebGL shards and
@@ -253,7 +253,7 @@ jobs:
         # with no X server at all. Without this, Firefox exhausts every GL driver route and WebGL2
         # never initializes ("Exhausted GL driver options" - see repo issue #12).
         # The list reporter prints per-test durations and a passed/skipped summary per shard.
-        run: xvfb-run --auto-servernum -- npx playwright test --reporter=list,html --project "scene-${{ matrix.browser }}" --project "gum-${{ matrix.browser }}"
+        run: xvfb-run --auto-servernum -e /dev/stderr -s "-screen 0 1280x1024x24 -noreset" -- npx playwright test --reporter=list,html --project "scene-${{ matrix.browser }}" --project "gum-${{ matrix.browser }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -395,7 +395,10 @@ jobs:
         # Real window/display needed even headless - see webgl-functional's xvfb-run step above and
         # issue #12 for why a bare headless process isn't enough for a real GL context (GLX here,
         # rather than that job's WebGL/EGL case, but the same underlying need for an X display).
-        run: xvfb-run --auto-servernum -- dotnet test tests/Tests.Raylib.OGL/Tests.Raylib.OGL.csproj --logger "console;verbosity=detailed"
+        # -noreset: each test opens and closes a window, and without it Xvfb resets when the last client
+        # disconnects, refusing connections mid-reset ("X11: Failed to open display :99"). -e /dev/stderr
+        # surfaces Xvfb's own output. Screen size is xvfb-run's default, spelled out because -s replaces it.
+        run: xvfb-run --auto-servernum -e /dev/stderr -s "-screen 0 1280x1024x24 -noreset" -- dotnet test tests/Tests.Raylib.OGL/Tests.Raylib.OGL.csproj --logger "console;verbosity=detailed"
         env:
           LIBGL_ALWAYS_SOFTWARE: 1
           GALLIUM_DRIVER: llvmpipe
@@ -413,7 +416,7 @@ jobs:
   # macos-latest is an Apple silicon VM with a paravirtualized Metal device, so Core.Metal and the
   # Godot metal driver run on real Metal here with nothing to vendor. Both skip elsewhere.
   metal-macos:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',metal-macos,')))
+    if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',metal-macos,')))
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -687,7 +690,7 @@ jobs:
         run: bash eng/run-ios-smoke-test.sh "$(find samples/Sample.MonoGame.iOS/bin/Release -name '*.app' -type d | head -n 1)" com.vchelaru.skiagamerendering.monogame.sample
 
   godot-linux:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',godot-linux,')))
+    if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',godot-linux,')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
