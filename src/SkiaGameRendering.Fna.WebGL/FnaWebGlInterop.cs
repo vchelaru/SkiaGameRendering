@@ -66,7 +66,8 @@ internal static partial class FnaWebGlInterop
     if (!gl.__traced) { // TEMP diagnostic: name the call that queues the error
       gl.__traced = true;
       for (const name of Object.getOwnPropertyNames(WebGL2RenderingContext.prototype)) {
-        const f = WebGL2RenderingContext.prototype[name];
+        const d = Object.getOwnPropertyDescriptor(WebGL2RenderingContext.prototype, name);
+        const f = d && d.value;
         if (typeof f !== 'function' || name === 'getError' || name === 'isContextLost') continue;
         gl[name] = function (...args) {
           const r = f.apply(this, args);
