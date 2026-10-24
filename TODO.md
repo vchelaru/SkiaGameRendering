@@ -33,7 +33,7 @@ which also draw straight into the current target (`SkiaDirectCanvas`).
 | KNI | ✅ DesktopGL, Android, iOS | ✅ | ❌ | ❌ | ❌ | ✅ |
 | FNA | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
 | raylib | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Stride | ❌ | ✅ | ✅ | 🟦 | ❌ | ❌ |
+| Stride | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌ |
 | Unity 6 | 🟦 Windows<br>🟡 Android | ✅ | 🟦 | 🟦 | 🟦 | 🟡 |
 
@@ -59,7 +59,8 @@ Shared code to reuse when moving a 🟦 to ✅:
 - WebGL: KNI's `SkiaWebGlBackend` registers KNI's own WebGL2 context with SkiaSharp's Emscripten GL runtime
   (no second context exists to share objects with), so Skia and KNI drive one context. `KniStateInvalidation`
   resets KNI's state cache by reflection after each pass. None of that is reusable elsewhere.
-- Vulkan and Metal have no direct-draw code yet.
+- Vulkan: Stride has direct draw (`SkiaStrideVulkanContext.BeginDirectDraw`). Unity Vulkan is a render target only for now. Metal has no direct-draw code yet.
+- Godot: render target only is final on every renderer. Compatibility has no hook that runs while its target is bound. Forward+ and Mobile (RenderingDevice, Vulkan, D3D12 and Metal) defer all commands into a graph submitted at frame end, and nothing lets a native Skia queue submit run in order inside it.
 
 ## Architecture
 
