@@ -2,7 +2,7 @@
 
 ## Definition
 
-`SkiaIosBackend` is the `SkiaBackend` for MonoGame's iOS (OpenGL ES) platform. Same shared-context
+`SkiaIosBackend` is the `SkiaBackend` for the iOS (OpenGL ES) platforms of MonoGame and KNI. Same shared-context
 design as `SkiaAndroidBackend`, with an EAGL sharegroup in place of a shared EGL context.
 
 Namespace: `SkiaGameRendering`
@@ -48,3 +48,13 @@ by themselves, so the explicit form is only for tests.
 - `SkiaDirectCanvas` does not work on a multisampled render target, because MonoGame's own GLES
   resolve throws when one is unbound.
 - See the [MonoGame iOS quick start](../ios/quickstart.md).
+
+## KNI iOS
+
+The `SkiaGameRendering.Kni.iOS` package (targets `net10.0-ios26.0`) ships a `SkiaIosBackend` with the same name and namespace.
+
+Assembly/package: `SkiaGameRendering.Kni.iOS`
+
+- KNI iOS keeps its `EAGLContext` current on the game thread and builds the same back buffer as MonoGame (an FBO around a `CAEAGLLayer` renderbuffer, recreated on every view layout), so everything above applies.
+- KNI does not leave a new texture bound, so the backend creates a `shared: true` `RenderTarget2D` and reads its GL name from the public `GetSharedHandle()`, as `SkiaAndroidBackend` does on KNI Android.
+- See the [KNI iOS quick start](../ios/kni-quickstart.md).

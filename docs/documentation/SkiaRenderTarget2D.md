@@ -14,7 +14,7 @@ Namespace: `SkiaGameRendering`
 
 Assembly/package: `SkiaGameRendering` (and the platform packages that reference it —
 `SkiaGameRendering.WindowsDX`, `SkiaGameRendering.Android`, `SkiaGameRendering.iOS`, `SkiaGameRendering.Kni.DesktopGL`,
-`SkiaGameRendering.Kni.WindowsDX`, `SkiaGameRendering.Kni.Android`, `SkiaGameRendering.Kni.WebGL`)
+`SkiaGameRendering.Kni.WindowsDX`, `SkiaGameRendering.Kni.Android`, `SkiaGameRendering.Kni.iOS`, `SkiaGameRendering.Kni.WebGL`)
 
 ```csharp
 public sealed class SkiaRenderTarget2D : IDisposable

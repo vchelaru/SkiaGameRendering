@@ -63,6 +63,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Kni.WebGL/SkiaGameRendering.Kni.WebGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Kni.Android
         run: dotnet pack src/SkiaGameRendering.Kni.Android/SkiaGameRendering.Kni.Android.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Kni.iOS
+        run: dotnet pack src/SkiaGameRendering.Kni.iOS/SkiaGameRendering.Kni.iOS.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Raylib.OGL
         run: dotnet pack src/SkiaGameRendering.Raylib.OGL/SkiaGameRendering.Raylib.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Raylib.WebGL

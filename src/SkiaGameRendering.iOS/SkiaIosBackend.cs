@@ -1,11 +1,10 @@
-using System.Runtime.InteropServices;
 using Microsoft.Xna.Framework.Graphics;
 using SkiaGameRendering.Core.OGL;
 
 namespace SkiaGameRendering
 {
     /// <summary>
-    /// SkiaBackend for MonoGame's iOS (OpenGL ES) platform. Same design as the Android backend, with an
+    /// SkiaBackend for the iOS (OpenGL ES) platforms of MonoGame and KNI. Same design as the Android backend, with an
     /// EAGL sharegroup in place of a shared EGL context (<see cref="EaglSharedContext"/>). MonoGame caches
     /// GL state, which is why Skia must not draw on MonoGame's context.
     /// <para>
@@ -15,15 +14,9 @@ namespace SkiaGameRendering
     /// <c>CAEAGLLayer</c>, which it deletes and recreates on every view layout.
     /// </para>
     /// </summary>
-    public class SkiaIosBackend : SkiaSharedGlBackend
+    public partial class SkiaIosBackend : SkiaSharedGlBackend
     {
-        private const int GL_TEXTURE_BINDING_2D = 0x8069;
-
-        [DllImport(EaglSharedContext.OpenGLESLibrary)]
-        private static extern void glGetIntegerv(int pname, out int data);
-
         readonly EaglSharedContext _eagl = new();
-        readonly MonoGameBoundRenderTarget _boundRenderTarget = new();
 
         /// <summary>The Skia context's EAGL API, e.g. <c>OpenGLES3</c>; for diagnostics.</summary>
         public string Description => _eagl.Api.ToString();
@@ -50,16 +43,7 @@ namespace SkiaGameRendering
 
         private protected override void MakeEngineContextCurrent() => _eagl.RestoreHostContext();
 
-        // Called on MonoGame's context right after the texture was created.
-        private protected override int CaptureGlTextureId(Texture2D texture)
-        {
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, out var textureId);
-            return textureId;
-        }
-
         private protected override bool CanDrawDirect => true;
-
-        private protected override RenderTarget2D? GetBoundRenderTarget() => _boundRenderTarget.Get(GraphicsDevice);
 
         private protected override bool BackBufferCanBeFramebufferObject => true;
 

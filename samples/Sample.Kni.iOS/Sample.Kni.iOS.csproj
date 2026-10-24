@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net10.0-ios26.0</TargetFramework>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Sample</RootNamespace>
+    <KniPlatform>iOS</KniPlatform>
+    <!-- Release builds trim; KNI's assemblies are not marked trimmable and raise IL2104, which TreatWarningsAsErrors makes fatal. -->
+    <TrimMode>partial</TrimMode>
+    <WarningsNotAsErrors>IL2104</WarningsNotAsErrors>
+    <ApplicationId>com.vchelaru.skiagamerendering.sample</ApplicationId>
+    <ApplicationTitle>Skia KNI Sample</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="nkast.Xna.Framework" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Content" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Audio" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Media" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Input" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Game" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Devices" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.Storage" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Xna.Framework.XR" Version="[$(KniVersion)]" />
+    <PackageReference Include="nkast.Kni.Platform.iOS.GL" Version="[$(KniVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Kni.iOS\SkiaGameRendering.Kni.iOS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
+    <!-- The smoke test's SkiaDirectCanvas checks, shared with the Android samples and the DesktopGL test projects. -->
+    <Compile Include="..\..\tests\Shared\DirectDrawLayering.cs" Link="DirectDrawLayering.cs" />
+    <Compile Include="..\Shared\MobileDirectCanvasCheck.cs" Link="MobileDirectCanvasCheck.cs" />
+  </ItemGroup>
+  <Import Project="..\Shared\Scene.props" />
+</Project>
