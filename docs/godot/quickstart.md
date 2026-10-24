@@ -128,6 +128,7 @@ to the Godot executable to enable that test; it skips otherwise).
 
 ## Known limitations
 
+- **No `SkiaDirectCanvas`; use `SkiaRenderTarget2D` on every renderer.** The Compatibility renderer has no hook that runs while its target is bound. The RenderingDevice renderers (Vulkan, D3D12, Metal) defer every command into a graph that Godot submits at the end of the frame, `CompositorEffect` callbacks only record into that graph, and a native Skia queue submit cannot run in order inside it.
 - **Vulkan and OpenGL are zero-copy; D3D12 is one GPU copy per frame.** Godot's D3D12 driver
   allocates every texture with a typeless format and Skia's D3D12 backend cannot render into
   those, so on D3D12 Skia draws into a typed texture this library owns and `End()` queues a
