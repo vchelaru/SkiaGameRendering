@@ -76,11 +76,11 @@ authoritative list of what CI builds, runs and in what order.
   `Unity.exe -batchmode -quit -projectPath samples/Sample.Unity -executeMethod SampleBuild.Build`,
   then `samples/Sample.Unity/Build/Mono/Sample.Unity.exe --smoke-test`, which exits 0 only if the
   pixels are right. Unity locks a project that is open in the editor, so the batch build fails then.
-  Add `-d3d12` to build a Direct3D 12 player (`Build/Mono-D3D12`) and `-linear` to build a Linear color space player (`Build/Mono-Linear`); the committed project
+  Add `-d3d12` to build a Direct3D 12 player (`Build/Mono-D3D12`), `-vulkan` for Vulkan (`Build/Mono-Vulkan`) and `-linear` to build a Linear color space player (`Build/Mono-Linear`); the committed project
   is Gamma, so revert the `ProjectSettings/` changes that build saves. On macOS the same commands
   run with `Unity.app/Contents/MacOS/Unity` and build a Metal player, `Build/Mono/Sample.Unity.app`.
-- The Metal and D3D12 plugins (`unity/native/SkiaUnityMetal`, `unity/native/SkiaUnityD3D12`) are committed prebuilt. After editing one, run
-  `eng/build-unity-metal-plugin.sh` or `eng/build-unity-d3d12-plugin.ps1` and then `eng/build-unity-package.ps1`, or Unity keeps loading
+- The Metal, D3D12 and Vulkan plugins (`unity/native/SkiaUnityMetal`, `SkiaUnityD3D12`, `SkiaUnityVulkan`) are committed prebuilt. After editing one, run
+  `eng/build-unity-metal-plugin.sh`, `eng/build-unity-d3d12-plugin.ps1` or `eng/build-unity-vulkan-plugin.ps1` and then `eng/build-unity-package.ps1`, or Unity keeps loading
   the old copy in the package's `Plugins/`.
 - The Unity Editor tests (the package's `Tests/Editor`, which reload the domain and enter play mode)
   run with `Unity.exe -batchmode -projectPath samples/Sample.Unity -runTests -testPlatform EditMode

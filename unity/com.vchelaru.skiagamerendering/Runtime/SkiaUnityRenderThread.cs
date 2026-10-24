@@ -72,7 +72,11 @@ namespace SkiaGameRendering
             }
             _anyIssued = true;
             Commands.Enqueue(command);
-            GL.IssuePluginEvent(CallbackPtr, 0);
+            // A draw needs its prepare event first when the backend asks for one. Events run in
+            // order, so the prepare event finds its draw's command still at the head of the queue.
+            if (SkiaUnityBackend.UsesPrepareEvent && command.Target != null && command.Picture != null)
+                GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.PrepareEventId);
+            GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.DrawEventId);
         }
 
         /// <summary>
@@ -94,6 +98,11 @@ namespace SkiaGameRendering
         [MonoPInvokeCallback(typeof(RenderEventDelegate))]
         static void OnRenderEvent(int eventId)
         {
+            if (eventId == SkiaUnityBackend.PrepareEventId && SkiaUnityBackend.UsesPrepareEvent)
+            {
+                PrepareOnRenderThread();
+                return;
+            }
             if (!Commands.TryDequeue(out var command))
                 return;
 
@@ -116,6 +125,22 @@ namespace SkiaGameRendering
                 command.Picture?.Dispose();
                 if (command.Target == null)
                     Released.Set();
+            }
+        }
+
+        static void PrepareOnRenderThread()
+        {
+            if (!Commands.TryPeek(out var command) || command.Target == null || command.Picture == null)
+                return;
+            try
+            {
+                _backend ??= SkiaUnityBackend.Create(command.Target.NativeTexture);
+                _backend.Prepare(command.Target);
+            }
+            catch (Exception ex)
+            {
+                // Throwing back into Unity's native render thread would crash the player.
+                Debug.LogException(ex);
             }
         }
 

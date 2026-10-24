@@ -2,7 +2,7 @@
   "name": "com.vchelaru.skiagamerendering",
   "version": "0.1.1",
   "displayName": "SkiaGameRendering",
-  "description": "GPU SkiaSharp rendering into Unity RenderTextures, with no CPU readback. Windows Direct3D 11 and 12, and macOS Metal.",
+  "description": "GPU SkiaSharp rendering into Unity RenderTextures, with no CPU readback. Windows Direct3D 11, Direct3D 12 and Vulkan, and macOS Metal.",
   "unity": "6000.0",
   "license": "MIT"
 }

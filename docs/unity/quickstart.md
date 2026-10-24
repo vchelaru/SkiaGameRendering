@@ -1,6 +1,6 @@
 # Unity Quick Start
 
-Supports Unity 6 on Windows x64 (Direct3D 11, Direct3D 12 or OpenGL, Mono or IL2CPP) and macOS (Metal).
+Supports Unity 6 on Windows x64 (Direct3D 11, Direct3D 12, Vulkan or OpenGL, Mono or IL2CPP) and macOS (Metal).
 
 ## Install
 
@@ -12,8 +12,8 @@ https://github.com/vchelaru/SkiaGameRendering.git#upm
 
 To pin a version, use `#upm/v<version>` instead, for example `#upm/v0.19.0`.
 
-On Windows, set Player Settings > Other Settings > Graphics APIs for Windows to Direct3D11, Direct3D12 or
-OpenGLCore. OpenGL ES (Android) and Linux are not supported yet. macOS uses Metal, its default.
+On Windows, set Player Settings > Other Settings > Graphics APIs for Windows to Direct3D11, Direct3D12, Vulkan
+or OpenGLCore. OpenGL ES (Android) and Linux are not supported yet. macOS uses Metal, its default.
 
 ## Limit code to supported platforms
 

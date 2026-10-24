@@ -27,7 +27,7 @@ Unity textures on the GPU, with no CPU readback.
 | [Stride](docs/stride/vulkan-quickstart.md) | Vulkan | [`SkiaGameRendering.Stride.VK`](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) | Windows, Linux, macOS |
 | [Stride](docs/stride/d3d12-quickstart.md) | D3D12 | [`SkiaGameRendering.Stride.D3D12`](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D12) | Windows |
 | [Godot 4.7+](docs/godot/quickstart.md) | Vulkan, D3D12, Metal, OpenGL 3.3 | [Source only](docs/godot/quickstart.md) | Windows, Linux, macOS |
-| [Unity 6](docs/unity/quickstart.md) | D3D11, D3D12, OpenGL, Metal | [UPM](docs/unity/quickstart.md) | Windows x64, macOS |
+| [Unity 6](docs/unity/quickstart.md) | D3D11, D3D12, Vulkan, OpenGL, Metal | [UPM](docs/unity/quickstart.md) | Windows x64, macOS |
 
 ## Quick Start
 

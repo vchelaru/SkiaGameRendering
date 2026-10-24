@@ -16,6 +16,18 @@ namespace SkiaGameRendering
         static GraphicsDeviceType _graphicsDeviceType;
 
         /// <summary>
+        /// Whether each draw needs a "prepare" plugin event before its draw event (see <see cref="Prepare"/>).
+        /// Set by <see cref="PrepareOnMainThread"/>.
+        /// </summary>
+        internal static bool UsesPrepareEvent { get; private set; }
+
+        /// <summary>The plugin event id <see cref="SkiaUnityRenderThread"/> issues the prepare event with.</summary>
+        internal const int PrepareEventId = VulkanUnityBackend.PrepareEventId;
+
+        /// <summary>The plugin event id the draw event is issued with.</summary>
+        internal static int DrawEventId => UsesPrepareEvent ? VulkanUnityBackend.DrawEventId : 0;
+
+        /// <summary>
         /// Main thread. Throws unless one of the backends below can run on this device, and loads
         /// anything a backend needs loaded before the render thread uses it.
         /// </summary>
@@ -30,6 +42,13 @@ namespace SkiaGameRendering
             if (api == GraphicsDeviceType.OpenGLCore
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
                 return;
+            if (api == GraphicsDeviceType.Vulkan
+                && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
+            {
+                VulkanUnityBackend.LoadPlugin();
+                UsesPrepareEvent = true;
+                return;
+            }
             if (api == GraphicsDeviceType.Direct3D12
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
             {
@@ -44,7 +63,7 @@ namespace SkiaGameRendering
                 return;
             }
             throw new NotSupportedException(
-                $"SkiaGameRendering.Unity supports Direct3D11, Direct3D12 and OpenGL on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
+                $"SkiaGameRendering.Unity supports Direct3D11, Direct3D12, Vulkan and OpenGL on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
         }
 
         /// <summary>Creates the backend for Unity's current device, the first time anything draws.</summary>
@@ -53,9 +72,17 @@ namespace SkiaGameRendering
             {
                 GraphicsDeviceType.Metal => new MetalUnityBackend(),
                 GraphicsDeviceType.Direct3D12 => new D3D12UnityBackend(),
+                GraphicsDeviceType.Vulkan => new VulkanUnityBackend(),
                 GraphicsDeviceType.OpenGLCore => new OpenGlUnityBackend(),
                 _ => new AngleUnityBackend(nativeTexture),
             };
+
+        /// <summary>
+        /// Runs in its own plugin event just before <see cref="Draw"/>, for a backend that needs a
+        /// different kind of event to ready the texture than to draw on it. Only called when
+        /// <see cref="UsesPrepareEvent"/> is set.
+        /// </summary>
+        internal virtual void Prepare(SkiaRenderTarget2D.RenderState target) { }
 
         /// <summary>Plays <paramref name="picture"/> back onto the target's texture, creating its surface on the first draw.</summary>
         internal abstract void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture);
