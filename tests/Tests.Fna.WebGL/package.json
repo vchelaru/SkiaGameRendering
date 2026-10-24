@@ -1,0 +1,10 @@
+{
+  "name": "skia-game-fna-webgl-tests",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}

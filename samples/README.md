@@ -11,6 +11,7 @@
 - `Sample.Gum.Kni.WebGL/` — KNI Blazor WebAssembly sample of Gum UI interleaved with SpriteBatch, render targets, shaders, and browser input
 - `Sample.Raylib.OGL/` — raylib sample (Windows, Linux, macOS)
 - `Sample.Fna.WindowsDX/`: FNA sample (Windows, D3D11 only; builds against the `external/FNA` submodule and the vendored `external/fnalibs`)
+- `Sample.Fna.WebGL/`: FNA in the browser (.NET 10 WebAssembly); build the natives first with `eng/build-fna-wasm-natives.sh`, see `docs/fna/webgl-quickstart.md`
 - `Sample.Fna.OGL/`: FNA sample on FNA3D's OpenGL driver (same setup; the vendored fnalibs are Windows x64 only, so on Linux/macOS drop in your own)
 - `Sample.Stride.D3D11/` — Stride sample (Windows, D3D11 only)
 - `Sample.Stride.VK/` — Stride sample (Vulkan; builds on Windows via `StrideGraphicsApi=Vulkan`, runs on Windows/Linux/macOS)

@@ -149,3 +149,8 @@ sets the real one. To find the last published version of a package, read
   whose SHA-256 is in its `KnownRuntimes`; on a MonoGame bump re-diff the structs against
   `native/monogame/directx12` in MonoGame/MonoGame, re-probe, then add the hash (`Tests.WindowsDX12`
   fails until you do).
+- **FNA WebGL runs on FNA's SDL2 platform backend and needs .NET 10.** Mono's WebAssembly interpreter traps on pinvokes
+  that take or return an enum with a 64-bit underlying type (SDL3's `SDL_WindowFlags`), so SDL3 cannot start, and the
+  Emscripten version must match the .NET runtime's (net8 is 3.1.34, net10 is 3.1.56). `eng/build-fna-wasm-natives.sh`
+  builds SDL2 and FNA3D; `src/SkiaGameRendering.Fna.WebGL` saves and restores all GL state around each Skia pass
+  because FNA3D caches state and has no invalidate call.

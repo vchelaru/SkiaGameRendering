@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>SkiaGameRendering</RootNamespace>
+    <SupportedOSPlatformVersion>browser</SupportedOSPlatformVersion>
+    <PackageId>SkiaGameRendering.Fna.WebGL</PackageId>
+    <Version>$(LibraryVersion)</Version>
+    <Description>GPU SkiaSharp rendering into FNA Texture2D targets and straight into the back buffer, in the browser (.NET WebAssembly, FNA3D's OpenGL driver on WebGL2).</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
+    <!-- SkiaBackend.cs shares one source with MonoGame/KNI; FNA has no SurfaceFormat.Bgra32. -->
+    <DefineConstants>$(DefineConstants);FNA</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <!-- See SkiaGameRendering.Fna.WindowsDX.csproj for why FNA is a submodule ProjectReference with PrivateAssets="All". -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\external\FNA\FNA.Core.csproj" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\SkiaGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaRenderer.cs" Link="SkiaRenderer.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="SkiaRenderTarget2D.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaDirectCanvas.cs" Link="SkiaDirectCanvas.cs" />
+    <Compile Include="..\SkiaGameRendering\SkiaTarget.cs" Link="SkiaTarget.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

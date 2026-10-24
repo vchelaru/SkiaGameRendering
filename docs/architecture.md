@@ -12,6 +12,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.iOS/`: MonoGame iOS library (shared core + `SkiaIosBackend` and its `EaglSharedContext`, on `Core.OGL`; targets `net10.0-ios26.0`)
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
 - `src/SkiaGameRendering.Fna.WindowsDX/`: FNA library (shared core + `SkiaAngleBackend`, on `Core.ANGLE`, Windows/D3D11 only)
+- `src/SkiaGameRendering.Fna.WebGL/`: FNA in the browser (shared core + `SkiaFnaWebGlBackend`). FNA3D and Skia drive one WebGL context, with the GL state FNA3D caches saved and restored around each Skia pass in JS
 - `src/SkiaGameRendering.Fna.OGL/`: FNA library (shared core + `SkiaGlBackend`, on `Core.OGL`; `src/SkiaGameRendering.Fna/` holds the FNA3D binding both FNA packages link)
 - `src/SkiaGameRendering.Raylib.OGL/` — raylib library (shared `Core.OGL` + raylib's `SkiaRenderTarget2D`, `SkiaDirectCanvas`, `SkiaRenderer`)
 - `src/SkiaGameRendering.Stride.D3D11/` — Stride library (shared `Core.ANGLE` + `SkiaRenderTarget2D`, Windows/D3D11 only)

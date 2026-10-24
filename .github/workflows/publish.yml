@@ -71,6 +71,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Fna.WindowsDX/SkiaGameRendering.Fna.WindowsDX.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Fna.OGL
         run: dotnet pack src/SkiaGameRendering.Fna.OGL/SkiaGameRendering.Fna.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Fna.WebGL
+        run: dotnet pack src/SkiaGameRendering.Fna.WebGL/SkiaGameRendering.Fna.WebGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Stride.D3D11
         run: dotnet pack src/SkiaGameRendering.Stride.D3D11/SkiaGameRendering.Stride.D3D11.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Stride.VK
