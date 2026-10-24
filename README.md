@@ -27,16 +27,14 @@ Unity textures on the GPU, with no CPU readback.
 
 ## Quick Start
 
-Skia draws straight into whatever the engine is rendering to, between your `SpriteBatch` calls:
+Skia draws straight into whatever the engine is rendering to:
 
 ```cs
 _skia = new SkiaDirectCanvas(GraphicsDevice); // once, e.g. in LoadContent
 
-spriteBatch.Begin(); /* background */ spriteBatch.End();
 _skia.Begin();
 _skia.Canvas.DrawCircle(100, 100, 50, paint);
 _skia.End();
-spriteBatch.Begin(); /* foreground */ spriteBatch.End();
 ```
 
 Setup differs per engine; pick yours from the [table above](#platform-support).
