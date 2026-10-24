@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.AspNetCore.Components;
@@ -73,11 +74,7 @@ public partial class SkiaGameWebGlHost : ComponentBase, IAsyncDisposable
                 ?? throw new PlatformNotSupportedException("Synchronous WebGL interop requires Blazor WebAssembly.");
             _selfReference = DotNetObjectReference.Create(this);
             InterceptBrowserObjects();
-            _glInfo = _module.Invoke<HostGlInfo>("initialize", CanvasElementId, _selfReference, new
-            {
-                requireWebGl2 = RequireWebGl2,
-                premultipliedAlpha = true,
-            });
+            _glInfo = InitializeModule();
             _ownerThreadId = Environment.CurrentManagedThreadId;
             _ready.TrySetResult();
         }
@@ -286,8 +283,28 @@ public partial class SkiaGameWebGlHost : ComponentBase, IAsyncDisposable
         _module = null;
     }
 
+    // JSInterop (de)serializes through reflection-based System.Text.Json, which the trimmer cannot
+    // see. The DynamicDependency attributes keep exactly the members it reads and writes (the
+    // option properties and every HostGlInfo property), so the call is trim-safe; the suppression
+    // only acknowledges that the analyzer cannot prove it.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicParameterlessConstructor, typeof(HostGlInfo))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(HostOptions))]
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "HostGlInfo and HostOptions members are preserved by the DynamicDependency attributes on this method.")]
+    private HostGlInfo InitializeModule() =>
+        _module!.Invoke<HostGlInfo>("initialize", CanvasElementId, _selfReference, new HostOptions
+        {
+            RequireWebGl2 = RequireWebGl2,
+            PremultipliedAlpha = true,
+        });
+
     [DllImport("libSkiaSharp", CallingConvention = CallingConvention.Cdecl)]
     private static extern void InterceptBrowserObjects();
+
+    private sealed class HostOptions
+    {
+        public bool RequireWebGl2 { get; set; }
+        public bool PremultipliedAlpha { get; set; }
+    }
 
     private sealed class HostGlInfo
     {
