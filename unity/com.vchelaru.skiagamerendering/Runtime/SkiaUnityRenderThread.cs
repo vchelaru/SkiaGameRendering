@@ -48,7 +48,7 @@ namespace SkiaGameRendering
             // Any texture on Unity's device, for a backend that finds the device through one.
             internal IntPtr DeviceTexture;
             // The UnityRenderBuffer of the target being rendered to, for a backend that cannot ask the
-            // device for its bound target (Direct3D 12).
+            // device for its bound target (Direct3D 12, Vulkan).
             internal IntPtr RenderBuffer;
         }
 
@@ -57,6 +57,10 @@ namespace SkiaGameRendering
         static readonly RenderEventDelegate Callback = OnRenderEvent;
         static readonly IntPtr CallbackPtr = Marshal.GetFunctionPointerForDelegate(Callback);
         static readonly ConcurrentQueue<Command> Commands = new ConcurrentQueue<Command>();
+        // The commands whose prepare event has not run yet. Unity runs the events that need the queue (the
+        // draw events) later than the ones that don't (the prepare events), so a prepare event does not find
+        // its own command at the head of Commands.
+        static readonly ConcurrentQueue<Command> Prepares = new ConcurrentQueue<Command>();
 
         static SkiaUnityBackend? _backend;
         // Targets with render-thread state, so ReleaseAll can reach the ones never disposed.
@@ -86,13 +90,21 @@ namespace SkiaGameRendering
             Commands.Enqueue(command);
             if (command.Direct)
             {
+                if (SkiaUnityBackend.UsesPrepareEvent)
+                {
+                    Prepares.Enqueue(command);
+                    GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.PrepareEventId);
+                }
                 GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.DirectEventId);
                 return;
             }
-            // A draw needs its prepare event first when the backend asks for one. Events run in
-            // order, so the prepare event finds its draw's command still at the head of the queue.
+            // A draw needs its prepare event first when the backend asks for one. Prepare events
+            // run in the order the commands were issued, as do draw events, so the backend pairs them up.
             if (SkiaUnityBackend.UsesPrepareEvent && command.Target != null && command.Picture != null)
+            {
+                Prepares.Enqueue(command);
                 GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.PrepareEventId);
+            }
             GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.DrawEventId);
         }
 
@@ -149,12 +161,20 @@ namespace SkiaGameRendering
 
         static void PrepareOnRenderThread()
         {
-            if (!Commands.TryPeek(out var command) || command.Target == null || command.Picture == null)
+            if (!Prepares.TryDequeue(out var command))
                 return;
             try
             {
-                _backend ??= SkiaUnityBackend.Create(command.Target.NativeTexture);
-                _backend.Prepare(command.Target);
+                if (command.Direct)
+                {
+                    _backend ??= SkiaUnityBackend.Create(command.DeviceTexture);
+                    _backend.PrepareDirect(command.RenderBuffer);
+                }
+                else
+                {
+                    _backend ??= SkiaUnityBackend.Create(command.Target!.NativeTexture);
+                    _backend.Prepare(command.Target);
+                }
             }
             catch (Exception ex)
             {

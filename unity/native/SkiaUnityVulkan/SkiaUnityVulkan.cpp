@@ -74,12 +74,16 @@ struct IUnityGraphicsVulkan
     void* CommandRecordingState;
     bool (__stdcall* AccessTexture)(void* nativeTexture, const void* subResource, int32_t layout,
         uint32_t pipelineStageFlags, uint32_t accessFlags, int32_t accessMode, UnityVulkanImage* outImage);
+    bool (__stdcall* AccessRenderBufferTexture)(void* renderBuffer, const void* subResource, int32_t layout,
+        uint32_t pipelineStageFlags, uint32_t accessFlags, int32_t accessMode, UnityVulkanImage* outImage);
 };
 
 static const unsigned long long VulkanGuidHigh = 0x95355348d4ef4e11ULL;
 static const unsigned long long VulkanGuidLow = 0x9789313dfcffcc87ULL;
 
-// The two plugin events SkiaUnityRenderThread issues per draw, matching its constants.
+// The two plugin events SkiaUnityRenderThread issues per draw (a SkiaDirectCanvas draw too), matching its constants.
+// Unity runs the events that need the queue (draw) later than the ones that don't (prepare), so a frame's
+// prepare events all run before its draw events.
 static const int PrepareEvent = 0x534B01;
 static const int DrawEvent = 0x534B02;
 
@@ -154,6 +158,18 @@ struct SkiaUnityVulkanImage
     int32_t mipCount;
 };
 
+static bool Export(const UnityVulkanImage& image, SkiaUnityVulkanImage* out)
+{
+    out->image = image.image;
+    out->format = image.format;
+    out->usage = image.usage;
+    out->tiling = image.tiling;
+    out->layout = image.layout;
+    out->samples = image.samples;
+    out->mipCount = image.mipCount;
+    return true;
+}
+
 // Plugin event "prepare" only. Has Unity record a barrier that moves the texture to
 // COLOR_ATTACHMENT_OPTIMAL for color attachment reads and writes, and tracks it as left there. The
 // barrier runs before the "draw" event's Skia commands because Unity submits what it has recorded
@@ -166,12 +182,17 @@ extern "C" __declspec(dllexport) bool SkiaUnityVulkan_PrepareForDrawing(void* na
     // COLOR_ATTACHMENT_OPTIMAL (2), stage COLOR_ATTACHMENT_OUTPUT (0x400), access COLOR_ATTACHMENT_READ|WRITE (0x180), PipelineBarrier (1).
     if (!s_vulkan->AccessTexture(nativeTexture, nullptr, 2, 0x400, 0x180, 1, &image))
         return false;
-    out->image = image.image;
-    out->format = image.format;
-    out->usage = image.usage;
-    out->tiling = image.tiling;
-    out->layout = image.layout;
-    out->samples = image.samples;
-    out->mipCount = image.mipCount;
-    return true;
+    return Export(image, out);
+}
+
+// Same as SkiaUnityVulkan_PrepareForDrawing, for the render target Unity is rendering to: the
+// UnityRenderBuffer the main thread read from Graphics.activeColorBuffer.GetNativeRenderBufferPtr().
+extern "C" __declspec(dllexport) bool SkiaUnityVulkan_PrepareRenderBufferForDrawing(void* renderBuffer, SkiaUnityVulkanImage* out)
+{
+    if (!s_vulkan || !renderBuffer)
+        return false;
+    UnityVulkanImage image = {};
+    if (!s_vulkan->AccessRenderBufferTexture(renderBuffer, nullptr, 2, 0x400, 0x180, 1, &image))
+        return false;
+    return Export(image, out);
 }
