@@ -6,7 +6,7 @@ and `RenderingServer.TextureGetNativeHandle` a GL texture, so `SkiaGameRendering
 reflection at all. It is also the first engine here where one package covers three graphics APIs,
 because Godot picks its renderer and driver at run time (project settings, a command-line switch,
 or an automatic fallback), so the backend is chosen when the renderer initializes. Like the raylib and Stride adapters it does not go through
-`SkiaBackend` - see [SkiaRenderTarget2D (Godot)](../documentation/SkiaRenderTarget2D.Godot.md)
+`SkiaBackend` - see [SkiaRenderTarget2D (Godot)](../documentation/SkiaRenderTarget2D.md#godot)
 for how it is structured.
 
 ## Prerequisites
@@ -106,7 +106,7 @@ in `RenderingServer.CallOnRenderThread`; they throw with that instruction otherw
 be called from either thread.
 
 Full member list and other remarks are documented on
-[SkiaRenderTarget2D (Godot)](../documentation/SkiaRenderTarget2D.Godot.md).
+[SkiaRenderTarget2D (Godot)](../documentation/SkiaRenderTarget2D.md#godot).
 
 ## Build and run the sample in this repo
 

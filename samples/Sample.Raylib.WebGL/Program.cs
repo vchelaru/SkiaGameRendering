@@ -82,6 +82,21 @@ public static class Game
         return $"{(mode == "direct" ? "SkiaDirectCanvas" : "SkiaRenderTarget2D")} frames {_frames} errors {(_error.Length == 0 ? "none" : _error)}";
     }
 
+    // Tests: what creating a SkiaRenderTarget2D with this SKColorType does.
+    [JSInvokable]
+    public static string TryColorType(int colorType)
+    {
+        try
+        {
+            using var target = new SkiaRenderTarget2D(16, 16, (SKColorType)colorType);
+            return "ok";
+        }
+        catch (Exception exception)
+        {
+            return exception.GetType().Name + ": " + exception.Message;
+        }
+    }
+
     private static void DrawTarget()
     {
         _target!.Begin();

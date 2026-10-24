@@ -63,7 +63,7 @@ Setup differs per engine; pick yours from the [table above](#platform-support).
 
 - API: [SkiaRenderTarget2D](docs/documentation/SkiaRenderTarget2D.md), [SkiaDirectCanvas](docs/documentation/SkiaDirectCanvas.md)
 - [Samples](samples/README.md)
-- [Performance measurements](docs/performance.md)
+- [Performance tips](docs/documentation/performance-tips.md) and [measurements](docs/performance.md)
 - [Architecture](docs/architecture.md) and [interop notes](SkiaGameRendering-Notes.md)
 - [SkiaSharp drawing docs](https://learn.microsoft.com/en-us/previous-versions/xamarin/xamarin-forms/user-interface/graphics/skiasharp/basics/)
 

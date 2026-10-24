@@ -2,7 +2,7 @@
 
 Vulkan analog of `docs/stride/quickstart.md` (D3D11). Like that adapter, this does not go through
 `SkiaBackend` - see
-[SkiaRenderTarget2D (Stride Vulkan)](../documentation/SkiaRenderTarget2D.StrideVulkan.md) for why and how
+[SkiaRenderTarget2D (Stride Vulkan)](../documentation/SkiaRenderTarget2D.md#stride-vulkan) for why and how
 the Stride Vulkan support is structured.
 
 ## Prerequisites
@@ -46,7 +46,7 @@ dependency; `SkiaGameRendering.Stride.VK` itself doesn't need it.
 
 Stride drives rendering through its `GraphicsCompositor`, not a user-owned `Draw()` call, so the
 Skia draw runs inside a `SceneRendererBase.DrawCore` override -
-[SkiaSceneRenderer](../documentation/SkiaRenderTarget2D.StrideVulkan.md) is that hook:
+[SkiaSceneRenderer](../documentation/SkiaRenderTarget2D.md#stride-vulkan) is that hook:
 
 ```cs
 using SkiaGameRendering;
@@ -87,7 +87,7 @@ paint.Dispose();
 ```
 
 Full member list and other remarks are documented on
-[SkiaRenderTarget2D (Stride Vulkan)](../documentation/SkiaRenderTarget2D.StrideVulkan.md).
+[SkiaRenderTarget2D (Stride Vulkan)](../documentation/SkiaRenderTarget2D.md#stride-vulkan).
 
 ## Build (and run) the sample in this repo
 
