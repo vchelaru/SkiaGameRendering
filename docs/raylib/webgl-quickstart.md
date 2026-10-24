@@ -11,9 +11,9 @@ created. Each pass saves raylib's GL state, lets Skia draw, and restores it. No 
 
 ## Prerequisites
 
-- .NET 8 SDK and the wasm workload: `dotnet workload install wasm-tools-net8`
+- .NET 10 SDK and the wasm workload: `dotnet workload install wasm-tools` (net8 is not supported: Raylib-cs's browser-wasm raylib only works on net10)
 - A Blazor WebAssembly project (`Microsoft.NET.Sdk.BlazorWebAssembly`) with `<canvas id="canvas">` on the page
-- [Raylib-cs](https://www.nuget.org/packages/Raylib-cs) 8.0.0 (comes with the package)
+- [Raylib-cs](https://www.nuget.org/packages/Raylib-cs) 8.1.0 (comes with the package)
 
 ## Add the package
 
@@ -21,8 +21,8 @@ created. Each pass saves raylib's GL state, lets Skia draw, and restores it. No 
 dotnet add package SkiaGameRendering.Raylib.WebGL
 ```
 
-The package ships raylib 6.0's source and its build props compile it into your app with the Emscripten the .NET
-build uses, so the first build takes about a minute longer. Nothing else to configure; no script tags.
+raylib comes from Raylib-cs's own browser-wasm `raylib.a`, which its build targets link into your app when
+`RuntimeIdentifier` is `browser-wasm`; the package adds a pre-js. No script tags.
 
 ## Initialize and render
 
@@ -57,11 +57,6 @@ A different canvas id: set `globalThis.skiaRaylibCanvasId` before `Blazor.start(
 
 ## Limitations
 
-- **Raylib-cs under .NET WASM: struct returns and `CBool` returns do not work.** Functions returning a struct
-  (`LoadRenderTexture`, ...) throw `RuntimeError: function signature mismatch`, and functions returning `CBool`
-  (`IsKeyDown`, `WindowShouldClose`, `IsWindowReady`, ...) always return false. This is Raylib-cs's `LibraryImport`
-  marshalling meeting Mono's WebAssembly P/Invoke; it is not caused by this package, which avoids both. Build such
-  values from `Rlgl` calls and plain ids (see `CreateRenderTexture` in the sample), or read state another way.
 - `SkiaRenderTarget2D` supports `SKColorType.Rgba8888` only.
 - A Skia pass cannot be nested in another (`SkiaRenderTarget2D` and `SkiaDirectCanvas` passes are exclusive).
 - Context loss is not recovered; passes throw while the context is lost.
