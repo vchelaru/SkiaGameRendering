@@ -50,7 +50,9 @@ Screenshots: 500 shadows, KNI DesktopGL. The scenes are 1600x900 and animate eve
 - Giving every panel a unique size makes no measurable difference, so Skia's cached blur is not the limit.
 - For many shadows, use a shader (or bake them into a texture) rather than Skia's mask filter.
 
-## Cache the blurred shadow as an image per (size, sigma, alpha)
+## Optional technique: cache the blurred shadow as an image per (size, sigma, alpha)
+
+This is an optional technique for users, separate from the benchmark tables above. The cached numbers measure drawing a stored image, not drawing a vector shadow each frame, so they are not comparable with the results tables or the engine columns.
 
 Measured on H1, MonoGame DesktopGL, Skia direct, 1600x900, `--quick` windows, 3 runs per variant, draw CPU ms. Instead of `DrawRoundRect` with a blur mask filter every frame, render the blurred rounded rectangle once into a GPU surface (padded by 3 sigma), keep the snapshot in a dictionary keyed by (width, height, sigma, alpha), and `DrawImage` it at `rect.Left - pad, rect.Top - pad`.
 
