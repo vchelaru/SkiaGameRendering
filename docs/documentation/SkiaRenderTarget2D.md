@@ -325,11 +325,10 @@ game.AddSceneRenderer(renderer);
 
 - Windows and D3D11 only. For Vulkan (Windows/Linux/macOS), see `SkiaGameRendering.Stride.VK` /
   [the Stride Vulkan section](#stride-vulkan) instead.
-- Requires Stride 4.4.0-beta5 or newer. Stride's D3D11 backend became Silk.NET (from SharpDX) in
+- Requires Stride 4.4.1 or newer. Stride's D3D11 backend became Silk.NET (from SharpDX) in
   this release, which is what makes `GraphicsDevice.NativeDevice` a public
-  `ComPtr<ID3D11Device>` - the current stable release (4.3.0.2507) still wraps D3D11 in SharpDX and
-  keeps `NativeDevice` non-public. This is a prerelease dependency; expect it to move as Stride 4.4
-  stabilizes.
+  `ComPtr<ID3D11Device>` - Stride 4.3 still wraps D3D11 in SharpDX and
+  keeps `NativeDevice` non-public.
 - Reaches exactly one Stride internal via reflection: `GraphicsResourceBase.nativeResource` (a
   private `ID3D11Resource*` field) - the public `NativeResource` property wrapping it is `protected
   internal`, visible to a subclass but not to this adapter. Everything else (`NativeDevice`,
@@ -402,7 +401,7 @@ game.AddSceneRenderer(renderer);
 
 ### Stride (Vulkan) remarks
 
-- Requires Stride 4.4.0-beta5 or newer, built with `StrideGraphicsApi=Vulkan` (Stride's default on
+- Requires Stride 4.4.1 or newer, built with `StrideGraphicsApi=Vulkan` (Stride's default on
   Linux/macOS; must be forced explicitly on Windows - see `docs/stride/vulkan-quickstart.md`).
 - Reaches Stride Vulkan internals via reflection: `GraphicsDevice.NativeInstance`/
   `NativePhysicalDevice`/`NativeDevice` (properties) and `NativeCommandQueue`/`QueueLock` (fields),

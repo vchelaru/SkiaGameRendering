@@ -4,7 +4,7 @@
 
   <PropertyGroup>
     <!--
-      Plain net10.0, not net10.0-windows: Stride.Graphics 4.4.0-beta5's own nuspec only ships a
+      Plain net10.0, not net10.0-windows: Stride.Graphics 4.4.1's own nuspec only ships a
       net10.0-windows-specific asset for Android/iOS/macOS (as separate TFMs) - the desktop group is
       just "net10.0", covering Windows, Linux and macOS from one TargetFramework, with the actual
       D3D11-vs-Vulkan choice made per-project via the StrideGraphicsApi MSBuild property (see
@@ -20,9 +20,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>SkiaGameRendering.Stride.VK</PackageId>
     <!--
-      Prerelease, unlike every other package here: Stride.Engine 4.4.0-beta5 is itself a
-      prerelease, and NuGet rejects a stable package that depends on one (NU5104, an error under
-      TreatWarningsAsErrors). Drop the suffix once Stride 4.4.0 ships stable.
+      Still a prerelease suffix by choice: Stride 4.4.1 is stable, so NU5104 no longer forces it.
+      Dropping the suffix is a release decision.
     -->
     <Version>$(LibraryVersion)-beta</Version>
     <Description>GPU SkiaSharp rendering into Stride Texture targets via Vulkan, with zero-copy GPU texture sharing.</Description>

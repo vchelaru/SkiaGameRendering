@@ -44,7 +44,7 @@ jobs:
           git -C external/FNA submodule update --init lib/SDL2-CS lib/SDL3-CS lib/FAudio lib/Theorafile lib/dav1dfile
       - uses: actions/setup-dotnet@v4
         with:
-          # Every package here but SkiaGameRendering.Stride.D3D11 still needs 8.0.x - Stride 4.4.0-beta5's
+          # Every package here but SkiaGameRendering.Stride.D3D11 still needs 8.0.x - Stride 4.4.1's
           # packages target net10.0, hence the second version rather than a replacement.
           dotnet-version: |
             8.0.x

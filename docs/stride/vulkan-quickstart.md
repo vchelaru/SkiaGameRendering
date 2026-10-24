@@ -8,7 +8,7 @@ the Stride Vulkan support is structured.
 ## Prerequisites
 
 - .NET 10
-- Stride 4.4.0-beta5 or newer (prerelease - see "Known limitations" below)
+- Stride 4.4.1 or newer
 - Windows, Linux, or macOS, with a Vulkan 1.3-capable driver (Stride itself requires 1.3's dynamic
   rendering and synchronization2, plus 1.2's timeline semaphores - it hard-throws on device creation
   otherwise)
@@ -103,7 +103,7 @@ it needs a real Vulkan 1.3 driver on whatever machine you run it on (see "Known 
 
 ## Known limitations
 
-- Depends on Stride 4.4.0-beta5, a prerelease - expect version churn until Stride 4.4 stabilizes.
+- Depends on Stride 4.4.1 or newer. Earlier 4.4 builds have a missing `COLOR_ATTACHMENT_READ` access in the render target barrier (a synchronization hazard when a pass loads the target); 4.4.1 fixes it.
 - The sample builds and its reflection pins run in CI on Windows (with `StrideGraphicsApi=Vulkan`
   forced), but actual Skia-drawing-into-Stride-texture behavior needs a real window and a Vulkan 1.3
   driver to verify manually - it hasn't been run yet. See the PR that introduced this adapter (repo

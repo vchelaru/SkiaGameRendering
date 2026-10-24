@@ -6,7 +6,7 @@ Stride's `ID3D12Device` and direct queue, straight into the Stride `Texture`, wi
 ## Prerequisites
 
 - .NET 10
-- Stride 4.4.0-beta5 or newer (prerelease)
+- Stride 4.4.1 or newer
 - Windows with a Direct3D 12 GPU (WARP, the software rasterizer, also works)
 
 ## Add the package

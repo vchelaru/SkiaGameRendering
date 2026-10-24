@@ -15,7 +15,7 @@ namespace SkiaGameRendering
     /// externally synchronized on the shared <c>VkQueue</c>, per the Vulkan spec.
     ///
     /// MAINTENANCE NOTES:
-    /// - Targets Stride 4.4.0-beta5+, built with <c>StrideGraphicsApi=Vulkan</c> downstream (see
+    /// - Targets Stride 4.4.1+, built with <c>StrideGraphicsApi=Vulkan</c> downstream (see
     ///   SkiaGameRendering.Stride.VK.csproj's TFM comment). Unlike
     ///   <c>SkiaGameRendering.Stride.D3D11</c>'s D3D11 adapter, EVERY Vulkan handle this class needs -
     ///   <see cref="GraphicsDevice"/>'s <c>NativeInstance</c>/<c>NativePhysicalDevice</c>/
