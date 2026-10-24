@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-ios26.0</TargetFramework>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Sample</RootNamespace>
+    <ApplicationId>com.vchelaru.skiagamerendering.monogame.sample</ApplicationId>
+    <ApplicationTitle>Skia MonoGame Sample</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.iOS" Version="3.8.5.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.iOS\SkiaGameRendering.iOS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
+    <!-- The smoke test's SkiaDirectCanvas checks, shared with the Android samples and the DesktopGL test projects. -->
+    <Compile Include="..\..\tests\Shared\DirectDrawLayering.cs" Link="DirectDrawLayering.cs" />
+    <Compile Include="..\Shared\MobileDirectCanvasCheck.cs" Link="MobileDirectCanvasCheck.cs" />
+  </ItemGroup>
+  <Import Project="..\Shared\Scene.props" />
+</Project>

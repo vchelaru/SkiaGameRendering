@@ -13,6 +13,7 @@ Unity textures on the GPU, with no CPU readback.
 | [MonoGame 3.8.4 WindowsDX](docs/desktop/quickstart.md) | D3D11 | [`SkiaGameRendering.WindowsDX`](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX) | Windows |
 | [MonoGame 3.8.6 WindowsDX12](docs/desktop/quickstart.md) | D3D12 | [`SkiaGameRendering.WindowsDX12`](https://www.nuget.org/packages/SkiaGameRendering.WindowsDX12) | Windows |
 | [MonoGame 3.8.4 Android](docs/android/monogame-quickstart.md) | OpenGL ES | [`SkiaGameRendering.Android`](https://www.nuget.org/packages/SkiaGameRendering.Android) | Android 7+ |
+| [MonoGame 3.8.4 iOS](docs/ios/quickstart.md) | OpenGL ES | [`SkiaGameRendering.iOS`](https://www.nuget.org/packages/SkiaGameRendering.iOS) | iOS 15+ |
 | [KNI DesktopGL](docs/desktop/quickstart.md) | OpenGL | [`SkiaGameRendering.Kni.DesktopGL`](https://www.nuget.org/packages/SkiaGameRendering.Kni.DesktopGL) | Windows, Linux, macOS |
 | [KNI WindowsDX](docs/desktop/quickstart.md) | D3D11 | [`SkiaGameRendering.Kni.WindowsDX`](https://www.nuget.org/packages/SkiaGameRendering.Kni.WindowsDX) | Windows |
 | [KNI Android](docs/android/quickstart.md) | OpenGL ES | [`SkiaGameRendering.Kni.Android`](https://www.nuget.org/packages/SkiaGameRendering.Kni.Android) | Android 7+ |

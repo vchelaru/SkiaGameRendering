@@ -41,7 +41,7 @@
     <Compile Include="..\Sample.MonoGame.DesktopGL\Game1.cs" Link="Game1.cs" />
     <!-- The smoke test's SkiaDirectCanvas checks, shared with the DesktopGL test projects. -->
     <Compile Include="..\..\tests\Shared\DirectDrawLayering.cs" Link="DirectDrawLayering.cs" />
-    <Compile Include="..\Shared\AndroidDirectCanvasCheck.cs" Link="AndroidDirectCanvasCheck.cs" />
+    <Compile Include="..\Shared\MobileDirectCanvasCheck.cs" Link="MobileDirectCanvasCheck.cs" />
   </ItemGroup>
   <Import Project="..\Shared\Scene.props" />
 </Project>

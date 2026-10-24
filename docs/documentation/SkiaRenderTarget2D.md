@@ -13,7 +13,7 @@ onto — typically the back buffer, or a `RenderTarget2D` the same size as the v
 Namespace: `SkiaGameRendering`
 
 Assembly/package: `SkiaGameRendering` (and the platform packages that reference it —
-`SkiaGameRendering.WindowsDX`, `SkiaGameRendering.Android`, `SkiaGameRendering.Kni.DesktopGL`,
+`SkiaGameRendering.WindowsDX`, `SkiaGameRendering.Android`, `SkiaGameRendering.iOS`, `SkiaGameRendering.Kni.DesktopGL`,
 `SkiaGameRendering.Kni.WindowsDX`, `SkiaGameRendering.Kni.Android`, `SkiaGameRendering.Kni.WebGL`)
 
 ```csharp

@@ -56,8 +56,13 @@ namespace Sample
             IsMouseVisible = true;
         }
 
-        /// <summary>Leaves the app; a platform that forbids <see cref="Game.Exit"/> (KNI Android) overrides it.</summary>
+        /// <summary>Leaves the app; a platform that forbids <see cref="Game.Exit"/> (KNI Android, iOS) overrides it.</summary>
+#if __IOS__
+        // MonoGame iOS makes Game.Exit a compile error.
+        protected virtual void ExitGame() { }
+#else
         protected virtual void ExitGame() => Exit();
+#endif
 
         protected override void Update(GameTime gameTime)
         {
