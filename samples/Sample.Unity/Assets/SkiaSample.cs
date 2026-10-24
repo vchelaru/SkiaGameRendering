@@ -20,14 +20,14 @@ using UnityEngine.UI;
 /// precompiled from <c>Scene/Sample.Unity.Scene.csproj</c>, copied into <c>Assets/Plugins/Scene</c>
 /// by <c>eng/build-unity-package.ps1</c>.
 ///
-/// The bottom right area is a <see cref="SkiaDirectCanvas"/> check on Direct3D 11: the main camera draws a
+/// The bottom right area is a <see cref="SkiaDirectCanvas"/> check on Direct3D 11 and OpenGL: the main camera draws a
 /// yellow square, its <c>onPostRender</c> has Skia draw red, red and magenta shapes straight into the back
 /// buffer, and a second camera (higher depth, clears nothing but depth) then draws a green square on top.
 ///
 /// --smoke-test renders a few frames and quits with 0 if the texture holds Scene's red circle and
 /// blue SVG drop the right way up, and in every copy Skia's squares match Unity's references on
 /// screen, or 1 otherwise. Unity's own drawing is the oracle so the check holds in both color spaces:
-/// On Direct3D 11 it also checks the direct canvas area: Skia over what the first camera drew,
+/// On Direct3D 11 and OpenGL it also checks the direct canvas area: Skia over what the first camera drew,
 /// under what the second drew, the right way up and with red as red. It fails if Skia's premultiplied alpha is blended as straight alpha, or if a Linear project
 /// displays Skia's sRGB bytes as linear values.
 /// </summary>
@@ -62,6 +62,9 @@ public sealed class SkiaSample : MonoBehaviour
     RawImage _rawImage;
     Texture2D _greyReference;
     Texture2D _translucentReference;
+    static bool DirectCanvasSupported =>
+        SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore;
+
     SkiaDirectCanvas _direct;
     SKPaint _red;
     SKPaint _magenta;
@@ -107,7 +110,7 @@ public sealed class SkiaSample : MonoBehaviour
         AddSprite(_translucentReference, QuadX + SquareX);
         AddSprite(_greyReference, QuadX + GreyX);
 
-        if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11)
+        if (DirectCanvasSupported)
         {
             _yellowTexture = SolidTexture(Yellow);
             _greenTexture = SolidTexture(Green);
@@ -228,7 +231,7 @@ public sealed class SkiaSample : MonoBehaviour
     void OnEnable()
     {
         _target = new SkiaRenderTarget2D(Width, Height);
-        if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11)
+        if (DirectCanvasSupported)
         {
             _direct = new SkiaDirectCanvas();
             _red = new SKPaint { Color = SKColors.Red };
