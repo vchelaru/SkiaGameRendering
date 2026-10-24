@@ -262,6 +262,7 @@ skia.End();
 - **Color.** The texture is plain UNORM with no Skia color-space tag: Godot's default gamma-space
   2D pipeline displays Skia's sRGB bytes 1:1 (the sample's pure red and CornflowerBlue read back
   exactly on all three drivers). HDR 2D projects are not compensated for.
+- **No `SkiaDirectCanvas` on Godot, on any renderer.** Godot gives no point where Skia can draw into its current target in order: Compatibility has no hook that runs while its target is bound, and the RenderingDevice renderers defer every command into a graph submitted at frame end. Use this type.
 - See also the [Godot quick start](../godot/quickstart.md).
 
 ## Stride (D3D11)
@@ -417,6 +418,7 @@ game.AddSceneRenderer(renderer);
   Stride's own `Texture.Vulkan.cs` sets both unconditionally on every image it creates, so this
   adapter needs no extra texture-creation flags at the Stride API level to satisfy that requirement -
   see `SkiaStrideVulkanContext`'s doc comment for the full analysis (repo issue #54).
+- **sRGB swap chain.** In Stride's default Linear color space the back buffer is an sRGB-format image, which Skia cannot wrap, so `SkiaDirectCanvas` wraps it as its UNORM twin and an `SKColor` lands as that color (Stride D3D11 and D3D12 refuse sRGB targets instead). Stride creates the swap chain without `VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT`, so this is outside the letter of the Vulkan spec; drivers accept it for same-size formats (checked on an NVIDIA GPU, not under the validation layer; tracked in #245).
 - See also the [Stride Vulkan quick start](../stride/vulkan-quickstart.md).
 
 ## raylib

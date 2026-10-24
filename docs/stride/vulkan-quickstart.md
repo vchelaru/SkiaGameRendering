@@ -104,6 +104,7 @@ it needs a real Vulkan 1.3 driver on whatever machine you run it on (see "Known 
 ## Known limitations
 
 - Depends on Stride 4.4.1 or newer. Earlier 4.4 builds have a missing `COLOR_ATTACHMENT_READ` access in the render target barrier (a synchronization hazard when a pass loads the target); 4.4.1 fixes it.
+- **sRGB swap chain.** In Stride's default Linear color space the Vulkan back buffer is an sRGB-format image. Skia cannot wrap an sRGB-format `VkImage`, so the library wraps it as its UNORM twin and an `SKColor` lands as that color (Stride D3D11 and D3D12 refuse sRGB targets instead). Stride creates the swap chain without `VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT`, so viewing it as UNORM is outside the letter of the Vulkan spec. Drivers accept it for same-size formats (checked on an NVIDIA GPU, not under the validation layer; tracked in #245).
 - The sample builds and its reflection pins run in CI on Windows (with `StrideGraphicsApi=Vulkan`
   forced), but actual Skia-drawing-into-Stride-texture behavior needs a real window and a Vulkan 1.3
   driver to verify manually - it hasn't been run yet. See the PR that introduced this adapter (repo

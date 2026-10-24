@@ -23,7 +23,9 @@ dotnet add package SkiaGameRendering.Raylib.WebGL
 
 raylib comes from Raylib-cs's own browser-wasm `raylib.a`, which its build targets link into your app when
 `RuntimeIdentifier` is `browser-wasm`; the package adds a pre-js. No script tags. That raylib is its OpenGL ES 2
-build (no vertex array objects), so the console shows `vertexAttribPointer: index out of range` warnings from it; they are harmless.
+build (no vertex array objects, no non-power-of-two textures), so the console shows `vertexAttribPointer: index out of range` warnings from it, and raylib may log that the VAO and NPOT extensions are not found; they are harmless. raylib keeps its vertex attributes on WebGL's default vertex array, Skia overwrites them on each pass, and the package's `skia-raylib-webgl.js` puts them back afterward.
+
+Editing the pre-js (`skia-raylib-webgl.js`) does not make Emscripten relink. If a change to it has no effect, delete the `wasm` folder under your project's `obj` and build again.
 
 ## Initialize and render
 
