@@ -358,7 +358,7 @@ namespace SkiaGameRendering
             target.Surface.Dispose();
             target.RenderTarget.Dispose();
             if (glUsable)
-                GlSkiaSurfaceFactory.DisposeRenderState(_gl, target.Framebuffer);
+                GlSkiaSurfaceFactory.DisposeRenderState(_gl, target.Framebuffer, keepColor: true);
         }
 
         /// <summary>Frees the surfaces and FBOs <see cref="SkiaDirectCanvas"/> cached. Runs inside <see cref="Dispose"/>'s <see cref="RunOnSkiaContext"/>.</summary>

@@ -21,6 +21,13 @@ public sealed class MonoGameDesktopGlDirectDrawTests(ITestOutputHelper output)
         Assert.Equal("", OneFrameGame.Render(() => new SkiaGlBackend(),
             device => DirectDrawLayering.RenderTarget(device, multiSampleCount)));
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    public void RenderTarget_SurvivesRendererDispose(int multiSampleCount) =>
+        Assert.Equal("", OneFrameGame.Render(() => new SkiaGlBackend(),
+            device => DirectDrawLayering.RenderTargetSurvivesRendererDispose(device, multiSampleCount)));
+
     [Fact]
     public void Scene_DrawnToRenderTarget_MatchesGolden() =>
         OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),
