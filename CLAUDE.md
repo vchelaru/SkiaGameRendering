@@ -3,9 +3,11 @@
 ## What Is This?
 
 A library that lets MonoGame, KNI, FNA, raylib, and Stride applications render with SkiaSharp straight
-into engine textures, with no CPU readback. `README.md` covers the public API (`SkiaRenderer`,
-`SkiaRenderTarget2D`, `SkiaDirectCanvas`), the per-platform package list, and the backend-per-graphics-API architecture.
-`SkiaGameRendering-Notes.md` has the deeper interop detail (ANGLE, D3D11 state management).
+into engine textures, with no CPU readback. `README.md` is a short landing page with the package
+table. Per-engine setup is in `docs/<engine>/quickstart.md`, the API in `docs/documentation/`, and the
+backend-per-graphics-API architecture in `docs/architecture.md`. Keep the README short and put new
+detail in those pages. Performance results differ by platform, so docs report what was measured
+where and never turn it into one blanket rule ("draw sprites with `SpriteBatch`"). `SkiaGameRendering-Notes.md` has the deeper interop detail (ANGLE, D3D11 state management).
 
 **Never propose or build a CPU rasterization or CPU readback fallback, for any backend or any
 failure.** GPU rendering with no CPU readback is the whole purpose of the library. When a backend

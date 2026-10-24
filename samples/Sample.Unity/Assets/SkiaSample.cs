@@ -29,9 +29,12 @@ using UnityEngine.UI;
 public sealed class SkiaSample : MonoBehaviour
 {
     // Wider than tall, so the circle's cell and its vertical mirror image land on different content.
-    const int Width = 512;
+    // Five cells across: Scene's three shapes, then the translucent and grey squares.
+    const int Width = 640;
     const int Height = 256;
     const int Cell = Height / 2;
+    const int SquareX = 3 * Cell;
+    const int GreyX = 4 * Cell;
     // Screen positions of the quad and RawImage copies; the GUI copy sits at 0, 0.
     const int QuadX = Width;
     const int UiY = Height;
@@ -81,14 +84,14 @@ public sealed class SkiaSample : MonoBehaviour
         };
         quad.AddComponent<MeshRenderer>().material = _quadMaterial = new Material(SkiaUnityRenderTarget.PremultipliedMaterial) { mainTexture = _target.Texture };
         Place(quad.transform, QuadX, 0, Width, Height, 0);
-        AddSprite(_translucentReference, QuadX + 2 * Cell);
-        AddSprite(_greyReference, QuadX + 3 * Cell);
+        AddSprite(_translucentReference, QuadX + SquareX);
+        AddSprite(_greyReference, QuadX + GreyX);
 
         var canvas = new GameObject("Canvas").AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         _rawImage = AddRawImage(canvas, _target.Texture, SkiaUnityRenderTarget.PremultipliedMaterial, 0, UiY, Width, Height);
-        AddRawImage(canvas, _translucentReference, null, 2 * Cell, UiY + Cell, Cell, Cell);
-        AddRawImage(canvas, _greyReference, null, 3 * Cell, UiY + Cell, Cell, Cell);
+        AddRawImage(canvas, _translucentReference, null, SquareX, UiY + Cell, Cell, Cell);
+        AddRawImage(canvas, _greyReference, null, GreyX, UiY + Cell, Cell, Cell);
     }
 
     static RawImage AddRawImage(Canvas canvas, Texture texture, Material material, float x, float y, float width, float height)
@@ -129,8 +132,8 @@ public sealed class SkiaSample : MonoBehaviour
 
         _target.Begin();
         Scene.Draw(_target.Canvas, Width, Height);
-        _target.Canvas.DrawRect(2 * Cell, 0, Cell, Cell, _translucent);
-        _target.Canvas.DrawRect(3 * Cell, 0, Cell, Cell, _grey);
+        _target.Canvas.DrawRect(SquareX, 0, Cell, Cell, _translucent);
+        _target.Canvas.DrawRect(GreyX, 0, Cell, Cell, _grey);
         _target.End();
 
         if (_smokeTest && ++_frame == 5)
@@ -142,8 +145,8 @@ public sealed class SkiaSample : MonoBehaviour
         if (Event.current.type != EventType.Repaint)
             return;
         Graphics.DrawTexture(new Rect(0, 0, Width, Height), _target.Texture, SkiaUnityRenderTarget.PremultipliedGuiMaterial);
-        GUI.DrawTexture(new Rect(2 * Cell, Cell, Cell, Cell), _translucentReference);
-        GUI.DrawTexture(new Rect(3 * Cell, Cell, Cell, Cell), _greyReference);
+        GUI.DrawTexture(new Rect(SquareX, Cell, Cell, Cell), _translucentReference);
+        GUI.DrawTexture(new Rect(GreyX, Cell, Cell, Cell), _greyReference);
     }
 
     // An ordinary sRGB texture, which is what Unity decodes to linear in a Linear project.
@@ -212,13 +215,13 @@ public sealed class SkiaSample : MonoBehaviour
 
         foreach (var (name, x, y) in new[] { ("gui", 0, 0), ("quad", QuadX, 0), ("rawimage", 0, UiY) })
         {
-            var square = ScreenPixel(x + 2 * Cell + center, y + center);
+            var square = ScreenPixel(x + SquareX + center, y + center);
             // On Metal in a Linear project IMGUI encodes its own output a second time, so the GUI.DrawTexture
             // references come out too light; the quad's references are what the screen should show there.
             int referenceX = name == "gui" && SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal ? QuadX : x;
-            var squareReference = ScreenPixel(referenceX + 2 * Cell + center, y + Cell + center);
-            var grey = ScreenPixel(x + 3 * Cell + center, y + center);
-            var greyReference = ScreenPixel(referenceX + 3 * Cell + center, y + Cell + center);
+            var squareReference = ScreenPixel(referenceX + SquareX + center, y + Cell + center);
+            var grey = ScreenPixel(x + GreyX + center, y + center);
+            var greyReference = ScreenPixel(referenceX + GreyX + center, y + Cell + center);
             // The references are only an oracle if Unity drew them: blue alone would mean it did not.
             bool referencesDrawn = greyReference.r > 20 && greyReference.b < 250 && squareReference.r > 20;
             pass &= referencesDrawn && Matches(square, squareReference) && Matches(grey, greyReference);

@@ -16,6 +16,31 @@ scene has a page with a screenshot, what each side does, and a table per platfor
 | [Fill rate](performance/fill-rate.md) | Screen-sized layers, opaque and translucent |
 | [UI panels](performance/ui.md) | Cards with shadow, border, icon and text |
 
+## Tips
+
+- **If sprites must go through Skia, use `SKCanvas.DrawAtlas`.** From about 10k sprites one `DrawAtlas`
+  call per texture sheet reaches 65-100% of `SpriteBatch`'s frame rate, depending on the backend; below
+  that the fixed cost of a Skia pass (about 0.1-0.3 ms) dominates. One `DrawImage` per sprite is about
+  three times slower than `DrawAtlas`.
+- **Tint through `DrawAtlas`'s `colors` array with `SKBlendMode.Modulate`**, the equivalent of
+  `SpriteBatch.Draw`'s `color`. It costs almost nothing extra. Tinting `DrawImage` with a per-sprite
+  `SKPaint.ColorFilter` is the slowest option measured, about six times slower than the tinted
+  `DrawAtlas`. `SKColor` is unpremultiplied, so the matching `SpriteBatch` color is
+  `Color.FromNonPremultiplied(r, g, b, a)`.
+- **Upload sprite images once** with `SKImage.ToTextureImage(SkiaRenderer.CurrentBackend.GRContext)`,
+  called between `Begin()` and `End()` when Skia's GPU context is current, and reuse the result.
+- **Use few, large targets.** Every `Begin()`/`End()` pair switches GPU context and flushes Skia. On
+  WindowsDX and KNI WindowsDX, `End()` also calls `glFinish`, which stalls the CPU until the GPU
+  finishes; `SkiaDirectCanvas.End()` does not. One screen-sized target per frame beats one per element.
+- **Prefer `SkiaDirectCanvas` where it is supported.** It skips the full-screen clear and composite of a
+  `SkiaRenderTarget2D`: an empty pass costs about 0.07-0.1 ms instead of 0.15-0.3 ms, and a scene that
+  fills the screen gains the most.
+- **Do not replay an SVG every frame for many icons.** It is the slowest thing in the suite on desktop
+  OpenGL (about 4 FPS for 2k icons, against 32 for Apos.Shapes). Draw a bitmap rendered once instead.
+- **Blurred shadows through `SKMaskFilter.CreateBlur` are eight to eleven times slower** than a shadow
+  computed in a shader (Apos.Shapes), and gradients and rounded-rectangle strokes are several times slower
+  too. For many shapes of those kinds on the desktop, a shader-based library is the faster choice.
+
 ## How it is measured
 
 Each platform has two apps under `benchmarks/Performance/`, built from the same scene code
