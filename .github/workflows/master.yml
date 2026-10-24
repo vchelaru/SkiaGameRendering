@@ -519,6 +519,21 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      # Same lavapipe download and registry registration as desktop-and-core; see the comments there.
+      # WindowsDX12 needs it too: MonoGame's native platform creates its SDL window with Vulkan support
+      # even on D3D12 and throws when the loader has no driver with VK_KHR_surface.
+      - name: Download and register Mesa lavapipe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "26.2.0"
+          Invoke-WebRequest -Uri "https://github.com/pal1000/mesa-dist-win/releases/download/$version/mesa3d-$version-release-msvc.7z" -OutFile mesa.7z
+          $vendorDir = "tests/mesa-vendor"
+          New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
+          & "C:\Program Files\7-Zip\7z.exe" e mesa.7z -o"$vendorDir" "x64/lvp_icd.x86_64.json" "x64/vulkan_lvp.dll" -y
+          Remove-Item mesa.7z
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name "$PWD\tests\mesa-vendor\lvp_icd.x86_64.json" -PropertyType DWord -Value 0 -Force | Out-Null
       - run: dotnet publish samples/Sample.MonoGame.WindowsDX12/Sample.MonoGame.WindowsDX12.csproj -c Release -r win-x64 -o aot-out
       - name: Run the AOT exe's smoke tests
         working-directory: aot-out
