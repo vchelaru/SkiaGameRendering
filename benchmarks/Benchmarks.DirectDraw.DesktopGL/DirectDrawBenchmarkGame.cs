@@ -14,7 +14,9 @@ namespace Benchmarks.DirectDraw;
 /// <see cref="BlockFrames"/> frames inside one process, so GPU clock and power-state drift lands on both
 /// alike. Vsync and fixed time step are off. After the warmup frames it records, per mode, the
 /// frame-to-frame interval, the CPU time of the Skia section, and the GPU span of the frame, then appends
-/// one result line per mode and exits. The window stays hidden (see <see cref="RunHidden"/>).
+/// one result line per mode and exits. A result line ends with the median split of the Skia section
+/// (Begin, recording the scene, End), the median bytes allocated per frame on the game thread and the
+/// run's GC counts for generations 0/1/2. The window stays hidden (see <see cref="RunHidden"/>).
 /// </summary>
 sealed class DirectDrawBenchmarkGame : Game
 {
@@ -26,6 +28,10 @@ sealed class DirectDrawBenchmarkGame : Game
         internal readonly List<double> IntervalMs = new();
         internal readonly List<double> SkiaCpuMs = new();
         internal readonly List<double> GpuMs = new();
+        internal readonly List<double> BeginMs = new();
+        internal readonly List<double> RecordMs = new();
+        internal readonly List<double> EndMs = new();
+        internal readonly List<double> AllocBytes = new();
     }
 
     readonly BenchmarkOptions _options;
@@ -108,19 +114,34 @@ sealed class DirectDrawBenchmarkGame : Game
         GraphicsDevice.Clear(Color.CornflowerBlue);
 
         var skiaStart = Stopwatch.GetTimestamp();
+        var allocStart = GC.GetAllocatedBytesForCurrentThread();
+        long t1, t2;
         if (mode == "offscreen")
         {
             _offscreen!.Begin();
+            t1 = Stopwatch.GetTimestamp();
             _scene.Draw(_offscreen.Canvas, _frame);
+            t2 = Stopwatch.GetTimestamp();
             _offscreen.End();
         }
         else
         {
             _direct!.Begin();
+            t1 = Stopwatch.GetTimestamp();
             _scene.Draw(_direct.Canvas, _frame);
+            t2 = Stopwatch.GetTimestamp();
             _direct.End();
         }
-        var skiaMs = Stopwatch.GetElapsedTime(skiaStart).TotalMilliseconds;
+        var t3 = Stopwatch.GetTimestamp();
+        var skiaMs = Stopwatch.GetElapsedTime(skiaStart, t3).TotalMilliseconds;
+        if (measuring)
+        {
+            var sm = _samples[mode];
+            sm.BeginMs.Add(Stopwatch.GetElapsedTime(skiaStart, t1).TotalMilliseconds);
+            sm.RecordMs.Add(Stopwatch.GetElapsedTime(t1, t2).TotalMilliseconds);
+            sm.EndMs.Add(Stopwatch.GetElapsedTime(t2, t3).TotalMilliseconds);
+            sm.AllocBytes.Add(GC.GetAllocatedBytesForCurrentThread() - allocStart);
+        }
         _gpu.End(_frame);
 
         if (measuring)
@@ -158,7 +179,9 @@ sealed class DirectDrawBenchmarkGame : Game
                 $"| {renderer} | {mode} | {_options.Width}x{_options.Height} | {_options.Run} | " +
                 $"{Median(samples.IntervalMs):0.000} | {Percentile(samples.IntervalMs, 0.95):0.000} | " +
                 $"{Median(samples.SkiaCpuMs):0.000} | {Percentile(samples.SkiaCpuMs, 0.95):0.000} | " +
-                $"{Median(samples.GpuMs):0.000} | {Percentile(samples.GpuMs, 0.95):0.000} | {samples.SkiaCpuMs.Count} |");
+                $"{Median(samples.GpuMs):0.000} | {Percentile(samples.GpuMs, 0.95):0.000} | {samples.SkiaCpuMs.Count} | " +
+                $"{Median(samples.BeginMs):0.000} | {Median(samples.RecordMs):0.000} | {Median(samples.EndMs):0.000} | " +
+                $"{Median(samples.AllocBytes):0} | {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)} |");
             File.AppendAllText(_options.Output, line + Environment.NewLine);
             Console.WriteLine(line);
         }
