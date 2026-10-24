@@ -111,17 +111,21 @@ internal static partial class FnaWebGlInterop
     const s = saved; saved = null;
     if (!s || s.gl.isContextLost()) return;
     const gl = s.gl;
+    const chk = n => { for (let i = 0, e; i < 8 && (e = gl.getError()) !== 0; i++) { glErrors++; errorLog.push([passes, n, e]); } };
+    chk('skia');
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, s.draw);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, s.read);
     gl.bindRenderbuffer(gl.RENDERBUFFER, s.renderbuffer);
     gl.bindVertexArray(s.vao);
     gl.useProgram(s.program);
+    chk('fbo-vao-prog');
     s.units.forEach(([tex, sampler], u) => {
       gl.activeTexture(gl.TEXTURE0 + u);
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.bindSampler(u, sampler);
     });
     gl.activeTexture(s.active);
+    chk('units');
     s.attribs.forEach((a, i) => {
       if (a.buffer) {
         gl.bindBuffer(gl.ARRAY_BUFFER, a.buffer);
@@ -131,10 +135,12 @@ internal static partial class FnaWebGlInterop
       gl.vertexAttribDivisor(i, a.divisor);
       if (a.enabled) gl.enableVertexAttribArray(i); else gl.disableVertexAttribArray(i);
     });
+    chk('attribs');
     gl.bindBuffer(gl.ARRAY_BUFFER, s.array);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.element);
     gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, s.unpack);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, s.pack);
+    chk('buffers');
     for (const c of caps(gl)) { if (s.caps[c]) gl.enable(c); else gl.disable(c); }
     const p = s.p;
     gl.blendFuncSeparate(p[gl.BLEND_SRC_RGB], p[gl.BLEND_DST_RGB], p[gl.BLEND_SRC_ALPHA], p[gl.BLEND_DST_ALPHA]);
@@ -161,9 +167,10 @@ internal static partial class FnaWebGlInterop
     gl.stencilFuncSeparate(gl.BACK, st[7], st[8], st[9]);
     gl.stencilOpSeparate(gl.BACK, st[10], st[11], st[12]);
     gl.stencilMaskSeparate(gl.BACK, st[13]);
+    chk('state');
     for (const [pname, value] of s.pixel) gl.pixelStorei(pname, value);
     // Errors Skia left queued would be blamed on FNA3D's next call.
-    for (let i = 0, e; i < 8 && (e = gl.getError()) !== 0; i++) { glErrors++; errorLog.push([passes, 'end', e]); }
+    chk('pixel');
   };
 
   g.boundTexture = id => { const t = glOf(id).getParameter(0x8069); return t ? t.name | 0 : 0; };
