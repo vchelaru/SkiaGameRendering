@@ -31,11 +31,11 @@ which also draw straight into the current target (`SkiaDirectCanvas`, `SkiaStrid
 
 | Engine | OpenGL / GLES | D3D11 | D3D12 | Vulkan | Metal | WebGL |
 |---|---|---|---|---|---|---|
-| MonoGame | ✅ DesktopGL<br>🟡 Android/iOS | ✅ | ✅ | 🟦 (unpublished) | ❌ | ❌ |
+| MonoGame | ✅ DesktopGL, Android<br>🟡 iOS | ✅ | ✅ | 🟦 (unpublished) | ❌ | ❌ |
 | KNI | ✅ DesktopGL, Android | ✅ | ❌? | ❌? | ❌ | ✅ |
-| FNA | ✅ | ✅ | ❌ | ❌ | ❌ | ❌? |
-| raylib | 🟦 | ❌ | ❌ | ❌ | ❌ | ❌? |
-| Stride | 🟡? | ✅ | ✅ | 🟦 | ❌ | ❌ |
+| FNA | ✅ | ✅ | ❌ | ❌ | ❌ | 🟡 |
+| raylib | 🟦 | ❌ | ❌ | ❌ | ❌ | 🟡 |
+| Stride | ❌ | ✅ | ✅ | 🟦 | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌? |
 | Unity 6 | 🟡 | 🟦 | 🟦 | 🟡 | 🟦 | 🟡? |
 
