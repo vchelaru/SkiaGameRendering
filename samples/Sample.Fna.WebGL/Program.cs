@@ -1,56 +1,121 @@
-using System;
 using System.Runtime.InteropServices.JavaScript;
+using System.Runtime.Versioning;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Sample.Shared;
+using SkiaGameRendering;
+using SkiaSharp;
 
-public class SpikeGame : Game
+namespace Sample.Fna.WebGL;
+
+/// <summary>
+/// FNA in the browser. "texture" draws the Scene through a SkiaRenderTarget2D. "direct" draws it with
+/// SkiaDirectCanvas straight into the back buffer, then layers FNA's SpriteBatch and a RenderTarget2D
+/// that Skia also draws into. The page drives frames from requestAnimationFrame; tests call Frame()
+/// themselves so they can read the canvas in the same task.
+/// </summary>
+public class SampleGame : Game
 {
-    GraphicsDeviceManager _g;
-    public int Frames;
-    public SpikeGame() { _g = new GraphicsDeviceManager(this) { PreferredBackBufferWidth = 800, PreferredBackBufferHeight = 800 }; }
-    protected override void Draw(GameTime t) { GraphicsDevice.Clear(Color.CornflowerBlue); Frames++; base.Draw(t); }
-}
+    private readonly GraphicsDeviceManager _graphics;
+    private SpriteBatch _spriteBatch = null!;
+    private Texture2D _pixel = null!;
+    private SkiaRenderTarget2D? _canvas;
+    private SkiaDirectCanvas? _direct;
+    private RenderTarget2D? _renderTarget;
 
-[System.Runtime.Versioning.SupportedOSPlatform("browser")]
-public static partial class Program
-{
-    static SpikeGame _game;
-    public static void Main() { Console.WriteLine("main"); }
+    public string Mode { get; set; } = "texture";
+    public int Frames { get; private set; }
 
-    [JSExport]
-    public static void Probe()
+    public SampleGame()
     {
-        Console.WriteLine("P1 platform=" + SDL3.SDL.SDL_GetPlatform());
-        Console.WriteLine("P2 ticks=" + SDL3.SDL.SDL_GetTicks());
-        Console.WriteLine("P3 perf=" + SDL3.SDL.SDL_GetPerformanceCounter());
-        Console.WriteLine("P4 init=" + SDL3.SDL.SDL_Init(SDL3.SDL.SDL_InitFlags.SDL_INIT_VIDEO));
-        Console.WriteLine("P5 err=" + SDL3.SDL.SDL_GetError());
-        var w = SDL3.SDL.SDL_CreateWindow("t", 800, 800, SDL3.SDL.SDL_WindowFlags.SDL_WINDOW_OPENGL);
-        Console.WriteLine("P6 window=" + w);
-        Console.WriteLine("P7 flags=" + SDL3.SDL.SDL_GetWindowFlags(w));
+        _graphics = new GraphicsDeviceManager(this) { PreferredBackBufferWidth = 800, PreferredBackBufferHeight = 800 };
     }
 
-    [JSExport]
-    public static void ProbeA() { Console.WriteLine("A flags=" + SDL3.SDL.SDL_GetWindowFlags(IntPtr.Zero)); }
-    [JSExport]
-    public static void ProbeB() { var p = SDL3.SDL.SDL_CreateProperties(); Console.WriteLine("B props=" + p); SDL3.SDL.SDL_SetNumberProperty(p, "x", 5L); Console.WriteLine("B done"); }
-    [JSExport]
-    public static void ProbeC() { var w = SDL3.SDL.SDL_CreateWindow("t", 800, 800, 0UL); Console.WriteLine("C window=" + w + " " + SDL3.SDL.SDL_GetError()); }
-    [JSExport]
-    public static void ProbeD() { var p = SDL3.SDL.SDL_CreateProperties(); SDL3.SDL.SDL_SetStringProperty(p, SDL3.SDL.SDL_PROP_WINDOW_CREATE_TITLE_STRING, "t"); SDL3.SDL.SDL_SetNumberProperty(p, SDL3.SDL.SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, 800); SDL3.SDL.SDL_SetNumberProperty(p, SDL3.SDL.SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, 800); SDL3.SDL.SDL_SetBooleanProperty(p, SDL3.SDL.SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true); var w = SDL3.SDL.SDL_CreateWindowWithProperties(p); Console.WriteLine("D window=" + w + " " + SDL3.SDL.SDL_GetError()); }
+    protected override void LoadContent()
+    {
+        _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _pixel = new Texture2D(GraphicsDevice, 1, 1);
+        _pixel.SetData(new[] { Color.White });
+    }
 
-    [System.Runtime.InteropServices.DllImport("SDL3", EntryPoint = "SDL_GetWindowFlags")] static extern ulong GetFlagsPlain(IntPtr w);
-    [System.Runtime.InteropServices.DllImport("SDL3", EntryPoint = "SDL_CreateWindow")] static extern IntPtr CreateWindowPlain([System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPUTF8Str)] string t, int w, int h, ulong flags);
+    protected override void Draw(GameTime gameTime)
+    {
+        GraphicsDevice.SetRenderTarget(null);
+        GraphicsDevice.Clear(Color.Black);
+
+        if (Mode == "direct")
+            DrawDirect();
+        else
+            DrawTexture();
+
+        Frames++;
+        base.Draw(gameTime);
+    }
+
+    private void DrawTexture()
+    {
+        _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
+        _canvas.Begin();
+        Scene.Draw(_canvas.Canvas, 200, 200);
+        _canvas.End();
+    }
+
+    private void DrawDirect()
+    {
+        // Skia into a render target, which FNA samples below. Done first: FNA3D discards the back buffer's
+        // contents when a render target is bound over it (RenderTargetUsage.DiscardContents).
+        _direct ??= new SkiaDirectCanvas(GraphicsDevice);
+        _renderTarget ??= new RenderTarget2D(GraphicsDevice, 100, 100);
+        GraphicsDevice.SetRenderTarget(_renderTarget);
+        GraphicsDevice.Clear(Color.Yellow);
+        _direct.Begin();
+        using (var paint = new SKPaint { Color = SKColors.Blue })
+            _direct.Canvas.DrawRect(0, 0, 20, 20, paint);
+        using (var paint = new SKPaint { Color = SKColors.Red, IsAntialias = true })
+            _direct.Canvas.DrawCircle(60, 60, 30, paint);
+        _direct.End();
+        GraphicsDevice.SetRenderTarget(null);
+        GraphicsDevice.Clear(Color.Black);
+
+        // The Scene straight into the back buffer.
+        _direct.Begin();
+        Scene.Draw(_direct.Canvas, 200, 200);
+        _direct.End();
+
+        // FNA draws after Skia: the cached GL state must still be FNA's.
+        _spriteBatch.Begin();
+        _spriteBatch.Draw(_pixel, new Rectangle(400, 50, 100, 100), Color.Lime);
+        _spriteBatch.Draw(_renderTarget, new Vector2(400, 300), Color.White);
+        _spriteBatch.End();
+
+        // And FNA once more over the Skia draws on the back buffer.
+        _spriteBatch.Begin();
+        _spriteBatch.Draw(_pixel, new Rectangle(600, 600, 50, 50), Color.Magenta);
+        _spriteBatch.End();
+    }
+}
+
+[SupportedOSPlatform("browser")]
+public static partial class Program
+{
+    private static SampleGame? _game;
+
+    public static void Main() { }
+
     [JSExport]
-    public static void ProbeE() { Console.WriteLine("E flags=" + GetFlagsPlain(IntPtr.Zero)); }
-    [JSExport]
-    public static void ProbeF() { var w = CreateWindowPlain("t", 800, 800, 0x2UL); Console.WriteLine("F window=" + w + " " + SDL3.SDL.SDL_GetError()); }
+    public static void SetMode(string mode)
+    {
+        _game ??= new SampleGame();
+        _game.Mode = mode;
+    }
 
     [JSExport]
     public static void Frame()
     {
-        if (_game == null) { Console.WriteLine("creating game"); _game = new SpikeGame(); }
+        _game ??= new SampleGame();
         _game.RunOneFrame();
     }
+
     [JSExport]
-    public static int Frames() => _game?.Frames ?? -1;
+    public static int Frames() => _game?.Frames ?? 0;
 }

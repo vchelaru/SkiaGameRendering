@@ -7,6 +7,8 @@ dotnet add package SkiaGameRendering.Fna.WindowsDX   # D3D11, Windows
 dotnet add package SkiaGameRendering.Fna.OGL         # OpenGL, Windows/Linux/macOS
 ```
 
+In the browser, see the [WebGL quick start](webgl-quickstart.md) (`SkiaGameRendering.Fna.WebGL`).
+
 Tested against FNA 26.09. Reference FNA the FNA way, as a submodule plus a `ProjectReference`; the
 packages carry no FNA dependency and bind to whatever FNA your game builds against. Ship `fnalibs`
 next to your exe as usual.

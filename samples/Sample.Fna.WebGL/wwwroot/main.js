@@ -1,10 +1,34 @@
-import { dotnet } from './_framework/dotnet.js';
-const runtime = await dotnet.withEnvironmentVariable("FNA_PLATFORM_BACKEND","SDL2").withDiagnosticTracing(false).create();
-globalThis.dotnetRuntime = runtime;
+import { dotnet } from "./_framework/dotnet.js";
+
+// FNA runs on its SDL2 platform backend: SDL3's enum-typed 64-bit pinvokes trap on Mono's WebAssembly interpreter.
+const runtime = await dotnet.withEnvironmentVariable("FNA_PLATFORM_BACKEND", "SDL2").create();
+// Emscripten's EGL path (SDL2's GL context) looks the canvas up here.
 runtime.Module.canvas = document.getElementById("canvas");
 const config = runtime.getConfig();
 const exports = await runtime.getAssemblyExports(config.mainAssemblyName);
-globalThis.exports = exports;
+const program = exports.Sample.Fna.WebGL.Program;
+
+const mode = new URLSearchParams(location.search).get("mode") ?? "texture";
+program.SetMode(mode);
 await runtime.runMain();
-function loop() { try { exports.Program.Frame(); } catch (e) { console.error(e); return; } requestAnimationFrame(loop); }
-requestAnimationFrame(loop);
+
+// Tests drive frames themselves so they can read the canvas in the same task as the draw.
+globalThis.fnaSample = {
+  mode,
+  frame: () => program.Frame(),
+  frames: () => program.Frames(),
+  setMode: m => program.SetMode(m),
+  // Draws one frame, then reads pixels [x, y] (top-left origin) from the canvas before it is presented.
+  frameAndRead(points) {
+    program.Frame();
+    const gl = document.getElementById("canvas").getContext("webgl2");
+    const height = gl.drawingBufferHeight, px = new Uint8Array(4);
+    return points.map(([x, y]) => { gl.readPixels(x, height - 1 - y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return Array.from(px); });
+  },
+};
+document.title = "Sample.Fna.WebGL ready";
+
+if (!new URLSearchParams(location.search).has("manual")) {
+  const loop = () => { program.Frame(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}

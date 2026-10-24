@@ -22,6 +22,7 @@ Unity textures on the GPU, with no CPU readback.
 | [raylib WebGL](docs/raylib/webgl-quickstart.md) | WebGL2 | [`SkiaGameRendering.Raylib.WebGL`](https://www.nuget.org/packages/SkiaGameRendering.Raylib.WebGL) | Browser |
 | [FNA](docs/fna/quickstart.md) | D3D11 | [`SkiaGameRendering.Fna.WindowsDX`](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) | Windows |
 | [FNA](docs/fna/quickstart.md) | OpenGL | [`SkiaGameRendering.Fna.OGL`](https://www.nuget.org/packages/SkiaGameRendering.Fna.OGL) | Windows, Linux, macOS |
+| [FNA WebGL](docs/fna/webgl-quickstart.md) | WebGL2 | [`SkiaGameRendering.Fna.WebGL`](https://www.nuget.org/packages/SkiaGameRendering.Fna.WebGL) | Browser |
 | [Stride](docs/stride/quickstart.md) | D3D11 | [`SkiaGameRendering.Stride.D3D11`](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) | Windows |
 | [Stride](docs/stride/vulkan-quickstart.md) | Vulkan | [`SkiaGameRendering.Stride.VK`](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) | Windows, Linux, macOS |
 | [Stride](docs/stride/d3d12-quickstart.md) | D3D12 | [`SkiaGameRendering.Stride.D3D12`](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D12) | Windows |

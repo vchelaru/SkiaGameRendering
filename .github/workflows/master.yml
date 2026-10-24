@@ -311,6 +311,53 @@ jobs:
             tests/Tests.Raylib.WebGL/playwright-report
             tests/Tests.Raylib.WebGL/test-results
 
+  # FNA in the browser. Separate from webgl-functional: it builds SDL2 and FNA3D for Emscripten first and needs the
+  # .NET 10 wasm-tools workload (the emsdk version has to match the .NET runtime's).
+  fna-webgl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out the FNA submodule
+        run: |
+          git submodule update --init external/FNA
+          git -C external/FNA submodule update --init lib/SDL2-CS lib/SDL3-CS lib/FAudio lib/Theorafile lib/dav1dfile
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/Tests.Fna.WebGL/package-lock.json
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.56
+      - name: Install WASM toolchain
+        run: |
+          dotnet workload install wasm-tools
+          sudo apt-get install -y ninja-build
+      - name: Build SDL2 and FNA3D for WebAssembly
+        run: eng/build-fna-wasm-natives.sh
+      - name: Publish the sample
+        run: dotnet publish samples/Sample.Fna.WebGL/Sample.Fna.WebGL.csproj -c Release
+      - name: Install browser tests
+        working-directory: tests/Tests.Fna.WebGL
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Browser pixel tests
+        working-directory: tests/Tests.Fna.WebGL
+        run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fna-webgl-browser-artifacts
+          path: |
+            tests/Tests.Fna.WebGL/playwright-report
+            tests/Tests.Fna.WebGL/test-results
+
   raylib-linux:
     runs-on: ubuntu-latest
     steps:
