@@ -10,7 +10,7 @@ DesktopGL, KNI WindowsDX. All four share the same public API (`SkiaRenderer`,
 - MonoGame 3.8.4.1 (DesktopGL or WindowsDX), MonoGame 3.8.6 (native WindowsDX12 or DesktopVK), or KNI (DesktopGL or WindowsDX)
 - SkiaSharp 4.153.1 (3.119.4 for `SkiaGameRendering.DesktopVK` 0.17.4-preview)
 
-The MonoGame DesktopGL and WindowsDX packages are trim- and NativeAOT-compatible; CI publishes and
+The MonoGame DesktopGL, WindowsDX and WindowsDX12 packages are trim- and NativeAOT-compatible; CI publishes and
 runs their samples with `PublishAot`. The other packages are not yet verified under NativeAOT.
 
 ## Add the package

@@ -510,6 +510,44 @@ jobs:
           "Exit code: $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode
           exit $p.ExitCode
 
+  # Same as windowsdx-nativeaot, for MonoGame's native WindowsDX12 platform (Direct3D 12 on WARP).
+  windowsdx12-nativeaot:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',windowsdx12-nativeaot,')))
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      # Same lavapipe download and registry registration as desktop-and-core; see the comments there.
+      # WindowsDX12 needs it too: MonoGame's native platform creates its SDL window with Vulkan support
+      # even on D3D12 and throws when the loader has no driver with VK_KHR_surface.
+      - name: Download and register Mesa lavapipe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "26.2.0"
+          Invoke-WebRequest -Uri "https://github.com/pal1000/mesa-dist-win/releases/download/$version/mesa3d-$version-release-msvc.7z" -OutFile mesa.7z
+          $vendorDir = "tests/mesa-vendor"
+          New-Item -ItemType Directory -Force -Path $vendorDir | Out-Null
+          & "C:\Program Files\7-Zip\7z.exe" e mesa.7z -o"$vendorDir" "x64/lvp_icd.x86_64.json" "x64/vulkan_lvp.dll" -y
+          Remove-Item mesa.7z
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name "$PWD\tests\mesa-vendor\lvp_icd.x86_64.json" -PropertyType DWord -Value 0 -Force | Out-Null
+      - run: dotnet publish samples/Sample.MonoGame.WindowsDX12/Sample.MonoGame.WindowsDX12.csproj -c Release -r win-x64 -o aot-out
+      - name: Run the AOT exe's smoke tests
+        working-directory: aot-out
+        shell: pwsh
+        run: |
+          foreach ($mode in "--smoke-test", "--direct-smoke-test") {
+            $p = Start-Process ./Sample.MonoGame.WindowsDX12.exe -ArgumentList $mode -PassThru -RedirectStandardOutput smoke.txt -RedirectStandardError smoke-err.txt
+            $null = $p.Handle
+            if (-not $p.WaitForExit(120000)) { $p.Kill(); Get-Content smoke.txt, smoke-err.txt; throw "$mode timed out" }
+            Get-Content smoke.txt, smoke-err.txt
+            "$mode exit code: $($p.ExitCode) (0x{0:X8})" -f $p.ExitCode
+            if ($p.ExitCode -ne 0) { exit $p.ExitCode }
+          }
+
   # MonoGame's native WindowsDX12 and DesktopVK platforms, run through the sample's --smoke-test on
   # windows-latest's software drivers: WARP for D3D12 (the runner's only adapter), Mesa lavapipe for
   # Vulkan. The Vulkan run reads Skia's own surface instead of the back buffer; see SKIAGAMERENDERING_SMOKE_SKIA_READBACK below.
@@ -757,7 +795,7 @@ jobs:
   # Opens an issue when a nightly run fails, so a failure is never lost in the Actions tab.
   nightly-report:
     if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
-    needs: [desktop-and-core, desktop-builds, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux]
+    needs: [desktop-and-core, desktop-builds, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, windowsdx12-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux]
     runs-on: ubuntu-latest
     permissions:
       issues: write
