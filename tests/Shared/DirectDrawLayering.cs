@@ -132,4 +132,47 @@ static class DirectDrawLayering
             graphicsDevice.SetRenderTarget(null);
         }
     }
+
+    /// <summary>
+    /// Draws into a render target through <see cref="SkiaDirectCanvas"/>, disposes the renderer (which frees
+    /// the cached direct-draw FBO), and reads the engine's render target back. Freeing Skia's FBO must not
+    /// invalidate the color attachment the engine still owns.
+    /// </summary>
+    internal static string RenderTargetSurvivesRendererDispose(GraphicsDevice graphicsDevice, int multiSampleCount)
+    {
+        using var renderTarget = new RenderTarget2D(graphicsDevice, Size, Size, false, SurfaceFormat.Color,
+            DepthFormat.None, multiSampleCount, RenderTargetUsage.PreserveContents);
+        if (renderTarget.MultiSampleCount != multiSampleCount)
+            return $"the engine made a {renderTarget.MultiSampleCount}x target, not {multiSampleCount}x";
+
+        graphicsDevice.SetRenderTarget(renderTarget);
+        try
+        {
+            graphicsDevice.Clear(Background);
+            using (var direct = new SkiaDirectCanvas(graphicsDevice))
+            using (var paint = new SKPaint { Color = Skia })
+            {
+                direct.Begin();
+                direct.Canvas.DrawRect(0, 0, Size, Size / 2, paint);
+                direct.End();
+            }
+
+            SkiaRenderer.Dispose();
+
+            graphicsDevice.SetRenderTarget(null);
+            var pixels = new Color[Size * Size];
+            renderTarget.GetData(pixels);
+            var skia = new Color(Skia.Red, Skia.Green, Skia.Blue, Skia.Alpha);
+            var errors = new List<string>();
+            if (pixels[Size / 4 * Size + Size / 2] != skia)
+                errors.Add($"Skia half: expected {skia}, got {pixels[Size / 4 * Size + Size / 2]}");
+            if (pixels[Size * 3 / 4 * Size + Size / 2] != Background)
+                errors.Add($"background half: expected {Background}, got {pixels[Size * 3 / 4 * Size + Size / 2]}");
+            return string.Join("; ", errors);
+        }
+        finally
+        {
+            graphicsDevice.SetRenderTarget(null);
+        }
+    }
 }
