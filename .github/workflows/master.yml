@@ -522,6 +522,13 @@ jobs:
         with:
           # SkiaSharp's iOS native assets only ship for net10.0-ios.
           dotnet-version: 10.0.x
+      # The newest iOS workload needs the newest Xcode, which is installed but not the runner's default.
+      - name: Select the newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          xcode=$(ls -d /Applications/Xcode_*.app | sort -V | tail -n 1)
+          echo "Selecting $xcode"
+          sudo xcode-select -s "$xcode"
       - name: Install the iOS workload
         run: dotnet workload install ios
       - name: Build the MonoGame iOS sample for the simulator
