@@ -100,7 +100,9 @@ sets the real one. To find the last published version of a package, read
 - **"Not verified" means the host cannot run it.** Before a PR lists a platform as unverified, run
   everything this machine can. On Windows that includes the Unity `-d3d12` and `-linear` players,
   the Godot engine tests (download Godot as `master.yml` does and set `GODOT_BIN`), and the WebGL
-  sample. Only Metal needs macOS.
+  sample. Only Metal needs macOS. This covers platforms CI does not run. A platform with its own CI
+  job, such as `android`, counts as verified by that job: read it with `gh pr checks` and don't run
+  it locally.
 - **NuGet audit advisories on Stride's own dependencies are not ours to fix.** Stride.Assets pulls in
   `SixLabors.ImageSharp` 3.1.12, which carries advisories. `eng/StrideAudit.props` suppresses them for
   every Stride project, so import it from any new one. Don't pin or upgrade ImageSharp; revisit only
