@@ -63,6 +63,7 @@ namespace SkiaGameRendering
             {
                 VulkanUnityBackend.LoadPlugin();
                 UsesPrepareEvent = true;
+                SupportsDirectCanvas = true;
                 return;
             }
             if (api == GraphicsDeviceType.Direct3D12
@@ -100,6 +101,13 @@ namespace SkiaGameRendering
         /// <see cref="UsesPrepareEvent"/> is set.
         /// </summary>
         internal virtual void Prepare(SkiaRenderTarget2D.RenderState target) { }
+
+        /// <summary>
+        /// The <see cref="SkiaDirectCanvas"/> version of <see cref="Prepare"/>: runs in the prepare plugin event
+        /// before a direct draw's draw event, and names the render target by the <c>UnityRenderBuffer</c>
+        /// the main thread read. Only called when <see cref="UsesPrepareEvent"/> is set.
+        /// </summary>
+        internal virtual void PrepareDirect(IntPtr renderBuffer) { }
 
         /// <summary>Plays <paramref name="picture"/> back onto the target's texture, creating its surface on the first draw.</summary>
         internal abstract void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture);
