@@ -292,38 +292,32 @@ been verified (3.8.6); on any other build `SkiaRenderer.SupportsDirectCanvas` is
 ## Performance
 
 Skia is a general-purpose vector renderer. It is not a sprite batcher, so draw sprites with the
-engine's own `SpriteBatch` and use Skia for vectors, SVG and text. The two interleave freely.
+engine's own `SpriteBatch`. Use Skia for what the engine and its shape libraries cannot do: arbitrary
+paths, text at any size, SVG. The two interleave freely. Measured numbers for each kind of scene, by
+platform and hardware, are in [docs/performance.md](docs/performance.md). The short version:
 
-- **If sprites must go through Skia, use `SKCanvas.DrawAtlas`.** One `DrawAtlas` call per texture
-  sheet costs about the same as `SpriteBatch`. One `DrawImage` per sprite is several times slower.
+- **If sprites must go through Skia, use `SKCanvas.DrawAtlas`.** From about 10k sprites one `DrawAtlas`
+  call per texture sheet reaches 65-100% of `SpriteBatch`'s frame rate, depending on the backend; below
+  that the fixed cost of a Skia pass (about 0.1-0.3 ms) dominates. One `DrawImage` per sprite is about
+  three times slower than `DrawAtlas`.
 - **Tint through `DrawAtlas`'s `colors` array with `SKBlendMode.Modulate`**, the equivalent of
   `SpriteBatch.Draw`'s `color`. It costs almost nothing extra. Tinting `DrawImage` with a per-sprite
-  `SKPaint.ColorFilter` is the slowest option measured. `SKColor` is unpremultiplied, so the matching
-  `SpriteBatch` color is `Color.FromNonPremultiplied(r, g, b, a)`.
+  `SKPaint.ColorFilter` is the slowest option measured, about six times slower than the tinted
+  `DrawAtlas`. `SKColor` is unpremultiplied, so the matching `SpriteBatch` color is
+  `Color.FromNonPremultiplied(r, g, b, a)`.
 - **Upload sprite images once** with `SKImage.ToTextureImage(SkiaRenderer.CurrentBackend.GRContext)`,
   called between `Begin()` and `End()` when Skia's GPU context is current, and reuse the result.
 - **Use few, large targets.** Every `Begin()`/`End()` pair switches GPU context and flushes Skia. On
   WindowsDX and KNI WindowsDX, `End()` also calls `glFinish`, which stalls the CPU until the GPU
   finishes; `SkiaDirectCanvas.End()` does not. One screen-sized target per frame beats one per element.
-
-Measured with `benchmarks/Benchmarks.ShapeRendering.DesktopGL` (MonoGame DesktopGL, macOS, Apple
-Silicon), frame time in ms:
-
-| Sprites | Skia `DrawImage` | Skia `DrawAtlas` | `SpriteBatch` |
-|---:|---:|---:|---:|
-| 0 | 0.190 | 0.187 | 0.149 |
-| 500 | 0.466 | 0.242 | 0.174 |
-| 2k | 1.017 | 0.284 | 0.218 |
-| 10k | 3.977 | 0.638 | 0.579 |
-| 500 tinted | 0.836 | 0.250 | 0.174 |
-| 10k tinted | 10.794 | 0.658 | 0.585 |
-
-`SkiaDirectCanvas` saves the full-screen clear and composite of a `SkiaRenderTarget2D`, about
-8-12% of the Skia frame cost for a 450-draw scene on an AMD Radeon 780M
-(`benchmarks/Benchmarks.DirectDraw.DesktopGL`).
-
-For whole-frame FPS of a plain MonoGame app against the same scene drawn through Skia, by platform
-and hardware, see [docs/performance.md](docs/performance.md).
+- **Prefer `SkiaDirectCanvas` where it is supported.** It skips the full-screen clear and composite of a
+  `SkiaRenderTarget2D`: an empty pass costs about 0.07-0.1 ms instead of 0.15-0.3 ms, and a scene that
+  fills the screen gains the most.
+- **Do not replay an SVG every frame for many icons.** It is the slowest thing in the suite on desktop
+  OpenGL (about 4 FPS for 2k icons, against 32 for Apos.Shapes). Draw a bitmap rendered once instead.
+- **Blurred shadows through `SKMaskFilter.CreateBlur` are eight to eleven times slower** than a shadow
+  computed in a shader (Apos.Shapes), and gradients and rounded-rectangle strokes are several times slower
+  too. For many shapes of those kinds on the desktop, a shader-based library is the faster choice.
 
 ## Sample Projects
 

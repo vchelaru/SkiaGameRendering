@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RollForward>Major</RollForward>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <KniPlatform>DesktopGL</KniPlatform>
+    <ApplicationManifest>..\..\app.manifest</ApplicationManifest>
+    <RootNamespace>Performance</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="nkast.Xna.Framework" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Content" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Audio" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Media" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Input" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Game" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Devices" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Storage" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Kni.Platform.SDL2.GL" Version="$(KniVersion)" />
+    <PackageReference Include="Apos.Shapes.KNI" Version="0.8.6" />
+    <PackageReference Include="FontStashSharp.Kni" Version="1.6.2" />
+    <PackageReference Include="StbTrueTypeSharp" Version="1.26.13" />
+  </ItemGroup>
+  <!-- The Raw and Skia apps share the scenes and the loop; Raw adds the engine-side drawing (SpriteBatch, Apos.Shapes, fonts). -->
+  <Import Project="..\..\Shared\Performance.Shared.props" />
+  <ItemGroup>
+    <Compile Include="..\..\Shared\Engine\*.cs" Link="Shared\Engine\%(Filename)%(Extension)" />
+    <Compile Include="..\..\MonoGame.DesktopGL\GpuInfo.cs" Link="GpuInfo.cs" />
+  </ItemGroup>
+</Project>

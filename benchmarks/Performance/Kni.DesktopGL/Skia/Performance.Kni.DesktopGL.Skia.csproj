@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RollForward>Major</RollForward>
+    <KniPlatform>DesktopGL</KniPlatform>
+    <ApplicationManifest>..\..\app.manifest</ApplicationManifest>
+    <RootNamespace>Performance</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="nkast.Xna.Framework" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Content" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Audio" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Media" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Input" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Game" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Devices" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Xna.Framework.Storage" Version="$(KniVersion)" />
+    <PackageReference Include="nkast.Kni.Platform.SDL2.GL" Version="$(KniVersion)" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\SkiaGameRendering.Kni.DesktopGL\SkiaGameRendering.Kni.DesktopGL.csproj" />
+  </ItemGroup>
+  <!-- The Raw and Skia apps share the scenes and the loop; Skia adds the pure SKCanvas drawing. -->
+  <Import Project="..\..\Shared\Performance.Shared.props" />
+  <ItemGroup>
+    <Compile Include="..\..\Shared\Skia\*.cs" Link="Shared\Skia\%(Filename)%(Extension)" />
+    <Compile Include="..\..\MonoGame.DesktopGL\GpuInfo.cs" Link="GpuInfo.cs" />
+  </ItemGroup>
+</Project>

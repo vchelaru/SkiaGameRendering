@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <base href="/">
+    <title>KNI WebGL performance, Skia</title>
+    <link href="css/app.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app"><div class="loading">Starting...</div></div>
+    <div id="blazor-error-ui">The app stopped. <a href="">Reload</a></div>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <!-- These nkast.Wasm.* filenames are version-stamped and must match eng/Versions.props's
+         NkastWasmCanvasVersion; see samples/Sample.Kni.WebGL/wwwroot/index.html. -->
+    <script src="_content/nkast.Wasm.JSInterop/js/JSObject.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Window.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Document.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Navigator.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Gamepad.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Media.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.XHR/js/XHR.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Canvas/js/Canvas.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Canvas/js/CanvasGLContext.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Audio/js/Audio.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.XR/js/XR.10.0.3.js"></script>
+    <script src="js/perf-loop.js"></script>
+    <script>Blazor.start();</script>
+</body>
+</html>

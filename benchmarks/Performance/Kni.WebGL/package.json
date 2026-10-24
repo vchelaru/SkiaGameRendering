@@ -1,0 +1,8 @@
+{
+  "name": "skia-game-rendering-performance-browser",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "playwright": "1.61.1"
+  }
+}
