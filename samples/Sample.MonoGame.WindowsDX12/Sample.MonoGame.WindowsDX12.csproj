@@ -10,6 +10,7 @@
          package - required by MonoGame.Content.Builder.Task.targets even with no content to build. -->
     <MonoGamePlatform>WindowsDX12</MonoGamePlatform>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PublishAot>true</PublishAot>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>..\Sample.MonoGame.WindowsDX\app.manifest</ApplicationManifest>

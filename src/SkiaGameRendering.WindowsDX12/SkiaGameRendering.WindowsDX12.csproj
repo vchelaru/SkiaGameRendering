@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>SkiaGameRendering</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
     <PackageId>SkiaGameRendering.WindowsDX12</PackageId>
     <Version>$(LibraryVersion)</Version>
     <Description>GPU SkiaSharp rendering into MonoGame WindowsDX12 (native D3D12 platform) render targets, drawn on MonoGame's own device and queue with no CPU readback.</Description>

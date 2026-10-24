@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible Condition="'$(TargetFramework)' == 'net8.0'">true</IsAotCompatible>
     <PackageId>SkiaGameRendering.Core.D3D12</PackageId>
     <Version>$(LibraryVersion)</Version>
     <Description>Engine-agnostic D3D12/Skia interop shared by D3D12-based SkiaGameRendering backends. Not meant to be referenced directly - installed automatically as a dependency of those backends.</Description>
