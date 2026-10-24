@@ -42,7 +42,8 @@ internal static partial class FnaWebGlInterop
     private const string Script = """
 (() => {
   const g = globalThis.skiaFnaWebGl = globalThis.skiaFnaWebGl || {};
-  let saved = null, glErrors = 0;
+  let saved = null, glErrors = 0, passes = 0;
+  const errorLog = [];
   const glOf = id => {
     const canvas = document.getElementById(id);
     const gl = canvas && canvas.getContext("webgl2");
@@ -61,6 +62,8 @@ internal static partial class FnaWebGlInterop
   g.begin = id => {
     const gl = glOf(id);
     if (gl.isContextLost()) return [1, 0, 0, 0, 0, 0];
+    passes++;
+    const pre = gl.getError(); if (pre !== 0) errorLog.push([passes, 'pre', pre]);
     const s = saved = { gl, caps: {}, p: {}, attribs: [], units: [] };
     for (const c of caps(gl)) s.caps[c] = gl.isEnabled(c);
     for (const p of params(gl)) s.p[p] = copy(gl.getParameter(p));
@@ -99,6 +102,7 @@ internal static partial class FnaWebGlInterop
       s.units.push([gl.getParameter(gl.TEXTURE_BINDING_2D), gl.getParameter(gl.SAMPLER_BINDING)]);
     }
     gl.activeTexture(s.active);
+    const post = gl.getError(); if (post !== 0) errorLog.push([passes, 'save', post]);
     return [0, s.draw ? s.draw.name | 0 : 0, gl.getParameter(gl.SAMPLES) | 0, gl.getParameter(gl.STENCIL_BITS) | 0,
       gl.drawingBufferWidth, gl.drawingBufferHeight];
   };
@@ -159,11 +163,12 @@ internal static partial class FnaWebGlInterop
     gl.stencilMaskSeparate(gl.BACK, st[13]);
     for (const [pname, value] of s.pixel) gl.pixelStorei(pname, value);
     // Errors Skia left queued would be blamed on FNA3D's next call.
-    for (let i = 0, e; i < 8 && (e = gl.getError()) !== 0; i++) glErrors++;
+    for (let i = 0, e; i < 8 && (e = gl.getError()) !== 0; i++) { glErrors++; errorLog.push([passes, 'end', e]); }
   };
 
   g.boundTexture = id => { const t = glOf(id).getParameter(0x8069); return t ? t.name | 0 : 0; };
   g.errorCount = () => glErrors;
+  g.errorLog = () => JSON.stringify(errorLog);
 })();
 """;
 }

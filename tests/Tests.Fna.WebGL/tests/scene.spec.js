@@ -24,6 +24,7 @@ const near = (actual, expected, tolerance = 12) => {
 };
 
 const glErrors = page => page.evaluate(() => globalThis.skiaFnaWebGl.errorCount());
+const glErrorLog = page => page.evaluate(() => globalThis.skiaFnaWebGl.errorLog());
 
 test("SkiaRenderTarget2D draws the Scene into an FNA texture", async ({ page }) => {
   const errors = await open(page, "texture");
@@ -32,7 +33,7 @@ test("SkiaRenderTarget2D draws the Scene into an FNA texture", async ({ page }) 
   expect(drop[0]).toBeLessThan(100);
   expect(drop[2]).toBeGreaterThan(150);
   near(outside, [0, 0, 0]);
-  expect(await glErrors(page)).toBe(0);
+  expect(await glErrors(page), await glErrorLog(page)).toBe(0);
   expect(errors).toEqual([]);
 });
 
@@ -54,7 +55,7 @@ test("SkiaDirectCanvas layers Skia between FNA's draws on the back buffer and a 
   near(pixel.yellowTopRight, [255, 255, 0]);
   near(pixel.magenta, [255, 0, 255]);      // FNA draws last, so its cached GL state survived every Skia pass
   near(pixel.black, [0, 0, 0]);
-  expect(await glErrors(page)).toBe(0);
+  expect(await glErrors(page), await glErrorLog(page)).toBe(0);
   expect(errors).toEqual([]);
 });
 
