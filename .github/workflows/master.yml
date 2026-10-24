@@ -513,6 +513,29 @@ jobs:
             bash eng/run-android-smoke-test.sh "$(find samples/Sample.Kni.Android/bin/Release -name '*-Signed.apk' | head -n 1)" com.vchelaru.skiagamerendering.sample
             bash eng/run-android-smoke-test.sh "$(find samples/Sample.MonoGame.Android/bin/Release -name '*-Signed.apk' | head -n 1)" com.vchelaru.skiagamerendering.monogame.sample
 
+  # MonoGame iOS renders with OpenGL ES, which the iOS Simulator still runs (on Metal).
+  ios-simulator:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          # SkiaSharp's iOS native assets only ship for net10.0-ios.
+          dotnet-version: 10.0.x
+      - name: Install the iOS workload
+        run: dotnet workload install ios
+      - name: Build the MonoGame iOS sample for the simulator
+        run: dotnet build samples/Sample.MonoGame.iOS/Sample.MonoGame.iOS.csproj -c Release -r iossimulator-arm64
+      - name: Boot an iPhone simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name | startswith("iPhone"))][0].udid')
+          echo "Booting $udid"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "IOS_SIMULATOR=$udid" >> "$GITHUB_ENV"
+      - name: Run the smoke test
+        run: bash eng/run-ios-smoke-test.sh "$(find samples/Sample.MonoGame.iOS/bin/Release -name '*.app' -type d | head -n 1)" com.vchelaru.skiagamerendering.monogame.sample
+
   godot-linux:
     runs-on: ubuntu-latest
     steps:

@@ -11,7 +11,7 @@ namespace SkiaGameRendering
 
     /// <summary>
     /// The part every GL backend that draws on a second context sharing the engine's objects has in common:
-    /// MonoGame DesktopGL, FNA, KNI DesktopGL and KNI Android. A subclass supplies how to create and switch
+    /// MonoGame DesktopGL, Android and iOS, FNA, KNI DesktopGL and KNI Android. A subclass supplies how to create and switch
     /// between the two contexts and where the engine keeps a texture's GL name. Everything else, including
     /// making the engine's context look at a rewritten texture again, lives here once, so a GL fix reaches
     /// all of them. Linked as source into each of those projects, like <see cref="SkiaBackend"/>.
@@ -154,6 +154,14 @@ namespace SkiaGameRendering
         private bool _backBufferStale;
 
         /// <summary>
+        /// Whether the engine can delete its back buffer's color renderbuffer and make a new one under the
+        /// same GL name, with nothing to tell this backend. MonoGame iOS does that on every view layout. The
+        /// cached FBO would keep the deleted renderbuffer alive and Skia would draw into it, so each pass
+        /// attaches the current one again.
+        /// </summary>
+        private protected virtual bool BackBufferRenderbufferCanBeReplaced => false;
+
+        /// <summary>
         /// Makes Skia's context current with the engine's window as its default framebuffer. The desktop
         /// backends always make it current on the window, so this is <see cref="MakeSkiaContextCurrent"/>
         /// unless that can leave the context without one.
@@ -237,7 +245,11 @@ namespace SkiaGameRendering
 
             if (!_backBufferStale && _backBufferTarget is { } cached
                 && cached.Gl == glTarget && cached.Width == width && cached.Height == height)
+            {
+                if (BackBufferRenderbufferCanBeReplaced && !glTarget.IsDefaultFramebuffer)
+                    GlSkiaSurfaceFactory.AttachColor(_gl, cached.Framebuffer, glTarget);
                 return cached;
+            }
 
             if (_backBufferTarget != null)
                 DisposeDirectTarget(_backBufferTarget);

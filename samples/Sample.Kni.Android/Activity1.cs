@@ -28,7 +28,7 @@ namespace Sample
             base.OnCreate(bundle);
             var smoke = Intent?.GetBooleanExtra("smoke", false) ?? false;
             _game = new LoggingGame(this, smoke);
-            _game.ExtraSmokeCheck = graphicsDevice => AndroidDirectCanvasCheck.Run(graphicsDevice);
+            _game.ExtraSmokeCheck = graphicsDevice => MobileDirectCanvasCheck.Run(graphicsDevice, message => Log.Info("SkiaSample", message));
             SetContentView((View)_game.Services.GetService(typeof(View)));
             _game.Run();
         }

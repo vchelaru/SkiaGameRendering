@@ -1,25 +1,24 @@
-using Android.Util;
 using Microsoft.Xna.Framework.Graphics;
 using SkiaGameRendering;
 using Tests.Shared;
 
 namespace Sample.Shared
 {
-    /// <summary>The Android samples' (KNI and MonoGame) extra smoke-test check, logged under the "SkiaSample" tag.</summary>
-    static class AndroidDirectCanvasCheck
+    /// <summary>The extra smoke-test check of the Android (KNI and MonoGame) and iOS samples.</summary>
+    static class MobileDirectCanvasCheck
     {
         /// <summary>
         /// <see cref="SkiaDirectCanvas"/> layered between SpriteBatch draws, on the back buffer, a plain
         /// render target and a multisampled one. The multisampled case is skipped on a device without
         /// MSAA render targets (GLES 2), and the log says so. <paramref name="msaaSkipReason"/> skips it too,
-        /// for an engine that cannot resolve a multisampled target on GLES at all.
+        /// for an engine that cannot resolve a multisampled target on GLES at all. Each result goes to <paramref name="log"/>.
         /// </summary>
-        public static bool Run(GraphicsDevice graphicsDevice, string msaaSkipReason = null)
+        public static bool Run(GraphicsDevice graphicsDevice, System.Action<string> log, string msaaSkipReason = null)
         {
             var passed = true;
             void Check(string what, string errors)
             {
-                Log.Info("SkiaSample", $"Direct canvas, {what}: {(errors == "" ? "passed" : "FAILED: " + errors)}");
+                log($"Direct canvas, {what}: {(errors == "" ? "passed" : "FAILED: " + errors)}");
                 passed &= errors == "";
             }
 
@@ -28,7 +27,7 @@ namespace Sample.Shared
 
             if (msaaSkipReason != null)
             {
-                Log.Info("SkiaSample", $"Direct canvas, 4x MSAA render target: skipped, {msaaSkipReason}");
+                log($"Direct canvas, 4x MSAA render target: skipped, {msaaSkipReason}");
                 return passed;
             }
 
@@ -39,7 +38,7 @@ namespace Sample.Shared
             if (samples == 4)
                 Check("4x MSAA render target", DirectDrawLayering.RenderTarget(graphicsDevice, 4));
             else
-                Log.Info("SkiaSample", $"Direct canvas, 4x MSAA render target: skipped, the device made {samples}x");
+                log($"Direct canvas, 4x MSAA render target: skipped, the device made {samples}x");
 
             return passed;
         }

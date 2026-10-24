@@ -198,6 +198,22 @@ namespace SkiaGameRendering.Core.OGL
             return state;
         }
 
+        /// <summary>
+        /// Attaches <paramref name="target"/>'s color attachment to the FBO in <paramref name="state"/> again,
+        /// on the current (Skia) context, so the FBO picks up a new object the engine made under the same name.
+        /// </summary>
+        public static void AttachColor(GlFunctions gl, GlFramebufferState state, GlDrawTarget target)
+        {
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, state.FramebufferId);
+            if (target.AttachmentType == GL_RENDERBUFFER)
+                gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
+                    FramebufferAttachment.ColorAttachment0, RenderbufferTarget.Renderbuffer, target.AttachmentName);
+            else
+                gl.FramebufferTexture2D(FramebufferTarget.Framebuffer,
+                    FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, target.AttachmentName, 0);
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        }
+
         /// <summary>glFlush on the current context.</summary>
         public static void Flush(GlFunctions gl) => gl.Flush();
 
