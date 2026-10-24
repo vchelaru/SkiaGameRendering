@@ -3,7 +3,7 @@ using System;
 using SkiaGameRendering.Core.ANGLE;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Unity
+namespace SkiaGameRendering
 {
     /// <summary>Direct3D 11: Skia draws through ANGLE on Unity's own ID3D11Device and immediate context.</summary>
     internal sealed class AngleUnityBackend : SkiaUnityBackend
@@ -29,7 +29,7 @@ namespace SkiaGameRendering.Unity
             }
         }
 
-        internal override void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture)
+        internal override void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture)
         {
             _factory.BeginDraw();
             try
@@ -56,7 +56,7 @@ namespace SkiaGameRendering.Unity
             }
         }
 
-        internal override void DisposeTarget(SkiaUnityRenderTarget.RenderState target)
+        internal override void DisposeTarget(SkiaRenderTarget2D.RenderState target)
         {
             target.Surface?.Dispose();
             target.Surface = null;

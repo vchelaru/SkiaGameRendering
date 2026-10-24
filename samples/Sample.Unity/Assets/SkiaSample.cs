@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using Sample.Shared;
-using SkiaGameRendering.Unity;
+using SkiaGameRendering;
 using SkiaSharp;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -9,11 +9,11 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Draws the shared <see cref="Scene"/>, a 50% orange square and an opaque mid-grey square into a
-/// <see cref="SkiaUnityRenderTarget"/> every frame, and shows it twice over a solid blue camera
+/// <see cref="SkiaRenderTarget2D"/> every frame, and shows it twice over a solid blue camera
 /// background three ways, one per way Unity displays a texture: through <c>Graphics.DrawTexture</c>
-/// in <c>OnGUI</c> with <see cref="SkiaUnityRenderTarget.PremultipliedGuiMaterial"/> (top left), on a
+/// in <c>OnGUI</c> with <see cref="SkiaRenderTarget2D.PremultipliedGuiMaterial"/> (top left), on a
 /// quad the camera renders (top right) and in a uGUI <c>RawImage</c> (bottom left), both with
-/// <see cref="SkiaUnityRenderTarget.PremultipliedMaterial"/>. Below each copy's two squares, Unity
+/// <see cref="SkiaRenderTarget2D.PremultipliedMaterial"/>. Below each copy's two squares, Unity
 /// draws the same two colors itself as references, the same way: with <c>GUI.DrawTexture</c>, as
 /// sprites, and as <c>RawImage</c>s.
 /// Created automatically on scene load, so the scene itself stays empty. <c>Scene</c> comes
@@ -44,7 +44,7 @@ public sealed class SkiaSample : MonoBehaviour
     static readonly Color32 Translucent = new Color32(255, 128, 0, 128);
 
     // Recreated in OnEnable, since a script reload in play mode loses them (see OnDisable).
-    SkiaUnityRenderTarget _target;
+    SkiaRenderTarget2D _target;
     SKPaint _translucent;
     SKPaint _grey;
     // Unity objects, so they survive a script reload and OnEnable can point them at a new texture.
@@ -82,14 +82,14 @@ public sealed class SkiaSample : MonoBehaviour
             uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) },
             triangles = new[] { 0, 2, 1, 2, 3, 1 },
         };
-        quad.AddComponent<MeshRenderer>().material = _quadMaterial = new Material(SkiaUnityRenderTarget.PremultipliedMaterial) { mainTexture = _target.Texture };
+        quad.AddComponent<MeshRenderer>().material = _quadMaterial = new Material(SkiaRenderTarget2D.PremultipliedMaterial) { mainTexture = _target.Texture };
         Place(quad.transform, QuadX, 0, Width, Height, 0);
         AddSprite(_translucentReference, QuadX + SquareX);
         AddSprite(_greyReference, QuadX + GreyX);
 
         var canvas = new GameObject("Canvas").AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        _rawImage = AddRawImage(canvas, _target.Texture, SkiaUnityRenderTarget.PremultipliedMaterial, 0, UiY, Width, Height);
+        _rawImage = AddRawImage(canvas, _target.Texture, SkiaRenderTarget2D.PremultipliedMaterial, 0, UiY, Width, Height);
         AddRawImage(canvas, _translucentReference, null, SquareX, UiY + Cell, Cell, Cell);
         AddRawImage(canvas, _greyReference, null, GreyX, UiY + Cell, Cell, Cell);
     }
@@ -144,7 +144,7 @@ public sealed class SkiaSample : MonoBehaviour
     {
         if (Event.current.type != EventType.Repaint)
             return;
-        Graphics.DrawTexture(new Rect(0, 0, Width, Height), _target.Texture, SkiaUnityRenderTarget.PremultipliedGuiMaterial);
+        Graphics.DrawTexture(new Rect(0, 0, Width, Height), _target.Texture, SkiaRenderTarget2D.PremultipliedGuiMaterial);
         GUI.DrawTexture(new Rect(SquareX, Cell, Cell, Cell), _translucentReference);
         GUI.DrawTexture(new Rect(GreyX, Cell, Cell, Cell), _greyReference);
     }
@@ -160,7 +160,7 @@ public sealed class SkiaSample : MonoBehaviour
 
     void OnEnable()
     {
-        _target = new SkiaUnityRenderTarget(Width, Height);
+        _target = new SkiaRenderTarget2D(Width, Height);
         _translucent = new SKPaint { Color = new SKColor(Translucent.r, Translucent.g, Translucent.b, Translucent.a) };
         _grey = new SKPaint { Color = new SKColor(Grey.r, Grey.g, Grey.b, Grey.a) };
         if (_quadMaterial != null)

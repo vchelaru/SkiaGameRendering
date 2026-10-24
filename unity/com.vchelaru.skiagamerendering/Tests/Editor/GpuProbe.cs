@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace SkiaGameRendering.Unity.Tests
+namespace SkiaGameRendering.Tests
 {
     /// <summary>
     /// The numbers the leak tests watch, read the native way for Unity's graphics API: references to

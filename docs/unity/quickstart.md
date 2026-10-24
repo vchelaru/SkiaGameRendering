@@ -31,7 +31,7 @@ Call `Begin`/`End` from the main thread. Unity renders on its own thread, so the
 your drawing and `End` plays it back on Unity's render thread.
 
 ```csharp
-var target = new SkiaUnityRenderTarget(512, 512);
+var target = new SkiaRenderTarget2D(512, 512);
 
 void Update()
 {
@@ -43,7 +43,7 @@ void Update()
 void OnGUI()
 {
     if (Event.current.type == EventType.Repaint)
-        Graphics.DrawTexture(new Rect(0, 0, 512, 512), target.Texture, SkiaUnityRenderTarget.PremultipliedGuiMaterial);
+        Graphics.DrawTexture(new Rect(0, 0, 512, 512), target.Texture, SkiaRenderTarget2D.PremultipliedGuiMaterial);
 }
 ```
 
@@ -52,8 +52,8 @@ void OnGUI()
 Skia writes premultiplied alpha, and Unity's default blending darkens its edges. Draw `Texture`
 with the matching material:
 
-- `SkiaUnityRenderTarget.PremultipliedMaterial` for a `RawImage`'s material, or a copy on a mesh.
-- `SkiaUnityRenderTarget.PremultipliedGuiMaterial` for `Graphics.DrawTexture` in `OnGUI`.
+- `SkiaRenderTarget2D.PremultipliedMaterial` for a `RawImage`'s material, or a copy on a mesh.
+- `SkiaRenderTarget2D.PremultipliedGuiMaterial` for `Graphics.DrawTexture` in `OnGUI`.
 
 Both work in Gamma and Linear color space projects, but only with the right one for where you
 draw, since IMGUI stays in gamma in a Linear project.

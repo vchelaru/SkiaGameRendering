@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SkiaGameRendering.Core.OGL;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Unity
+namespace SkiaGameRendering
 {
     /// <summary>
     /// OpenGL on Windows: Skia draws on a second GL context that shares Unity's texture namespace, so
@@ -49,7 +49,7 @@ namespace SkiaGameRendering.Unity
             }
         }
 
-        internal override void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture)
+        internal override void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture)
         {
             _platform.MakeSkiaContextCurrent();
             try
@@ -79,7 +79,7 @@ namespace SkiaGameRendering.Unity
             GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, (int)target.NativeTexture);
         }
 
-        internal override void DisposeTarget(SkiaUnityRenderTarget.RenderState target)
+        internal override void DisposeTarget(SkiaRenderTarget2D.RenderState target)
         {
             var surface = target.Surface;
             var backendRenderTarget = target.BackendRenderTarget;

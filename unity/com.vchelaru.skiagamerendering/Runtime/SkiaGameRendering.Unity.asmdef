@@ -1,6 +1,6 @@
 {
     "name": "SkiaGameRendering.Unity",
-    "rootNamespace": "SkiaGameRendering.Unity",
+    "rootNamespace": "SkiaGameRendering",
     "references": [],
     "includePlatforms": [
         "Editor",

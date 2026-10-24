@@ -4,7 +4,7 @@ using SkiaSharp;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace SkiaGameRendering.Unity
+namespace SkiaGameRendering
 {
     /// <summary>
     /// The graphics-API-specific half of <see cref="SkiaUnityRenderThread"/>: one Core factory wrapped
@@ -58,7 +58,7 @@ namespace SkiaGameRendering.Unity
             };
 
         /// <summary>Plays <paramref name="picture"/> back onto the target's texture, creating its surface on the first draw.</summary>
-        internal abstract void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture);
+        internal abstract void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture);
 
         /// <summary>Clears the surface and draws the picture onto it the way Unity expects.</summary>
         protected static void PlayBack(SKSurface surface, SKPicture picture, int height)
@@ -75,7 +75,7 @@ namespace SkiaGameRendering.Unity
         }
 
         /// <summary>Releases the target's surface and texture state.</summary>
-        internal abstract void DisposeTarget(SkiaUnityRenderTarget.RenderState target);
+        internal abstract void DisposeTarget(SkiaRenderTarget2D.RenderState target);
 
         public abstract void Dispose();
     }
