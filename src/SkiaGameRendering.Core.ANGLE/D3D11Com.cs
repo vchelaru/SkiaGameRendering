@@ -228,9 +228,11 @@ namespace SkiaGameRendering.Core.ANGLE
     /// <summary>The DXGI_FORMAT values <see cref="AngleSkiaSurfaceFactory"/> draws into directly, and their sRGB twins.</summary>
     internal enum DxgiFormat : uint
     {
+        R8G8B8A8Typeless = 27,
         R8G8B8A8Unorm = 28,
         R8G8B8A8UnormSrgb = 29,
         B8G8R8A8Unorm = 87,
+        B8G8R8A8Typeless = 90,
         B8G8R8A8UnormSrgb = 91,
     }
 }

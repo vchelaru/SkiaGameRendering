@@ -56,6 +56,24 @@ namespace SkiaGameRendering
             }
         }
 
+        internal override void DrawDirect(SKPicture picture, int width, int height, bool flip)
+        {
+            var canvas = _factory.BeginDirectDraw(width, height, out var pass);
+            try
+            {
+                if (flip)
+                {
+                    canvas.Translate(0, height);
+                    canvas.Scale(1, -1);
+                }
+                canvas.DrawPicture(picture);
+            }
+            finally
+            {
+                _factory.EndDirectDraw(pass);
+            }
+        }
+
         internal override void DisposeTarget(SkiaRenderTarget2D.RenderState target)
         {
             target.Surface?.Dispose();

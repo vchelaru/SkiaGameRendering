@@ -561,8 +561,8 @@ namespace SkiaGameRendering.Core.ANGLE
         /// </summary>
         internal static SKColorType ToColorType(DxgiFormat viewFormat, DxgiFormat textureFormat) => (viewFormat, textureFormat) switch
         {
-            (DxgiFormat.R8G8B8A8Unorm or DxgiFormat.R8G8B8A8UnormSrgb, DxgiFormat.R8G8B8A8Unorm) => SKColorType.Rgba8888,
-            (DxgiFormat.B8G8R8A8Unorm or DxgiFormat.B8G8R8A8UnormSrgb, DxgiFormat.B8G8R8A8Unorm) => SKColorType.Bgra8888,
+            (DxgiFormat.R8G8B8A8Unorm or DxgiFormat.R8G8B8A8UnormSrgb, DxgiFormat.R8G8B8A8Unorm or DxgiFormat.R8G8B8A8Typeless) => SKColorType.Rgba8888,
+            (DxgiFormat.B8G8R8A8Unorm or DxgiFormat.B8G8R8A8UnormSrgb, DxgiFormat.B8G8R8A8Unorm or DxgiFormat.B8G8R8A8Typeless) => SKColorType.Bgra8888,
             _ => throw new NotSupportedException(
                 "SkiaDirectCanvas supports 8-bit RGBA or BGRA render targets, or an sRGB view of one, not a view " +
                 $"of DXGI format {(uint)viewFormat} on a texture of DXGI format {(uint)textureFormat}."),
