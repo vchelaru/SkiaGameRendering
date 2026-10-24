@@ -25,7 +25,7 @@ namespace SkiaGameRendering
     /// on the render thread by <see cref="SkiaUnityRenderThread"/>. <see cref="Begin"/> does not clear;
     /// Skia draws on top of what is there. Coordinates are target pixels with the origin at the top left.
     /// The target's size is read when <see cref="Begin"/> runs: the active <see cref="RenderTexture"/>, or the
-    /// screen. Supported on Direct3D 11 so far; the constructor throws <see cref="NotSupportedException"/>
+    /// screen. Supported on Direct3D 11 and on OpenGL (Windows) so far; the constructor throws <see cref="NotSupportedException"/>
     /// elsewhere.
     /// </summary>
     public sealed class SkiaDirectCanvas : IDisposable

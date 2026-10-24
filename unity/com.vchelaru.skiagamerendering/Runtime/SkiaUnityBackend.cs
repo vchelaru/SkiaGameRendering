@@ -51,7 +51,10 @@ namespace SkiaGameRendering
             // Skia draws on a second context that shares Unity's; only the Windows (WGL) one exists so far.
             if (api == GraphicsDeviceType.OpenGLCore
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
+            {
+                SupportsDirectCanvas = true;
                 return;
+            }
             if (api == GraphicsDeviceType.Vulkan
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
             {

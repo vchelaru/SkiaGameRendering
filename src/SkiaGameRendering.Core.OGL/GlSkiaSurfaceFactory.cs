@@ -85,7 +85,12 @@ namespace SkiaGameRendering.Core.OGL
                 (int)FramebufferTarget.Framebuffer, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
             var name = gl.GetFramebufferAttachmentParameter(
                 (int)FramebufferTarget.Framebuffer, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
-            return new GlDrawTarget(framebufferId, type, name);
+            // A multisampled texture is not distinguishable from a plain one by its object type; the draw
+            // framebuffer's sample count is.
+            var textureSamples = 0;
+            if (type == GL_TEXTURE)
+                gl.GetInteger(GL_SAMPLES, out textureSamples);
+            return new GlDrawTarget(framebufferId, type, name, textureSamples);
         }
 
         /// <summary>
@@ -144,7 +149,11 @@ namespace SkiaGameRendering.Core.OGL
             int width, int height, out int samples)
         {
             samples = 0;
-            if (target.AttachmentType == GL_RENDERBUFFER)
+            if (target.IsMultisampledTexture)
+            {
+                samples = target.TextureSamples;
+            }
+            else if (target.AttachmentType == GL_RENDERBUFFER)
             {
                 gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, target.AttachmentName);
                 samples = gl.GetRenderbufferParameter(GL_RENDERBUFFER_SAMPLES);
@@ -179,7 +188,7 @@ namespace SkiaGameRendering.Core.OGL
                     FramebufferAttachment.ColorAttachment0, RenderbufferTarget.Renderbuffer, target.AttachmentName);
             else
                 gl.FramebufferTexture2D(FramebufferTarget.Framebuffer,
-                    FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, target.AttachmentName, 0);
+                    FramebufferAttachment.ColorAttachment0, ColorTextureTarget(target), target.AttachmentName, 0);
             gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
                 FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, renderbufferId);
             gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
@@ -210,9 +219,14 @@ namespace SkiaGameRendering.Core.OGL
                     FramebufferAttachment.ColorAttachment0, RenderbufferTarget.Renderbuffer, target.AttachmentName);
             else
                 gl.FramebufferTexture2D(FramebufferTarget.Framebuffer,
-                    FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, target.AttachmentName, 0);
+                    FramebufferAttachment.ColorAttachment0, ColorTextureTarget(target), target.AttachmentName, 0);
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
+
+        private const int GL_TEXTURE_2D_MULTISAMPLE = 0x9100;
+
+        private static TextureTarget ColorTextureTarget(GlDrawTarget target) =>
+            target.IsMultisampledTexture ? (TextureTarget)GL_TEXTURE_2D_MULTISAMPLE : TextureTarget.Texture2D;
 
         /// <summary>Detaches the color attachment of the FBO in <paramref name="state"/>, on the current (Skia) context.</summary>
         public static void DetachColor(GlFunctions gl, GlFramebufferState state)
