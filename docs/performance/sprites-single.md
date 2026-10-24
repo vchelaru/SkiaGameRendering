@@ -55,3 +55,24 @@ Screenshots: 2k sprites, KNI DesktopGL. The scenes are 1600x900 and animate ever
 - Desktop: Skia runs at 47-100% of `SpriteBatch`, lowest at 500-2k sprites, where Skia's fixed cost per frame (context switch and flush, about 0.1 ms) is a large share of a short frame.
 - Browser: roughly even from 500 sprites up (92-134%).
 - Tinting through `DrawAtlas`'s `colors` costs almost nothing.
+
+## Faster: one `DrawAtlas`, not one call per sprite
+
+MonoGame DesktopGL, `SkiaDirectCanvas`, 1600x900, H1 (Ryzen 7 260, RTX 5060 Laptop, driver 32.0.16.1047). Draw CPU time per frame in ms, median [min-max] of 6 runs (`--quick` windows), same scene and sprites in every row.
+
+| Scene | `DrawAtlas` (one call) | `DrawImageRect` per sprite | `DrawImage` per sprite | per-sprite / `DrawAtlas` |
+|---|---:|---:|---:|---:|
+| Sprites 500 | 0.22 [0.19-0.36] | 0.61 [0.57-0.66] | 0.59 [0.56-0.67] | 2.7x |
+| Sprites 2k | 0.29 [0.26-0.40] | 2.16 [1.79-3.24] | 1.92 [1.76-2.25] | 6.5x-7.4x |
+| Sprites 10k | 1.05 [0.61-1.44] | 10.1 [9.1-14.7] | 10.1 [9.2-16.3] | 9.6x |
+| Sprites 50k | 4.0 [3.9-4.6] | 49 [45-80] | 47 [46-60] | 11.7x-12.2x |
+| Tinted sprites 10k | 0.94 [0.85-1.04] | 10.0 [8.9-14.6] | 10.7 [9.0-13.7] | 10.7x-11.4x |
+
+Each per-sprite call sets the canvas matrix to the sprite's rotation and scale first. Use `DrawAtlas` with one `SKRotationScaleMatrix` per sprite, as the Skia scene here does.
+
+Tried and no gain beyond the noise on the `DrawAtlas` path:
+
+- `SKFilterMode.Nearest` instead of `Linear`: 0.27 vs 0.29 ms at 2k, 0.97 vs 1.05 ms at 10k, but the runs overlap (2k `DrawAtlas` ranged 0.26-0.40), and 50k and tinted 10k went the other way.
+- Passing no `SKPaint` (`null`) instead of a reused one: within 5% at every count, runs overlap.
+
+Output is not claimed to be identical between the atlas and per-sprite paths, so the speedup applies to sprites you would draw with the same filtering either way.
