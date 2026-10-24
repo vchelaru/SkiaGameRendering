@@ -655,7 +655,7 @@ jobs:
             bash eng/run-android-smoke-test.sh "$(find samples/Sample.Kni.Android/bin/Release -name '*-Signed.apk' | head -n 1)" com.vchelaru.skiagamerendering.sample
             bash eng/run-android-smoke-test.sh "$(find samples/Sample.MonoGame.Android/bin/Release -name '*-Signed.apk' | head -n 1)" com.vchelaru.skiagamerendering.monogame.sample
 
-  # MonoGame iOS renders with OpenGL ES, which the iOS Simulator still runs (on Metal).
+  # MonoGame and KNI iOS render with OpenGL ES, which the iOS Simulator still runs (on Metal).
   ios-simulator:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',ios-simulator,')))
     runs-on: macos-26
@@ -676,6 +676,8 @@ jobs:
         run: dotnet workload install ios
       - name: Build the MonoGame iOS sample for the simulator
         run: dotnet build samples/Sample.MonoGame.iOS/Sample.MonoGame.iOS.csproj -c Release -r iossimulator-arm64
+      - name: Build the KNI iOS sample for the simulator
+        run: dotnet build samples/Sample.Kni.iOS/Sample.Kni.iOS.csproj -c Release -r iossimulator-arm64
       - name: Boot an iPhone simulator
         run: |
           udid=$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name | startswith("iPhone"))][0].udid')
@@ -685,6 +687,8 @@ jobs:
           echo "IOS_SIMULATOR=$udid" >> "$GITHUB_ENV"
       - name: Run the smoke test
         run: bash eng/run-ios-smoke-test.sh "$(find samples/Sample.MonoGame.iOS/bin/Release -name '*.app' -type d | head -n 1)" com.vchelaru.skiagamerendering.monogame.sample
+      - name: Run the KNI smoke test
+        run: bash eng/run-ios-smoke-test.sh "$(find samples/Sample.Kni.iOS/bin/Release -name '*.app' -type d | head -n 1)" com.vchelaru.skiagamerendering.sample
 
   godot-linux:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',godot-linux,')))
