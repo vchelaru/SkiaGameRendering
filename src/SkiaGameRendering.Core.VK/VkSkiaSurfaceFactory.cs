@@ -76,6 +76,7 @@ namespace SkiaGameRendering.Core.VK
 
         public GRContext GRContext => _grContext;
 
+#if NET5_0_OR_GREATER
         /// <summary>
         /// Queries the Vulkan core version a host's instance/physical-device pair supports - the
         /// lesser of <c>vkEnumerateInstanceVersion</c> and <c>VkPhysicalDeviceProperties.apiVersion</c> -
@@ -109,6 +110,7 @@ namespace SkiaGameRendering.Core.VK
                 throw new ArgumentException("Vulkan physical device native pointer is null.", nameof(physicalDevice));
             return VulkanNative.QueryQueueFamilyFlags(instance, physicalDevice);
         }
+#endif
 
         /// <param name="instance">The host engine's <c>VkInstance</c>.</param>
         /// <param name="physicalDevice">The host engine's <c>VkPhysicalDevice</c>.</param>
@@ -195,7 +197,7 @@ namespace SkiaGameRendering.Core.VK
             // libSkiaSharp.dylib carries none of the vk* entry-point names the Windows and Linux
             // builds do), so CreateVulkan always returns null there, whatever the host.
             _grContext = GRContext.CreateVulkan(backendContext)
-                ?? throw (OperatingSystem.IsMacOS()
+                ?? throw (IsMacOS()
                     ? new PlatformNotSupportedException(
                         "GRContext.CreateVulkan failed: SkiaSharp's macOS native library is built without Vulkan support, " +
                         "so Skia cannot render through Vulkan (MoltenVK) on macOS.")
@@ -341,6 +343,13 @@ namespace SkiaGameRendering.Core.VK
         /// <see cref="InitializeFromNative"/>) before any drawing happens. Paired with
         /// <see cref="EndDraw(bool)"/>.
         /// </summary>
+        static bool IsMacOS() =>
+#if NET5_0_OR_GREATER
+            OperatingSystem.IsMacOS();
+#else
+            System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX);
+#endif
+
         public void BeginDraw()
         {
             _queueLockHandle = _acquireQueueLock?.Invoke();

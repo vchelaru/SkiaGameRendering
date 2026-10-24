@@ -26,6 +26,7 @@ namespace SkiaGameRendering.Core.VK
     {
         const string VulkanLoader = "vulkan-1";
 
+#if NET5_0_OR_GREATER
         static VulkanNative()
         {
             NativeLibrary.SetDllImportResolver(typeof(VulkanNative).Assembly, (name, assembly, searchPath) =>
@@ -59,6 +60,7 @@ namespace SkiaGameRendering.Core.VK
                     "component every Vulkan-capable install already ships.");
             });
         }
+#endif
 
         [DllImport(VulkanLoader, CallingConvention = CallingConvention.Winapi)]
         internal static extern IntPtr vkGetInstanceProcAddr(IntPtr instance, [MarshalAs(UnmanagedType.LPStr)] string name);
@@ -98,6 +100,7 @@ namespace SkiaGameRendering.Core.VK
             return proc;
         }
 
+#if NET5_0_OR_GREATER
         /// <summary>
         /// The highest Vulkan core version BOTH the host's instance (per <c>vkEnumerateInstanceVersion</c>)
         /// and its physical device (per <c>VkPhysicalDeviceProperties.apiVersion</c>) support. See
@@ -165,5 +168,6 @@ namespace SkiaGameRendering.Core.VK
             public uint minImageTransferGranularityHeight;
             public uint minImageTransferGranularityDepth;
         }
+#endif
     }
 }
