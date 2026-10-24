@@ -1,6 +1,6 @@
 name: build
 
-# PRs and master pushes run desktop-and-core (Release), metal-macos and godot-linux. Everything else runs nightly (09:00 UTC) or by hand:
+# PRs and master pushes run desktop-and-core (Release), metal-macos, godot-linux and raylib-linux. Everything else runs nightly (09:00 UTC) or by hand:
 #   gh workflow run master.yml --ref <branch>                       # everything
 #   gh workflow run master.yml --ref <branch> -f only=ios-simulator # chosen jobs, comma-separated job ids, no spaces
 # `only` takes job ids (desktop-and-core, raylib-linux, metal-macos, android, ...); `webgl` selects the WebGL shards and
@@ -381,7 +381,7 @@ jobs:
             tests/Tests.Fna.WebGL/test-results
 
   raylib-linux:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',raylib-linux,')))
+    if: github.event_name != 'workflow_dispatch' || (inputs.only == '' || contains(format(',{0},', inputs.only), ',raylib-linux,'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
