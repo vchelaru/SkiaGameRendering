@@ -1,1 +1,1 @@
-raylib 6.0 (tag 6.0, dbc56a87da87d973a9c5baa4e7438a9d20121d28), src subset for PLATFORM_WEB (GLFW), unmodified.
+raylib 6.0 (tag 6.0, dbc56a87da87d973a9c5baa4e7438a9d20121d28): the sources PLATFORM_WEB compiles with the default config, unmodified. dr_flac.h is omitted because FLAC is off by default; the desktop platforms, glfw, glad, RGFW and examples are not included.

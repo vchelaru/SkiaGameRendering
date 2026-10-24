@@ -6,9 +6,9 @@ const port = 5101;
 
 module.exports = defineConfig({
   testDir: "./tests",
-  timeout: 120000,
+  timeout: 40000,
   workers: 1,
-  expect: { timeout: 60000 },
+  expect: { timeout: 20000 },
   use: {
     ...devices["Desktop Chrome"],
     baseURL: `http://127.0.0.1:${port}`,
@@ -20,6 +20,6 @@ module.exports = defineConfig({
     command: `dotnet run --project ../../samples/Sample.Raylib.WebGL/Sample.Raylib.WebGL.csproj -c Release --no-build --urls http://127.0.0.1:${port}`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
+    timeout: 40000,
   },
 });

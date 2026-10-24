@@ -279,6 +279,38 @@ jobs:
           name: webgl-packages
           path: .artifacts/packages
 
+  raylib-webgl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.415
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/Tests.Raylib.WebGL/package-lock.json
+      - name: Install WASM toolchain
+        run: dotnet workload install wasm-tools-net8
+      - name: Build sample (compiles raylib into the wasm app)
+        run: dotnet build samples/Sample.Raylib.WebGL/Sample.Raylib.WebGL.csproj -c Release
+      - name: Install browser tests
+        working-directory: tests/Tests.Raylib.WebGL
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Pixel tests
+        working-directory: tests/Tests.Raylib.WebGL
+        run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: raylib-webgl-artifacts
+          path: |
+            tests/Tests.Raylib.WebGL/playwright-report
+            tests/Tests.Raylib.WebGL/test-results
+
   raylib-linux:
     runs-on: ubuntu-latest
     steps:

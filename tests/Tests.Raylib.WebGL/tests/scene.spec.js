@@ -16,13 +16,13 @@ async function open(page, mode) {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(`/?mode=${mode}`);
-  await expect.poll(() => frames(page), { timeout: 90000 }).toBeGreaterThanOrEqual(10);
+  await expect.poll(() => frames(page), { timeout: 25000 }).toBeGreaterThanOrEqual(10);
   return errors;
 }
 
 async function waitForFrames(page, count) {
   const target = (await frames(page)) + count;
-  await expect.poll(() => frames(page), { timeout: 90000 }).toBeGreaterThanOrEqual(target);
+  await expect.poll(() => frames(page), { timeout: 25000 }).toBeGreaterThanOrEqual(target);
 }
 
 // Reads on the next animation frame, after the page's own callback has drawn it: the drawing buffer is cleared

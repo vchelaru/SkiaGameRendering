@@ -51,8 +51,26 @@ public static class Game
         SkiaRenderer.Initialize();
         _target = new SkiaRenderTarget2D(Width, Height);
         _direct = new SkiaDirectCanvas();
-        _renderTexture = Raylib.LoadRenderTexture(160, 120);
+        _renderTexture = CreateRenderTexture(160, 120);
         _ready = true;
+    }
+
+    // Raylib.LoadRenderTexture returns a struct, and Raylib-cs's P/Invoke for struct returns throws "function signature
+    // mismatch" under .NET WASM, so the render texture is assembled from rlgl calls (ids and plain values only).
+    private static RenderTexture2D CreateRenderTexture(int width, int height)
+    {
+        var framebuffer = Rlgl.LoadFramebuffer();
+        uint color;
+        unsafe
+        {
+            color = Rlgl.LoadTexture(null, width, height, PixelFormat.UncompressedR8G8B8A8, 1);
+        }
+        Rlgl.FramebufferAttach(framebuffer, color, FramebufferAttachType.ColorChannel0, FramebufferAttachTextureType.Texture2D, 0);
+        return new RenderTexture2D
+        {
+            Id = framebuffer,
+            Texture = new Texture2D { Id = color, Width = width, Height = height, Mipmaps = 1, Format = PixelFormat.UncompressedR8G8B8A8 },
+        };
     }
 
     [JSInvokable]
