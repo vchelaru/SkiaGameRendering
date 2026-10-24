@@ -27,22 +27,19 @@ Unity textures on the GPU, with no CPU readback.
 
 ## Quick Start
 
-Every engine draws the same way: `Begin()`, draw on the `SKCanvas`, `End()`.
+Skia draws straight into whatever the engine is rendering to, between your `SpriteBatch` calls:
 
 ```cs
-canvas.Begin();
-canvas.Canvas.DrawCircle(100, 100, 50, paint);
-canvas.End();
+_skia = new SkiaDirectCanvas(GraphicsDevice); // once, e.g. in LoadContent
+
+spriteBatch.Begin(); /* background */ spriteBatch.End();
+_skia.Begin();
+_skia.Canvas.DrawCircle(100, 100, 50, paint);
+_skia.End();
+spriteBatch.Begin(); /* foreground */ spriteBatch.End();
 ```
 
 Setup differs per engine; pick yours from the [table above](#platform-support).
-
-## Render target or direct canvas
-
-`SkiaRenderTarget2D` draws into its own texture, and `End()` composites it onto the current target. It
-works on every backend. `SkiaDirectCanvas` draws straight into the current target with no texture or
-composite, so it is faster, but only some backends have it (check `SkiaRenderer.SupportsDirectCanvas`).
-On Firefox, use `SkiaDirectCanvas`: the render target's upload there costs 35-171 ms a frame.
 
 ## Performance
 
