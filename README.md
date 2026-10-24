@@ -30,10 +30,14 @@ Unity textures on the GPU, with no CPU readback.
 Skia draws straight into whatever the engine is rendering to:
 
 ```cs
-_skia = new SkiaDirectCanvas(GraphicsDevice); // once, e.g. in LoadContent
+// once, e.g. in LoadContent
+_skia = new SkiaDirectCanvas(GraphicsDevice);
+_paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
+
+// every frame, in Draw
 
 _skia.Begin();
-_skia.Canvas.DrawCircle(100, 100, 50, paint);
+_skia.Canvas.DrawCircle(100, 100, 50, _paint);
 _skia.End();
 ```
 
