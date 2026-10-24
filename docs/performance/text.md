@@ -48,11 +48,11 @@ Screenshots: 200 labels, KNI DesktopGL. The scenes are 1600x900 and animate ever
 
 ## Faster: batch labels into one text blob
 
-Measured on H1 (Ryzen 7 260, RTX 5060 Laptop, driver 32.0.16.1047), MonoGame DesktopGL, Skia direct, same scenes as above, 6 interleaved runs per variant (`--quick` windows), median FPS [min-max]. These are not comparable with the H2 tables above.
+Measured on H1 (Ryzen 7 260, RTX 5060 Laptop, driver 32.0.16.1047), MonoGame DesktopGL, Skia direct, same scenes as above, 6 interleaved runs per variant (`--quick` windows), median FPS. These are not comparable with the H2 tables above.
 
 | Scene | `DrawText` per label | One `SKTextBlob` per label, cached | All labels in one positioned blob | Batched / per label |
 |---|---:|---:|---:|---:|
-| Text 50 | 1574 [1500-1600] | 1471 | 2308 | 1.5x |
+| Text 50 | 1574 | 1471 | 2308 | 1.5x |
 | Text 200 | 782 | 821 | 1351 | 1.7x |
 | Text 1k | 222 | 318 | 632 | 2.8x |
 
