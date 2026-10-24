@@ -20,7 +20,7 @@ Unity textures on the GPU, with no CPU readback.
 | [KNI iOS](docs/ios/kni-quickstart.md) | OpenGL ES | [`SkiaGameRendering.Kni.iOS`](https://www.nuget.org/packages/SkiaGameRendering.Kni.iOS) | iOS 15+ |
 | [KNI WebGL (Blazor)](docs/webgl/quickstart.md) | WebGL2 | [`SkiaGameRendering.Kni.WebGL`](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Browser |
 | [raylib](docs/raylib/quickstart.md) | OpenGL | [`SkiaGameRendering.Raylib.OGL`](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) | Windows, Linux, macOS |
-| [raylib WebGL](docs/raylib/webgl-quickstart.md) | WebGL2 | [`SkiaGameRendering.Raylib.WebGL`](https://www.nuget.org/packages/SkiaGameRendering.Raylib.WebGL) | Browser |
+| [raylib WebGL](docs/raylib/webgl-quickstart.md) | WebGL2 | [`SkiaGameRendering.Raylib.WebGL`](https://www.nuget.org/packages/SkiaGameRendering.Raylib.WebGL) | Browser (.NET 10) |
 | [FNA](docs/fna/quickstart.md) | D3D11 | [`SkiaGameRendering.Fna.WindowsDX`](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) | Windows |
 | [FNA](docs/fna/quickstart.md) | OpenGL | [`SkiaGameRendering.Fna.OGL`](https://www.nuget.org/packages/SkiaGameRendering.Fna.OGL) | Windows, Linux, macOS |
 | [FNA WebGL](docs/fna/webgl-quickstart.md) | WebGL2 | [`SkiaGameRendering.Fna.WebGL`](https://www.nuget.org/packages/SkiaGameRendering.Fna.WebGL) | Browser |

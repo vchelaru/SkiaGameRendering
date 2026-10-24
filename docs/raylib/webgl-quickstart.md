@@ -22,7 +22,8 @@ dotnet add package SkiaGameRendering.Raylib.WebGL
 ```
 
 raylib comes from Raylib-cs's own browser-wasm `raylib.a`, which its build targets link into your app when
-`RuntimeIdentifier` is `browser-wasm`; the package adds a pre-js. No script tags.
+`RuntimeIdentifier` is `browser-wasm`; the package adds a pre-js. No script tags. That raylib is its OpenGL ES 2
+build (no vertex array objects), so the console shows `vertexAttribPointer: index out of range` warnings from it; they are harmless.
 
 ## Initialize and render
 
