@@ -9,6 +9,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Kni.DesktopGL/` — KNI DesktopGL library (shared core + `SkiaGlBackend`)
 - `src/SkiaGameRendering.Kni.WindowsDX/` — KNI WindowsDX library (shared core + `SkiaAngleBackend`, on `Core.ANGLE`)
 - `src/SkiaGameRendering.Kni.Android/`: KNI Android library (shared core + `SkiaAndroidBackend`, on `Core.OGL`'s `EglSharedContext`; targets `net10.0-android36.0`)
+- `src/SkiaGameRendering.iOS/`: MonoGame iOS library (shared core + `SkiaIosBackend` and its `EaglSharedContext`, on `Core.OGL`; targets `net10.0-ios26.0`)
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
 - `src/SkiaGameRendering.Fna.WindowsDX/`: FNA library (shared core + `SkiaAngleBackend`, on `Core.ANGLE`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Fna.OGL/`: FNA library (shared core + `SkiaGlBackend`, on `Core.OGL`; `src/SkiaGameRendering.Fna/` holds the FNA3D binding both FNA packages link)
@@ -28,6 +29,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 |---------|-----------|
 | OpenGL (MonoGame/KNI DesktopGL, FNA OpenGL) | Second SDL GL context shared with the engine's |
 | OpenGL ES (KNI Android) | Second EGL context sharing KNI's, created from the host's current `EGLConfig`; surfaceless where the driver allows it |
+| OpenGL ES (MonoGame iOS) | Second `EAGLContext` in MonoGame's sharegroup; the back buffer is MonoGame's FBO around a `CAEAGLLayer` renderbuffer |
 | OpenGL (raylib) | Second WGL (Windows), GLX (Linux) or CGL (macOS) context shares rlgl's GL namespace |
 | OpenGL 3.3 (Godot Compatibility) | Second GL context sharing Godot's; Skia draws into an FBO around an `ImageTexture`'s GL texture, zero-copy |
 | D3D11 (MonoGame/KNI/FNA WindowsDX, Stride, Unity) | ANGLE (GL ES → D3D11 translation) on the engine's shared device. FNA gets the device through `FNA3D_GetSysRendererEXT`; Unity uses the device its `RenderTexture` belongs to |

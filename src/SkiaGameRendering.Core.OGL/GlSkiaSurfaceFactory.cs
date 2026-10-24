@@ -214,6 +214,15 @@ namespace SkiaGameRendering.Core.OGL
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         }
 
+        /// <summary>Detaches the color attachment of the FBO in <paramref name="state"/>, on the current (Skia) context.</summary>
+        public static void DetachColor(GlFunctions gl, GlFramebufferState state)
+        {
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, state.FramebufferId);
+            gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
+                FramebufferAttachment.ColorAttachment0, RenderbufferTarget.Renderbuffer, 0);
+            gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        }
+
         /// <summary>glFlush on the current context.</summary>
         public static void Flush(GlFunctions gl) => gl.Flush();
 

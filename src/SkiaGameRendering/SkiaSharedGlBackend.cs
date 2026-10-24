@@ -155,9 +155,9 @@ namespace SkiaGameRendering
 
         /// <summary>
         /// Whether the engine can delete its back buffer's color renderbuffer and make a new one under the
-        /// same GL name, with nothing to tell this backend. MonoGame iOS does that on every view layout. The
-        /// cached FBO would keep the deleted renderbuffer alive and Skia would draw into it, so each pass
-        /// attaches the current one again.
+        /// same GL name, with nothing to tell this backend. MonoGame iOS does that on every view layout. An FBO
+        /// of Skia's that still had the old renderbuffer attached would keep it alive, which stops the new one
+        /// from taking over the view's layer, so the renderbuffer is only attached for the length of a pass.
         /// </summary>
         private protected virtual bool BackBufferRenderbufferCanBeReplaced => false;
 
@@ -227,6 +227,8 @@ namespace SkiaGameRendering
             }
             finally
             {
+                if (BackBufferRenderbufferCanBeReplaced && directPass.Target == _backBufferTarget && !directPass.Gl.IsDefaultFramebuffer)
+                    GlSkiaSurfaceFactory.DetachColor(_gl, directPass.Target.Framebuffer);
                 // Also a glFlush, so the engine's later draws land on top of Skia's.
                 UnbindAfterDrawing();
                 EndDraw();
