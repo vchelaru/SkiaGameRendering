@@ -258,7 +258,7 @@ jobs:
   # tests, so a broken trim/AOT build surfaces within minutes of merge without slowing down
   # per-PR iteration.
   webgl-aot:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.head_ref == 'fix-webgl-aot-il2026'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
