@@ -41,9 +41,35 @@ the work that motivated it. Don't ask, and don't split it out.
 Build the individual `.csproj` for the platform you touched rather than the whole solution — the
 projects share core source via linked includes, so a change in `src/SkiaGameRendering/` or either
 `Core.*` project reaches several packages at once. `.github/workflows/master.yml` is the
-authoritative list of what CI builds and in what order; mirror it when deciding what to verify.
+authoritative list of what CI builds, runs and in what order.
 
-- Unit tests: `dotnet test tests/Tests.proj`, which runs every test project under `tests/`.
+**CI is the regression gate. Locally, run only what you changed, plus what CI cannot run.**
+
+- Run the test classes you added or changed plus a short named list of directly related classes,
+  in one test project: build it once, then
+  `dotnet test tests/<Project>/<Project>.csproj --no-build --filter "FullyQualifiedName~ClassA|FullyQualifiedName~ClassB"`.
+  Never run a whole project, a namespace, `tests/Tests.proj` (CI's full run) or the solution, and
+  never run the suite on `master` and the branch to compare results.
+- The same rule covers every other runner: sample `--smoke-test` exes, the Playwright specs
+  (`npx playwright`), `Tests.Godot`, and the Android emulator. CI runs all of them on every push
+  (`master.yml`), so don't run them locally, and don't install their toolchains (Playwright
+  browsers, Godot, the wasm workload) to verify a change. Read CI's result with `gh pr checks`
+  and `gh run view --log-failed`; a golden mismatch uploads a `golden-image-diffs-*` artifact.
+- Run locally only what no CI job runs: Unity (below), and anything else the change touches that
+  no `master.yml` job exercises. Say in the PR which of those you ran.
+- Every command finishes in about 4 minutes; set the tool timeout to match. A command that was
+  killed or timed out is narrowed, never rerun unchanged. An agent stops at about 25 minutes and
+  reports what it did and what it did not verify.
+- A brief for another agent names test classes, never namespaces, projects or "every backend",
+  and asks it to report how long each build and test step took. A brief that says "regenerate on
+  every backend this machine can run" overrides these rules and costs a quarter hour, so don't
+  write one.
+- A PreToolUse hook (`.claude/hooks/block-full-test-runs.sh`, on Bash and PowerShell) refuses a
+  `dotnet test` that does not name one test `.csproj`, has no `--filter`, or filters on a
+  namespace or a bare word. Prefix `SGR_ALLOW_FULL_TESTS=1` (PowerShell:
+  `$env:SGR_ALLOW_FULL_TESTS=1;`) only when the user asks for a full run. The hook sees only
+  `dotnet test`; the other runners above are enforced by nothing but these rules.
+  `bash .claude/hooks/block-full-test-runs.test.sh` tests the hook.
 - CI never runs Unity, by choice: the editor is a multi-GB download per run. Verify Unity changes
   locally with the commands below, and say in the PR which platforms were run.
 - The Unity sample needs no editor window. First run `eng/build-unity-package.ps1`, then
@@ -66,7 +92,7 @@ authoritative list of what CI builds and in what order; mirror it when deciding 
 `Directory.Build.props` sets `TreatWarningsAsErrors`, so a new C# warning fails the build. MSBuild
 task warnings from third-party targets stay warnings; don't silence them there.
 
-**You may launch a sample `.exe`/`dotnet run` and screenshot it to verify objective output** — a
+**When no CI job checks it, you may launch a sample `.exe`/`dotnet run` and screenshot it to verify objective output**: a
 solid fullscreen color, a known static frame, a specific pixel value — by launching it, waiting for
 it to render, and comparing a screenshot's pixels against the expected value; kill the process when
 done. Prefer a small standalone verification app over the full interactive sample when one exists,
@@ -99,10 +125,11 @@ sets the real one. To find the last published version of a package, read
 - **A backend is only verifiable on its own platform and GPU stack.** A change to shared core source
   compiles for every backend but is exercised by none of them until each platform actually runs.
   Say which backends you verified and which you did not, rather than implying a clean build covers all.
-- **"Not verified" means the host cannot run it.** Before a PR lists a platform as unverified, run
-  everything this machine can. On Windows that includes the Unity `-d3d12` and `-linear` players,
-  the Godot engine tests (download Godot as `master.yml` does and set `GODOT_BIN`), and the WebGL
-  sample. Only Metal needs macOS.
+- **"Not verified" means neither CI nor this host ran it.** A platform a `master.yml` job runs is
+  verified by that job, so a PR does not list it as unverified and does not rerun it locally. What
+  only a local run covers is Unity: when the change can reach Unity (shared sample code, core
+  source, the Unity package), run the Unity players this host can build, including `-d3d12` and
+  `-linear` on Windows. Only Metal needs macOS.
 - **NuGet audit advisories on Stride's own dependencies are not ours to fix.** Stride.Assets pulls in
   `SixLabors.ImageSharp` 3.1.12, which carries advisories. `eng/StrideAudit.props` suppresses them for
   every Stride project, so import it from any new one. Don't pin or upgrade ImageSharp; revisit only
