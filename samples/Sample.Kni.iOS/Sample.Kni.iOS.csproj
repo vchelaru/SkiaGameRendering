@@ -8,6 +8,9 @@
     <Nullable>disable</Nullable>
     <RootNamespace>Sample</RootNamespace>
     <KniPlatform>iOS</KniPlatform>
+    <!-- Release builds trim; KNI's assemblies are not marked trimmable and raise IL2104, which TreatWarningsAsErrors makes fatal. -->
+    <TrimMode>partial</TrimMode>
+    <WarningsNotAsErrors>IL2104</WarningsNotAsErrors>
     <ApplicationId>com.vchelaru.skiagamerendering.sample</ApplicationId>
     <ApplicationTitle>Skia KNI Sample</ApplicationTitle>
     <ApplicationVersion>1</ApplicationVersion>
