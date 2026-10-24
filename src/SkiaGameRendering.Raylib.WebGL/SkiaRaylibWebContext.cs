@@ -19,6 +19,7 @@ internal sealed class SkiaRaylibWebContext : IDisposable
     private GRGlInterface? _interface;
     private GRContext? _grContext;
     private bool _passOpen;
+    private bool _contextLost;
 
     internal void Initialize()
     {
@@ -57,8 +58,20 @@ internal sealed class SkiaRaylibWebContext : IDisposable
         if (_passOpen)
             throw new InvalidOperationException(
                 "Another SkiaRenderTarget2D or SkiaDirectCanvas pass is open; end it before beginning this one.");
-        if (WebGlInterop.IsContextLost())
-            throw new InvalidOperationException("raylib's WebGL context is lost; Skia cannot draw until it is restored.");
+        if (_contextLost || WebGlInterop.IsContextLost())
+        {
+            // raylib's textures, buffers and shaders died with the context and are not rebuilt, and neither are
+            // Skia's. Stay failed even if the browser restores the context.
+            if (!_contextLost)
+            {
+                _contextLost = true;
+                _grContext?.AbandonContext();
+            }
+
+            throw new InvalidOperationException(
+                "raylib's WebGL context was lost. raylib does not recover from a lost context, so " +
+                "SkiaGameRendering.Raylib.WebGL cannot draw again; close the window and start a new one.");
+        }
 
         var info = WebGlInterop.BeginPass();
         _passOpen = true;
@@ -74,7 +87,7 @@ internal sealed class SkiaRaylibWebContext : IDisposable
 
         try
         {
-            if (!WebGlInterop.IsContextLost())
+            if (!_contextLost && !WebGlInterop.IsContextLost())
                 GrContext.Flush();
         }
         finally
@@ -114,7 +127,7 @@ internal sealed class SkiaRaylibWebContext : IDisposable
         _interface = null;
 
         // A closed window takes its context with it, and with it every GL object Skia owned.
-        if (WebGlInterop.IsContextLost())
+        if (_contextLost || WebGlInterop.IsContextLost())
             grContext.AbandonContext();
         else
             grContext.ResetContext();

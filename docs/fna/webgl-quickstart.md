@@ -62,5 +62,6 @@ with `[JSExport]` that calls `game.RunOneFrame()`, and call it from `requestAnim
   `RenderTarget2D` is bound over it, so draw render targets before the back buffer's frame.
 - Each Skia pass saves the GL state FNA3D caches and restores it, since FNA3D has no way to invalidate that
   cache. Skia's own queued GL errors are cleared at the end of every pass (`SkiaFnaWebGlBackend.ClearedGlErrorCount`).
-- Only `SurfaceFormat.Color` targets are supported.
+- Only `SurfaceFormat.Color` targets are supported, and `SkiaRenderTarget2D` takes `SKColorType.Rgba8888` only (anything else throws `NotSupportedException`).
+- Context loss is not recovered. FNA3D's resources die with the context, so every pass throws `InvalidOperationException` from then on, even if the browser restores the context; dispose the game and start a new one.
 - Tests: `tests/Tests.Fna.WebGL` (Playwright, Chromium) reads canvas pixels after each draw.

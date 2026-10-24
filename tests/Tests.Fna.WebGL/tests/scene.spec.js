@@ -68,3 +68,39 @@ test("switches between the render-target path and SkiaDirectCanvas", async ({ pa
   }
   expect(errors).toEqual([]);
 });
+
+// FNA3D's resources die with the context and are not rebuilt, so a lost context must fail every pass with a clear
+// message, and keep failing after the browser restores it (Skia's cached GL objects are gone too).
+test("fails clearly when the WebGL context is lost and stays failed after it is restored", async ({ page }) => {
+  const errors = await open(page, "texture");
+  await draw(page, [[50, 50]], 3);
+  await page.evaluate(() => {
+    const canvas = document.getElementById("canvas");
+    canvas.addEventListener("webglcontextlost", event => event.preventDefault());
+    // The extension object is kept: getExtension returns null while the context is lost.
+    globalThis.loseContext = canvas.getContext("webgl2").getExtension("WEBGL_lose_context");
+    globalThis.loseContext.loseContext();
+  });
+  const frame = () => page.evaluate(() => {
+    try { globalThis.fnaSample.frame(); return "returned"; } catch (error) { return String(error.message ?? error); }
+  });
+  expect(await frame()).toContain("context was lost");
+
+  await page.evaluate(() => new Promise(resolve => {
+    const canvas = document.getElementById("canvas");
+    canvas.addEventListener("webglcontextrestored", resolve);
+    globalThis.loseContext.restoreContext();
+  }));
+  expect(await frame()).toContain("context was lost");
+  expect(errors).toEqual([]);
+});
+
+// SKColorType: Alpha8 = 1, Rgb565 = 2, Rgba8888 = 4, Bgra8888 = 6.
+test("accepts Rgba8888 render targets and rejects other color types with NotSupportedException", async ({ page }) => {
+  await open(page, "texture");
+  await draw(page, [[50, 50]]);
+  const tryColorType = color => page.evaluate(c => globalThis.fnaSample.tryColorType(c), color);
+  expect(await tryColorType(4)).toBe("ok");
+  for (const color of [1, 2, 6])
+    expect(await tryColorType(color), `SKColorType ${color}`).toMatch(/^NotSupportedException: .*Rgba8888/);
+});

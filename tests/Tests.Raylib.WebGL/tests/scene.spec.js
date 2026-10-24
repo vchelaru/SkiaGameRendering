@@ -142,3 +142,37 @@ for (const mode of ["target", "direct"]) {
     expect(errors).toEqual([]);
   });
 }
+
+// raylib's resources die with the context and are not rebuilt, so a lost context must fail every pass with a clear
+// message, and keep failing after the browser restores it (Skia's cached GL objects are gone too).
+test("fails clearly when the WebGL context is lost and stays failed after it is restored", async ({ page }) => {
+  const errors = await open(page, "target");
+  await page.evaluate(() => {
+    const canvas = document.getElementById("canvas");
+    canvas.addEventListener("webglcontextlost", event => event.preventDefault());
+    // The extension object is kept: getExtension returns null while the context is lost.
+    globalThis.loseContext = canvas.getContext("webgl2").getExtension("WEBGL_lose_context");
+    globalThis.loseContext.loseContext();
+  });
+  await expect.poll(() => errors.join(" | ")).toContain("context was lost");
+
+  await page.evaluate(() => new Promise(resolve => {
+    const canvas = document.getElementById("canvas");
+    canvas.addEventListener("webglcontextrestored", resolve);
+    globalThis.loseContext.restoreContext();
+  }));
+  const afterRestore = await page.evaluate(() => {
+    try { return DotNet.invokeMethod("Sample.Raylib.WebGL", "Frame", "target") ?? "returned"; }
+    catch (error) { return String(error.message ?? error); }
+  });
+  expect(afterRestore).toContain("context was lost");
+});
+
+// SKColorType: Alpha8 = 1, Rgb565 = 2, Rgba8888 = 4, Bgra8888 = 6.
+test("accepts Rgba8888 render targets and rejects other color types with NotSupportedException", async ({ page }) => {
+  await open(page, "target");
+  const tryColorType = color => page.evaluate(c => DotNet.invokeMethod("Sample.Raylib.WebGL", "TryColorType", c), color);
+  expect(await tryColorType(4)).toBe("ok");
+  for (const color of [1, 2, 6])
+    expect(await tryColorType(color), `SKColorType ${color}`).toMatch(/^NotSupportedException: .*Rgba8888/);
+});

@@ -116,6 +116,21 @@ public static partial class Program
         _game.RunOneFrame();
     }
 
+    // Tests: what creating a SkiaRenderTarget2D with this SKColorType does.
+    [JSExport]
+    public static string TryColorType(int colorType)
+    {
+        try
+        {
+            using var target = new SkiaRenderTarget2D(_game!.GraphicsDevice, 16, 16, (SKColorType)colorType);
+            return "ok";
+        }
+        catch (Exception exception)
+        {
+            return exception.GetType().Name + ": " + exception.Message;
+        }
+    }
+
     [JSExport]
     public static int Frames() => _game?.Frames ?? 0;
 }
