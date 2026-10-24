@@ -1,10 +1,22 @@
 name: build
 
+# Docs-only changes skip CI. README.md and LICENSE.md are deliberately not ignored: the pack steps read them
+# as package files. No required status checks exist on master, so a skipped workflow blocks nothing.
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'docs/**'
+      - 'TODO.md'
+      - 'SkiaGameRendering-Notes.md'
+      - 'WebGL-KNI-Integration.md'
   pull_request:
     branches: [master]
+    paths-ignore:
+      - 'docs/**'
+      - 'TODO.md'
+      - 'SkiaGameRendering-Notes.md'
+      - 'WebGL-KNI-Integration.md'
 
 # A new push to a PR cancels that PR's superseded run. Each master push gets its own group (github.sha),
 # so push runs are never cancelled and never queue behind each other.
