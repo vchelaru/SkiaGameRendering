@@ -1,7 +1,7 @@
 using SkiaGameRendering.Core.OGL;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Raylib.OGL
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Owns the Skia-dedicated GL context (see <see cref="ISharedGlContext"/>: <see cref="WglSharedContext"/>
@@ -94,6 +94,39 @@ namespace SkiaGameRendering.Raylib.OGL
 
         internal void DisposeRenderState(GlFramebufferState renderState) =>
             GlSkiaSurfaceFactory.DisposeRenderState(Gl, renderState);
+
+        /// <summary>Frees a direct-draw FBO while raylib keeps the texture it drew into.</summary>
+        internal void DisposeAttachmentRenderState(GlFramebufferState renderState) =>
+            GlSkiaSurfaceFactory.DisposeRenderState(Gl, renderState, keepColor: true);
+
+        // --- SkiaDirectCanvas ---
+
+        /// <summary>
+        /// Whether Skia's context draws into raylib's window when it is current. The CGL context is never
+        /// attached to a drawable, so on macOS it has no back buffer to draw into.
+        /// </summary>
+        internal static bool SkiaContextSharesWindow => OperatingSystem.IsWindows() || OperatingSystem.IsLinux();
+
+        /// <summary>What raylib's context is drawing into. Call it on raylib's context.</summary>
+        internal GlDrawTarget QueryDrawTarget() => GlSkiaSurfaceFactory.QueryDrawTarget(Gl);
+
+        /// <summary>glFlush on the current context.</summary>
+        internal void Flush() => GlSkiaSurfaceFactory.Flush(Gl);
+
+        /// <summary>Wraps the window's back buffer. Call it on Skia's context.</summary>
+        internal (SKSurface surface, GRBackendRenderTarget renderTarget) CreateBackBufferSurface(int width, int height) =>
+            GlSkiaSurfaceFactory.CreateDefaultFramebufferSurface(GrContext, Gl, width, height, SKColorType.Rgba8888);
+
+        /// <summary>
+        /// Wraps the color attachment of raylib's bound framebuffer in an FBO on Skia's context. raylib draws
+        /// into a <c>RenderTexture2D</c> with the same top-down projection it uses for the window, which puts
+        /// its y = 0 in the last texel row, so the surface is <see cref="GRSurfaceOrigin.BottomLeft"/> like
+        /// the back buffer.
+        /// </summary>
+        internal (SKSurface surface, GRBackendRenderTarget renderTarget) CreateAttachmentSurface(
+            GlDrawTarget target, int width, int height, out GlFramebufferState renderState) =>
+            GlSkiaSurfaceFactory.CreateAttachmentSurface(GrContext, Gl, target, width, height, SKColorType.Rgba8888,
+                out renderState, GRSurfaceOrigin.BottomLeft);
 
         private GRContext GrContext => _grContext ?? throw new InvalidOperationException("SkiaRaylibContext.Initialize was not called.");
         private GlFunctions Gl => _gl ?? throw new InvalidOperationException("SkiaRaylibContext.Initialize was not called.");

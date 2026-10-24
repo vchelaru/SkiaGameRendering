@@ -1,8 +1,9 @@
 # raylib quick start
 
-raylib is the first engine this library supports that isn't MonoGame/KNI. It does not go through
-`SkiaBackend`/`SkiaRenderer` — see [SkiaRaylibRenderTarget2D](../documentation/SkiaRaylibRenderTarget2D.md)
-for why and how the raylib support is structured differently.
+raylib is the first engine this library supports that isn't MonoGame/KNI. Its package has
+`SkiaRenderTarget2D`, `SkiaDirectCanvas` and `SkiaRenderer` under the same names and namespace
+(`SkiaGameRendering`) as the MonoGame/KNI ones, with raylib's own constructors; see the
+[raylib SkiaRenderTarget2D page](../documentation/SkiaRenderTarget2D.Raylib.md).
 
 ## Prerequisites
 
@@ -28,18 +29,18 @@ dotnet add package SkiaSharp.NativeAssets.Linux
 
 ```cs
 using Raylib_cs;
-using SkiaGameRendering.Raylib.OGL;
+using SkiaGameRendering;
 using SkiaSharp;
 
 Raylib.InitWindow(800, 600, "raylib + Skia");
 Raylib.SetTargetFPS(60);
 
-// Optional — SkiaRaylibRenderTarget2D auto-initializes on first use. Call this explicitly only to
+// Optional — SkiaRenderTarget2D auto-initializes on first use. Call this explicitly only to
 // fail fast (with a clear stack) if the shared GL context can't be created, instead of surfacing
 // the failure lazily on first draw. Must run after Raylib.InitWindow.
-SkiaRaylibRenderer.Initialize();
+SkiaRenderer.Initialize();
 
-var canvas = new SkiaRaylibRenderTarget2D(800, 600);
+var canvas = new SkiaRenderTarget2D(800, 600);
 using var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
 
 while (!Raylib.WindowShouldClose())
@@ -57,12 +58,16 @@ while (!Raylib.WindowShouldClose())
 }
 
 canvas.Dispose();               // dispose render targets before...
-SkiaRaylibRenderer.Dispose();   // ...tearing down the shared GL context
+SkiaRenderer.Dispose();   // ...tearing down the shared GL context
 Raylib.CloseWindow();
 ```
 
-Full member list, the WGL/GLX context-sharing mechanism, and other remarks are documented on
-[SkiaRaylibRenderTarget2D](../documentation/SkiaRaylibRenderTarget2D.md).
+To draw straight into the back buffer or the bound `RenderTexture2D`, with no texture and no
+composite, use `SkiaDirectCanvas` instead; see [SkiaDirectCanvas](../documentation/SkiaDirectCanvas.md).
+The sample toggles between the two with D.
+
+Full member list, the WGL/GLX context-sharing mechanism, and other remarks are in the
+[raylib SkiaRenderTarget2D page](../documentation/SkiaRenderTarget2D.Raylib.md).
 
 ## Build and run the sample in this repo
 
@@ -74,5 +79,5 @@ dotnet run --project samples\Sample.Raylib.OGL\Sample.Raylib.OGL.csproj -c Relea
 ## Known limitations
 
 - macOS is not implemented.
-- Only one raylib window is supported per process — `SkiaRaylibRenderer` holds a single global
+- Only one raylib window is supported per process — `SkiaRenderer` holds a single global
   context rather than keying off a window handle.

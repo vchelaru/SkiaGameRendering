@@ -1,5 +1,5 @@
 using Raylib_cs;
-using SkiaGameRendering.Raylib.OGL;
+using SkiaGameRendering;
 using Tests.Shared;
 using Xunit;
 using Xunit.Abstractions;
@@ -9,7 +9,7 @@ namespace Tests.Raylib.OGL;
 
 /// <summary>
 /// Runs raylib's own frame loop for hundreds of frames, drawing the scene through
-/// <see cref="SkiaRaylibRenderTarget2D"/> and compositing it with <c>End</c>, and fails if the process
+/// <see cref="SkiaRenderTarget2D"/> and compositing it with <c>End</c>, and fails if the process
 /// grows per frame (see <see cref="FrameLeakCheck"/>). Linux only, like
 /// <see cref="RaylibGoldenImageTests"/>.
 /// </summary>
@@ -23,10 +23,10 @@ public sealed class RaylibFrameLeakTests(ITestOutputHelper output)
         RaylibApi.InitWindow(GoldenScene.Width, GoldenScene.Height, "Tests.Raylib.OGL");
         try
         {
-            SkiaRaylibRenderer.Initialize();
+            SkiaRenderer.Initialize();
             try
             {
-                using var canvas = new SkiaRaylibRenderTarget2D(GoldenScene.Width, GoldenScene.Height);
+                using var canvas = new SkiaRenderTarget2D(GoldenScene.Width, GoldenScene.Height);
                 FrameLeakCheck.AssertNoPerFrameGrowth(() =>
                 {
                     RaylibApi.BeginDrawing();
@@ -39,7 +39,7 @@ public sealed class RaylibFrameLeakTests(ITestOutputHelper output)
             }
             finally
             {
-                SkiaRaylibRenderer.Dispose();
+                SkiaRenderer.Dispose();
             }
         }
         finally

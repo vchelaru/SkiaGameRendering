@@ -3,7 +3,7 @@ using RaylibApi = Raylib_cs.Raylib;
 using RaylibColor = Raylib_cs.Color;
 using RaylibTexture2D = Raylib_cs.Texture2D;
 
-namespace SkiaGameRendering.Raylib.OGL
+namespace SkiaGameRendering
 {
     /// <summary>
     /// A GPU surface that SkiaSharp renders directly into, sized to match whatever you intend to
@@ -12,7 +12,7 @@ namespace SkiaGameRendering.Raylib.OGL
     /// <c>Raylib.DrawTexture</c> - call it between <c>Raylib.BeginDrawing()</c>/<c>EndDrawing()</c>,
     /// same as any other raylib draw call.
     /// <code>
-    /// var canvas = new SkiaRaylibRenderTarget2D(Width, Height);
+    /// var canvas = new SkiaRenderTarget2D(Width, Height);
     /// Raylib.BeginDrawing();
     /// canvas.Begin();
     /// canvas.Canvas.DrawCircle(100, 100, 100, paint);
@@ -22,25 +22,25 @@ namespace SkiaGameRendering.Raylib.OGL
     /// <see cref="Texture"/> stores canvas row 0 in texel row 0, the way raylib draws any texture
     /// loaded from an image, so callers never need to flip it themselves.
     /// </summary>
-    public sealed class SkiaRaylibRenderTarget2D : IDisposable
+    public sealed class SkiaRenderTarget2D : IDisposable
     {
         private readonly SkiaRaylibContext _context;
         private SkiaRaylibTarget? _target;
         private bool _hasBegun;
 
-        public SkiaRaylibRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)
+        public SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)
         {
             if (width <= 0)
                 throw new ArgumentOutOfRangeException(nameof(width));
             if (height <= 0)
                 throw new ArgumentOutOfRangeException(nameof(height));
 
-            _context = SkiaRaylibRenderer.EnsureInitialized();
+            _context = SkiaRenderer.EnsureInitialized();
             _target = new SkiaRaylibTarget(_context, width, height, colorType);
         }
 
         public RaylibTexture2D Texture =>
-            (_target ?? throw new ObjectDisposedException(nameof(SkiaRaylibRenderTarget2D))).Texture;
+            (_target ?? throw new ObjectDisposedException(nameof(SkiaRenderTarget2D))).Texture;
 
         /// <summary>
         /// The canvas to draw on. Only valid between <see cref="Begin"/> and <see cref="End"/>;
@@ -57,7 +57,7 @@ namespace SkiaGameRendering.Raylib.OGL
         public void Begin(bool clear = true)
         {
             if (_target == null)
-                throw new ObjectDisposedException(nameof(SkiaRaylibRenderTarget2D));
+                throw new ObjectDisposedException(nameof(SkiaRenderTarget2D));
             if (_hasBegun)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 

@@ -3,10 +3,10 @@ using SkiaGameRendering.Core.OGL;
 using SkiaSharp;
 using RaylibTexture2D = Raylib_cs.Texture2D;
 
-namespace SkiaGameRendering.Raylib.OGL
+namespace SkiaGameRendering
 {
     /// <summary>
-    /// Owns the GPU resources backing one <see cref="SkiaRaylibRenderTarget2D"/>: the raylib
+    /// Owns the GPU resources backing one <see cref="SkiaRenderTarget2D"/>: the raylib
     /// texture, the FBO/renderbuffer Skia renders into, and the <see cref="SKSurface"/>/
     /// <see cref="GRBackendRenderTarget"/> wrapping it.
     /// </summary>

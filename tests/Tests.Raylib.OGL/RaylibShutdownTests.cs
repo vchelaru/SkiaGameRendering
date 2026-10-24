@@ -1,5 +1,5 @@
 using Raylib_cs;
-using SkiaGameRendering.Raylib.OGL;
+using SkiaGameRendering;
 using Tests.Shared;
 using Xunit;
 using RaylibApi = Raylib_cs.Raylib;
@@ -19,11 +19,11 @@ public sealed class RaylibShutdownTests
         VendoredOpenGl.PreloadIfPresent();
         RaylibApi.SetConfigFlags(ConfigFlags.HiddenWindow);
         RaylibApi.InitWindow(64, 64, "Tests.Raylib.OGL");
-        SkiaRaylibRenderTarget2D canvas;
+        SkiaRenderTarget2D canvas;
         try
         {
-            SkiaRaylibRenderer.Initialize();
-            canvas = new SkiaRaylibRenderTarget2D(64, 64);
+            SkiaRenderer.Initialize();
+            canvas = new SkiaRenderTarget2D(64, 64);
             canvas.Begin();
             canvas.Canvas.Clear(SkiaSharp.SKColors.Red);
             canvas.EndWithoutDrawing();
@@ -34,6 +34,6 @@ public sealed class RaylibShutdownTests
         }
 
         canvas.Dispose();
-        SkiaRaylibRenderer.Dispose();
+        SkiaRenderer.Dispose();
     }
 }

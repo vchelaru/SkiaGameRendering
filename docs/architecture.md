@@ -12,7 +12,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
 - `src/SkiaGameRendering.Fna.WindowsDX/`: FNA library (shared core + `SkiaAngleBackend`, on `Core.ANGLE`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Fna.OGL/`: FNA library (shared core + `SkiaGlBackend`, on `Core.OGL`; `src/SkiaGameRendering.Fna/` holds the FNA3D binding both FNA packages link)
-- `src/SkiaGameRendering.Raylib.OGL/` — raylib library (shared `Core.OGL` + `SkiaRaylibRenderTarget2D`)
+- `src/SkiaGameRendering.Raylib.OGL/` — raylib library (shared `Core.OGL` + raylib's `SkiaRenderTarget2D`, `SkiaDirectCanvas`, `SkiaRenderer`)
 - `src/SkiaGameRendering.Stride.D3D11/` — Stride library (shared `Core.ANGLE` + `SkiaRenderTarget2D`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Core.VK/` — engine-agnostic Vulkan/Skia interop shared by Vulkan-based backends
 - `src/SkiaGameRendering.Core.Metal/`: engine-agnostic Metal/Skia interop shared by Metal-based backends (Godot on macOS today)
