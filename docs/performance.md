@@ -18,14 +18,9 @@ scene has a page with a screenshot, what each side does, and a table per platfor
 
 ## Tips
 
-- **If sprites must go through Skia, use `SKCanvas.DrawAtlas`.** From about 10k sprites one `DrawAtlas`
-  call per texture sheet reaches 65-100% of `SpriteBatch`'s frame rate, depending on the backend; below
-  that the fixed cost of a Skia pass (about 0.1-0.3 ms) dominates. One `DrawImage` per sprite is about
-  three times slower than `DrawAtlas`.
-- **Tint through `DrawAtlas`'s `colors` array with `SKBlendMode.Modulate`**, the equivalent of
-  `SpriteBatch.Draw`'s `color`. It costs almost nothing extra. Tinting `DrawImage` with a per-sprite
-  `SKPaint.ColorFilter` is the slowest option measured, about six times slower than the tinted
-  `DrawAtlas`. `SKColor` is unpremultiplied, so the matching `SpriteBatch` color is
+- **Draw sprites with `SKCanvas.DrawAtlas`**, one call per texture sheet. Tint through its `colors` array
+  with `SKBlendMode.Modulate`, the equivalent of `SpriteBatch.Draw`'s `color`; it costs almost nothing
+  extra. `SKColor` is unpremultiplied, so the matching `SpriteBatch` color is
   `Color.FromNonPremultiplied(r, g, b, a)`.
 - **Upload sprite images once** with `SKImage.ToTextureImage(SkiaRenderer.CurrentBackend.GRContext)`,
   called between `Begin()` and `End()` when Skia's GPU context is current, and reuse the result.
@@ -50,16 +45,19 @@ Each platform has two apps under `benchmarks/Performance/`, built from the same 
   for shapes, gradients, shadows and SVG, a `SpriteFont` baked from the TTF (one per size) and
   FontStashSharp for text. Skia is not loaded.
 - **Skia** draws the same scenes with `SKCanvas` calls only, sprites through `DrawAtlas`. Every scene runs
-  twice, through a `SkiaRenderTarget2D` (the "render target" column: Skia draws into a texture, then it is
-  composited) and through a `SkiaDirectCanvas` (the "direct" column: Skia draws straight into the back buffer).
+  through a `SkiaDirectCanvas` (Skia draws straight into the back buffer) and through a `SkiaRenderTarget2D`.
+  The tables show the direct canvas; the render target numbers are in the result files.
 
 Every scene is deterministic: positions, sizes, textures and colors come from the item index, so every run
 and every platform draws the same thing. Both apps run at 1600x900 with vsync and the fixed timestep off.
 Each scene gets a 2 s warmup and a 4 s measured window. **FPS** is the measured frames over the window's
 wall-clock time, so it covers the whole frame: update, draw submission, the Skia context switch and flush,
-the composite and `Present`. The tables also give the median draw CPU time (the time inside the draw code
-alone) and the median and 95th-percentile frame time. A cell marked `*` had a frame over 20 times the median
-(a shader compile or a garbage collection), which pulls its FPS down.
+the composite and `Present`.
+
+Each table row gives three numbers: **Native FPS**, the fastest engine-side renderer for that scene (named in
+brackets); **SkiaGameRendering FPS**; and **SkiaGameRendering / Native**, where 100% is the same speed, 200% twice as fast and 50% half as fast.
+Pre-rasterized SVG is measured on both sides but left out of the tables. Median and 95th-percentile frame
+times and draw CPU time are in the result files under `performance/results/`.
 
 The browser apps run from `requestAnimationFrame`, started with the browser's frame-rate limit and vsync off
 so it does not cap at the display's refresh rate, as an ahead-of-time compiled (AOT) WebAssembly publish.
@@ -125,6 +123,6 @@ text around them is written by hand.
 - **MonoGame WindowsDX, Skia side.** `Sample.MonoGame.WindowsDX` and the Skia performance app crash inside
   ANGLE's `eglCreateDeviceANGLE` on H2 (Windows 11 build 26300, Intel Arc driver), so only the engine side
   of WindowsDX has a row for H2.
-- **Firefox and other machines.** Only H2 and, for the one page it covered, H1.
+- **Firefox and other machines.** Only H2. H1 predates the direct canvas, so its run is in the result files but not the tables.
 - **Other graphics APIs and engines.** The D3D12, Vulkan and Metal backends and the other engines have no
   performance apps yet.

@@ -20,7 +20,6 @@ namespace Performance
         public const string TargetLabel = "Skia render target";
         public const string DirectLabel = "Skia direct";
         public const string PreRasterizedSuffix = " (pre-rasterized SVG)";
-        public const string DrawImageSuffix = " (DrawImage per sprite)";
 
         private SkiaRenderTarget2D _target = null!;
         private SkiaDirectCanvas? _direct;
@@ -52,19 +51,13 @@ namespace Performance
                 yield return new PerfEntry(scene, "skia", TargetLabel + PreRasterizedSuffix);
                 yield return new PerfEntry(scene, "skia", DirectLabel + PreRasterizedSuffix);
             }
-            else if (scene.Kind == SceneKind.Sprites)
-            {
-                yield return new PerfEntry(scene, "skia", DirectLabel + DrawImageSuffix);
-            }
         }
 
         protected override void DrawEntry(PerfEntry entry, float t)
         {
             GraphicsDevice.Clear(Color.Black);
 
-            var variant = entry.Renderer.EndsWith(PreRasterizedSuffix) ? SkiaVariant.PreRasterizedSvg
-                : entry.Renderer.EndsWith(DrawImageSuffix) ? SkiaVariant.DrawImage
-                : SkiaVariant.Default;
+            var variant = entry.Renderer.EndsWith(PreRasterizedSuffix) ? SkiaVariant.PreRasterizedSvg : SkiaVariant.Default;
             if (entry.Renderer.StartsWith(DirectLabel))
             {
                 if (_direct == null)
