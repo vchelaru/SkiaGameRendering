@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SupportedOSPlatformVersion>browser</SupportedOSPlatformVersion>
+    <PackageId>SkiaGameRendering.Raylib.WebGL</PackageId>
+    <Version>$(LibraryVersion)</Version>
+    <Description>GPU SkiaSharp rendering into raylib in the browser (PLATFORM_WEB, WebGL 2), sharing raylib's WebGL context.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Raylib-cs" Version="8.0.0" />
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
+    <!-- The app compiles raylib itself, so the sources, the pre-js and the props ship in the package. -->
+    <None Include="build\SkiaGameRendering.Raylib.WebGL.props" Pack="true" PackagePath="build\;buildTransitive\" />
+    <None Include="native\**\*" Pack="true" PackagePath="native\" />
+  </ItemGroup>
+</Project>

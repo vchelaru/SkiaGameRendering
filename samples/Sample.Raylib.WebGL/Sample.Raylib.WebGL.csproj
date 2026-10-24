@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <Import Project="..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
+  </PropertyGroup>
+
+  <!-- A NuGet consumer gets this file from the package; the sample references the project, so it imports it. -->
+  <Import Project="..\..\src\SkiaGameRendering.Raylib.WebGL\build\SkiaGameRendering.Raylib.WebGL.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Raylib.WebGL\SkiaGameRendering.Raylib.WebGL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.27" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.27" PrivateAssets="all" />
+  </ItemGroup>
+
+  <Import Project="..\Shared\Scene.props" />
+</Project>

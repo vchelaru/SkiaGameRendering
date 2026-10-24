@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../../src/SkiaGameRendering.Raylib.WebGL/SkiaGameRendering.Raylib.WebGL.csproj" />
+  <Project Path="Sample.Raylib.WebGL.csproj" DefaultStartup="true" />
+</Solution>

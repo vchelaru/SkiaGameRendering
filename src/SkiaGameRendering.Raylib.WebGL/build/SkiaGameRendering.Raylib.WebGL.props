@@ -1,0 +1,27 @@
+<Project>
+  <!--
+    Imported by an app that references SkiaGameRendering.Raylib.WebGL (NuGet puts this file in build/ and
+    buildTransitive/; the in-repo sample imports it by path). Links raylib (PLATFORM_WEB, GLFW, OpenGL ES 3 /
+    WebGL 2) into the app's dotnet.native.wasm next to SkiaSharp, by compiling the raylib sources in ../native
+    with the same Emscripten the .NET wasm build uses. Needs the wasm-tools workload.
+  -->
+  <PropertyGroup>
+    <SkiaRaylibNativeDir>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', 'native'))</SkiaRaylibNativeDir>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdkBlazorWebAssembly)' == 'true' or '$(UsingMicrosoftNETSdkWebAssembly)' == 'true'">
+    <WasmBuildNative>true</WasmBuildNative>
+    <!-- Compile flags go on the link line too: the .c files below are compiled by that emcc invocation. -->
+    <EmccExtraLDFlags>$(EmccExtraLDFlags) -sUSE_GLFW=3 -sMAX_WEBGL_VERSION=2 -sFULL_ES3=1 -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES3 -D_DEFAULT_SOURCE -Wno-everything --pre-js &quot;$(SkiaRaylibNativeDir)skia-raylib-webgl.js&quot;</EmccExtraLDFlags>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UsingMicrosoftNETSdkBlazorWebAssembly)' == 'true' or '$(UsingMicrosoftNETSdkWebAssembly)' == 'true'">
+    <NativeFileReference Include="$(SkiaRaylibNativeDir)raylib\rcore.c" ScanForPInvokes="false" />
+    <NativeFileReference Include="$(SkiaRaylibNativeDir)raylib\rshapes.c" ScanForPInvokes="false" />
+    <NativeFileReference Include="$(SkiaRaylibNativeDir)raylib\rtextures.c" ScanForPInvokes="false" />
+    <NativeFileReference Include="$(SkiaRaylibNativeDir)raylib\rtext.c" ScanForPInvokes="false" />
+    <NativeFileReference Include="$(SkiaRaylibNativeDir)raylib\rmodels.c" ScanForPInvokes="false" />
+    <NativeFileReference Include="$(SkiaRaylibNativeDir)raylib\raudio.c" ScanForPInvokes="false" />
+    <NativeFileReference Include="$(SkiaRaylibNativeDir)raylib.c" />
+  </ItemGroup>
+</Project>

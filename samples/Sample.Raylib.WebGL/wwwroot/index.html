@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <base href="/">
+    <title>Skia + raylib WebGL</title>
+    <link href="css/app.css" rel="stylesheet">
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600" tabindex="-1"></canvas>
+    <div id="diagnostics"><span id="diagnostic-text">Initializing...</span></div>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script src="js/game-loop.js"></script>
+    <script>Blazor.start().then(() => skiaRaylibSample.start());</script>
+</body>
+</html>

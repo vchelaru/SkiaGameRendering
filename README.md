@@ -19,6 +19,7 @@ Unity textures on the GPU, with no CPU readback.
 | [KNI Android](docs/android/quickstart.md) | OpenGL ES | [`SkiaGameRendering.Kni.Android`](https://www.nuget.org/packages/SkiaGameRendering.Kni.Android) | Android 7+ |
 | [KNI WebGL (Blazor)](docs/webgl/quickstart.md) | WebGL2 | [`SkiaGameRendering.Kni.WebGL`](https://www.nuget.org/packages/SkiaGameRendering.Kni.WebGL) | Browser |
 | [raylib](docs/raylib/quickstart.md) | OpenGL | [`SkiaGameRendering.Raylib.OGL`](https://www.nuget.org/packages/SkiaGameRendering.Raylib.OGL) | Windows, Linux, macOS |
+| [raylib WebGL](docs/raylib/webgl-quickstart.md) | WebGL2 | [`SkiaGameRendering.Raylib.WebGL`](https://www.nuget.org/packages/SkiaGameRendering.Raylib.WebGL) | Browser |
 | [FNA](docs/fna/quickstart.md) | D3D11 | [`SkiaGameRendering.Fna.WindowsDX`](https://www.nuget.org/packages/SkiaGameRendering.Fna.WindowsDX) | Windows |
 | [FNA](docs/fna/quickstart.md) | OpenGL | [`SkiaGameRendering.Fna.OGL`](https://www.nuget.org/packages/SkiaGameRendering.Fna.OGL) | Windows, Linux, macOS |
 | [Stride](docs/stride/quickstart.md) | D3D11 | [`SkiaGameRendering.Stride.D3D11`](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) | Windows |
