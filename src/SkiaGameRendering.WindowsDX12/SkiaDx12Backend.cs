@@ -83,14 +83,14 @@ namespace SkiaGameRendering
             }
         }
 
-        internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType)
+        internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType, int multiSampleCount)
         {
             // Skia's pixel layout has to match the DXGI format the resource was created with.
             if (colorType is not (SKColorType.Rgba8888 or SKColorType.Bgra8888))
                 throw new NotSupportedException(
                     $"SkiaDx12Backend supports SKColorType.Rgba8888 and SKColorType.Bgra8888, not {colorType}.");
 
-            return base.CreateTarget(width, height, colorType);
+            return base.CreateTarget(width, height, colorType, multiSampleCount);
         }
 
         internal override Texture2D CreateTexture(int width, int height, SurfaceFormat format)
@@ -126,7 +126,7 @@ namespace SkiaGameRendering
                 : throw new InvalidOperationException("The texture was not created by this backend.");
 
         internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
+            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, int multiSampleCount, out object renderState)
         {
             var target = (TargetResource)textureHandle;
             var state = _factory.CreateTextureState(target.Resource, target.DxgiFormat, D3D12Constants.ResourceStateRenderTarget);

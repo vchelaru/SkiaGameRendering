@@ -27,8 +27,14 @@ namespace SkiaGameRendering
         private SpriteBatch? _spriteBatch;
         private bool _hasBegun;
 
+        /// <param name="multiSampleCount">
+        /// Samples per pixel, like <c>RenderTarget2D</c>'s <c>preferredMultiSampleCount</c>. 0 (the default) is a
+        /// plain surface; 2, 4 and 8 are the GPU's built-in edge smoothing. Any other value, a count the GPU
+        /// lacks, or a backend that cannot multisample throws <see cref="NotSupportedException"/>; it never
+        /// falls back to 0. See the SkiaRenderTarget2D docs page for what it costs and when to use it.
+        /// </param>
         public SkiaRenderTarget2D(GraphicsDevice graphicsDevice, int width, int height,
-            SKColorType colorType = SKColorType.Rgba8888)
+            SKColorType colorType = SKColorType.Rgba8888, int multiSampleCount = 0)
         {
             ArgumentNullException.ThrowIfNull(graphicsDevice);
             if (width <= 0)
@@ -36,8 +42,12 @@ namespace SkiaGameRendering
             if (height <= 0)
                 throw new ArgumentOutOfRangeException(nameof(height));
 
+            if (multiSampleCount is not (0 or 2 or 4 or 8))
+                throw new NotSupportedException(
+                    $"multiSampleCount must be 0, 2, 4 or 8, not {multiSampleCount}.");
+
             _backend = SkiaRenderer.EnsureInitialized(graphicsDevice);
-            _target = _backend.CreateTarget(width, height, colorType);
+            _target = _backend.CreateTarget(width, height, colorType, multiSampleCount);
         }
 
         public Texture2D Texture =>

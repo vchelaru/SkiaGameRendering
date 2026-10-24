@@ -55,6 +55,32 @@ public sealed class SkiaRendererTests : IDisposable
         Assert.Throws<InvalidOperationException>(() => new SkiaRenderTarget2D(otherDevice, 32, 32));
     }
 
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(16)]
+    public void Constructing_WithUnsupportedMultiSampleCountThrows(int multiSampleCount)
+    {
+        var backend = new FakeBackend();
+        SkiaRenderer.Initialize(backend, _graphicsDevice);
+
+        Assert.Throws<NotSupportedException>(() => new SkiaRenderTarget2D(_graphicsDevice, 32, 32, multiSampleCount: multiSampleCount));
+        Assert.Empty(backend.CreatedTargets);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(4, true)]
+    public void BackendWithoutMultiSampling_ThrowsForNonZeroCountOnly(int multiSampleCount, bool throws)
+    {
+        var backend = new FakeBackend();
+        if (throws)
+            Assert.Throws<NotSupportedException>(() => backend.ThrowIfMultiSampleUnsupported(multiSampleCount));
+        else
+            backend.ThrowIfMultiSampleUnsupported(multiSampleCount);
+    }
+
     [Fact]
     public void Canvas_ThrowsOutsideBeginEndWindow()
     {
@@ -164,7 +190,7 @@ public sealed class SkiaRendererTests : IDisposable
         internal override void BeginDraw() { }
         internal override void EndDraw() { }
 
-        internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType)
+        internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType, int multiSampleCount)
         {
             var target = new FakeTarget();
             CreatedTargets.Add(target);
@@ -208,7 +234,7 @@ public sealed class SkiaRendererTests : IDisposable
 
         internal override object CaptureTextureHandle(Texture2D texture) => throw new NotSupportedException();
         internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState) =>
+            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, int multiSampleCount, out object renderState) =>
             throw new NotSupportedException();
         internal override void BindForDrawing(object renderState) => throw new NotSupportedException();
         internal override void UnbindAfterDrawing() => throw new NotSupportedException();

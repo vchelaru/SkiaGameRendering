@@ -40,13 +40,45 @@ namespace SkiaGameRendering
         internal override object CaptureTextureHandle(Texture2D texture) =>
             new GlTextureState { TextureId = CaptureGlTextureId(texture) };
 
+        internal override bool SupportsMultiSampledTargets => true;
+
         internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
-            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, out object renderState)
+            object textureHandle, Texture2D texture, int width, int height, SKColorType colorType, int multiSampleCount, out object renderState)
         {
+            if (multiSampleCount > 1)
+                return CreateMultiSampledSurface(((GlTextureState)textureHandle).TextureId, width, height, colorType, multiSampleCount, out renderState);
+
             var result = GlSkiaSurfaceFactory.CreateSurface(
                 _grContext, _gl, ((GlTextureState)textureHandle).TextureId, width, height, colorType, out var framebufferState);
             renderState = framebufferState;
             return result;
+        }
+
+        /// <summary>
+        /// A multisampled surface over the texture: Skia allocates the multisampled buffer itself and resolves
+        /// it into the texture on the GPU at flush (see <see cref="SkiaBackend.EndRender"/>), no readback.
+        /// Throws when the GPU offers fewer samples than asked for. The render state names no GL objects, so
+        /// binding and disposing it are no-ops.
+        /// </summary>
+        private (SKSurface surface, GRBackendRenderTarget renderTarget) CreateMultiSampledSurface(
+            int glTextureId, int width, int height, SKColorType colorType, int sampleCount, out object renderState)
+        {
+            var max = _grContext.GetMaxSurfaceSampleCount(colorType);
+            if (sampleCount > max)
+                throw new NotSupportedException(
+                    $"multiSampleCount {sampleCount} is not supported: this GPU offers at most {max} samples for {colorType}.");
+
+            var glFormat = colorType.ToGlSizedFormat();
+            var textureInfo = new GRGlTextureInfo(0x0DE1 /* GL_TEXTURE_2D */, (uint)glTextureId, glFormat);
+            using var backendTexture = new GRBackendTexture(width, height, false, textureInfo);
+            var surface = SKSurface.Create(_grContext, backendTexture, GRSurfaceOrigin.TopLeft, sampleCount, colorType)
+                ?? throw new NotSupportedException(
+                    $"Skia could not create a {sampleCount}x multisampled surface for {colorType} on this GPU.");
+
+            // Only a descriptor (framebuffer 0, nothing allocated); the caller keeps a render target to dispose.
+            var descriptor = new GRBackendRenderTarget(width, height, sampleCount, 8, new GRGlFramebufferInfo(0, glFormat));
+            renderState = new GlFramebufferState();
+            return (surface, descriptor);
         }
 
         internal override void BindForDrawing(object renderState) =>
