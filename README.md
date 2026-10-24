@@ -62,4 +62,4 @@ MIT License. See [LICENSE.md](LICENSE.md).
 
 ## Credits
 
-Originally created by [Miguel Anxo Figueirido](https://github.com/mfigueirido/SkiaMonoGameRendering). Multi-platform backend abstraction and WindowsDX/ANGLE support added by Victor Chelaru.
+Originally created by [Miguel Anxo Figueirido](https://github.com/mfigueirido/SkiaMonoGameRendering).
