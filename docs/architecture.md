@@ -1,4 +1,4 @@
-# Architecture
+# Architecture 
 
 The library uses a backend abstraction (`SkiaBackend` base class) so each graphics API gets its own implementation. Core source files are shared across platform-specific library projects via linked includes:
 
@@ -42,3 +42,4 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 Unity records draws to an `SKPicture` on the main thread and plays them back on its render thread.
 
 See [`SkiaGameRendering-Notes.md`](../SkiaGameRendering-Notes.md) for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
+
