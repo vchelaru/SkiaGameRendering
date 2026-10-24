@@ -95,6 +95,25 @@ globalThis.skiaRaylibWebGl = (function () {
             unpack: [gl.getParameter(0x0CF5), gl.getParameter(0x0CF2), gl.getParameter(0x0CF3), gl.getParameter(0x0CF4)],
             pack: [gl.getParameter(0x0D05), gl.getParameter(0x0D02), gl.getParameter(0x0D03), gl.getParameter(0x0D04)],
         };
+        // Without a vertex array object (raylib's ES2 build, which is the one Raylib-cs ships for the browser, has
+        // none on WebGL 2) its attribute setup lives on the default one, where Skia's draws overwrite it.
+        if (!state.vao) {
+            state.elementBuffer = gl.getParameter(0x8895);
+            state.attributes = [];
+            const count = gl.getParameter(0x8869);
+            for (let index = 0; index < count; index++) {
+                state.attributes.push({
+                    enabled: gl.getVertexAttrib(index, 0x8622),
+                    buffer: gl.getVertexAttrib(index, 0x889F),
+                    size: gl.getVertexAttrib(index, 0x8623),
+                    type: gl.getVertexAttrib(index, 0x8625),
+                    normalized: gl.getVertexAttrib(index, 0x886A),
+                    stride: gl.getVertexAttrib(index, 0x8624),
+                    offset: gl.getVertexAttribOffset(index, 0x8645),
+                    divisor: gl.getVertexAttrib(index, 0x88FE),
+                });
+            }
+        }
         for (let unit = 0; unit < TEXTURE_UNITS; unit++) {
             gl.activeTexture(0x84C0 + unit);
             state.textures.push(gl.getParameter(0x8069));
@@ -136,12 +155,21 @@ globalThis.skiaRaylibWebGl = (function () {
         }
         gl.activeTexture(state.activeTexture);
 
-        // Skia enables vertex attributes on the default vertex array when it has none of its own. raylib keeps
-        // its attributes on its own VAOs, so only the default one needs cleaning.
+        // Skia changes vertex attributes on the default vertex array when it has none of its own; put back the
+        // ones saved above (raylib's attributes live on its own VAOs when it has any).
         if (!state.vao) {
-            const attributes = gl.getParameter(0x8869);
-            for (let index = 0; index < attributes; index++)
-                gl.disableVertexAttribArray(index);
+            state.attributes.forEach((attribute, index) => {
+                gl.bindBuffer(0x8892, attribute.buffer);
+                if (attribute.buffer)
+                    gl.vertexAttribPointer(index, attribute.size, attribute.type, attribute.normalized, attribute.stride, attribute.offset);
+                gl.vertexAttribDivisor(index, attribute.divisor);
+                if (attribute.enabled)
+                    gl.enableVertexAttribArray(index);
+                else
+                    gl.disableVertexAttribArray(index);
+            });
+            gl.bindBuffer(0x8892, state.arrayBuffer);
+            gl.bindBuffer(0x8893, state.elementBuffer);
         }
 
         gl.pixelStorei(0x0CF5, state.unpack[0]);
@@ -184,6 +212,9 @@ globalThis.skiaRaylibWebGl = (function () {
             const gl = context().GLctx;
             if (saved)
                 throw new Error("A Skia pass is already open.");
+            // raylib's ES2 build queues errors of its own (attribute locations of -1 for the ones its shader lacks);
+            // drain them so the count below is only what Skia leaves behind.
+            for (let i = 0; i < 8 && gl.getError() !== 0; i++);
             saved = save(gl);
             const id = framebufferId(saved.draw);
             let kind = 0;

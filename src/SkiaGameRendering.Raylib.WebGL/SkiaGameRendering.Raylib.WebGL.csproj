@@ -2,7 +2,7 @@
   <Import Project="..\..\eng\Versions.props" />
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Raylib-cs" Version="8.0.0" />
+    <PackageReference Include="Raylib-cs" Version="8.1.0" />
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
     <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" Version="[$(SkiaSharpVersion)]" />
   </ItemGroup>
@@ -24,7 +24,7 @@
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\LICENSE.md" Pack="true" PackagePath="\" />
-    <!-- The app compiles raylib itself, so the sources, the pre-js and the props ship in the package. -->
+    <!-- Raylib-cs ships the browser-wasm raylib.a; the package adds the pre-js and the props that link it with Skia. -->
     <None Include="build\SkiaGameRendering.Raylib.WebGL.props" Pack="true" PackagePath="build\;buildTransitive\" />
     <None Include="native\**\*" Pack="true" PackagePath="native\" />
   </ItemGroup>
