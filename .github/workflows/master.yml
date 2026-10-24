@@ -416,7 +416,7 @@ jobs:
   # macos-latest is an Apple silicon VM with a paravirtualized Metal device, so Core.Metal and the
   # Godot metal driver run on real Metal here with nothing to vendor. Both skip elsewhere.
   metal-macos:
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',metal-macos,')))
+    if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',metal-macos,')))
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -690,7 +690,7 @@ jobs:
         run: bash eng/run-ios-smoke-test.sh "$(find samples/Sample.MonoGame.iOS/bin/Release -name '*.app' -type d | head -n 1)" com.vchelaru.skiagamerendering.monogame.sample
 
   godot-linux:
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',godot-linux,')))
+    if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',godot-linux,')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
