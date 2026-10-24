@@ -35,6 +35,7 @@
     <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="SkiaRenderTarget2D.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaDirectCanvas.cs" Link="SkiaDirectCanvas.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaTarget.cs" Link="SkiaTarget.cs" />
+    <Compile Include="..\SkiaGameRendering\MonoGameBoundRenderTarget.cs" Link="MonoGameBoundRenderTarget.cs" />
   </ItemGroup>
 
   <ItemGroup>

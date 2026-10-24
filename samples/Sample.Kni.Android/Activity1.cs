@@ -4,10 +4,9 @@ using Android.OS;
 using Android.Util;
 using Android.Views;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+using Sample.Shared;
 using SkiaGameRendering;
 using SkiaGameRendering.Kni.Android;
-using Tests.Shared;
 
 namespace Sample
 {
@@ -30,7 +29,7 @@ namespace Sample
             base.OnCreate(bundle);
             var smoke = Intent?.GetBooleanExtra("smoke", false) ?? false;
             _game = new LoggingGame(this, smoke);
-            _game.ExtraSmokeCheck = CheckDirectCanvas;
+            _game.ExtraSmokeCheck = AndroidDirectCanvasCheck.Run;
             SetContentView((View)_game.Services.GetService(typeof(View)));
             _game.Run();
         }
@@ -44,35 +43,6 @@ namespace Sample
             _game?.ReleaseSkia();
             _game = null;
             base.OnDestroy();
-        }
-
-        /// <summary>
-        /// <see cref="SkiaDirectCanvas"/> layered between SpriteBatch draws, on the back buffer, a plain
-        /// render target and a multisampled one. The multisampled case is skipped on a device without
-        /// MSAA render targets (GLES 2), and the log says so.
-        /// </summary>
-        static bool CheckDirectCanvas(GraphicsDevice graphicsDevice)
-        {
-            var passed = true;
-            void Check(string what, string errors)
-            {
-                Log.Info("SkiaSample", $"Direct canvas, {what}: {(errors == "" ? "passed" : "FAILED: " + errors)}");
-                passed &= errors == "";
-            }
-
-            Check("back buffer", DirectDrawLayering.BackBuffer(graphicsDevice));
-            Check("render target", DirectDrawLayering.RenderTarget(graphicsDevice, 0));
-
-            int samples;
-            using (var probe = new RenderTarget2D(graphicsDevice, 1, 1, false, SurfaceFormat.Color, DepthFormat.None, 4,
-                       RenderTargetUsage.DiscardContents))
-                samples = probe.MultiSampleCount;
-            if (samples == 4)
-                Check("4x MSAA render target", DirectDrawLayering.RenderTarget(graphicsDevice, 4));
-            else
-                Log.Info("SkiaSample", $"Direct canvas, 4x MSAA render target: skipped, the device made {samples}x");
-
-            return passed;
         }
 
         /// <summary>Logs the Skia backend once, then everything Game1 does is unchanged.</summary>
