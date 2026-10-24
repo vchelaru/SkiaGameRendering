@@ -7,6 +7,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
     <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
+    <!-- The .NET 10 SDK's Emscripten 3.1.56 runs a wasm-opt that rejects the --enable-bulk-memory-opt flag the SDK passes
+         it (emcc fails at the link). -O0 skips wasm-opt; this sample is only the pixel-test host, so size does not matter. -->
+    <EmccLinkOptimizationFlag>-O0</EmccLinkOptimizationFlag>
   </PropertyGroup>
 
   <!-- A NuGet consumer gets this file from the package; the sample references the project, so it imports it. -->
