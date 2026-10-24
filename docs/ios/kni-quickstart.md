@@ -22,6 +22,10 @@ dotnet add package SkiaGameRendering.Kni.iOS
 
 ## Lifecycle
 
+- **KNI 4.3.9001's iOS platform never sets `PresentationParameters.DeviceWindowHandle`**, and creating the
+  device throws a `KeyNotFoundException` for any app. Set it in `PreparingDeviceSettings`, as the sample does:
+  `graphicsDeviceManager.PreparingDeviceSettings += (_, e) => e.GraphicsDeviceInformation.PresentationParameters.DeviceWindowHandle = Window.Handle;`
+
 - iOS apps are not meant to quit themselves. The sample only exits in its smoke test, with `Environment.Exit`.
 
 ## How it works
