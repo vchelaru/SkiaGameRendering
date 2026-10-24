@@ -47,9 +47,14 @@ function Read-Run([string] $path) {
     }
 }
 
-function Format-Fps([string] $fps) {
-    if ($fps -eq 'n/a') { return 'n/a' }
-    return $fps
+# A frame over 20 times the median (a shader compile, a garbage collection) drags the average down; flag the cell.
+function Format-Fps($row) {
+    if ($row.Fps -eq 'n/a') { return 'n/a' }
+    $median = 0.0; $p95 = 0.0
+    if ([double]::TryParse($row.MedianMs, [ref] $median) -and [double]::TryParse($row.P95Ms, [ref] $p95) -and $median -gt 0 -and $p95 -gt 20 * $median) {
+        return "$($row.Fps)*"
+    }
+    return $row.Fps
 }
 
 function Build-PageTables([object[]] $runs, [string] $page) {
@@ -80,7 +85,8 @@ function Build-PageTables([object[]] $runs, [string] $page) {
             $header = '| Scene | ' + (($columns | ForEach-Object { "$_ FPS" }) -join ' | ')
             $rule = '|---|' + (($columns | ForEach-Object { '---:' }) -join '|') + '|'
             $ratioColumns = @($skia | Where-Object { $_ -notmatch '\(' })
-            if ($engine.Count -gt 0) {
+            $showRatios = $engine.Count -gt 0 -and $ratioColumns.Count -gt 0
+            if ($showRatios) {
                 $header += ' | ' + (($ratioColumns | ForEach-Object { "$_ / $($engine[0])" }) -join ' | ')
                 $rule += (($ratioColumns | ForEach-Object { '---:' }) -join '|') + '|'
             }
@@ -90,10 +96,10 @@ function Build-PageTables([object[]] $runs, [string] $page) {
             foreach ($scene in $scenes) {
                 $cells = foreach ($column in $columns) {
                     $row = $rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq $column } | Select-Object -First 1
-                    if ($row) { Format-Fps $row.Fps } else { '' }
+                    if ($row) { Format-Fps $row } else { '' }
                 }
                 $line = "| $scene | " + ($cells -join ' | ')
-                if ($engine.Count -gt 0) {
+                if ($showRatios) {
                     $base = $rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq $engine[0] } | Select-Object -First 1
                     $ratios = foreach ($column in $ratioColumns) {
                         $row = $rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq $column } | Select-Object -First 1
@@ -105,7 +111,10 @@ function Build-PageTables([object[]] $runs, [string] $page) {
                 }
                 [void] $out.AppendLine($line + ' |')
             }
-            [void] $out.AppendLine()
+            if ($rows | Where-Object { (Format-Fps $_) -like '*[*]' }) {
+                [void] $out.AppendLine('\* A frame took more than 20 times the median (a shader compile or a garbage collection), which drags the average down. The median is in the table below.')
+                [void] $out.AppendLine()
+            }
 
             $notes = @($rows | Where-Object { $_.Note } | ForEach-Object { "- $($_.Scene), $($_.Renderer): $($_.Note)" } | Select-Object -Unique)
             if ($notes) {
@@ -131,6 +140,21 @@ function Build-PageTables([object[]] $runs, [string] $page) {
             [void] $out.AppendLine()
             [void] $out.AppendLine('</details>')
             [void] $out.AppendLine()
+
+            [void] $out.AppendLine('<details><summary>Median / 95th percentile frame time (ms)</summary>')
+            [void] $out.AppendLine()
+            [void] $out.AppendLine('| Scene | ' + (($columns | ForEach-Object { $_ }) -join ' | ') + ' |')
+            [void] $out.AppendLine('|---|' + (($columns | ForEach-Object { '---:' }) -join '|') + '|')
+            foreach ($scene in $scenes) {
+                $cells = foreach ($column in $columns) {
+                    $row = $rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq $column } | Select-Object -First 1
+                    if ($row -and $row.MedianMs) { "$($row.MedianMs) / $($row.P95Ms)" } else { '' }
+                }
+                [void] $out.AppendLine("| $scene | " + ($cells -join ' | ') + ' |')
+            }
+            [void] $out.AppendLine()
+            [void] $out.AppendLine('</details>')
+            [void] $out.AppendLine()
         }
     }
     if (-not $any) {
@@ -147,7 +171,7 @@ function Build-HardwareTable([object[]] $runs) {
     foreach ($hardware in ($runs | Select-Object -ExpandProperty Hardware -Unique | Sort-Object)) {
         $hardwareRuns = @($runs | Where-Object Hardware -eq $hardware)
         $first = $hardwareRuns[0].Meta
-        foreach ($key in 'CPU', 'GPU', 'OS', 'Power') {
+        foreach ($key in 'CPU', 'OS', 'Power') {
             $distinct = $hardwareRuns | ForEach-Object { $_.Meta[$key] } | Select-Object -Unique
             if (@($distinct).Count -gt 1) {
                 Write-Warning "Hardware $hardware has more than one $key across its result files: $($distinct -join ' / ')"
@@ -155,7 +179,9 @@ function Build-HardwareTable([object[]] $runs) {
         }
         $platforms = ($hardwareRuns | Select-Object -ExpandProperty Platform -Unique |
             Sort-Object { $i = $platformOrder.IndexOf($_); if ($i -lt 0) { 100 } else { $i } }) -join ', '
-        [void] $out.AppendLine("| $hardware | $($first['CPU']) | $($first['GPU']) | $($first['OS']) | $($first['Power']) | $platforms |")
+        # A browser names the GPU through ANGLE and a desktop app through the driver, so one machine can list two spellings.
+        $gpus = ($hardwareRuns | ForEach-Object { $_.Meta['GPU'] } | Select-Object -Unique) -join '; '
+        [void] $out.AppendLine("| $hardware | $($first['CPU']) | $gpus | $($first['OS']) | $($first['Power']) | $platforms |")
     }
     return $out.ToString().TrimEnd() + "`n"
 }
