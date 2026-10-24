@@ -56,7 +56,7 @@ namespace SkiaGameRendering
             }
         }
 
-        internal override void DrawDirect(SKPicture picture, int width, int height, bool flip)
+        internal override void DrawDirect(SKPicture picture, int width, int height, bool flip, IntPtr renderBuffer)
         {
             var canvas = _factory.BeginDirectDraw(width, height, out var pass);
             try

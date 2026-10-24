@@ -24,6 +24,13 @@ struct UnityGraphicsD3D12ResourceState
     D3D12_RESOURCE_STATES current;  // State after; Unity tracks the resource as being in it.
 };
 
+struct UnityD3D12PluginEventConfig
+{
+    int graphicsQueueAccess;     // kUnityD3D12GraphicsQueueAccess_Allow (1): the event runs on the submission thread, where the queue is safe to use.
+    unsigned int flags;          // kUnityD3D12EventConfigFlag_FlushCommandBuffers (2): Unity submits what it has recorded before the event.
+    bool ensureActiveRenderTextureIsBound;
+};
+
 // IUnityGraphicsD3D12v7's leading members, in header order.
 struct IUnityGraphicsD3D12v7
 {
@@ -36,12 +43,16 @@ struct IUnityGraphicsD3D12v7
     unsigned long long (__stdcall* ExecuteCommandList)(ID3D12GraphicsCommandList* commandList, int stateCount, UnityGraphicsD3D12ResourceState* states);
     void* SetPhysicalVideoMemoryControlValues;
     ID3D12CommandQueue* (__stdcall* GetCommandQueue)();
+    ID3D12Resource* (__stdcall* TextureFromRenderBuffer)(void* renderBuffer);
+    void* TextureFromNativeTexture;
+    void (__stdcall* ConfigureEvent)(int eventId, const UnityD3D12PluginEventConfig* config);
 };
 
 static const unsigned long long D3D12V7GuidHigh = 0x4624B0DA41B64AACULL;
 static const unsigned long long D3D12V7GuidLow = 0x915AABCB9BC3F0D3ULL;
 
 static IUnityGraphicsD3D12v7* s_d3d12;
+static const int DirectEventId = 0x534B03;
 static IDXGIAdapter1* s_adapter;
 static ID3D12CommandAllocator* s_allocator;
 static ID3D12GraphicsCommandList* s_emptyList;
@@ -56,6 +67,14 @@ static void Cleanup()
 extern "C" __declspec(dllexport) void __stdcall UnityPluginLoad(IUnityInterfaces* interfaces)
 {
     s_d3d12 = (IUnityGraphicsD3D12v7*)interfaces->GetInterfaceSplit(D3D12V7GuidHigh, D3D12V7GuidLow);
+    if (s_d3d12)
+    {
+        // SkiaDirectCanvas draws on top of what Unity has recorded so far, and submits straight to Unity's
+        // queue, so Unity must first submit its recorded command lists (flag 2) and run the event where
+        // the queue can be used (access 1), with the camera's target still bound (it is read afterward).
+        UnityD3D12PluginEventConfig config = { 1, 2, true };
+        s_d3d12->ConfigureEvent(DirectEventId, &config);
+    }
 }
 
 extern "C" __declspec(dllexport) void __stdcall UnityPluginUnload()
@@ -90,6 +109,32 @@ extern "C" __declspec(dllexport) IDXGIAdapter1* SkiaUnityD3D12_Adapter()
     factory->EnumAdapterByLuid(device->GetAdapterLuid(), IID_PPV_ARGS(&s_adapter));
     factory->Release();
     return s_adapter;
+}
+
+// Render thread only. The ID3D12Resource behind a UnityRenderBuffer, which the main thread reads from
+// Graphics.activeColorBuffer.GetNativeRenderBufferPtr() to name the target Unity is rendering to. Null if
+// Unity doesn't know the buffer. Owned by Unity; don't release it.
+extern "C" __declspec(dllexport) ID3D12Resource* SkiaUnityD3D12_ResourceFromRenderBuffer(void* renderBuffer)
+{
+    return s_d3d12 && renderBuffer ? s_d3d12->TextureFromRenderBuffer(renderBuffer) : nullptr;
+}
+
+// Writes the parts of the resource's descriptor that decide whether Skia can draw into it, since the
+// managed side has no COM access: isTexture2D, allowsRenderTarget, sampleCount, depthOrArraySize,
+// format, width, height.
+extern "C" __declspec(dllexport) bool SkiaUnityD3D12_DescribeResource(ID3D12Resource* resource, unsigned long long* out7)
+{
+    if (!resource)
+        return false;
+    D3D12_RESOURCE_DESC desc = resource->GetDesc();
+    out7[0] = desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D ? 1 : 0;
+    out7[1] = (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) ? 1 : 0;
+    out7[2] = desc.SampleDesc.Count;
+    out7[3] = desc.DepthOrArraySize;
+    out7[4] = desc.Format;
+    out7[5] = desc.Width;
+    out7[6] = desc.Height;
+    return true;
 }
 
 // Render thread only. Queues, on Unity's command queue, a barrier into RENDER_TARGET for the

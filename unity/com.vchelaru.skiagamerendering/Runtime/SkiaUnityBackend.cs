@@ -31,6 +31,9 @@ namespace SkiaGameRendering
         /// <summary>The plugin event id <see cref="SkiaUnityRenderThread"/> issues the prepare event with.</summary>
         internal const int PrepareEventId = VulkanUnityBackend.PrepareEventId;
 
+        /// <summary>The plugin event id a <see cref="SkiaDirectCanvas"/> draw is issued with.</summary>
+        internal static int DirectEventId => _graphicsDeviceType == GraphicsDeviceType.Direct3D12 ? D3D12UnityBackend.DirectEventId : DrawEventId;
+
         /// <summary>The plugin event id the draw event is issued with.</summary>
         internal static int DrawEventId => UsesPrepareEvent ? VulkanUnityBackend.DrawEventId : 0;
 
@@ -66,6 +69,7 @@ namespace SkiaGameRendering
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
             {
                 D3D12UnityBackend.LoadPlugin();
+                SupportsDirectCanvas = true;
                 return;
             }
             // The Metal plugin is only built for macOS so far; iOS needs it as a static library.
@@ -104,7 +108,7 @@ namespace SkiaGameRendering
         /// Plays <paramref name="picture"/> onto the render target Unity has bound right now, on top of what
         /// it holds, with the origin at the target's top left (flipped first when <paramref name="flip"/>).
         /// </summary>
-        internal virtual void DrawDirect(SKPicture picture, int width, int height, bool flip) =>
+        internal virtual void DrawDirect(SKPicture picture, int width, int height, bool flip, IntPtr renderBuffer) =>
             throw new NotSupportedException("SkiaDirectCanvas is not supported on this graphics API yet.");
 
         /// <summary>Clears the surface and draws the picture onto it the way Unity expects.</summary>
