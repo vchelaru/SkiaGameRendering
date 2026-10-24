@@ -5,7 +5,7 @@ namespace SkiaGameRendering
     /// <summary>
     /// Holds the shared backend (<see cref="VulkanGodotBackend"/>, <see cref="D3D12GodotBackend"/>,
     /// <see cref="MetalGodotBackend"/> or <see cref="GlCompatibilityGodotBackend"/>, chosen from
-    /// <see cref="RenderingServer.GetCurrentRenderingDriverName"/>). Godot analog of <c>SkiaRaylibRenderer</c>/<c>SkiaRenderer</c>.
+    /// <see cref="RenderingServer.GetCurrentRenderingDriverName"/>). Godot analog of the raylib and MonoGame <c>SkiaRenderer</c>.
     /// Most code never calls this directly - constructing a <see cref="SkiaRenderTarget2D"/>
     /// auto-initializes it. Call <see cref="Initialize"/> explicitly only to make initialization (and
     /// any failure, such as the project running on an unsupported driver) happen at a known point rather

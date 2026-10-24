@@ -8,7 +8,7 @@ interop the WindowsDX `SkiaAngleBackend` uses), but is a standalone class: Strid
 **not** go through `SkiaBackend`. `SkiaBackend` and the MonoGame `SkiaRenderer` are typed directly to MonoGame's
 `Texture2D`/`GraphicsDevice`, and Stride has neither type, so `src/SkiaGameRendering.Stride.D3D11/` is a
 hand-rolled sibling typed to Stride's own `Texture`/`GraphicsDevice` throughout - the same choice
-`SkiaRaylibRenderTarget2D` made for raylib. Its `SkiaRenderer` is Stride's own static class in the same namespace.
+the raylib package made. Its `SkiaRenderer` is Stride's own static class in the same namespace.
 
 Namespace: `SkiaGameRendering`
 
@@ -39,7 +39,7 @@ public sealed class SkiaRenderTarget2D : IDisposable
 
 | Type | Role |
 | --- | --- |
-| `SkiaRenderer` | Static holder for the shared `SkiaStrideContext`, mirroring `SkiaRenderer`/`SkiaRaylibRenderer`. `Initialize(GraphicsDevice)` is optional - call it explicitly only to fail fast on ANGLE/EGL setup instead of lazily on first render target. `Dispose()` releases it. |
+| `SkiaRenderer` | Static holder for the shared `SkiaStrideContext`, mirroring the MonoGame and raylib `SkiaRenderer`s. `Initialize(GraphicsDevice)` is optional - call it explicitly only to fail fast on ANGLE/EGL setup instead of lazily on first render target. `Dispose()` releases it. |
 | `SkiaSceneRenderer` | A `SceneRendererBase` you add to Stride's `GraphicsCompositor` (e.g. via the Stride Community Toolkit's `Game.AddSceneRenderer`). Stride drives rendering through the compositor rather than a user-owned `Draw()` call, so this is the hook that runs `Begin`/`End` every frame - set its `Canvas` (or `DirectCanvas`) and subscribe to its `SkiaDraw` event. |
 | `SkiaDirectCanvas` | Draws straight into the target bound when `Begin(GraphicsContext)` is called, with no texture and no composite; `End()` hands it back. See [SkiaDirectCanvas](SkiaDirectCanvas.md). |
 

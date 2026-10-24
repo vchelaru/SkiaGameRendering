@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using Raylib_cs;
-using SkiaGameRendering.Raylib.OGL;
+using SkiaGameRendering;
 using Tests.Shared;
 using Xunit;
 using RaylibApi = Raylib_cs.Raylib;
@@ -8,7 +8,7 @@ using RaylibApi = Raylib_cs.Raylib;
 namespace Tests.Raylib.OGL;
 
 /// <summary>
-/// Composites <see cref="GoldenScene"/> with <c>SkiaRaylibRenderTarget2D.End()</c> (the real
+/// Composites <see cref="GoldenScene"/> with <c>SkiaRenderTarget2D.End()</c> (the real
 /// <c>DrawTexture</c> blit a sample uses) and reads the window's framebuffer back, so a vertical flip
 /// in the on-screen result fails here. <c>RaylibGoldenImageTests</c> reads the texture instead, which
 /// cannot see that. Runs on Windows (Mesa llvmpipe, see <c>MesaVendor.props</c>) and Linux (Xvfb).
@@ -25,10 +25,10 @@ public sealed class RaylibOnScreenOrientationTests
         RaylibApi.InitWindow(GoldenScene.Width, GoldenScene.Height, "Tests.Raylib.OGL");
         try
         {
-            SkiaRaylibRenderer.Initialize();
+            SkiaRenderer.Initialize();
             try
             {
-                using var canvas = new SkiaRaylibRenderTarget2D(GoldenScene.Width, GoldenScene.Height);
+                using var canvas = new SkiaRenderTarget2D(GoldenScene.Width, GoldenScene.Height);
 
                 RaylibApi.BeginDrawing();
                 RaylibApi.ClearBackground(Color.Black);
@@ -58,7 +58,55 @@ public sealed class RaylibOnScreenOrientationTests
             }
             finally
             {
-                SkiaRaylibRenderer.Dispose();
+                SkiaRenderer.Dispose();
+            }
+        }
+        finally
+        {
+            RaylibApi.CloseWindow();
+        }
+    }
+
+    /// <summary>
+    /// The same scene through <see cref="SkiaDirectCanvas"/> (what Sample.Raylib.OGL draws when D is
+    /// pressed), read back from the window's framebuffer: a flip or a wrong color fails the scene's probes.
+    /// </summary>
+    [Fact]
+    public unsafe void Scene_DrawnWithDirectCanvas_IsNotFlipped()
+    {
+        VendoredOpenGl.PreloadIfPresent();
+        RaylibApi.SetConfigFlags(ConfigFlags.HiddenWindow);
+        RaylibApi.InitWindow(GoldenScene.Width, GoldenScene.Height, "Tests.Raylib.OGL");
+        try
+        {
+            SkiaRenderer.Initialize();
+            try
+            {
+                using var direct = new SkiaDirectCanvas();
+
+                RaylibApi.BeginDrawing();
+                RaylibApi.ClearBackground(Color.Black);
+                direct.Begin();
+                GoldenScene.Draw(direct.Canvas);
+                direct.End();
+
+                Rlgl.DrawRenderBatchActive();
+                var image = RaylibApi.LoadImageFromScreen();
+                RaylibApi.EndDrawing();
+                try
+                {
+                    var rgba = new byte[image.Width * image.Height * 4];
+                    Marshal.Copy((IntPtr)image.Data, rgba, 0, rgba.Length);
+                    GoldenImage.AssertSceneOrientation(rgba);
+                }
+                finally
+                {
+                    RaylibApi.UnloadImage(image);
+                }
+            }
+            finally
+            {
+                SkiaRenderer.Dispose();
             }
         }
         finally

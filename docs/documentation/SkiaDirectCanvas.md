@@ -26,6 +26,25 @@ is false on every other platform, where the constructor throws `NotSupportedExce
 On KNI WebGL, Skia and KNI drive the one WebGL context, since WebGL cannot share objects between
 contexts, and each pass resets KNI's cached GL state afterward; see the [WebGL quick start](../webgl/quickstart.md).
 
+raylib on Windows and Linux (package `SkiaGameRendering.Raylib.OGL`) has a `SkiaDirectCanvas` of the same name, constructed with no arguments after
+`Raylib.InitWindow`. Call `Begin`/`End` between `BeginDrawing` and `EndDrawing`, where it draws into the back
+buffer, or inside `BeginTextureMode`, where it draws into that `RenderTexture2D` the right way up for raylib's
+own drawing. `Begin` submits raylib's batched draws first. A render texture's Skia framebuffer is built for each
+pass, since raylib gives no notice when one is unloaded; the back buffer's is reused. Not on macOS
+(`SkiaRenderer.SupportsDirectCanvas` is false there). Dispose it before `SkiaRenderer.Dispose`.
+
+```cs
+var skia = new SkiaDirectCanvas();
+
+Raylib.BeginDrawing();
+Raylib.ClearBackground(Color.Black);
+skia.Begin();
+skia.Canvas.DrawCircle(100, 100, 50, paint);
+skia.End();
+Raylib.DrawText("on top", 10, 10, 20, Color.White);
+Raylib.EndDrawing();
+```
+
 Stride on Direct3D 11 has the same thing as `SkiaDirectCanvas`. `Begin` takes the
 `GraphicsContext`, where Stride keeps its current target, and `End` takes nothing; or set
 `SkiaSceneRenderer.DirectCanvas` (see the [Stride quick start](../stride/quickstart.md)). Inside the compositor that target

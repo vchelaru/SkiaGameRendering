@@ -192,6 +192,22 @@ public sealed class GlSkiaSurfaceFactoryTests
         Assert.Equal(0, _loader.BoundFramebuffer);
     }
 
+    /// <summary>A direct-draw FBO goes while the engine keeps drawing with its color attachment.</summary>
+    [Fact]
+    public void DisposeRenderState_KeepColor_DiscardsOnlyDepthAndStencil()
+    {
+        var state = new GlFramebufferState { FramebufferId = GeneratedFramebufferId, RenderbufferId = GeneratedRenderbufferId };
+
+        GlSkiaSurfaceFactory.DisposeRenderState(_gl, state, keepColor: true);
+
+        Assert.Equal(Call("glInvalidateFramebuffer", (int)FramebufferTarget.Framebuffer, 2,
+                (int)FramebufferAttachment.DepthAttachment,
+                (int)FramebufferAttachment.StencilAttachment),
+            Assert.Single(_loader.Calls, call => call.StartsWith("glInvalidateFramebuffer", StringComparison.Ordinal)));
+        Assert.Contains(Call("glDeleteFramebuffers", 1, GeneratedFramebufferId), _loader.Calls);
+        Assert.Contains(Call("glDeleteRenderbuffers", 1, GeneratedRenderbufferId), _loader.Calls);
+    }
+
     /// <summary>
     /// The whole round trip: everything created is deleted, and nothing is deleted twice.
     /// </summary>

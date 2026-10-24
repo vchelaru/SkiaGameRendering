@@ -231,17 +231,24 @@ namespace SkiaGameRendering.Core.OGL
             gl.BindTexture(0x0DE1, previous);
         }
 
-        /// <summary>Deletes the FBO and renderbuffer. Call it on Skia's context, through <see cref="SkiaGlTeardown.Run"/>.</summary>
-        public static void DisposeRenderState(GlFunctions gl, GlFramebufferState state)
-        {            if (state.FramebufferId > 0)
+        /// <summary>
+        /// Deletes the FBO and renderbuffer. Call it on Skia's context, through <see cref="SkiaGlTeardown.Run"/>.
+        /// The color attachment's contents are discarded too unless <paramref name="keepColor"/> is set, which a
+        /// caller needs when the engine keeps using that texture after Skia's FBO is gone.
+        /// </summary>
+        public static void DisposeRenderState(GlFunctions gl, GlFramebufferState state, bool keepColor = false)
+        {
+            if (state.FramebufferId > 0)
             {
                 gl.BindFramebuffer(FramebufferTarget.Framebuffer, state.FramebufferId);
-                gl.InvalidateFramebuffer?.Invoke(FramebufferTarget.Framebuffer, 3, new[]
-                {
-                    FramebufferAttachment.ColorAttachment0,
-                    FramebufferAttachment.DepthAttachment,
-                    FramebufferAttachment.StencilAttachment,
-                });
+                gl.InvalidateFramebuffer?.Invoke(FramebufferTarget.Framebuffer, keepColor ? 2 : 3, keepColor
+                    ? new[] { FramebufferAttachment.DepthAttachment, FramebufferAttachment.StencilAttachment }
+                    : new[]
+                    {
+                        FramebufferAttachment.ColorAttachment0,
+                        FramebufferAttachment.DepthAttachment,
+                        FramebufferAttachment.StencilAttachment,
+                    });
                 gl.FramebufferTexture2D(FramebufferTarget.Framebuffer,
                     FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, 0, 0);
                 gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,

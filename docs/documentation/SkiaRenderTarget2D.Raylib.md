@@ -1,29 +1,28 @@
-# SkiaRaylibRenderTarget2D
+# SkiaRenderTarget2D
 
 ## Definition
 
-`SkiaRaylibRenderTarget2D` is a GPU surface that SkiaSharp renders directly into. It mirrors
-`SkiaRenderTarget2D`'s Begin/Canvas/End shape — `End()` composites the whole surface itself via
+`SkiaRenderTarget2D` is a GPU surface that SkiaSharp renders directly into. It has the MonoGame type's Begin/Canvas/End shape — `End()` composites the whole surface itself via
 `Raylib.DrawTexture` — but is a standalone class: raylib support does **not** go through
-`SkiaBackend`/`SkiaRenderer`. Those
-types are typed directly to MonoGame's `Texture2D`, and raylib is the first non-MonoGame engine
+`SkiaBackend`. That
+type is typed directly to MonoGame's `Texture2D`, and raylib is the first non-MonoGame engine
 this library supports, so `src/SkiaGameRendering.Raylib.OGL/` is a hand-rolled sibling typed to
 raylib's own `Texture2D` throughout, reusing the same engine-agnostic GL/Skia FBO interop
-(`Core.OGL`) that `SkiaGlBackend` use.
+(`Core.OGL`) that `SkiaGlBackend` uses.
 
-Namespace: `SkiaGameRendering.Raylib.OGL`
+Namespace: `SkiaGameRendering`
 
 Assembly/package: `SkiaGameRendering.Raylib.OGL`
 
 ```csharp
-public sealed class SkiaRaylibRenderTarget2D : IDisposable
+public sealed class SkiaRenderTarget2D : IDisposable
 ```
 
 ## Constructor
 
 | Signature | Description |
 | --- | --- |
-| `SkiaRaylibRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaRaylibRenderer` on first use and allocates a fixed-size target. |
+| `SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size target. |
 
 ## Members
 
@@ -40,20 +39,20 @@ public sealed class SkiaRaylibRenderTarget2D : IDisposable
 
 | Type | Role |
 | --- | --- |
-| `SkiaRaylibRenderer` | Static holder for the shared `SkiaRaylibContext`, mirroring `SkiaRenderer`. `Initialize()` is optional — call it explicitly (after `Raylib.InitWindow`) only to fail fast on context creation instead of lazily on first render target. `Dispose()` releases it. |
+| `SkiaRenderer` | Static holder for the shared `SkiaRaylibContext`, a static class in the same namespace as the MonoGame/KNI `SkiaRenderer`. `Initialize()` is optional — call it explicitly (after `Raylib.InitWindow`) only to fail fast on context creation instead of lazily on first render target. `Dispose()` releases it. |
 | `SkiaRaylibContext` | The shared second GL context. rlgl (raylib's GL layer) and Skia both issue raw GL calls; sharing raylib's single context between them corrupts rlgl's own rendering, so this creates a second context sharing raylib's GL object namespace (the same trick `SkiaGlBackend` uses via SDL). raylib statically links GLFW and doesn't export context-creation entry points, so this goes through the OS's raw windowing API directly: `Core.OGL`'s `WglSharedContext` (raw Win32/WGL) on Windows and `GlxSharedContext` (raw X11/GLX) on Linux, picked via `OperatingSystem.IsWindows()`/`IsLinux()`. The Godot adapter's Compatibility backend uses the same two classes. |
 
 ## Example
 
 ```csharp
 using Raylib_cs;
-using SkiaGameRendering.Raylib.OGL;
+using SkiaGameRendering;
 using SkiaSharp;
 
 Raylib.InitWindow(800, 600, "raylib + Skia");
-SkiaRaylibRenderer.Initialize();
+SkiaRenderer.Initialize();
 
-var canvas = new SkiaRaylibRenderTarget2D(800, 600);
+var canvas = new SkiaRenderTarget2D(800, 600);
 using var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
 
 while (!Raylib.WindowShouldClose())
@@ -69,7 +68,7 @@ while (!Raylib.WindowShouldClose())
 }
 
 canvas.Dispose();
-SkiaRaylibRenderer.Dispose();
+SkiaRenderer.Dispose();
 Raylib.CloseWindow();
 ```
 
@@ -81,8 +80,8 @@ Raylib.CloseWindow();
   draw `Texture` yourself.
 - Platform support: Windows and Linux (Linux verified under WSLg — X11/GLX, Mesa llvmpipe). macOS
   is not implemented.
-- raylib only supports a single window, so `SkiaRaylibRenderer` holds one global context rather
-  than keying off a window handle the way `SkiaRenderer` keys off a MonoGame `GraphicsDevice`.
+- raylib only supports a single window, so `SkiaRenderer` holds one global context rather
+  than keying off a window handle the way the MonoGame `SkiaRenderer` keys off a `GraphicsDevice`.
   `SkiaRaylibContext.Initialize` must run after `Raylib.InitWindow` — it reads the window handle
   via `Raylib.GetWindowHandle()`, which is only valid once the window exists.
 - The Skia surface is created with `GRSurfaceOrigin.BottomLeft` (the same
@@ -92,6 +91,6 @@ Raylib.CloseWindow();
 - On Linux, `SkiaSharp.NativeAssets.Linux` must be referenced (the main `SkiaSharp` package only
   carries Windows/macOS native assets implicitly); without it `GRContext.CreateGl()` throws
   `DllNotFoundException` for `libSkiaSharp.so` at runtime even though the build succeeds.
-- Dispose order matters: dispose your `SkiaRaylibRenderTarget2D` instances before calling
-  `SkiaRaylibRenderer.Dispose()`, which tears down the GL context they depend on.
+- Dispose order matters: dispose your `SkiaRenderTarget2D` instances before calling
+  `SkiaRenderer.Dispose()`, which tears down the GL context they depend on.
 - See also the [raylib quick start](../raylib/quickstart.md).

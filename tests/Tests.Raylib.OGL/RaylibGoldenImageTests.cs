@@ -1,12 +1,12 @@
 using System.Runtime.InteropServices;
 using Raylib_cs;
-using SkiaGameRendering.Raylib.OGL;
+using SkiaGameRendering;
 using Tests.Shared;
 using Xunit;
 using Xunit.Abstractions;
 // This test project's own namespace (Tests.Raylib.OGL) has a "Raylib" segment that shadows
 // Raylib_cs.Raylib (the static class) in unqualified lookups - the same reason
-// SkiaRaylibRenderTarget2D.cs aliases it as RaylibApi. Follow that convention here.
+// SkiaRenderTarget2D.cs aliases it as RaylibApi. Follow that convention here.
 using RaylibApi = Raylib_cs.Raylib;
 
 namespace Tests.Raylib.OGL;
@@ -31,7 +31,7 @@ public sealed class RaylibGoldenImageTests
     public RaylibGoldenImageTests(ITestOutputHelper output) => _output = output;
 
     [LinuxOnlyFact]
-    public void Scene_DrawnThroughSkiaRaylibRenderTarget2D_MatchesGolden()
+    public void Scene_DrawnThroughSkiaRenderTarget2D_MatchesGolden()
     {
         // Not just an assumption baked into the Skip gate above: this proves the run that's about to
         // happen actually exercises SkiaRaylibContext.CreatePlatformGlContext's Glx branch, since that
@@ -46,7 +46,7 @@ public sealed class RaylibGoldenImageTests
         RaylibApi.InitWindow(GoldenScene.Width, GoldenScene.Height, "Tests.Raylib.OGL");
         try
         {
-            SkiaRaylibRenderer.Initialize();
+            SkiaRenderer.Initialize();
             try
             {
                 var glProfile = ReadGlProfile();
@@ -64,7 +64,7 @@ public sealed class RaylibGoldenImageTests
             }
             finally
             {
-                SkiaRaylibRenderer.Dispose();
+                SkiaRenderer.Dispose();
             }
         }
         finally
@@ -75,9 +75,9 @@ public sealed class RaylibGoldenImageTests
 
     static byte[] RenderSceneAndReadBack()
     {
-        using var canvas = new SkiaRaylibRenderTarget2D(GoldenScene.Width, GoldenScene.Height);
+        using var canvas = new SkiaRenderTarget2D(GoldenScene.Width, GoldenScene.Height);
 
-        // EndWithoutDrawing, not End: this test reads SkiaRaylibRenderTarget2D.Texture directly, so a
+        // EndWithoutDrawing, not End: this test reads SkiaRenderTarget2D.Texture directly, so a
         // failure here is in the Skia-to-raylib-texture path and not in Raylib.DrawTexture's own
         // composite blit.
         canvas.Begin();
