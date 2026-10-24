@@ -16,7 +16,9 @@ the release.
 
 **New public API takes the shape of the existing API it sits beside.** Drawing types use
 `SkiaRenderTarget2D`'s `Begin()`/`Canvas`/`End()`, like `SpriteBatch`; don't add callback-style
-variants.
+variants. Public types keep the same names in every package (`SkiaRenderer`, `SkiaRenderTarget2D`,
+`SkiaDirectCanvas`), with no engine or backend in the name. A game references one package, so the
+names can't collide, and one name keeps the docs shared.
 
 This repo began as a fork of [mfigueirido/SkiaMonoGameRendering](https://github.com/mfigueirido/SkiaMonoGameRendering),
 and has since diverged. It exists to close the vector-rendering gap between SkiaGum and
