@@ -42,7 +42,7 @@ internal static partial class FnaWebGlInterop
     private const string Script = """
 (() => {
   const g = globalThis.skiaFnaWebGl = globalThis.skiaFnaWebGl || {};
-  let saved = null, glErrors = 0, passes = 0;
+  let saved = null, glErrors = 0, probeErrors = 0, passes = 0;
   const errorLog = [];
   const glOf = id => {
     const canvas = document.getElementById(id);
@@ -63,21 +63,21 @@ internal static partial class FnaWebGlInterop
     const gl = glOf(id);
     if (gl.isContextLost()) return [1, 0, 0, 0, 0, 0];
     passes++;
-    if (!gl.__traced) { // TEMP diagnostic: name the call that queues the error
-      gl.__traced = true;
-      for (const name of Object.getOwnPropertyNames(WebGL2RenderingContext.prototype)) {
-        const d = Object.getOwnPropertyDescriptor(WebGL2RenderingContext.prototype, name);
-        const f = d && d.value;
-        if (typeof f !== 'function' || name === 'getError' || name === 'isContextLost') continue;
-        gl[name] = function (...args) {
-          const r = f.apply(this, args);
-          if (saved) { const e = f === undefined ? 0 : WebGL2RenderingContext.prototype.getError.call(this);
-            if (e !== 0) { glErrors++; errorLog.push([passes, 'call:' + name, e, args.map(x => (x && typeof x === 'object' && !ArrayBuffer.isView(x)) ? x.constructor.name : (ArrayBuffer.isView(x) ? 'view' + x.length : x))]); } }
-          return r;
-        };
-      }
+    if (!gl.__skiaProbe) {
+      // Skia probes IMPLEMENTATION_COLOR_READ_FORMAT/TYPE (0x8B9B/0x8B9A) the first time it needs a read format. Firefox
+      // answers with INVALID_OPERATION there where Chromium and WebKit do not, and Skia falls back on its own table, so
+      // the error is expected. Count anything queued before the probe, then set the probe's own error aside, so the
+      // error count still measures every other error.
+      gl.__skiaProbe = true;
+      const getParameter = gl.getParameter;
+      gl.getParameter = function (p) {
+        if ((p !== 0x8B9B && p !== 0x8B9A) || !saved) return getParameter.call(this, p);
+        for (let i = 0, e; i < 8 && (e = this.getError()) !== 0; i++) { glErrors++; errorLog.push([passes, 'before-probe', e]); }
+        const r = getParameter.call(this, p);
+        for (let i = 0; i < 8 && this.getError() !== 0; i++) probeErrors++;
+        return r;
+      };
     }
-    const pre = gl.getError(); if (pre !== 0) errorLog.push([passes, 'pre', pre]);
     const s = saved = { gl, caps: {}, p: {}, attribs: [], units: [] };
     for (const c of caps(gl)) s.caps[c] = gl.isEnabled(c);
     for (const p of params(gl)) s.p[p] = copy(gl.getParameter(p));
@@ -116,7 +116,6 @@ internal static partial class FnaWebGlInterop
       s.units.push([gl.getParameter(gl.TEXTURE_BINDING_2D), gl.getParameter(gl.SAMPLER_BINDING)]);
     }
     gl.activeTexture(s.active);
-    const post = gl.getError(); if (post !== 0) errorLog.push([passes, 'save', post]);
     return [0, s.draw ? s.draw.name | 0 : 0, gl.getParameter(gl.SAMPLES) | 0, gl.getParameter(gl.STENCIL_BITS) | 0,
       gl.drawingBufferWidth, gl.drawingBufferHeight];
   };
@@ -125,21 +124,17 @@ internal static partial class FnaWebGlInterop
     const s = saved; saved = null;
     if (!s || s.gl.isContextLost()) return;
     const gl = s.gl;
-    const chk = n => { for (let i = 0, e; i < 8 && (e = gl.getError()) !== 0; i++) { glErrors++; errorLog.push([passes, n, e]); } };
-    chk('skia');
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, s.draw);
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, s.read);
     gl.bindRenderbuffer(gl.RENDERBUFFER, s.renderbuffer);
     gl.bindVertexArray(s.vao);
     gl.useProgram(s.program);
-    chk('fbo-vao-prog');
     s.units.forEach(([tex, sampler], u) => {
       gl.activeTexture(gl.TEXTURE0 + u);
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.bindSampler(u, sampler);
     });
     gl.activeTexture(s.active);
-    chk('units');
     s.attribs.forEach((a, i) => {
       if (a.buffer) {
         gl.bindBuffer(gl.ARRAY_BUFFER, a.buffer);
@@ -149,12 +144,10 @@ internal static partial class FnaWebGlInterop
       gl.vertexAttribDivisor(i, a.divisor);
       if (a.enabled) gl.enableVertexAttribArray(i); else gl.disableVertexAttribArray(i);
     });
-    chk('attribs');
     gl.bindBuffer(gl.ARRAY_BUFFER, s.array);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.element);
     gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, s.unpack);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, s.pack);
-    chk('buffers');
     for (const c of caps(gl)) { if (s.caps[c]) gl.enable(c); else gl.disable(c); }
     const p = s.p;
     gl.blendFuncSeparate(p[gl.BLEND_SRC_RGB], p[gl.BLEND_DST_RGB], p[gl.BLEND_SRC_ALPHA], p[gl.BLEND_DST_ALPHA]);
@@ -181,15 +174,14 @@ internal static partial class FnaWebGlInterop
     gl.stencilFuncSeparate(gl.BACK, st[7], st[8], st[9]);
     gl.stencilOpSeparate(gl.BACK, st[10], st[11], st[12]);
     gl.stencilMaskSeparate(gl.BACK, st[13]);
-    chk('state');
     for (const [pname, value] of s.pixel) gl.pixelStorei(pname, value);
     // Errors Skia left queued would be blamed on FNA3D's next call.
-    chk('pixel');
+    for (let i = 0, e; i < 8 && (e = gl.getError()) !== 0; i++) { glErrors++; errorLog.push([passes, 'end', e]); }
   };
 
   g.boundTexture = id => { const t = glOf(id).getParameter(0x8069); return t ? t.name | 0 : 0; };
   g.errorCount = () => glErrors;
-  g.errorLog = () => JSON.stringify(errorLog);
+  g.errorLog = () => JSON.stringify([probeErrors, errorLog]);
 })();
 """;
 }
