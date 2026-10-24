@@ -58,7 +58,8 @@ public sealed class StrideVulkanDirectDrawTests : IDisposable
             new WindowHandle(AppContextType.DesktopWinForms, null!, window.Handle), format);
         using var presenter = new SwapChainGraphicsPresenter(_graphicsDevice, parameters);
         _graphicsDevice.Presenter = presenter;
-        Assert.Equal(format, presenter.BackBuffer.ViewFormat);
+        // The driver picks the swap chain format from what it supports (lavapipe: BGRA), so only the encoding is pinned.
+        Assert.Equal(colorSpace == ColorSpace.Linear, presenter.BackBuffer.ViewFormat.ToString().EndsWith("_SRgb"));
         try
         {
             var errors = DrawAndCheck(presenter.BackBuffer);

@@ -114,71 +114,31 @@ public sealed class StrideVulkanLayoutValidationTests
                 device.ExecuteCommandList(readback.Close());
 
                 Assert.Equal(new Color(0, 128, 0, 255), pixel);
-            }
-            finally
-            {
-                // The context is static and pinned to this device; see StrideVulkanCompositeColorTests.
-                canvas.Dispose();
-                SkiaRenderer.Dispose();
-            }
-        }
-        finally
-        {
-            GlobalLogger.GlobalMessageLogged -= OnMessage;
-        }
 
-        Assert.True(layerEnabled, "Stride did not report enabling the validation layer, so nothing was validated.");
-        Assert.True(errors.Count == 0, "Vulkan validation messages:\n" + string.Join("\n", errors));
-    }
-
-    /// <summary>The same check for <see cref="SkiaDirectCanvas"/>, which hands the bound target to Skia and back.</summary>
-    [VulkanValidationLayerFact]
-    public void DirectDrawCycle_ReportsNoValidationErrors()
-    {
-        var errors = new List<string>();
-        var layerEnabled = false;
-        void OnMessage(ILogMessage message)
-        {
-            if (message.Text.Contains("Vulkan validation layer enabled"))
-                layerEnabled = true;
-            if (message.Type >= LogMessageType.Warning && message.Text.StartsWith("[Vulkan]"))
-                lock (errors) errors.Add(message.Text);
-        }
-
-        GlobalLogger.GlobalMessageLogged += OnMessage;
-        try
-        {
-            using var device = GraphicsDevice.New(GraphicsAdapterFactory.DefaultAdapter, DeviceCreationFlags.Debug);
-            device.ColorSpace = ColorSpace.Gamma;
-
-            using var compositeTarget = Texture.New2D(
-                device, 8, 8, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
-            using var direct = new SkiaDirectCanvas(device);
-
-            try
-            {
+                // Then the same cycle through SkiaDirectCanvas, which hands the bound target to Skia and back.
+                // In this test because the layer-enabled message is logged once per process.
+                using var direct = new SkiaDirectCanvas(device);
                 foreach (var color in new[] { SKColors.Red, SKColors.Blue, SKColors.Green })
                 {
                     using var commandList = CommandList.New(device);
                     commandList.SetRenderTargetAndViewport(null, compositeTarget);
                     commandList.Clear(compositeTarget, new Color4(0f, 0f, 0f, 0f));
-                    var graphicsContext = new GraphicsContext(device, commandList: commandList);
-                    direct.Begin(graphicsContext);
+                    direct.Begin(new GraphicsContext(device, commandList: commandList));
                     direct.Canvas.Clear(color);
                     direct.End();
                     device.ExecuteCommandList(commandList.Close());
                 }
 
-                using var readback = CommandList.New(device);
-                var pixel = compositeTarget.GetData<Color>(readback)[0];
-                device.ExecuteCommandList(readback.Close());
+                using var directReadback = CommandList.New(device);
+                var directPixel = compositeTarget.GetData<Color>(directReadback)[0];
+                device.ExecuteCommandList(directReadback.Close());
 
-                Assert.Equal(new Color(0, 128, 0, 255), pixel);
+                Assert.Equal(new Color(0, 128, 0, 255), directPixel);
             }
             finally
             {
                 // The context is static and pinned to this device; see StrideVulkanCompositeColorTests.
-                direct.Dispose();
+                canvas.Dispose();
                 SkiaRenderer.Dispose();
             }
         }
