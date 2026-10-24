@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using Foundation;
 using Microsoft.Xna.Framework.Graphics;
 using Sample.Shared;
@@ -31,11 +30,6 @@ namespace Sample
     /// <summary>Game1 plus the iOS smoke test's log file, exit, and back-buffer rebuild check.</summary>
     sealed class IosGame : Game1
     {
-        private const int GL_FRAMEBUFFER_BINDING = 0x8CA6;
-
-        [DllImport("/System/Library/Frameworks/OpenGLES.framework/OpenGLES")]
-        private static extern void glGetIntegerv(int pname, out int data);
-
         readonly bool _smokeTest;
         bool _logged;
 
@@ -58,19 +52,16 @@ namespace Sample
 
         /// <summary>
         /// MonoGame iOS deletes its back buffer's FBO and renderbuffer and makes new ones on every view
-        /// layout, usually under the same GL names. SkiaDirectCanvas must draw into the new renderbuffer.
+        /// layout. The rebuild must succeed after SkiaDirectCanvas drew to the old renderbuffer, and
+        /// SkiaDirectCanvas must then draw into the new one.
         /// </summary>
         bool BackBufferAfterRebuild(GraphicsDevice graphicsDevice)
         {
-            graphicsDevice.SetRenderTarget(null);
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, out var before);
             var controller = (UIViewController)Services.GetService(typeof(UIViewController));
             controller.View!.LayoutSubviews();
-            graphicsDevice.SetRenderTarget(null);
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, out var after);
 
             var errors = DirectDrawLayering.BackBuffer(graphicsDevice);
-            Console.WriteLine($"Direct canvas, back buffer after a rebuild (FBO {before} -> {after}): " +
+            Console.WriteLine($"Direct canvas, back buffer after a rebuild: " +
                 (errors == "" ? "passed" : "FAILED: " + errors));
             return errors == "";
         }

@@ -38,7 +38,7 @@ reflection.
 MonoGame iOS has no default framebuffer: its back buffer is an FBO around a renderbuffer backed by
 the view's `CAEAGLLayer`. `SkiaDirectCanvas` on the back buffer attaches that renderbuffer to an FBO
 of Skia's. MonoGame deletes and recreates the renderbuffer on every view layout (rotation, for
-example), usually under the same GL name. Skia's FBO holds the renderbuffer only for the length of a pass: one that kept the old renderbuffer alive would stop the new one from taking over the layer, and MonoGame's rebuild would fail.
+example), and GL can hand the deleted name to the new one. Skia's FBO holds the renderbuffer only for the length of a pass: one that kept the old renderbuffer alive would stop the new one from taking over the layer, and MonoGame's rebuild would fail.
 
 `SkiaDirectCanvas` works on the back buffer and on a plain render target. **A multisampled render
 target does not work on MonoGame iOS at all:** unbinding one throws a `NullReferenceException` inside
