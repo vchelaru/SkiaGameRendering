@@ -1,6 +1,6 @@
 name: build
 
-# PRs and master pushes run desktop-and-core (Release), metal-macos, godot-linux and raylib-linux. Everything else runs nightly (09:00 UTC) or by hand:
+# PRs and master pushes run desktop-and-core (Release), desktop-builds (Release), metal-macos, godot-linux and raylib-linux. Everything else runs nightly (09:00 UTC) or by hand:
 #   gh workflow run master.yml --ref <branch>                       # everything
 #   gh workflow run master.yml --ref <branch> -f only=ios-simulator # chosen jobs, comma-separated job ids, no spaces
 # `only` takes job ids (desktop-and-core, raylib-linux, metal-macos, android, ...); `webgl` selects the WebGL shards and
@@ -19,10 +19,10 @@ on:
         default: ''
         type: string
 
-# A new push to a PR cancels that PR's superseded run. Each master push gets its own group (github.sha),
-# so push runs are never cancelled and never queue behind each other.
+# A new push to a PR cancels that PR's superseded run. Every other run (push, nightly, dispatch) gets its own
+# group (run_id), so those are never cancelled and never queue behind each other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -160,6 +160,27 @@ jobs:
           name: golden-image-diffs-${{ matrix.configuration }}
           path: tests/**/golden-failures/*.png
           if-no-files-found: ignore
+
+  # Build-only checks, split from the tests above so the two run in parallel and a PR waits for the
+  # slower of them instead of their sum. Needs no Mesa, Vulkan layer or Godot: it never runs a GPU.
+  desktop-builds:
+    if: github.event_name != 'workflow_dispatch' || inputs.only == '' || contains(format(',{0},', inputs.only), ',desktop-and-core,') || contains(format(',{0},', inputs.only), ',desktop-builds,')
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        configuration: ${{ fromJSON((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '["Debug","Release"]' || '["Release"]') }}
+    steps:
+      - uses: actions/checkout@v4
+      # See desktop-and-core for why the FNA submodule is initialized this way.
+      - name: Check out the FNA submodule
+        run: |
+          git submodule update --init external/FNA
+          git -C external/FNA submodule update --init lib/SDL2-CS lib/SDL3-CS lib/FAudio lib/Theorafile lib/dav1dfile
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
       # Every src/ project builds here so warnings-as-errors (Directory.Build.props) has something
       # to fire on. Each package's sample builds too, since a sample is the only thing that compiles
       # against the package's public API the way a consumer does. The two KNI WebGL samples are the
@@ -736,7 +757,7 @@ jobs:
   # Opens an issue when a nightly run fails, so a failure is never lost in the Actions tab.
   nightly-report:
     if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
-    needs: [desktop-and-core, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux]
+    needs: [desktop-and-core, desktop-builds, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux]
     runs-on: ubuntu-latest
     permissions:
       issues: write
