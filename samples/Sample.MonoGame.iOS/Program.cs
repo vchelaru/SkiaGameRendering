@@ -48,8 +48,12 @@ namespace Sample
             var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "smoke-test.log");
             Console.SetOut(new StreamWriter(path, append: false) { AutoFlush = true });
             AppDomain.CurrentDomain.UnhandledException += (_, e) => Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
+            // Unbinding a multisampled render target throws a NullReferenceException inside MonoGame's own resolve
+            // (GraphicsDevice.FramebufferHelper.BlitFramebuffer), as on Android, so the check skips 4x MSAA.
             ExtraSmokeCheck = graphicsDevice =>
-                MobileDirectCanvasCheck.Run(graphicsDevice, Console.WriteLine) & BackBufferAfterRebuild(graphicsDevice);
+                MobileDirectCanvasCheck.Run(graphicsDevice, Console.WriteLine,
+                    msaaSkipReason: "MonoGame cannot resolve a multisampled target on GLES")
+                & BackBufferAfterRebuild(graphicsDevice);
         }
 
         /// <summary>
