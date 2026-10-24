@@ -35,7 +35,6 @@ _skia = new SkiaDirectCanvas(GraphicsDevice);
 _paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
 
 // every frame, in Draw
-
 _skia.Begin();
 _skia.Canvas.DrawCircle(100, 100, 50, _paint);
 _skia.End();
