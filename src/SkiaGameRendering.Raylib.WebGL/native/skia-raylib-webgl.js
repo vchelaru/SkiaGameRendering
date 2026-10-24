@@ -212,6 +212,9 @@ globalThis.skiaRaylibWebGl = (function () {
             const gl = context().GLctx;
             if (saved)
                 throw new Error("A Skia pass is already open.");
+            // raylib's ES2 build queues errors of its own (attribute locations of -1 for the ones its shader lacks);
+            // drain them so the count below is only what Skia leaves behind.
+            for (let i = 0; i < 8 && gl.getError() !== 0; i++);
             saved = save(gl);
             const id = framebufferId(saved.draw);
             let kind = 0;
