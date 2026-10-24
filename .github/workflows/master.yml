@@ -339,7 +339,7 @@ jobs:
           dotnet workload install wasm-tools
           sudo apt-get install -y ninja-build
       - name: Build SDL2 and FNA3D for WebAssembly
-        run: eng/build-fna-wasm-natives.sh
+        run: bash eng/build-fna-wasm-natives.sh
       - name: Publish the sample
         run: dotnet publish samples/Sample.Fna.WebGL/Sample.Fna.WebGL.csproj -c Release
       - name: Install browser tests
