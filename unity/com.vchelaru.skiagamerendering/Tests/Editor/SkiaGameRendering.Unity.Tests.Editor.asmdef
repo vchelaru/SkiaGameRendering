@@ -1,6 +1,6 @@
 {
     "name": "SkiaGameRendering.Unity.Tests.Editor",
-    "rootNamespace": "SkiaGameRendering.Unity.Tests",
+    "rootNamespace": "SkiaGameRendering.Tests",
     "references": [
         "SkiaGameRendering.Unity",
         "UnityEngine.TestRunner",

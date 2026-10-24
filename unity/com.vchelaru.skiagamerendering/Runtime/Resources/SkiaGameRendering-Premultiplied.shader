@@ -1,7 +1,7 @@
-// Draws SkiaUnityRenderTarget.Texture, whose pixels Skia writes with premultiplied alpha. Unity's
+// Draws SkiaRenderTarget2D.Texture, whose pixels Skia writes with premultiplied alpha. Unity's
 // default blending (SrcAlpha, OneMinusSrcAlpha) would multiply color by alpha a second time and
 // darken every edge and translucent area. Lives in Resources so builds always include it; see
-// SkiaUnityRenderTarget.PremultipliedMaterial.
+// SkiaRenderTarget2D.PremultipliedMaterial.
 //
 // Skia's bytes are sRGB-encoded, but the texture is UNorm (ANGLE renders into it), so in a Linear
 // project nothing decodes them on sampling. This shader does, the way an sRGB texture holding the

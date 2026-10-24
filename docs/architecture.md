@@ -20,7 +20,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaRenderTarget2D`, Windows/Linux/macOS)
 - `src/SkiaGameRendering.Core.D3D12/`: engine-agnostic D3D12/Skia interop shared by D3D12-based backends
 - `src/SkiaGameRendering.Stride.D3D12/`: Stride library (shared `Core.D3D12` + `SkiaRenderTarget2D`, Windows/D3D12 only)
-- `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s, `Core.D3D12`'s and `Core.Metal`'s netstandard2.1 builds + `SkiaUnityRenderTarget`, Windows/D3D11, Windows/D3D12 and macOS/Metal; the plugins' sources are `unity/native/SkiaUnityD3D12/` and `unity/native/SkiaUnityMetal/`)
+- `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s, `Core.D3D12`'s and `Core.Metal`'s netstandard2.1 builds + `SkiaRenderTarget2D`, Windows/D3D11, Windows/D3D12 and macOS/Metal; the plugins' sources are `unity/native/SkiaUnityD3D12/` and `unity/native/SkiaUnityMetal/`)
 - `src/SkiaGameRendering.Godot/` — Godot library (`Core.VK`, `Core.D3D12`, `Core.Metal` and `Core.OGL` behind one `SkiaRenderTarget2D`, backend chosen from the running driver; no reflection, all public Godot API)
 
 ## How each backend works

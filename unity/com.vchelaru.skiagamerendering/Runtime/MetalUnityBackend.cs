@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using SkiaGameRendering.Core.Metal;
 using SkiaSharp;
 
-namespace SkiaGameRendering.Unity
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Metal (macOS): Skia draws with Unity's own MTLDevice and commits to Unity's own command queue,
@@ -32,7 +32,7 @@ namespace SkiaGameRendering.Unity
             _factory.InitializeFromNative(device, queue);
         }
 
-        internal override void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture)
+        internal override void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture)
         {
             // Skia's command buffer has to run after everything Unity encoded before this event
             // (including reads of the texture's previous contents) and before everything after it.
@@ -63,7 +63,7 @@ namespace SkiaGameRendering.Unity
             }
         }
 
-        internal override void DisposeTarget(SkiaUnityRenderTarget.RenderState target)
+        internal override void DisposeTarget(SkiaRenderTarget2D.RenderState target)
         {
             target.Surface?.Dispose();
             target.Surface = null;

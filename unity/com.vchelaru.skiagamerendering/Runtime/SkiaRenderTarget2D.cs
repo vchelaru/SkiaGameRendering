@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
-namespace SkiaGameRendering.Unity
+namespace SkiaGameRendering
 {
     /// <summary>
     /// A <see cref="RenderTexture"/> that SkiaSharp draws into on the GPU, with the Begin/Canvas/End
@@ -13,7 +13,7 @@ namespace SkiaGameRendering.Unity
     /// <c>Update</c>) and draw <see cref="Texture"/> with <see cref="PremultipliedMaterial"/>, or
     /// <see cref="PremultipliedGuiMaterial"/> in <c>OnGUI</c>.
     /// <code>
-    /// var target = new SkiaUnityRenderTarget(512, 512);
+    /// var target = new SkiaRenderTarget2D(512, 512);
     /// target.Begin();
     /// target.Canvas.DrawCircle(256, 256, 200, paint);
     /// target.End();
@@ -24,7 +24,7 @@ namespace SkiaGameRendering.Unity
     /// <see cref="SkiaUnityRenderThread"/>, which plays it back onto the texture on the render thread.
     /// Supported so far: Direct3D 11 (through ANGLE) and Direct3D 12 on Windows, and Metal on macOS.
     /// </summary>
-    public sealed class SkiaUnityRenderTarget : IDisposable
+    public sealed class SkiaRenderTarget2D : IDisposable
     {
         // Everything the render thread owns for this target. The main thread only reads the fields
         // set in the constructor.
@@ -44,7 +44,7 @@ namespace SkiaGameRendering.Unity
         SKPictureRecorder? _recorder;
         SKCanvas? _canvas;
 
-        public SkiaUnityRenderTarget(int width, int height)
+        public SkiaRenderTarget2D(int width, int height)
         {
             if (width <= 0)
                 throw new ArgumentOutOfRangeException(nameof(width));
@@ -57,7 +57,7 @@ namespace SkiaGameRendering.Unity
             // into ANGLE, but hardware decode of premultiplied values darkens translucent pixels.
             _texture = new RenderTexture(width, height, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None)
             {
-                name = nameof(SkiaUnityRenderTarget),
+                name = nameof(SkiaRenderTarget2D),
             };
             _texture.Create();
 
@@ -72,7 +72,7 @@ namespace SkiaGameRendering.Unity
         static Material? _premultipliedMaterial;
         static Material? _premultipliedGuiMaterial;
 
-        public RenderTexture Texture => _texture ?? throw new ObjectDisposedException(nameof(SkiaUnityRenderTarget));
+        public RenderTexture Texture => _texture ?? throw new ObjectDisposedException(nameof(SkiaRenderTarget2D));
 
         /// <summary>
         /// A material that draws <see cref="Texture"/> correctly over other content that a camera or
@@ -115,7 +115,7 @@ namespace SkiaGameRendering.Unity
         public void Begin()
         {
             if (_texture == null)
-                throw new ObjectDisposedException(nameof(SkiaUnityRenderTarget));
+                throw new ObjectDisposedException(nameof(SkiaRenderTarget2D));
             if (_canvas != null)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 

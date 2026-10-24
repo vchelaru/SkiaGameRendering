@@ -6,10 +6,10 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace SkiaGameRendering.Unity.Tests
+namespace SkiaGameRendering.Tests
 {
     /// <summary>
-    /// Draws through <see cref="SkiaUnityRenderTarget"/> across domain reloads, in edit mode and in
+    /// Draws through <see cref="SkiaRenderTarget2D"/> across domain reloads, in edit mode and in
     /// play mode (including a script reload while playing), with a draw still queued for the render
     /// thread each time the domain unloads. Each cycle checks that the texture holds the drawing and
     /// that the adapter hasn't leaked references to Unity's device: on D3D11 its ANGLE display, GL
@@ -100,7 +100,7 @@ namespace SkiaGameRendering.Unity.Tests
         }
 
         // Red over the top half, transparent below, so the check also catches a flipped texture.
-        internal static void Draw(SkiaUnityRenderTarget target)
+        internal static void Draw(SkiaRenderTarget2D target)
         {
             using var paint = new SKPaint { Color = SKColors.Red };
             target.Begin();
@@ -110,7 +110,7 @@ namespace SkiaGameRendering.Unity.Tests
 
         static void DrawAndCheck()
         {
-            using var target = new SkiaUnityRenderTarget(Size, Size);
+            using var target = new SkiaRenderTarget2D(Size, Size);
             Draw(target);
 
             var readback = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
@@ -129,7 +129,7 @@ namespace SkiaGameRendering.Unity.Tests
 
         static void LeaveDrawQueued()
         {
-            using var target = new SkiaUnityRenderTarget(Size, Size);
+            using var target = new SkiaRenderTarget2D(Size, Size);
             Draw(target);
         }
     }

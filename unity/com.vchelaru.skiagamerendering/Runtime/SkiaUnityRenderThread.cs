@@ -8,7 +8,7 @@ using AOT;
 using SkiaSharp;
 using UnityEngine;
 
-namespace SkiaGameRendering.Unity
+namespace SkiaGameRendering
 {
     /// <summary>
     /// Runs every Skia call on Unity's render thread, through the <see cref="SkiaUnityBackend"/> for
@@ -35,7 +35,7 @@ namespace SkiaGameRendering.Unity
         internal sealed class Command
         {
             // null means "release every target and the factory" (see ReleaseAll).
-            internal SkiaUnityRenderTarget.RenderState? Target;
+            internal SkiaRenderTarget2D.RenderState? Target;
             // null means "dispose the target's render-thread state".
             internal SKPicture? Picture;
         }
@@ -48,7 +48,7 @@ namespace SkiaGameRendering.Unity
 
         static SkiaUnityBackend? _backend;
         // Targets with render-thread state, so ReleaseAll can reach the ones never disposed.
-        static readonly HashSet<SkiaUnityRenderTarget.RenderState> LiveTargets = new HashSet<SkiaUnityRenderTarget.RenderState>();
+        static readonly HashSet<SkiaRenderTarget2D.RenderState> LiveTargets = new HashSet<SkiaRenderTarget2D.RenderState>();
         static readonly ManualResetEventSlim Released = new ManualResetEventSlim();
         // Main thread only.
         static bool _anyIssued;
@@ -121,20 +121,20 @@ namespace SkiaGameRendering.Unity
 
         static void ReleaseOnRenderThread()
         {
-            foreach (var target in new List<SkiaUnityRenderTarget.RenderState>(LiveTargets))
+            foreach (var target in new List<SkiaRenderTarget2D.RenderState>(LiveTargets))
                 DisposeTarget(target);
             _backend?.Dispose();
             _backend = null;
         }
 
-        static void Draw(SkiaUnityRenderTarget.RenderState target, SKPicture picture)
+        static void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture)
         {
             _backend ??= SkiaUnityBackend.Create(target.NativeTexture);
             LiveTargets.Add(target);
             _backend.Draw(target, picture);
         }
 
-        static void DisposeTarget(SkiaUnityRenderTarget.RenderState target)
+        static void DisposeTarget(SkiaRenderTarget2D.RenderState target)
         {
             LiveTargets.Remove(target);
             _backend?.DisposeTarget(target);
