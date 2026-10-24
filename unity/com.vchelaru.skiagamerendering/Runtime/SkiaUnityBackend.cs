@@ -26,6 +26,10 @@ namespace SkiaGameRendering.Unity
             _graphicsDeviceType = api;
             if (api == GraphicsDeviceType.Direct3D11)
                 return;
+            // Skia draws on a second context that shares Unity's; only the Windows (WGL) one exists so far.
+            if (api == GraphicsDeviceType.OpenGLCore
+                && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
+                return;
             if (api == GraphicsDeviceType.Direct3D12
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
             {
@@ -40,7 +44,7 @@ namespace SkiaGameRendering.Unity
                 return;
             }
             throw new NotSupportedException(
-                $"SkiaGameRendering.Unity supports Direct3D11 and Direct3D12 on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
+                $"SkiaGameRendering.Unity supports Direct3D11, Direct3D12 and OpenGL on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
         }
 
         /// <summary>Creates the backend for Unity's current device, the first time anything draws.</summary>
@@ -49,6 +53,7 @@ namespace SkiaGameRendering.Unity
             {
                 GraphicsDeviceType.Metal => new MetalUnityBackend(),
                 GraphicsDeviceType.Direct3D12 => new D3D12UnityBackend(),
+                GraphicsDeviceType.OpenGLCore => new OpenGlUnityBackend(),
                 _ => new AngleUnityBackend(nativeTexture),
             };
 
