@@ -115,13 +115,32 @@ test("accepts Rgba8888 render targets and rejects other color types with NotSupp
 });
 
 // ?msaa=1 sets MultiSampleCount 4 in PreparingDeviceSettings (PreferMultiSampling alone gives 0), and FNA3D grants it.
-// FNA3D then draws to a multisampled FBO and blits it to the canvas, which reads blank on Chromium, Firefox and
-// WebKit even for plain SpriteBatch draws (#306), so SkiaDirectCanvas must refuse instead of drawing nothing.
-test("SkiaDirectCanvas throws NotSupportedException on a multisampled FNA back buffer", async ({ page }) => {
-  await open(page, "direct", "&msaa=1");
-  const message = await page.evaluate(() => {
-    try { globalThis.fnaSample.frame(); return "returned"; } catch (error) { return String(error.message ?? error); }
+// FNA3D then draws to a multisampled FBO and blits it to the canvas each frame.
+test("SkiaDirectCanvas draws correctly into FNA's multisampled back buffer", async ({ page }) => {
+  await page.addInitScript(() => {
+    globalThis.sampleLog = [];
+    const getParameter = WebGL2RenderingContext.prototype.getParameter;
+    WebGL2RenderingContext.prototype.getParameter = function (name) {
+      const value = getParameter.call(this, name);
+      if (name === this.SAMPLES) globalThis.sampleLog.push(value);
+      return value;
+    };
   });
-  expect(message).toMatch(/does not draw into multisampled targets on FNA WebGL \(4 samples\)/);
+  const errors = await open(page, "direct", "&msaa=1");
+  const points = { circle: [50, 50], drop: [150, 50], lime: [450, 100], blueSquare: [410, 310], redCircle: [460, 360], magenta: [620, 620], black: [790, 790] };
+  const read = await draw(page, Object.values(points), 30);
+  const pixel = Object.fromEntries(Object.keys(points).map((name, i) => [name, read[i]]));
+  near(pixel.circle, [255, 0, 0]);
+  expect(pixel.drop[0]).toBeLessThan(100);
+  expect(pixel.drop[2]).toBeGreaterThan(150);
+  near(pixel.lime, [0, 255, 0]);
+  near(pixel.blueSquare, [0, 0, 255]);
+  near(pixel.redCircle, [255, 0, 0]);
+  near(pixel.magenta, [255, 0, 255]);
+  near(pixel.black, [0, 0, 0]);
   expect(await page.evaluate(() => globalThis.fnaSample.backBufferMultiSampleCount())).toBe(4);
+  const samples = await page.evaluate(() => globalThis.sampleLog);
+  expect(samples, "the interop saw FNA3D's multisampled FBO").toContain(4);
+  expect(await glErrors(page), await glErrorLog(page)).toBe(0);
+  expect(errors).toEqual([]);
 });
