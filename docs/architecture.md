@@ -45,3 +45,11 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 Unity records draws to an `SKPicture` on the main thread and plays them back on its render thread.
 
 See [`SkiaGameRendering-Notes.md`](../SkiaGameRendering-Notes.md) for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
+
+## What is verified where
+
+- iOS (MonoGame and KNI) is verified on the CI iOS Simulator only. No physical iPhone or iPad, no GLES 2-only device.
+- Android (KNI) is verified on two physical phones (GLES 3.2) and on emulators, with CI running the SwiftShader emulator. GLES 3.0-only drivers are not verified.
+- Linux GPU paths, including Unity on Linux, are not verified.
+- Unity is verified locally by the maintainer and never in CI, so a Unity change is only as checked as the last local run.
+- Physical-device and tiled-GPU behavior (iOS, Android) is not pursued; only simulator and emulator runs count.
