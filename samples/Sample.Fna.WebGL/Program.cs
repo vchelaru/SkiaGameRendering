@@ -34,6 +34,10 @@ public class SampleGame : Game
             PreferredBackBufferHeight = 800,
             PreferMultiSampling = multiSampling,
         };
+        // GraphicsDeviceManager sets MultiSampleCount to 0 when it creates the first device, so PreferMultiSampling
+        // alone never requests MSAA. Setting it here does; FNA3D clamps it to what the context supports.
+        if (multiSampling)
+            _graphics.PreparingDeviceSettings += (_, e) => e.GraphicsDeviceInformation.PresentationParameters.MultiSampleCount = 4;
     }
 
     protected override void LoadContent()

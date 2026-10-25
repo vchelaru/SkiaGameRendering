@@ -215,6 +215,12 @@ namespace SkiaGameRendering
             var info = BeginPass();
             try
             {
+                // Measured in CI (#306): once a multisampled back buffer exists, FNA3D draws to a multisampled FBO and
+                // blits it to the canvas, and the canvas reads blank even for plain SpriteBatch draws, so Skia is not the
+                // cause. Refuse instead of drawing nothing. FNA only grants samples when MultiSampleCount is set in
+                // PreparingDeviceSettings; PreferMultiSampling alone gives 0.
+                if (info[2] > 0)
+                    throw new NotSupportedException($"SkiaDirectCanvas does not draw into multisampled targets on FNA WebGL ({info[2]} samples): the canvas reads blank. Leave PresentationParameters.MultiSampleCount at 0.");
                 var framebuffer = info[1];
                 var parameters = GraphicsDevice.PresentationParameters;
                 var width = renderTarget?.Width ?? (framebuffer == 0 ? info[4] : parameters.BackBufferWidth);
