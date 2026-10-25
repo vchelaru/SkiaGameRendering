@@ -8,9 +8,6 @@ namespace Tests.Fna.OGL;
 /// <summary>See <see cref="ReusedTargetGame"/>.</summary>
 public sealed class FnaOglReusedTargetTests(ITestOutputHelper output)
 {
-    static FnaOglReusedTargetTests() =>
-        Environment.SetEnvironmentVariable("FNA3D_FORCE_DRIVER", "OpenGL");
-
     [Fact]
     public void ReusedTarget_FullSurfaceFillAfterSmallDraws_IsFullyComposited()
     {

@@ -7,9 +7,6 @@ namespace Tests.Fna.OGL;
 /// <summary>See <see cref="SkiaTeardownCheck"/>.</summary>
 public sealed class FnaOglTeardownTests
 {
-    static FnaOglTeardownTests() =>
-        Environment.SetEnvironmentVariable("FNA3D_FORCE_DRIVER", "OpenGL");
-
     [Fact]
     public void DisposingSkia_LeavesEngineRenderTargetsWorking()
     {
