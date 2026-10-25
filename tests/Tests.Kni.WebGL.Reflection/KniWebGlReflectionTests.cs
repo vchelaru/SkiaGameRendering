@@ -40,7 +40,10 @@ public sealed class KniWebGlReflectionTests
             EngineReflectionPin.RequireField(strategy, "_glTexture", NonPublicInstance);
     }
 
-    /// <summary>The WebGL context the JS side binds against to run the upload.</summary>
+    /// <summary>
+    /// The WebGL context the JS side binds against to run the upload. Remove this pin and the reflection once KNI
+    /// ships a public accessor (kniEngine/kni#2755, repo issue #13).
+    /// </summary>
     [Fact]
     public void GraphicsContextStrategyGL_Resolves()
     {

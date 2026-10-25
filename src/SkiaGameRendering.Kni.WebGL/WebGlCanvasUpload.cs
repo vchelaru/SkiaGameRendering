@@ -91,6 +91,7 @@ public static class WebGLTexture2DExtensions
 //     is still fully internal (ConcreteGraphicsContext.GL) - #2669 did not cover this. A follow-up
 //     upstream PR mirroring #2669's shape is the long-term fix; until then this is genuinely
 //     internals-only, not a case of avoidable reflection. Tracked in repo issue #13.
+//     Drop the GL reflection once KNI ships a public accessor (https://github.com/kniEngine/kni/issues/2755).
 //
 // If KNI renames/restructures these members, the MissingFieldException/MissingMemberException below
 // will fail loudly at first use rather than silently misbehaving.
