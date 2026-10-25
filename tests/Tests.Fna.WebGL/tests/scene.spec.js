@@ -144,3 +144,49 @@ test("SkiaDirectCanvas draws correctly into FNA's multisampled back buffer", asy
   expect(await glErrors(page), await glErrorLog(page)).toBe(0);
   expect(errors).toEqual([]);
 });
+
+// 2 and 8 samples are valid counts too, but a context may not offer them. Where the backend accepts the count the
+// target must draw correctly; where it does not it must throw NotSupportedException, and the draw is skipped.
+for (const samples of [2, 8]) {
+  test(`a ${samples}-sample SkiaRenderTarget2D draws the Scene, or throws NotSupportedException if not offered`, async ({ page }) => {
+    const errors = await open(page, "texture");
+    await draw(page, [[50, 50]]);
+    const maxSamples = await page.evaluate(() => document.getElementById("canvas").getContext("webgl2").getParameter(WebGL2RenderingContext.MAX_SAMPLES));
+    const result = await page.evaluate(c => globalThis.fnaSample.tryMultiSample(c), samples);
+    if (maxSamples < samples)
+      expect(result, `gl.MAX_SAMPLES is ${maxSamples}`).toMatch(/^NotSupportedException/);
+    if (result !== "ok") {
+      expect(result).toMatch(/^NotSupportedException/);
+      test.info().annotations.push({ type: "skipped-draw", description: `${samples} samples not offered in this browser (gl.MAX_SAMPLES ${maxSamples}): ${result}` });
+      expect(await glErrors(page), await glErrorLog(page)).toBe(0);
+      return;
+    }
+
+    // Reload so the draw path starts with a fresh context and a target created with this count.
+    await page.addInitScript(() => {
+      globalThis.glLog = { multisampledStorage: [], blits: 0 };
+      const storage = WebGL2RenderingContext.prototype.renderbufferStorageMultisample;
+      WebGL2RenderingContext.prototype.renderbufferStorageMultisample = function (target, count, ...rest) {
+        globalThis.glLog.multisampledStorage.push(count);
+        return storage.call(this, target, count, ...rest);
+      };
+      const blit = WebGL2RenderingContext.prototype.blitFramebuffer;
+      WebGL2RenderingContext.prototype.blitFramebuffer = function (...args) {
+        globalThis.glLog.blits++;
+        return blit.apply(this, args);
+      };
+    });
+    const drawErrors = await open(page, "texture", `&targetsamples=${samples}`);
+    const [circle, drop, outside] = await draw(page, [[50, 50], [150, 50], [790, 790]], 5);
+    near(circle, [255, 0, 0]);
+    expect(drop[0]).toBeLessThan(100);
+    expect(drop[2]).toBeGreaterThan(150);
+    near(outside, [0, 0, 0]);
+    const log = await page.evaluate(() => globalThis.glLog);
+    expect(log.multisampledStorage, "Skia allocated a multisampled renderbuffer").toContain(samples);
+    expect(log.blits, "Skia resolved it with blitFramebuffer").toBeGreaterThan(0);
+    expect(await glErrors(page), await glErrorLog(page)).toBe(0);
+    expect(errors).toEqual([]);
+    expect(drawErrors).toEqual([]);
+  });
+}

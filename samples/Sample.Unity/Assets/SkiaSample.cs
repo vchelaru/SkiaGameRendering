@@ -140,6 +140,11 @@ public sealed class SkiaSample : MonoBehaviour
         camera.allowHDR = false;
         // Direct3D 12, Vulkan and Metal cannot draw into a multisampled target, which the project's Ultra quality level would give them.
         QualitySettings.antiAliasing = _msaa ? 4 : 0;
+        // An SRP ignores QualitySettings.antiAliasing; URP takes its sample count from the pipeline asset (reflection: the sample has no reference to the package).
+        var pipeline = GraphicsSettings.currentRenderPipeline;
+        pipeline?.GetType().GetProperty("msaaSampleCount")?.SetValue(pipeline, _msaa ? 4 : 1);
+        if (pipeline != null && pipeline.GetType().Name == "HDRenderPipelineAsset")
+            FixHdrpExposure();
 
         // Built by hand: CreatePrimitive adds a collider, which needs the Physics module.
         var quad = new GameObject("Skia quad");
@@ -227,6 +232,40 @@ public sealed class SkiaSample : MonoBehaviour
         sprite.sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1);
         // In front of the quad, whose texture is transparent here.
         Place(sprite.transform, x, Cell, Cell, Cell, -1);
+    }
+
+    // HDRP changes every color it draws: automatic exposure scales it and the default volume profile tone maps it and adds bloom,
+    // vignette and film grain, which would break the checks that compare against Unity's own colors. A global volume with fixed
+    // exposure (the multiplier is 1 / (1.2 * 2^EV), so EV -log2(1.2) gives 1), no tone mapping and those effects at zero leaves them as authored.
+    // Reflection throughout: the sample has no reference to the HDRP or Core RP packages, and a built-in project does not compile against Volume.
+    static void FixHdrpExposure()
+    {
+        const string Assembly = ", Unity.RenderPipelines.HighDefinition.Runtime";
+        const string CoreAssembly = ", Unity.RenderPipelines.Core.Runtime";
+        var profileType = Type.GetType("UnityEngine.Rendering.VolumeProfile" + CoreAssembly);
+        var profile = ScriptableObject.CreateInstance(profileType);
+        var components = new System.Collections.Generic.Dictionary<Type, object>();
+        void Override(string typeName, string field, object value)
+        {
+            var type = Type.GetType("UnityEngine.Rendering.HighDefinition." + typeName + Assembly);
+            if (!components.TryGetValue(type, out var component))
+                components[type] = component = profileType.GetMethod("Add", new[] { typeof(Type), typeof(bool) }).Invoke(profile, new object[] { type, true });
+            var parameter = type.GetField(field).GetValue(component);
+            parameter.GetType().GetProperty("overrideState").SetValue(parameter, true);
+            var parameterType = parameter.GetType().GetProperty("value").PropertyType;
+            parameter.GetType().GetProperty("value").SetValue(parameter, parameterType.IsEnum ? Enum.Parse(parameterType, (string)value) : value);
+        }
+        Override("Exposure", "mode", "Fixed");
+        Override("Exposure", "fixedExposure", -Mathf.Log(1.2f, 2f));
+        Override("Tonemapping", "mode", "None");
+        Override("Bloom", "intensity", 0f);
+        Override("Vignette", "intensity", 0f);
+        Override("FilmGrain", "intensity", 0f);
+        Override("ChromaticAberration", "intensity", 0f);
+        var volumeType = Type.GetType("UnityEngine.Rendering.Volume" + CoreAssembly);
+        var volume = new GameObject("Fixed exposure").AddComponent(volumeType);
+        volumeType.GetProperty("isGlobal").SetValue(volume, true);
+        volumeType.GetField("sharedProfile").SetValue(volume, profile);
     }
 
     // Centers a unit-sized object on a screen-space rectangle.
@@ -439,12 +478,14 @@ public sealed class SkiaSample : MonoBehaviour
             var markTop = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell / 8);
             var markBottom = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell - Cell / 8);
             // When Skia refuses the target (MSAA on Direct3D 12, Vulkan and Metal) it must draw nothing, leaving the camera's own pixels.
-            var skiaRed = _expectRefusal ? (Color32)Background : new Color32(255, 0, 0, 255);
-            var skiaMagenta = _expectRefusal ? (Color32)Background : new Color32(255, 0, 255, 255);
+            // Under an SRP the back buffer is never multisampled (the camera resolves into it), so only the target texture is refused.
+            var screenRefused = _expectRefusal && GraphicsSettings.currentRenderPipeline == null;
+            var skiaRed = screenRefused ? (Color32)Background : new Color32(255, 0, 0, 255);
+            var skiaMagenta = screenRefused ? (Color32)Background : new Color32(255, 0, 255, 255);
             pass &= Matches(fill, skiaRed)                            // channel order: red stays red
                 && Matches(front, _frontCamera != null ? Green : skiaRed)  // the second camera draws over Skia
                 && Matches(behind, Yellow)                            // Skia leaves what the first camera drew
-                && Matches(over, _expectRefusal ? Yellow : skiaRed)   // Skia draws over it
+                && Matches(over, screenRefused ? Yellow : skiaRed)   // Skia draws over it
                 && Matches(markTop, skiaMagenta)                      // the right way up
                 && Matches(markBottom, new Color32(0, 0, 255, 255));
             report += $" direct: fill={fill} front={front} behind={behind} over={over} markTop={markTop} markBottom={markBottom}";
