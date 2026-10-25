@@ -8,10 +8,11 @@ using UnityEngine.Rendering;
 
 /// <summary>
 /// Batch-mode entry point that builds the sample as a player for the machine it runs on, Windows x64
-/// (Direct3D 11, Direct3D 12 with -d3d12, Vulkan with -vulkan, or OpenGL with -gl) or macOS (Metal):
-/// <c>Unity -batchmode -quit -projectPath samples/Sample.Unity -executeMethod SampleBuild.Build [-il2cpp] [-linear] [-d3d12] [-vulkan] [-gl]</c>.
+/// (Direct3D 11, Direct3D 12 with -d3d12, Vulkan with -vulkan, or OpenGL with -gl) or macOS (Metal), or,
+/// with -android, an Android arm64 IL2CPP player (OpenGL ES 3; Unity 6000.6 no longer builds x86_64):
+/// <c>Unity -batchmode -quit -projectPath samples/Sample.Unity -executeMethod SampleBuild.Build [-il2cpp] [-linear] [-d3d12] [-vulkan] [-gl] [-android]</c>.
 /// Output goes to Build/Mono or Build/IL2CPP, with a -D3D12, -Vulkan, -GL and/or -Linear suffix for those builds:
-/// <c>Sample.Unity.exe</c> on Windows, <c>Sample.Unity.app</c> on macOS.
+/// <c>Sample.Unity.exe</c> on Windows, <c>Sample.Unity.app</c> on macOS, Build/Android/Sample.Unity.apk.
 /// Unity saves the color space into ProjectSettings.asset, which is committed in Gamma, so revert it after a -linear build.
 /// </summary>
 public static class SampleBuild
@@ -26,9 +27,27 @@ public static class SampleBuild
         bool d3d12 = Array.IndexOf(args, "-d3d12") >= 0;
         bool vulkan = Array.IndexOf(args, "-vulkan") >= 0;
         bool gl = Array.IndexOf(args, "-gl") >= 0;
+        bool android = Array.IndexOf(args, "-android") >= 0;
         bool mac = Application.platform == RuntimePlatform.OSXEditor;
-        var buildTarget = mac ? BuildTarget.StandaloneOSX : BuildTarget.StandaloneWindows64;
-        var target = NamedBuildTarget.Standalone;
+        var buildTarget = android ? BuildTarget.Android : mac ? BuildTarget.StandaloneOSX : BuildTarget.StandaloneWindows64;
+        var target = android ? NamedBuildTarget.Android : NamedBuildTarget.Standalone;
+        if (android)
+        {
+            // Android builds need IL2CPP, and Unity 6000.6 marks AndroidArchitecture.X86_64 as no longer supported.
+            // The Android player settings below only take effect once Android is the active platform.
+            EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
+            PlayerSettings.SetUseDefaultGraphicsAPIs(buildTarget, false);
+            PlayerSettings.SetGraphicsAPIs(buildTarget, new[] { GraphicsDeviceType.OpenGLES3 });
+            PlayerSettings.SetScriptingBackend(target, ScriptingImplementation.IL2CPP);
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.colorSpace = linear ? ColorSpace.Linear : ColorSpace.Gamma;
+            // The sample's copies are laid out for a window wider than tall.
+            PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
+            EditorUserBuildSettings.buildAppBundle = false;
+            EditorUserBuildSettings.androidBuildSystem = AndroidBuildSystem.Gradle;
+            BuildAndroid(linear);
+            return;
+        }
 
         // Pin the one API the adapter supports on each platform rather than rely on Unity's default list.
         PlayerSettings.SetUseDefaultGraphicsAPIs(buildTarget, false);
@@ -50,6 +69,23 @@ public static class SampleBuild
             options = BuildOptions.None,
         });
 
+        CheckResult(report);
+    }
+
+    static void BuildAndroid(bool linear)
+    {
+        var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+        {
+            scenes = new[] { ScenePath },
+            locationPathName = $"Build/Android{(linear ? "-Linear" : "")}/Sample.Unity.apk",
+            target = BuildTarget.Android,
+            options = BuildOptions.None,
+        });
+        CheckResult(report);
+    }
+
+    static void CheckResult(UnityEditor.Build.Reporting.BuildReport report)
+    {
         if (report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
             throw new Exception($"Build {report.summary.result}: {report.summary.totalErrors} error(s).");
     }

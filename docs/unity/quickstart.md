@@ -1,6 +1,6 @@
 # Unity Quick Start
 
-Supports Unity 6 on Windows x64 (Direct3D 11, Direct3D 12, Vulkan or OpenGL, Mono or IL2CPP) and macOS (Metal).
+Supports Unity 6 on Windows x64 (Direct3D 11, Direct3D 12, Vulkan or OpenGL, Mono or IL2CPP) macOS (Metal) and Android (OpenGL ES 3, IL2CPP, arm64).
 
 ## Install
 
@@ -13,16 +13,16 @@ https://github.com/vchelaru/SkiaGameRendering.git#upm
 To pin a version, use `#upm/v<version>` instead, for example `#upm/v0.19.0`.
 
 On Windows, set Player Settings > Other Settings > Graphics APIs for Windows to Direct3D11, Direct3D12, Vulkan
-or OpenGLCore. OpenGL ES (Android) and Linux are not supported yet. macOS uses Metal, its default.
+or OpenGLCore. macOS uses Metal, its default. For Android, set Graphics APIs to OpenGLES3 only (not Vulkan, not OpenGLES2), the scripting backend to IL2CPP and the target architecture to ARM64; Unity 6000.6 no longer builds x86_64 Android players. Linux is not supported yet.
 
 ## Limit code to supported platforms
 
-The package only compiles for the Editor and Windows x64 and macOS players, so code that uses it
+The package only compiles for the Editor and Windows x64, macOS and Android players, so code that uses it
 needs the same limits, or the project's other platform builds fail to compile. Put that code in an
-asmdef limited to Editor, Windows 64-bit and macOS, or inside:
+asmdef limited to Editor, Windows 64-bit, macOS and Android, or inside:
 
 ```csharp
-#if UNITY_EDITOR_WIN || UNITY_EDITOR_OSX || (UNITY_STANDALONE_WIN && UNITY_64) || UNITY_STANDALONE_OSX
+#if UNITY_EDITOR_WIN || UNITY_EDITOR_OSX || (UNITY_STANDALONE_WIN && UNITY_64) || UNITY_STANDALONE_OSX || UNITY_ANDROID
 ```
 
 ## Draw

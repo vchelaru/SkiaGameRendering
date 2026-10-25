@@ -20,7 +20,7 @@ using UnityEngine.UI;
 /// precompiled from <c>Scene/Sample.Unity.Scene.csproj</c>, copied into <c>Assets/Plugins/Scene</c>
 /// by <c>eng/build-unity-package.ps1</c>.
 ///
-/// The bottom right area is a <see cref="SkiaDirectCanvas"/> check on Direct3D 11, Direct3D 12, Vulkan and OpenGL: the main camera draws a
+/// The bottom right area is a <see cref="SkiaDirectCanvas"/> check on Direct3D 11, Direct3D 12, Vulkan, OpenGL and OpenGL ES 3: the main camera draws a
 /// yellow square, its <c>onPostRender</c> has Skia draw red, red and magenta shapes straight into the back
 /// buffer, and a second camera (higher depth, clears nothing but depth) then draws a green square on top.
 ///
@@ -63,7 +63,7 @@ public sealed class SkiaSample : MonoBehaviour
     Texture2D _greyReference;
     Texture2D _translucentReference;
     static bool DirectCanvasSupported =>
-        SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore;
+        SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLES3;
 
     SkiaDirectCanvas _direct;
     SKPaint _red;
@@ -74,17 +74,36 @@ public sealed class SkiaSample : MonoBehaviour
     bool _smokeTest;
     int _frame;
 
+    // "--smoke-test" on the command line, or on Android, where there is none to type, in the "unity" extra:
+    // adb shell am start -n <package>/com.unity3d.player.UnityPlayerGameActivity -e unity --smoke-test
+    static bool HasSmokeTestArgument()
+    {
+        if (Array.IndexOf(Environment.GetCommandLineArgs(), "--smoke-test") >= 0)
+            return true;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        using var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+        using var activity = player.GetStatic<AndroidJavaObject>("currentActivity");
+        using var intent = activity.Call<AndroidJavaObject>("getIntent");
+        var extra = intent.Call<string>("getStringExtra", "unity");
+        return extra != null && extra.Contains("--smoke-test");
+#else
+        return false;
+#endif
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Bootstrap() => new GameObject(nameof(SkiaSample)).AddComponent<SkiaSample>();
 
     void Start()
     {
-        _smokeTest = Array.IndexOf(Environment.GetCommandLineArgs(), "--smoke-test") >= 0;
+        _smokeTest = HasSmokeTestArgument();
         // An unfocused player stops updating, and a smoke test launched from a script may never get focus.
         if (_smokeTest)
             Application.runInBackground = true;
-        // Room for every copy; the default window can be smaller.
+#if !UNITY_ANDROID
+        // Room for every copy; the default window can be smaller. Android keeps the device's own screen.
         Screen.SetResolution(2 * Width, 2 * Height, FullScreenMode.Windowed);
+#endif
         _greyReference = SolidTexture(Grey);
         _translucentReference = SolidTexture(Translucent);
 

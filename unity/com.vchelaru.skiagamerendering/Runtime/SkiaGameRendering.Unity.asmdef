@@ -3,6 +3,7 @@
     "rootNamespace": "SkiaGameRendering",
     "references": [],
     "includePlatforms": [
+        "Android",
         "Editor",
         "WindowsStandalone64",
         "macOSStandalone"

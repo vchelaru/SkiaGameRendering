@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Restore-only: downloads SkiaSharp's natives for the Unity package's non-Windows platforms,
+  <!-- Restore-only: downloads SkiaSharp's natives for the Unity package's non-Windows platforms (macOS and Android),
        which eng/build-unity-package.ps1 copies into Plugins/. Never built. -->
   <Import Project="..\Versions.props" />
   <PropertyGroup>
@@ -8,5 +8,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageDownload Include="SkiaSharp.NativeAssets.macOS" Version="[$(SkiaSharpVersion)]" />
+    <PackageDownload Include="SkiaSharp.NativeAssets.Android" Version="[$(SkiaSharpVersion)]" />
+    <!-- The sample scene's HarfBuzz (see HarfBuzzSharp.NativeAssets.macOS in Sample.Unity.Scene's project.assets.json). -->
+    <PackageDownload Include="HarfBuzzSharp.NativeAssets.Android" Version="[14.2.0]" />
   </ItemGroup>
 </Project>

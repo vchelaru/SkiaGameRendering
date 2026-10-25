@@ -19,6 +19,8 @@ namespace SkiaGameRendering.Core.OGL
     {
         private const string LibEgl = "libEGL.so";
         private const string LibGles = "libGLESv2.so";
+        private const string LibDl = "libdl.so";
+        private const int RTLD_NOW = 2;
 
         private const int EGL_NONE = 0x3038;
         private const int EGL_CONFIG_ID = 0x3028;
@@ -66,6 +68,13 @@ namespace SkiaGameRendering.Core.OGL
 
         [DllImport(LibEgl, CharSet = CharSet.Ansi)]
         private static extern IntPtr eglGetProcAddress(string procName);
+
+        // NativeLibrary does not exist on netstandard2.1, which Unity needs.
+        [DllImport(LibDl, CharSet = CharSet.Ansi)]
+        private static extern IntPtr dlopen(string fileName, int flags);
+
+        [DllImport(LibDl, CharSet = CharSet.Ansi)]
+        private static extern IntPtr dlsym(IntPtr handle, string symbol);
 
         private IntPtr _previousDisplay;
         private IntPtr _previousDrawSurface;
@@ -175,10 +184,8 @@ namespace SkiaGameRendering.Core.OGL
                 return address;
 
             if (_glesLibrary == IntPtr.Zero)
-                NativeLibrary.TryLoad(LibGles, out _glesLibrary);
-            return _glesLibrary != IntPtr.Zero && NativeLibrary.TryGetExport(_glesLibrary, name, out var export)
-                ? export
-                : IntPtr.Zero;
+                _glesLibrary = dlopen(LibGles, RTLD_NOW);
+            return _glesLibrary != IntPtr.Zero ? dlsym(_glesLibrary, name) : IntPtr.Zero;
         }
 
         /// <summary>Destroys the Skia context. It must not be current on any thread.</summary>

@@ -58,6 +58,12 @@ namespace SkiaGameRendering
                 SupportsDirectCanvas = true;
                 return;
             }
+            // Android: the same backend on an EGL shared context. GLES 2 lacks what Skia's FBOs need.
+            if (api == GraphicsDeviceType.OpenGLES3 && Application.platform == RuntimePlatform.Android)
+            {
+                SupportsDirectCanvas = true;
+                return;
+            }
             if (api == GraphicsDeviceType.Vulkan
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
             {
@@ -81,7 +87,7 @@ namespace SkiaGameRendering
                 return;
             }
             throw new NotSupportedException(
-                $"SkiaGameRendering.Unity supports Direct3D11, Direct3D12, Vulkan and OpenGL on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
+                $"SkiaGameRendering.Unity supports Direct3D11, Direct3D12, Vulkan and OpenGL on Windows, OpenGL ES 3 on Android and Metal on macOS so far, not {api} on {Application.platform}.");
         }
 
         /// <summary>Creates the backend for Unity's current device, the first time anything draws.</summary>
@@ -91,7 +97,7 @@ namespace SkiaGameRendering
                 GraphicsDeviceType.Metal => new MetalUnityBackend(),
                 GraphicsDeviceType.Direct3D12 => new D3D12UnityBackend(),
                 GraphicsDeviceType.Vulkan => new VulkanUnityBackend(),
-                GraphicsDeviceType.OpenGLCore => new OpenGlUnityBackend(),
+                GraphicsDeviceType.OpenGLCore or GraphicsDeviceType.OpenGLES3 => new OpenGlUnityBackend(),
                 _ => new AngleUnityBackend(nativeTexture),
             };
 

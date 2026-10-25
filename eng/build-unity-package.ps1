@@ -11,6 +11,8 @@ $package = Join-Path $repo 'unity/com.vchelaru.skiagamerendering'
 $plugins = Join-Path $package 'Plugins'
 $native = Join-Path $plugins 'x86_64'
 $macOS = Join-Path $plugins 'macOS'
+$androidX64 = Join-Path $plugins 'Android/x86_64'
+$androidArm64 = Join-Path $plugins 'Android/arm64-v8a'
 $angleProj = Join-Path $repo 'src/SkiaGameRendering.Core.ANGLE/SkiaGameRendering.Core.ANGLE.csproj'
 $metalProj = Join-Path $repo 'src/SkiaGameRendering.Core.Metal/SkiaGameRendering.Core.Metal.csproj'
 $d3d12Proj = Join-Path $repo 'src/SkiaGameRendering.Core.D3D12/SkiaGameRendering.Core.D3D12.csproj'
@@ -31,11 +33,11 @@ dotnet build $oglProj -c Release -f netstandard2.1
 if ($LASTEXITCODE -ne 0) { throw "Core.OGL build failed." }
 dotnet build $vkProj -c Release -f netstandard2.1
 if ($LASTEXITCODE -ne 0) { throw "Core.VK build failed." }
-# SkiaSharp's macOS native, which the main build never restores on Windows.
+# SkiaSharp's macOS and Android natives, which the main build never restores on Windows.
 dotnet restore (Join-Path $repo 'eng/unity-natives/UnityNatives.csproj')
 if ($LASTEXITCODE -ne 0) { throw "eng/unity-natives restore failed." }
 
-New-Item -ItemType Directory -Force $native, $macOS | Out-Null
+New-Item -ItemType Directory -Force $native, $macOS, $androidX64, $androidArm64 | Out-Null
 
 $angleOut = Join-Path $repo 'src/SkiaGameRendering.Core.ANGLE/bin/Release/netstandard2.1'
 Copy-Item (Join-Path $angleOut 'SkiaGameRendering.Core.ANGLE.dll') $plugins
@@ -58,6 +60,10 @@ foreach ($dll in 'libEGL.dll', 'libGLESv2.dll', 'z.dll') {
 Copy-Item (Join-Path $nuget "skiasharp.nativeassets.macos/$skiaVersion/runtimes/osx/native/libSkiaSharp.dylib") $macOS
 # Built and committed by eng/build-unity-metal-plugin.sh.
 Copy-Item (Join-Path $repo 'unity/native/SkiaUnityMetal/macOS/libSkiaUnityMetal.dylib') $macOS
+
+# Android needs no plugin of its own: Skia draws on an EGL context that shares Unity's.
+Copy-Item (Join-Path $nuget "skiasharp.nativeassets.android/$skiaVersion/runtimes/android-x64/native/libSkiaSharp.so") $androidX64
+Copy-Item (Join-Path $nuget "skiasharp.nativeassets.android/$skiaVersion/runtimes/android-arm64/native/libSkiaSharp.so") $androidArm64
 
 # A package installed from git is read-only, so Unity can't write .meta files for it and ignores any
 # file without one. BuildMetas~ (hidden from Unity by its trailing ~) holds the committed .meta for
@@ -100,5 +106,13 @@ $harfBuzzMac = $assets.libraries.PSObject.Properties.Name | Where-Object { $_ -l
 $sceneMac = Join-Path $scenePlugins 'macOS'
 New-Item -ItemType Directory -Force $sceneMac | Out-Null
 Copy-Item (Join-Path $nuget "$($harfBuzzMac.ToLower())/runtimes/osx/native/libHarfBuzzSharp.dylib") $sceneMac
+# The Android HarfBuzz natives, of the version the macOS ones are (restored by eng/unity-natives), go where Unity
+# picks up an app's own Android natives by ABI folder.
+$harfBuzzAndroid = Join-Path $nuget "harfbuzzsharp.nativeassets.android/$(($harfBuzzMac -split '/')[1])/runtimes"
+foreach ($abi in @(@('android-x64', 'x86_64'), @('android-arm64', 'arm64-v8a'))) {
+    $dest = Join-Path (Split-Path $scenePlugins -Parent) "Android/libs/$($abi[1])"
+    New-Item -ItemType Directory -Force $dest | Out-Null
+    Copy-Item (Join-Path $harfBuzzAndroid "$($abi[0])/native/libHarfBuzzSharp.so") $dest
+}
 
 Write-Host "Unity sample scene binaries written to $scenePlugins"

@@ -7,13 +7,16 @@ using SkiaSharp;
 namespace SkiaGameRendering
 {
     /// <summary>
-    /// OpenGL on Windows: Skia draws on a second GL context that shares Unity's texture namespace, so
-    /// Skia's raw GL calls never touch the state Unity caches for its own context.
+    /// OpenGL on Windows (WGL) and OpenGL ES on Android (EGL): Skia draws on a second GL context that
+    /// shares Unity's texture namespace, so Skia's raw GL calls never touch the state Unity caches for
+    /// its own context.
     ///
     /// MAINTENANCE NOTES:
-    /// - Created on the render thread, where Unity's context is current. The shared context is created
-    ///   on the window of that context's device context, which is what <c>wglShareLists</c> needs (the
-    ///   same pixel format).
+    /// - Created on the render thread, where Unity's context is current. On Windows the shared context
+    ///   is created on the window of that context's device context, which is what <c>wglShareLists</c>
+    ///   needs (the same pixel format). On Android <see cref="EglSharedContext"/> reads the current
+    ///   EGL display, config and context and runs surfaceless where the driver allows; the default
+    ///   framebuffer of <see cref="DrawDirect"/> then needs the host's draw surface instead.
     /// - Skia's writes reach Unity's context only after a flush on Skia's side and a rebind of the
     ///   texture on Unity's (<see cref="GlSkiaSurfaceFactory.RefreshSharedTexture"/>), which restores
     ///   the binding it replaces.
@@ -31,7 +34,16 @@ namespace SkiaGameRendering
         [DllImport("user32.dll")]
         static extern IntPtr WindowFromDC(IntPtr hdc);
 
-        readonly WglSharedContext _platform = new WglSharedContext();
+        // The render thread cannot read Application.platform, so the platform is a compile-time choice.
+#if UNITY_ANDROID
+        const bool IsAndroid = true;
+#else
+        const bool IsAndroid = false;
+#endif
+
+        readonly ISharedGlContext _platform;
+        // Makes Skia's context current on the window's own default framebuffer.
+        readonly Action _makeCurrentOnWindow;
         readonly GlFunctions _gl;
         readonly GRContext _grContext;
 
@@ -43,9 +55,21 @@ namespace SkiaGameRendering
 
         internal OpenGlUnityBackend()
         {
-            var window = WindowFromDC(wglGetCurrentDC());
-            if (window == IntPtr.Zero)
-                throw new InvalidOperationException("Unity's OpenGL context is not current on a window's device context.");
+            var window = IntPtr.Zero;
+            if (IsAndroid)
+            {
+                var egl = new EglSharedContext();
+                _platform = egl;
+                _makeCurrentOnWindow = egl.MakeSkiaContextCurrentOnHostSurface;
+            }
+            else
+            {
+                window = WindowFromDC(wglGetCurrentDC());
+                if (window == IntPtr.Zero)
+                    throw new InvalidOperationException("Unity's OpenGL context is not current on a window's device context.");
+                _platform = new WglSharedContext();
+                _makeCurrentOnWindow = _platform.MakeSkiaContextCurrent;
+            }
 
             _platform.CreateSharedContext(window);
             _platform.MakeSkiaContextCurrent();
@@ -95,7 +119,10 @@ namespace SkiaGameRendering
             // Still on Unity's context: what it is drawing into, and its draws so far submitted.
             var glTarget = GlSkiaSurfaceFactory.QueryDrawTarget(_gl);
             GlSkiaSurfaceFactory.Flush(_gl);
-            _platform.MakeSkiaContextCurrent();
+            if (glTarget.IsDefaultFramebuffer)
+                _makeCurrentOnWindow();
+            else
+                _platform.MakeSkiaContextCurrent();
             try
             {
                 _grContext.ResetContext();
