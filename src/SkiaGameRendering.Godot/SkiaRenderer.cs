@@ -18,6 +18,12 @@ namespace SkiaGameRendering
         public static bool IsInitialized => _backend != null;
 
         /// <summary>
+        /// Always false: <see cref="SkiaRenderTarget2D"/>'s <c>multiSampleCount</c> exists for a portable API, but only 0
+        /// works here and 2, 4 and 8 throw <see cref="NotSupportedException"/>. Needs no initialization to answer.
+        /// </summary>
+        public static bool SupportsMultiSampledTargets => false;
+
+        /// <summary>
         /// The Godot rendering driver the initialized backend runs on - <c>"vulkan"</c>, <c>"d3d12"</c>,
         /// <c>"metal"</c> or <c>"opengl3"</c> - or <c>null</c> before <see cref="Initialize"/>. Same values as
         /// <see cref="RenderingServer.GetCurrentRenderingDriverName"/>.

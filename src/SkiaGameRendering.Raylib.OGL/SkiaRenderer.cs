@@ -20,6 +20,12 @@ namespace SkiaGameRendering
         public static bool IsInitialized => _context != null;
 
         /// <summary>
+        /// Always false: <see cref="SkiaRenderTarget2D"/>'s <c>multiSampleCount</c> exists for a portable API, but only 0
+        /// works here and 2, 4 and 8 throw <see cref="NotSupportedException"/>. Needs no initialization to answer.
+        /// </summary>
+        public static bool SupportsMultiSampledTargets => false;
+
+        /// <summary>
         /// Whether <see cref="SkiaDirectCanvas"/> works here: true on Windows and Linux, false on macOS,
         /// where Skia's GL context has no window to draw into.
         /// </summary>

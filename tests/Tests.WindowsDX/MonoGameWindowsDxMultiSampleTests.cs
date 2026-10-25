@@ -23,6 +23,9 @@ public sealed class MonoGameWindowsDxMultiSampleTests : IDisposable
     }
 
     [Fact]
+    public void FlagIsFalse() => Assert.False(SkiaRenderer.SupportsMultiSampledTargets);
+
+    [Fact]
     public void MultiSampleCount_Throws() => EngineMultiSample.AssertMultiSampleThrows(_headless.GraphicsDevice);
 
     [Fact]

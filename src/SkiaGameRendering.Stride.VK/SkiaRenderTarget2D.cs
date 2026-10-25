@@ -26,14 +26,27 @@ namespace SkiaGameRendering
         SpriteBatch? _spriteBatch;
         bool _hasBegun;
 
+        /// <param name="multiSampleCount">
+        /// Samples per pixel, same parameter as on the other engines. Only 0 (the default) works on Stride; 2, 4 and 8
+        /// throw <see cref="NotSupportedException"/> (it never falls back to 0), and so does any other value.
+        /// Check <see cref="SkiaRenderer.SupportsMultiSampledTargets"/> to stay portable.
+        /// </param>
         public SkiaRenderTarget2D(
-            GraphicsDevice graphicsDevice, int width, int height, SKColorType colorType = SKColorType.Rgba8888)
+            GraphicsDevice graphicsDevice, int width, int height, SKColorType colorType = SKColorType.Rgba8888, int multiSampleCount = 0)
         {
             ArgumentNullException.ThrowIfNull(graphicsDevice);
             if (width <= 0)
                 throw new ArgumentOutOfRangeException(nameof(width));
             if (height <= 0)
                 throw new ArgumentOutOfRangeException(nameof(height));
+
+            if (multiSampleCount is not (0 or 2 or 4 or 8))
+                throw new NotSupportedException(
+                    $"multiSampleCount must be 0, 2, 4 or 8, not {multiSampleCount}.");
+            if (multiSampleCount != 0)
+                throw new NotSupportedException(
+                    $"SkiaRenderTarget2D on Stride does not support multisampled render targets (multiSampleCount {multiSampleCount}). " +
+                    "It never falls back to 0.");
 
             _graphicsDevice = graphicsDevice;
             _context = SkiaRenderer.EnsureInitialized(graphicsDevice);

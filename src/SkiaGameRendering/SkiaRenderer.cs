@@ -96,6 +96,15 @@ namespace SkiaGameRendering
         public static bool SupportsDirectCanvas => _backend?.SupportsDirectCanvas ?? false;
 
         /// <summary>
+        /// True when <see cref="SkiaRenderTarget2D"/> accepts a non-zero <c>multiSampleCount</c>: the OpenGL backends
+        /// (MonoGame and KNI on DesktopGL, Android and iOS, FNA OpenGL). False on every other backend, where a
+        /// non-zero count throws <see cref="NotSupportedException"/>. False until the renderer is initialized, like
+        /// <see cref="SupportsDirectCanvas"/>; construct a <see cref="SkiaRenderTarget2D"/> or call <c>Initialize</c> first.
+        /// Portable use: <c>int samples = SkiaRenderer.SupportsMultiSampledTargets ? 4 : 0;</c>
+        /// </summary>
+        public static bool SupportsMultiSampledTargets => _backend?.SupportsMultiSampledTargets ?? false;
+
+        /// <summary>
         /// Called by the <see cref="SkiaRenderTarget2D"/> and <see cref="SkiaDirectCanvas"/> constructors. Auto-initializes
         /// against <paramref name="graphicsDevice"/> if nothing has initialized the renderer yet.
         /// </summary>

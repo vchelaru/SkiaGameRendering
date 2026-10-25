@@ -36,12 +36,25 @@ public sealed class SkiaRenderTarget2D : IDisposable
     private bool _hasBegun;
     private bool _isDisposed;
 
-    public SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)
+    /// <param name="multiSampleCount">
+    /// Samples per pixel, same parameter as on the other engines. Only 0 (the default) works on raylib WebGL; 2, 4 and 8
+    /// throw <see cref="NotSupportedException"/> (it never falls back to 0), and so does any other value.
+    /// Check <see cref="SkiaRenderer.SupportsMultiSampledTargets"/> to stay portable.
+    /// </param>
+    public SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888, int multiSampleCount = 0)
     {
         if (width <= 0)
             throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0)
             throw new ArgumentOutOfRangeException(nameof(height));
+        if (multiSampleCount is not (0 or 2 or 4 or 8))
+            throw new NotSupportedException(
+                $"multiSampleCount must be 0, 2, 4 or 8, not {multiSampleCount}.");
+        if (multiSampleCount != 0)
+            throw new NotSupportedException(
+                $"SkiaRenderTarget2D on raylib WebGL does not support multisampled render targets (multiSampleCount {multiSampleCount}). " +
+                "It never falls back to 0.");
+
         if (colorType != SKColorType.Rgba8888)
             throw new NotSupportedException("SkiaRenderTarget2D supports SKColorType.Rgba8888 only on WebGL.");
 

@@ -18,6 +18,7 @@ static class EngineMultiSample
     {
         var plain = Render(graphicsDevice, 0);
         var multiSampled = Render(graphicsDevice, 4);
+        Assert.True(SkiaRenderer.SupportsMultiSampledTargets);
 
         // The hard-edged rect has no antialiasing to differ in; its interior (clear of the translucent
         // rects that overlap its right and bottom) must come out identical.
@@ -67,6 +68,7 @@ static class EngineMultiSample
                 graphicsDevice, GoldenScene.Width, GoldenScene.Height, multiSampleCount: count));
 
         using var plain = new SkiaRenderTarget2D(graphicsDevice, GoldenScene.Width, GoldenScene.Height);
+        Assert.False(SkiaRenderer.SupportsMultiSampledTargets);
     }
 
     /// <summary>Creates, draws and disposes multisampled targets over and over; the process must not grow.</summary>
