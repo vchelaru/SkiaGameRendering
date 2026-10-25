@@ -764,7 +764,7 @@ jobs:
           echo "Selecting $xcode"
           sudo xcode-select -s "$xcode"
       - name: Install the iOS workload
-        run: dotnet workload install ios
+        run: dotnet workload install ios --from-rollback-file eng/ios-rollback.json
       - name: Build the MonoGame iOS sample for the simulator
         run: dotnet build samples/Sample.MonoGame.iOS/Sample.MonoGame.iOS.csproj -c Release -r iossimulator-arm64
       - name: Build the KNI iOS sample for the simulator
