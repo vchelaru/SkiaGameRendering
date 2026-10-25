@@ -177,48 +177,19 @@ test("accepts Rgba8888 render targets and rejects other color types with NotSupp
     expect(await tryColorType(color), `SKColorType ${color}`).toMatch(/^NotSupportedException: .*Rgba8888/);
 });
 
-// ?es2=1 hides OES_vertex_array_object from raylib (samples/Sample.Raylib.WebGL/wwwroot/js/game-loop.js), so its ES2
-// build re-specifies vertex attributes on every draw instead of binding a VAO. Skia overwrites those attributes in
-// each pass and the interop puts them back, so raylib's draws after a Skia pass must still be right.
-for (const mode of ["target", "direct"]) {
-  test(`keeps drawing correctly with raylib's ES2 no-VAO path hidden (${mode})`, async ({ page }) => {
-    const errors = await open(page, `${mode}&es2=1`);
-    const hidden = await page.evaluate(() => {
-      const gl = document.createElement("canvas").getContext("webgl2");
-      return { listed: gl.getSupportedExtensions().some(name => /vertex_array_object/i.test(name)), object: gl.getExtension("OES_vertex_array_object"), ...globalThis.skiaRaylibEs2 };
-    });
-    expect(hidden.forced).toBe(true);
-    expect(hidden.listed).toBe(false);
-    expect(hidden.object).toBeNull();
-    test.info().annotations.push({ type: "vaosCreated", description: String(hidden.vaosCreated) });
-    const errorsAtStart = await glErrors(page);
-    await waitForFrames(page, 60);
-    await expectScene(page);
-    await expectText(page);
-    if (mode === "direct") {
-      await expectColors(page, layering);
-      await expectColors(page, renderTexture);
-    }
-    expect(await glErrors(page), "GL errors Skia left behind after the first frames").toBe(errorsAtStart);
-    expect(errors).toEqual([]);
-  });
-}
-
-// Proves raylib itself skipped VAOs (Skia makes its own, so only a raylib-only frame says anything): ?mode=raylib draws no
-// Skia, and raylib re-specifies its vertex attributes on every draw (vertexAttribPointer, 4 a frame here) without a VAO
-// instead of binding one. The default page measures the same (0 binds), so this proves the path, not that es2=1 changes it.
-async function raylibGlCallsPerFrame(page, query) {
-  await open(page, query);
-  const read = () => page.evaluate(() => ({ ...globalThis.skiaRaylibEs2, frame: Number(document.getElementById("diagnostic-text").textContent.match(/frames (\d+)/)[1]) }));
+// raylib's build is OpenGL ES 2 and uses VAOs only through OES_vertex_array_object, which a WebGL 2 context never offers (VAOs
+// are core there), so raylib logs "VAO extension not found" and re-specifies its vertex attributes on every draw. Skia
+// makes its own VAOs, so only a ?mode=raylib frame (no Skia) says anything about raylib. The path with VAOs is not
+// reachable on this page; it would need a WebGL 1 context.
+test("raylib gets no vertex array objects from its WebGL 2 context and re-specifies its attributes every draw", async ({ page }) => {
+  await open(page, "raylib");
+  const read = () => page.evaluate(() => ({ ...globalThis.skiaRaylibGl, frame: Number(document.getElementById("diagnostic-text").textContent.match(/frames ([0-9]+)/)[1]) }));
   const before = await read();
   await waitForFrames(page, 30);
   const after = await read();
+  expect(after.vaoExtensionRequests, "raylib asked for OES_vertex_array_object").toBeGreaterThanOrEqual(1);
+  expect(after.vaoExtensionGranted, "times the context granted it").toBe(0);
   const elapsed = after.frame - before.frame;
-  return { binds: (after.vaoBinds - before.vaoBinds) / elapsed, pointers: (after.attribPointers - before.attribPointers) / elapsed };
-}
-
-test("raylib skips vertex array objects and re-specifies its attributes when OES_vertex_array_object is hidden", async ({ page }) => {
-  const { binds, pointers } = await raylibGlCallsPerFrame(page, "raylib&es2=1");
-  expect(pointers, "vertexAttribPointer calls per raylib-only frame").toBeGreaterThanOrEqual(1);
-  expect(binds, "bindVertexArray calls per raylib-only frame").toBe(0);
+  expect((after.attribPointers - before.attribPointers) / elapsed, "vertexAttribPointer calls per raylib-only frame").toBeGreaterThanOrEqual(1);
+  expect((after.vaoBinds - before.vaoBinds) / elapsed, "bindVertexArray calls per raylib-only frame").toBe(0);
 });
