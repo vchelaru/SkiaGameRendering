@@ -1,6 +1,5 @@
 using SkiaGameRendering;
 using SkiaSharp;
-using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 using Stride.Games;
@@ -9,7 +8,7 @@ using Stride.Games;
 using SharedScene = Sample.Shared.Scene;
 
 // Stride's default authoring flow is GameStudio plus an asset-pipeline project; the Community
-// Toolkit's code-only helpers (SetupBase3DScene, AddSceneRenderer) are its documented alternative
+// Toolkit's code-only helpers (the default SceneSetup3D that Run applies, AddSceneRenderer) are its documented alternative
 // for a pure-code Game like this one - see Sample.Stride.D3D11.csproj's comment.
 using var game = new Game();
 
@@ -24,7 +23,6 @@ Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
 void Start(Scene rootScene)
 {
     // Camera, lighting, and a ground plane - the minimum a Stride scene needs to render anything.
-    game.SetupBase3DScene();
 
     // SkiaDirectCanvas auto-initializes SkiaRenderer against game.GraphicsDevice on first
     // use, and draws straight into the back buffer the compositor is rendering to.
@@ -33,7 +31,7 @@ void Start(Scene rootScene)
     // SkiaSceneRenderer is the DrawCore hook Stride needs to run a Skia draw every frame -
     // Stride drives rendering through its GraphicsCompositor, not a user-owned Draw() call the way
     // MonoGame/KNI do. game.AddSceneRenderer appends it after the existing scene renderer, so it
-    // draws on top of the 3D scene SetupBase3DScene created.
+    // draws on top of the 3D scene Run's default SceneSetup3D created.
     var renderer = new SkiaSceneRenderer { DirectCanvas = canvas };
     renderer.SkiaDraw += skCanvas =>
     {

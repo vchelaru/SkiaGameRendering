@@ -23,7 +23,7 @@ Stride's normal authoring flow is a GameStudio project with an asset pipeline, w
 `GraphicsCompositor` (camera, lighting, render stages) usually comes from. A pure-code `Game` like
 `samples/Sample.Stride.D3D11` needs one from somewhere else - the
 [Stride Community Toolkit](https://stride3d.github.io/stride-community-toolkit/)'s
-`SetupBase3DScene()`/`AddSceneRenderer()` helpers are Stride's own documented way to do that without
+`Run` (which applies a default `SceneSetup3D`) and `AddSceneRenderer()` helpers are Stride's own documented way to do that without
 GameStudio. This is a sample-only dependency; `SkiaGameRendering.Stride.D3D11` itself doesn't need it - any
 project with its own `GraphicsCompositor` can skip the toolkit entirely.
 
@@ -36,7 +36,6 @@ Skia draw runs inside a `SceneRendererBase.DrawCore` override -
 ```cs
 using SkiaGameRendering;
 using SkiaSharp;
-using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 
@@ -52,7 +51,6 @@ Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
 
 void Start(Scene rootScene)
 {
-    game.SetupBase3DScene();
 
     // Draws straight into the back buffer. To draw into a texture and composite it instead, set
     // Canvas to a SkiaRenderTarget2D sized to the back buffer and clear it in SkiaDraw.

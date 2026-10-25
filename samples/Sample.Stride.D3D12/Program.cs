@@ -1,6 +1,5 @@
 using SkiaGameRendering;
 using SkiaSharp;
-using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 using Stride.Games;
@@ -19,7 +18,6 @@ Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
 
 void Start(Scene rootScene)
 {
-    game.SetupBase3DScene();
 
     // Draws straight into the back buffer the compositor is rendering to. Constructing it initializes
     // SkiaRenderer against game.GraphicsDevice.

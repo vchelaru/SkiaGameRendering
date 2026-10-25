@@ -39,7 +39,7 @@ explicitly in your project:
 
 Same story as the D3D11 sample: a pure-code `Game` needs a `GraphicsCompositor` from somewhere other
 than GameStudio's asset pipeline. The [Stride Community Toolkit](https://stride3d.github.io/stride-community-toolkit/)'s
-`SetupBase3DScene()`/`AddSceneRenderer()` helpers provide one without it. This is a sample-only
+`Run` (which applies a default `SceneSetup3D`) and `AddSceneRenderer()` helpers provide one without it. This is a sample-only
 dependency; `SkiaGameRendering.Stride.VK` itself doesn't need it.
 
 ## Initialize and render
@@ -51,7 +51,6 @@ Skia draw runs inside a `SceneRendererBase.DrawCore` override -
 ```cs
 using SkiaGameRendering;
 using SkiaSharp;
-using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 
@@ -67,7 +66,6 @@ Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
 
 void Start(Scene rootScene)
 {
-    game.SetupBase3DScene();
 
     var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
     canvas = new SkiaRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);

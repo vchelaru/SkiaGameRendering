@@ -16,8 +16,7 @@
 
   <ItemGroup>
     <!-- Same Community Toolkit packages as Sample.Stride.D3D11; see that csproj for why. -->
-    <PackageReference Include="Stride.CommunityToolkit.Bepu" Version="$(StrideCommunityToolkitVersion)" />
-    <PackageReference Include="Stride.CommunityToolkit.Windows" Version="$(StrideCommunityToolkitVersion)" />
+    <PackageReference Include="Stride.CommunityToolkit" Version="$(StrideCommunityToolkitVersion)" />
   </ItemGroup>
 
   <ItemGroup>

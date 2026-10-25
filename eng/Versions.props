@@ -22,7 +22,7 @@
          depends on. 4.4.1 also fixes a missing COLOR_ATTACHMENT_READ in Stride's Vulkan render target
          barrier (issue #122). -->
     <StrideVersion>4.4.1</StrideVersion>
-    <StrideCommunityToolkitVersion>1.0.0-preview.63</StrideCommunityToolkitVersion>
+    <StrideCommunityToolkitVersion>1.0.0-preview.68</StrideCommunityToolkitVersion>
     <!-- Must match the Silk.NET version Stride.Graphics 4.4.1 itself depends on (check that
          package's own nuspec on a Stride version bump) - SkiaGameRendering.Stride names
          Silk.NET.Direct3D11/Core types directly (ComPtr<ID3D11Device>, ID3D11Resource*). -->
