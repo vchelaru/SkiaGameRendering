@@ -359,6 +359,11 @@ jobs:
   fna-webgl:
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',fna-webgl,')))
     runs-on: ubuntu-latest
+    # The sample runs on the interpreter by default; the shippable build is AOT-compiled.
+    strategy:
+      fail-fast: false
+      matrix:
+        aot: [false, true]
     steps:
       - uses: actions/checkout@v4
       - name: Check out the FNA submodule
@@ -385,7 +390,7 @@ jobs:
       - name: Build SDL2 and FNA3D for WebAssembly
         run: bash eng/build-fna-wasm-natives.sh
       - name: Publish the sample
-        run: dotnet publish samples/Sample.Fna.WebGL/Sample.Fna.WebGL.csproj -c Release
+        run: dotnet publish samples/Sample.Fna.WebGL/Sample.Fna.WebGL.csproj -c Release -p:RunAOTCompilation=${{ matrix.aot }}
       - name: Install browser tests
         working-directory: tests/Tests.Fna.WebGL
         run: |
@@ -398,7 +403,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: fna-webgl-browser-artifacts
+          name: fna-webgl-browser-artifacts-aot-${{ matrix.aot }}
           path: |
             tests/Tests.Fna.WebGL/playwright-report
             tests/Tests.Fna.WebGL/test-results
