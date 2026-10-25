@@ -94,6 +94,8 @@ dotnet build samples\Sample.Stride.VK\Sample.Stride.VK.csproj -c Release
 dotnet run --project samples\Sample.Stride.VK\Sample.Stride.VK.csproj -c Release --no-build
 ```
 
+`--smoke-test` (through `SkiaRenderTarget2D`) and `--direct-smoke-test` (through `SkiaSceneRenderer.DirectCanvas`) render a few frames, check the back buffer for the shared scene, and exit with 0 or 1.
+
 The build step works on any platform, including a Windows box with no discrete Vulkan-capable GPU at
 all - forcing `StrideGraphicsApi=Vulkan` only picks which `Stride.Graphics.dll` variant gets compiled
 against and copied to output, it does not require a Vulkan driver to be present. Actually **running**

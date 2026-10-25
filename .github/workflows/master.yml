@@ -670,6 +670,27 @@ jobs:
             if ($p.ExitCode -ne 0) { exit $p.ExitCode }
           }
 
+      # Stride's Vulkan sample on lavapipe, through both the render target and the direct canvas. The back
+      # buffer is Stride's sRGB swap chain (default Linear color space). Needs net10.0, unlike the MonoGame samples.
+      - uses: actions/setup-dotnet@v4
+        if: matrix.platform == 'WindowsDX12'
+        with:
+          dotnet-version: 10.0.x
+      - name: Run the Stride Vulkan sample's smoke tests
+        if: matrix.platform == 'WindowsDX12'
+        shell: pwsh
+        run: |
+          dotnet build samples/Sample.Stride.VK/Sample.Stride.VK.csproj -c Release -o out-stride
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($mode in "--smoke-test", "--direct-smoke-test") {
+            $p = Start-Process ./out-stride/Sample.Stride.VK.exe -ArgumentList $mode -PassThru -RedirectStandardOutput stride.txt -RedirectStandardError stride-err.txt
+            $null = $p.Handle
+            if (-not $p.WaitForExit(180000)) { $p.Kill(); Get-Content stride.txt, stride-err.txt; throw "$mode timed out" }
+            Get-Content stride.txt, stride-err.txt
+            "$mode exit code: $($p.ExitCode)"
+            if ($p.ExitCode -ne 0) { exit $p.ExitCode }
+          }
+
   # Builds the sample for ARM and x86_64, then runs its smoke test on an x86_64 emulator with
   # SwiftShader as the GPU (the runner has none).
   android:
