@@ -3,10 +3,10 @@ const { test, expect } = require("@playwright/test");
 // Sample.Fna.WebGL, FNA on WebGL2. Frames are driven by the test (?manual=1) so the canvas is read in the same
 // task as the draw, before the browser presents it and clears the drawing buffer. Points are top-left origin.
 
-async function open(page, mode) {
+async function open(page, mode, query = "") {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
-  await page.goto(`/?mode=${mode}&manual=1`);
+  await page.goto(`/?mode=${mode}&manual=1${query}`);
   await page.waitForFunction(() => globalThis.fnaSample, null, { timeout: 90000 });
   return errors;
 }
@@ -112,4 +112,37 @@ test("accepts Rgba8888 render targets and rejects other color types with NotSupp
   expect(await tryColorType(4)).toBe("ok");
   for (const color of [1, 2, 6])
     expect(await tryColorType(color), `SKColorType ${color}`).toMatch(/^NotSupportedException: .*Rgba8888/);
+});
+
+// ?msaa=1 sets PreferMultiSampling, so FNA3D is asked for a multisampled back buffer. On CI it still hands Skia a
+// framebuffer with 0 samples and PresentationParameters.MultiSampleCount stays 0 (#230), so this checks the request
+// does not break drawing and records both numbers instead of requiring one above 0. Raise it to > 0 if FNA3D ever
+// grants multisampling on WebGL.
+test("SkiaDirectCanvas draws correctly when FNA is asked for a multisampled back buffer", async ({ page }) => {
+  await page.addInitScript(() => {
+    globalThis.sampleLog = [];
+    const getParameter = WebGL2RenderingContext.prototype.getParameter;
+    WebGL2RenderingContext.prototype.getParameter = function (name) {
+      const value = getParameter.call(this, name);
+      if (name === this.SAMPLES) globalThis.sampleLog.push(value);
+      return value;
+    };
+  });
+  const errors = await open(page, "direct", "&msaa=1");
+  const points = { circle: [50, 50], lime: [450, 100], blueSquare: [410, 310], magenta: [620, 620], black: [790, 790] };
+  const read = await draw(page, Object.values(points), 30);
+  const pixel = Object.fromEntries(Object.keys(points).map((name, i) => [name, read[i]]));
+  near(pixel.circle, [255, 0, 0]);
+  near(pixel.lime, [0, 255, 0]);
+  near(pixel.blueSquare, [0, 0, 255]);
+  near(pixel.magenta, [255, 0, 255]);
+  near(pixel.black, [0, 0, 0]);
+  // The device exists once the first frame has run.
+  const granted = await page.evaluate(() => globalThis.fnaSample.backBufferMultiSampleCount());
+  test.info().annotations.push({ type: "PresentationParameters.MultiSampleCount", description: String(granted) });
+  const samples = await page.evaluate(() => globalThis.sampleLog);
+  expect(samples.length, "the interop read gl.SAMPLES").toBeGreaterThan(0);
+  test.info().annotations.push({ type: "gl.SAMPLES", description: [...new Set(samples)].join(",") });
+  expect(await glErrors(page), await glErrorLog(page)).toBe(0);
+  expect(errors).toEqual([]);
 });

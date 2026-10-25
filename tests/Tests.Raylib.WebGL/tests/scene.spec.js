@@ -176,3 +176,30 @@ test("accepts Rgba8888 render targets and rejects other color types with NotSupp
   for (const color of [1, 2, 6])
     expect(await tryColorType(color), `SKColorType ${color}`).toMatch(/^NotSupportedException: .*Rgba8888/);
 });
+
+// ?es2=1 hides OES_vertex_array_object from raylib (samples/Sample.Raylib.WebGL/wwwroot/js/game-loop.js), so its ES2
+// build re-specifies vertex attributes on every draw instead of binding a VAO. Skia overwrites those attributes in
+// each pass and the interop puts them back, so raylib's draws after a Skia pass must still be right.
+for (const mode of ["target", "direct"]) {
+  test(`keeps drawing correctly with raylib's ES2 no-VAO path hidden (${mode})`, async ({ page }) => {
+    const errors = await open(page, `${mode}&es2=1`);
+    const hidden = await page.evaluate(() => {
+      const gl = document.createElement("canvas").getContext("webgl2");
+      return { listed: gl.getSupportedExtensions().some(name => /vertex_array_object/i.test(name)), object: gl.getExtension("OES_vertex_array_object"), ...globalThis.skiaRaylibEs2 };
+    });
+    expect(hidden.forced).toBe(true);
+    expect(hidden.listed).toBe(false);
+    expect(hidden.object).toBeNull();
+    test.info().annotations.push({ type: "vaosCreated", description: String(hidden.vaosCreated) });
+    const errorsAtStart = await glErrors(page);
+    await waitForFrames(page, 60);
+    await expectScene(page);
+    await expectText(page);
+    if (mode === "direct") {
+      await expectColors(page, layering);
+      await expectColors(page, renderTexture);
+    }
+    expect(await glErrors(page), "GL errors Skia left behind after the first frames").toBe(errorsAtStart);
+    expect(errors).toEqual([]);
+  });
+}

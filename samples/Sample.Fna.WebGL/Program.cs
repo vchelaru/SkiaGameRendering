@@ -26,9 +26,14 @@ public class SampleGame : Game
     public string Mode { get; set; } = "texture";
     public int Frames { get; private set; }
 
-    public SampleGame()
+    public SampleGame(bool multiSampling)
     {
-        _graphics = new GraphicsDeviceManager(this) { PreferredBackBufferWidth = 800, PreferredBackBufferHeight = 800 };
+        _graphics = new GraphicsDeviceManager(this)
+        {
+            PreferredBackBufferWidth = 800,
+            PreferredBackBufferHeight = 800,
+            PreferMultiSampling = multiSampling,
+        };
     }
 
     protected override void LoadContent()
@@ -99,20 +104,25 @@ public class SampleGame : Game
 public static partial class Program
 {
     private static SampleGame? _game;
+    private static bool _multiSampling;
 
     public static void Main() { }
+
+    // Must be called before the first SetMode or Frame: it asks FNA3D for a multisampled back buffer.
+    [JSExport]
+    public static void SetMultiSampling(bool enabled) => _multiSampling = enabled;
 
     [JSExport]
     public static void SetMode(string mode)
     {
-        _game ??= new SampleGame();
+        _game ??= new SampleGame(_multiSampling);
         _game.Mode = mode;
     }
 
     [JSExport]
     public static void Frame()
     {
-        _game ??= new SampleGame();
+        _game ??= new SampleGame(_multiSampling);
         _game.RunOneFrame();
     }
 
@@ -145,6 +155,10 @@ public static partial class Program
             return exception.GetType().Name + ": " + exception.Message;
         }
     }
+
+    // Tests: the MultiSampleCount FNA3D was given for the back buffer.
+    [JSExport]
+    public static int BackBufferMultiSampleCount() => _game!.GraphicsDevice.PresentationParameters.MultiSampleCount;
 
     [JSExport]
     public static int Frames() => _game?.Frames ?? 0;
