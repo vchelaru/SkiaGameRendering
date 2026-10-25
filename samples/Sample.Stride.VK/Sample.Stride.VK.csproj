@@ -36,7 +36,6 @@
       is windowing (SDL) only, which is graphics-API-agnostic; StrideGraphicsApi above is what
       actually picks Vulkan over Direct3D11 underneath it.
     -->
-    <PackageReference Include="Stride.CommunityToolkit.Bepu" Version="$(StrideCommunityToolkitVersion)" />
     <PackageReference Include="Stride.CommunityToolkit.Windows" Version="$(StrideCommunityToolkitVersion)" />
   </ItemGroup>
 

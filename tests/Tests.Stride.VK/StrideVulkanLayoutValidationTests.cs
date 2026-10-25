@@ -4,7 +4,9 @@ using SkiaGameRendering;
 using SkiaSharp;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
+using Stride.Games;
 using Stride.Graphics;
+using Tests.Shared;
 using Xunit;
 
 namespace Tests.StrideVK;
@@ -142,6 +144,35 @@ public sealed class StrideVulkanLayoutValidationTests
                 device.ExecuteCommandList(directReadback.Close());
 
                 Assert.Equal(new Color(0, 128, 0, 255), directPixel);
+
+                // Then the swap chain back buffer in Stride's default Linear color space: an sRGB-format image that
+                // Skia sees as its UNORM twin. Stride creates it without VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT, so the
+                // layer reports here if viewing it as UNORM is invalid (issue #245).
+                device.ColorSpace = ColorSpace.Linear;
+                using var window = new HiddenWindow(8, 8);
+                var parameters = new PresentationParameters(8, 8,
+                    new WindowHandle(AppContextType.DesktopWinForms, null!, window.Handle), PixelFormat.R8G8B8A8_UNorm_SRgb);
+                using var presenter = new SwapChainGraphicsPresenter(device, parameters);
+                device.Presenter = presenter;
+                try
+                {
+                    Assert.EndsWith("_SRgb", presenter.BackBuffer.ViewFormat.ToString());
+                    foreach (var color in new[] { SKColors.Red, SKColors.Blue, SKColors.Green })
+                    {
+                        using var commandList = CommandList.New(device);
+                        commandList.SetRenderTargetAndViewport(null, presenter.BackBuffer);
+                        commandList.Clear(presenter.BackBuffer, new Color4(0f, 0f, 0f, 0f));
+                        direct.Begin(new GraphicsContext(device, commandList: commandList));
+                        direct.Canvas.Clear(color);
+                        direct.End();
+                        device.ExecuteCommandList(commandList.Close());
+                        presenter.Present();
+                    }
+                }
+                finally
+                {
+                    device.Presenter = null!;
+                }
             }
             finally
             {

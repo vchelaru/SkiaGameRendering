@@ -39,7 +39,7 @@ explicitly in your project:
 
 Same story as the D3D11 sample: a pure-code `Game` needs a `GraphicsCompositor` from somewhere other
 than GameStudio's asset pipeline. The [Stride Community Toolkit](https://stride3d.github.io/stride-community-toolkit/)'s
-`SetupBase3DScene()`/`AddSceneRenderer()` helpers provide one without it. This is a sample-only
+`SetupBase3D()`/`AddSceneRenderer()` helpers provide one without it (not `SetupBase3DScene()` from the Bepu package: its ground plane calls a `Material.New` overload Stride 4.4.1 removed, so it throws at startup). This is a sample-only
 dependency; `SkiaGameRendering.Stride.VK` itself doesn't need it.
 
 ## Initialize and render
@@ -51,7 +51,6 @@ Skia draw runs inside a `SceneRendererBase.DrawCore` override -
 ```cs
 using SkiaGameRendering;
 using SkiaSharp;
-using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 
@@ -67,7 +66,7 @@ Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
 
 void Start(Scene rootScene)
 {
-    game.SetupBase3DScene();
+    game.SetupBase3D();
 
     var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
     canvas = new SkiaRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
@@ -95,6 +94,8 @@ Full member list and other remarks are documented on
 dotnet build samples\Sample.Stride.VK\Sample.Stride.VK.csproj -c Release
 dotnet run --project samples\Sample.Stride.VK\Sample.Stride.VK.csproj -c Release --no-build
 ```
+
+`--smoke-test` (through `SkiaRenderTarget2D`) and `--direct-smoke-test` (through `SkiaSceneRenderer.DirectCanvas`) render a few frames, check the back buffer for the shared scene, and exit with 0 or 1.
 
 The build step works on any platform, including a Windows box with no discrete Vulkan-capable GPU at
 all - forcing `StrideGraphicsApi=Vulkan` only picks which `Stride.Graphics.dll` variant gets compiled
