@@ -100,6 +100,21 @@ public static class Game
         }
     }
 
+    // Tests: what creating a SkiaRenderTarget2D with this multiSampleCount does.
+    [JSInvokable]
+    public static string TryMultiSample(int multiSampleCount)
+    {
+        try
+        {
+            using var target = new SkiaRenderTarget2D(16, 16, multiSampleCount: multiSampleCount);
+            return "ok";
+        }
+        catch (Exception exception)
+        {
+            return exception.GetType().Name + ": " + exception.Message;
+        }
+    }
+
     private static void DrawTarget()
     {
         _target!.Begin();
