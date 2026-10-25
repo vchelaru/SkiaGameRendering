@@ -144,7 +144,10 @@ public sealed class SkiaSample : MonoBehaviour
         var pipeline = GraphicsSettings.currentRenderPipeline;
         pipeline?.GetType().GetProperty("msaaSampleCount")?.SetValue(pipeline, _msaa ? 4 : 1);
         if (pipeline != null && pipeline.GetType().Name == "HDRenderPipelineAsset")
+        {
             FixHdrpExposure();
+            SetHdrpMsaa(pipeline, camera, _msaa);
+        }
 
         // Built by hand: CreatePrimitive adds a collider, which needs the Physics module.
         var quad = new GameObject("Skia quad");
@@ -266,6 +269,39 @@ public sealed class SkiaSample : MonoBehaviour
         var volume = new GameObject("Fixed exposure").AddComponent(volumeType);
         volumeType.GetProperty("isGlobal").SetValue(volume, true);
         volumeType.GetField("sharedProfile").SetValue(volume, profile);
+    }
+
+    // HDRP only multisamples a camera whose frame settings ask for it, in a pipeline asset that allows it (Lit Shader Mode Forward, which
+    // SampleBuild sets, and a sample count above None). Reflection, as in FixHdrpExposure.
+    static void SetHdrpMsaa(RenderPipelineAsset asset, Camera camera, bool on)
+    {
+        const string Assembly = ", Unity.RenderPipelines.HighDefinition.Runtime";
+        var settingsProperty = asset.GetType().GetProperty("currentPlatformRenderPipelineSettings");
+        var settings = settingsProperty.GetValue(asset);
+        var samples = settings.GetType().GetField("msaaSampleCount");
+        samples.SetValue(settings, Enum.Parse(samples.FieldType, on ? "MSAA4x" : "None"));
+        settingsProperty.SetValue(asset, settings);
+
+        var dataType = Type.GetType("UnityEngine.Rendering.HighDefinition.HDAdditionalCameraData" + Assembly);
+        var data = camera.GetComponent(dataType) ?? camera.gameObject.AddComponent(dataType);
+        // A camera without this component clears to its own SolidColor; with it, to these fields (Sky by default).
+        var clearMode = dataType.GetField("clearColorMode");
+        clearMode.SetValue(data, Enum.Parse(clearMode.FieldType, "Color"));
+        dataType.GetField("backgroundColorHDR").SetValue(data, camera.backgroundColor);
+        dataType.GetField("customRenderingSettings").SetValue(data, on);
+        var frameSettingsField = dataType.GetField("m_RenderingPathCustomFrameSettings", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var frameSettings = frameSettingsField.GetValue(data);
+        var mode = frameSettings.GetType().GetField("msaaMode");
+        mode.SetValue(frameSettings, Enum.Parse(mode.FieldType, "MSAA4X"));
+        frameSettingsField.SetValue(data, frameSettings);
+        var maskField = dataType.GetField("renderingPathCustomFrameSettingsOverrideMask");
+        var mask = maskField.GetValue(data);
+        var bits = mask.GetType().GetField("mask");
+        var bitArray = bits.GetValue(mask);
+        var fieldEnum = Type.GetType("UnityEngine.Rendering.HighDefinition.FrameSettingsField" + Assembly);
+        bitArray.GetType().GetProperty("Item", new[] { typeof(uint) }).SetValue(bitArray, true, new object[] { (uint)(int)Enum.Parse(fieldEnum, "MSAAMode") });
+        bits.SetValue(mask, bitArray);
+        maskField.SetValue(data, mask);
     }
 
     // Centers a unit-sized object on a screen-space rectangle.
@@ -516,6 +552,15 @@ public sealed class SkiaSample : MonoBehaviour
             // The target texture's draw and the MSAA back buffer's both throw NotSupportedException each frame; and neither may fail with an InvalidOperationException.
             pass &= _refusals >= 1 && _unexpectedFailures == 0;
             report += $" refusals={_refusals} unexpectedFailures={_unexpectedFailures}";
+        }
+        if (GraphicsSettings.currentRenderPipeline?.GetType().Name == "HDRenderPipelineAsset")
+        {
+            // What HDRP resolved for the screen camera after sanitizing its frame settings; the requested count must have survived.
+            var hdCamera = Type.GetType("UnityEngine.Rendering.HighDefinition.HDCamera, Unity.RenderPipelines.HighDefinition.Runtime");
+            var samples = hdCamera.GetMethod("GetOrCreate", new[] { typeof(Camera), typeof(int) }).Invoke(null, new object[] { Camera.main, 0 });
+            var resolved = hdCamera.GetProperty("msaaSamples").GetValue(samples).ToString();
+            pass &= resolved == (_msaa ? "MSAA4x" : "None");
+            report += $" hdrpMsaaSamples={resolved}";
         }
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore)
         {
