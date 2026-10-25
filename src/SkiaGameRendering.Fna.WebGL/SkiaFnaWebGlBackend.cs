@@ -99,8 +99,6 @@ namespace SkiaGameRendering
 
         internal override void EndDraw() => FnaWebGlInterop.End(_canvasId);
 
-        internal override bool SupportsMultiSampledTargets => true;
-
         internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType, int multiSampleCount)
         {
             ThrowIfMultiSampleUnsupported(multiSampleCount);
@@ -122,33 +120,14 @@ namespace SkiaGameRendering
                 try
                 {
                     var backendTexture = new GRBackendTexture(width, height, false, new GRGlTextureInfo(GlTexture2D, (uint)textureId, GlRgba8));
-                    SKSurface surface;
-                    try
-                    {
-                        // FNA's first texture row is the image's top, and it is GL row 0. With samples, Skia allocates
-                        // the multisampled renderbuffer itself and resolves it into the texture on the GPU at flush.
-                        if (multiSampleCount > 1)
-                        {
-                            var max = _grContext.GetMaxSurfaceSampleCount(colorType);
-                            if (multiSampleCount > max)
-                                throw new NotSupportedException(
-                                    $"multiSampleCount {multiSampleCount} is not supported: this GPU offers at most {max} samples for {colorType}.");
-                            surface = SKSurface.Create(_grContext, backendTexture, GRSurfaceOrigin.TopLeft, multiSampleCount, colorType)
-                                ?? throw new NotSupportedException(
-                                    $"Skia could not create a {multiSampleCount}x multisampled surface for {colorType} on this GPU.");
-                        }
-                        else
-                        {
-                            surface = SKSurface.Create(_grContext, backendTexture, GRSurfaceOrigin.TopLeft, colorType)
-                                ?? throw new InvalidOperationException($"SKSurface.Create failed for a {width}x{height} FNA texture.");
-                        }
-                    }
-                    catch
+                    // FNA's first texture row is the image's top, and it is GL row 0.
+                    var surface = SKSurface.Create(_grContext, backendTexture, GRSurfaceOrigin.TopLeft, SKColorType.Rgba8888);
+                    if (surface == null)
                     {
                         backendTexture.Dispose();
-                        throw;
+                        throw new InvalidOperationException($"SKSurface.Create failed for a {width}x{height} FNA texture.");
                     }
-                    return new WebGlTarget(this, texture, surface, backendTexture) { SampleCount = multiSampleCount };
+                    return new WebGlTarget(this, texture, surface, backendTexture);
                 }
                 finally
                 {
@@ -176,10 +155,6 @@ namespace SkiaGameRendering
             var webTarget = (WebGlTarget)target;
             try
             {
-                // Skia leaves a multisampled surface over a texture unresolved at flush; a snapshot resolves it into
-                // the texture on the GPU (no readback).
-                if (webTarget.SampleCount > 1)
-                    webTarget.Surface!.Snapshot().Dispose();
                 webTarget.Surface!.Flush();
                 _grContext.Flush();
             }
@@ -401,8 +376,6 @@ namespace SkiaGameRendering
             }
 
             internal SKSurface? Surface { get; private set; }
-
-            internal int SampleCount { get; init; }
 
             public override Texture2D Texture => _texture ?? throw new ObjectDisposedException(nameof(WebGlTarget));
 

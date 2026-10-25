@@ -24,7 +24,6 @@ public class SampleGame : Game
     private RenderTarget2D? _renderTarget;
 
     public string Mode { get; set; } = "texture";
-    public static int TargetMultiSampleCount { get; set; }
     public int Frames { get; private set; }
 
     public SampleGame(bool multiSampling)
@@ -64,7 +63,7 @@ public class SampleGame : Game
 
     private void DrawTexture()
     {
-        _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200, SKColorType.Rgba8888, TargetMultiSampleCount);
+        _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
         _canvas.Begin();
         Scene.Draw(_canvas.Canvas, 200, 200);
         _canvas.End();
@@ -113,10 +112,6 @@ public static partial class Program
 
     public static void Main() { }
 
-    // Must be called before the first SetMode or Frame: the multiSampleCount of the "texture" mode render target.
-    [JSExport]
-    public static void SetTargetMultiSampleCount(int count) => SampleGame.TargetMultiSampleCount = count;
-
     // Must be called before the first SetMode or Frame: it asks FNA3D for a multisampled back buffer.
     [JSExport]
     public static void SetMultiSampling(bool enabled) => _multiSampling = enabled;
@@ -164,9 +159,6 @@ public static partial class Program
             return exception.GetType().Name + ": " + exception.Message;
         }
     }
-
-    [JSExport]
-    public static bool SupportsMultiSampledTargets() => SkiaRenderer.SupportsMultiSampledTargets;
 
     // Tests: the MultiSampleCount FNA3D was given for the back buffer.
     [JSExport]

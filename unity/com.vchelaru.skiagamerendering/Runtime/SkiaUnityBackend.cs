@@ -87,6 +87,7 @@ namespace SkiaGameRendering
                 && (Application.platform == RuntimePlatform.OSXEditor || Application.platform == RuntimePlatform.OSXPlayer))
             {
                 MetalUnityBackend.LoadPlugin();
+                SupportsDirectCanvas = true;
                 return;
             }
             throw new NotSupportedException(

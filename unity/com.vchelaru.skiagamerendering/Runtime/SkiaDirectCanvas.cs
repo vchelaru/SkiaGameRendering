@@ -26,7 +26,7 @@ namespace SkiaGameRendering
     /// on the render thread by <see cref="SkiaUnityRenderThread"/>. <see cref="Begin"/> does not clear;
     /// Skia draws on top of what is there. Coordinates are target pixels with the origin at the top left.
     /// The target's size is read when <see cref="Begin"/> runs: the active <see cref="RenderTexture"/>, or the
-    /// screen. Supported on Direct3D 11, Direct3D 12, Vulkan and OpenGL (Windows), and OpenGL ES 3 (Android) so far; the constructor throws <see cref="NotSupportedException"/>
+    /// screen. Supported on Direct3D 11, Direct3D 12, Vulkan and OpenGL (Windows), Metal (macOS) and OpenGL ES 3 (Android) so far; the constructor throws <see cref="NotSupportedException"/>
     /// elsewhere.
     /// </summary>
     public sealed class SkiaDirectCanvas : IDisposable
@@ -64,7 +64,7 @@ namespace SkiaGameRendering
             _height = active != null ? active.height : Screen.height;
             // A texture's row 0 is Unity's bottom row; the back buffer's is the top.
             _flip = active != null;
-            _renderBuffer = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan
+            _renderBuffer = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal
                 ? Graphics.activeColorBuffer.GetNativeRenderBufferPtr()
                 : IntPtr.Zero;
             // With MSAA Unity renders a camera into an intermediate texture, so the back buffer shows up as a multisampled active texture.
@@ -93,7 +93,7 @@ namespace SkiaGameRendering
                 Flip = _flip,
                 // Texture2D.whiteTexture is always there, and D3D11 finds its device through any texture.
                 DeviceTexture = Texture2D.whiteTexture.GetNativeTexturePtr(),
-                // Only Direct3D 12 and Vulkan need it: it has no "currently bound target" to ask the device for.
+                // Only Direct3D 12, Vulkan and Metal need it: it has no "currently bound target" to ask the device for.
                 RenderBuffer = _renderBuffer,
                 MultisampledSamples = _multisampledSamples,
             });

@@ -78,6 +78,66 @@ public sealed class MetalSkiaPixelReadbackTests
         Assert.Throws<ArgumentException>(() => factory.InitializeFromNative(metal.Queue, metal.Device));
     }
 
+    /// <summary>
+    /// A direct draw lands on top of what the texture holds, in the texture's own channel order; an
+    /// sRGB-format texture (what a Linear color space renders into) gets Skia's bytes as they are.
+    /// </summary>
+    [MacOnlyTheory]
+    [InlineData((uint)MTLPixelFormatRGBA8Unorm, false)]
+    [InlineData((uint)MTLPixelFormatBGRA8Unorm, true)]
+    [InlineData((uint)MTLPixelFormatRGBA8UnormSrgb, false)]
+    [InlineData((uint)MTLPixelFormatBGRA8UnormSrgb, true)]
+    public void CreateDirectSurface_DrawsOverExistingContents(uint pixelFormat, bool bgra)
+    {
+        using var metal = new MetalTestDevice();
+        var texture = metal.CreateTexture(8, 4, pixelFormat, MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead);
+        try
+        {
+            using (var factory = new MetalSkiaSurfaceFactory())
+            {
+                factory.InitializeFromNative(metal.Device, metal.Queue);
+                // First pass fills the texture with blue; the direct pass then covers its left half with red.
+                foreach (var (color, width) in new[] { (new SKColor(0, 0, 255, 255), 8), (new SKColor(255, 0, 0, 255), 4) })
+                {
+                    using var target = factory.CreateDirectSurface(texture, 8, 4);
+                    factory.BeginDraw();
+                    using var paint = new SKPaint { Color = color };
+                    target.Surface.Canvas.DrawRect(0, 0, width, 4, paint);
+                    factory.EndDraw();
+                }
+            }
+
+            var pixels = metal.ReadBack(texture, 8, 4);
+            byte[] Pixel(int x) => bgra ? new[] { pixels[x * 4 + 2], pixels[x * 4 + 1], pixels[x * 4], pixels[x * 4 + 3] } : pixels[(x * 4)..(x * 4 + 4)];
+            Assert.Equal(new byte[] { 255, 0, 0, 255 }, Pixel(1));
+            Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(6));
+        }
+        finally
+        {
+            objc_release(texture);
+        }
+    }
+
+    [MacOnlyFact]
+    public void CreateDirectSurface_RejectsUnsupportedFormatAndTooSmallTexture()
+    {
+        using var metal = new MetalTestDevice();
+        using var factory = new MetalSkiaSurfaceFactory();
+        factory.InitializeFromNative(metal.Device, metal.Queue);
+        var half = metal.CreateTexture(4, 4, MTLPixelFormatRGBA16Float, MTLTextureUsageRenderTarget);
+        var small = metal.CreateTexture(4, 4, MTLPixelFormatRGBA8Unorm, MTLTextureUsageRenderTarget);
+        try
+        {
+            Assert.Contains("MTLPixelFormat", Assert.Throws<NotSupportedException>(() => factory.CreateDirectSurface(half, 4, 4)).Message);
+            Assert.Contains("smaller", Assert.Throws<NotSupportedException>(() => factory.CreateDirectSurface(small, 8, 4)).Message);
+        }
+        finally
+        {
+            objc_release(half);
+            objc_release(small);
+        }
+    }
+
     static byte[] RenderAndReadBack(int width, int height, nuint pixelFormat, SKColorType colorType, Action<SKCanvas> draw)
     {
         using var metal = new MetalTestDevice();

@@ -31,6 +31,9 @@ namespace SkiaGameRendering.Tests
         // GRContext adds two per script reload on Metal and a dozen on D3D11, so five cycles still
         // exceed this. Because one cycle can spike, the check compares the lowest counts of the
         // first and last two cycles (a leak raises every later cycle, a spike raises one).
+        // On Metal the sample's SkiaDirectCanvas draws in play mode add one-time steps of 8 to 24 that land on
+        // any cycle and then hold (14 cycles stepped 460, 468, 487 and no further), so Metal fails only when
+        // the count rises in each of the last three cycles, which is what a leak per cycle looks like.
         // OpenGL has no device count. Its GL object count grows by the same amount per play mode
         // cycle with and without Skia (Unity's own resources), so it can't be asserted on.
         internal static int AllowedGrowth => GpuProbe.IsMetal ? 5 : 2;
@@ -104,6 +107,14 @@ namespace SkiaGameRendering.Tests
                 return;
 
             var counts = Array.ConvertAll(history.TrimEnd(',').Split(','), int.Parse);
+            if (GpuProbe.IsMetal)
+            {
+                bool risingEveryCycle = true;
+                for (int i = counts.Length - 3; i < counts.Length; i++)
+                    risingEveryCycle &= counts[i] > counts[i - 1];
+                Assert.IsFalse(risingEveryCycle, $"Device references rose in each of the last three {cycleName}s: {string.Join(", ", counts)}.");
+                return;
+            }
             int first = Math.Min(counts[0], counts[1]);
             int last = Math.Min(counts[counts.Length - 2], counts[counts.Length - 1]);
             Assert.LessOrEqual(last - first, AllowedGrowth,

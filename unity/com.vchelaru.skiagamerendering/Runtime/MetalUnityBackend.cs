@@ -10,7 +10,10 @@ namespace SkiaGameRendering
     /// Metal (macOS): Skia draws with Unity's own MTLDevice and commits to Unity's own command queue,
     /// so Metal's hazard tracking orders Skia's writes after Unity's earlier reads of the texture and
     /// before its later ones. Unity's C# API exposes neither, so the SkiaUnityMetal native plugin
-    /// (unity/native/SkiaUnityMetal) reads them from Unity's IUnityGraphicsMetalV2 interface.
+    /// (unity/native/SkiaUnityMetal) reads them from Unity's IUnityGraphicsMetalV2 interface. A direct draw
+    /// (<see cref="SkiaDirectCanvas"/>) gets the target's MTLTexture from the plugin by the
+    /// <c>UnityRenderBuffer</c> the main thread read, commits Unity's command buffer first, and draws on top
+    /// of the texture's contents.
     /// </summary>
     internal sealed class MetalUnityBackend : SkiaUnityBackend
     {
@@ -63,6 +66,46 @@ namespace SkiaGameRendering
             }
         }
 
+        internal override void DrawDirect(SKPicture picture, int width, int height, bool flip, IntPtr renderBuffer)
+        {
+            var texture = SkiaUnityMetal_TextureFromRenderBuffer(renderBuffer);
+            if (texture == IntPtr.Zero)
+                throw new InvalidOperationException("Unity has no Metal texture for the render target it is rendering to.");
+
+            // Committing what Unity has encoded so far ends its render pass on the target and puts that work
+            // ahead of Skia's command buffer on the shared queue. Unity starts a new pass on the target for
+            // what it draws later.
+            SkiaUnityMetal_CommitCurrentCommandBuffer();
+            var pool = AutoreleasePoolPush();
+            try
+            {
+                // Validated before Skia draws, so a target it cannot draw into throws untouched. Per draw,
+                // since the back buffer's texture changes every frame.
+                using var target = _factory.CreateDirectSurface(texture, width, height);
+                _factory.BeginDraw();
+                try
+                {
+                    var canvas = target.Surface.Canvas;
+                    if (flip)
+                    {
+                        canvas.Translate(0, height);
+                        canvas.Scale(1, -1);
+                    }
+                    canvas.DrawPicture(picture);
+                }
+                finally
+                {
+                    // Not synchronous: Unity's own commands for the target are committed after this on the same
+                    // queue. Flushed before the target is disposed, which releases the texture view if it made one.
+                    _factory.EndDraw(synchronous: false);
+                }
+            }
+            finally
+            {
+                AutoreleasePoolPop(pool);
+            }
+        }
+
         internal override void DisposeTarget(SkiaRenderTarget2D.RenderState target)
         {
             target.Surface?.Dispose();
@@ -82,6 +125,9 @@ namespace SkiaGameRendering
 
         [DllImport("SkiaUnityMetal")]
         static extern void SkiaUnityMetal_CommitCurrentCommandBuffer();
+
+        [DllImport("SkiaUnityMetal")]
+        static extern IntPtr SkiaUnityMetal_TextureFromRenderBuffer(IntPtr renderBuffer);
 
         [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_autoreleasePoolPush")]
         static extern IntPtr AutoreleasePoolPush();

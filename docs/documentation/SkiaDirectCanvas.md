@@ -71,13 +71,13 @@ so this reads MonoGame's native objects by offset and is only enabled for a `mgr
 been verified (3.8.6); on any other build `SkiaRenderer.SupportsDirectCanvas` is false and
 `SkiaRenderTarget2D` still works.
 
-Unity on Direct3D 11, Direct3D 12, Vulkan and OpenGL (Windows) has `SkiaDirectCanvas`, constructed with no arguments. Call `Begin`/`End` from the
+Unity on Direct3D 11, Direct3D 12, Vulkan and OpenGL (Windows), Metal (macOS) and OpenGL ES 3 (Android) has `SkiaDirectCanvas`, constructed with no arguments. Call `Begin`/`End` from the
 main thread while a camera renders, for example in `Camera.onPostRender` or a `MonoBehaviour.OnPostRender`
 (built-in render pipeline; URP and HDRP never raise those, so subscribe `RenderPipelineManager.endCameraRendering` there, see the [Unity quick start](../unity/quickstart.md#render-pipelines)). Skia then draws onto the target that camera has bound, after what the camera drew so
 far and before anything drawn later, such as a camera with a higher depth. `Canvas` records on the main thread and
 the drawing is played back on Unity's render thread. The size is the active `RenderTexture`, or the screen when
 there is none. The camera must not be HDR (`Camera.allowHDR = false`): a 16-bit float target throws on the render
-thread, which logs it. On Direct3D 12 and Vulkan the target must also be single-sample (set `QualitySettings.antiAliasing`
-to 0, or the camera's `allowMSAA` to false; a multisampled back buffer or texture logs a `NotSupportedException` from the render thread and draws nothing) and 8-bit RGBA or BGRA (Vulkan also takes the sRGB formats a Linear project renders into); Skia's draw runs once Unity has submitted everything it
-recorded, which splits Unity's command list (and, on Vulkan, its render pass) at each `End`. On every other Unity graphics API the constructor throws `NotSupportedException`; use
+thread, which logs it. On Direct3D 12, Vulkan and Metal the target must also be single-sample (set `QualitySettings.antiAliasing`
+to 0, or the camera's `allowMSAA` to false; a multisampled back buffer or texture logs a `NotSupportedException` from the render thread and draws nothing) and 8-bit RGBA or BGRA (Vulkan and Metal also take the sRGB formats a Linear project renders into); Skia's draw runs once Unity has submitted everything it
+recorded, which splits Unity's command list (and, on Vulkan and Metal, its render pass) at each `End`. Metal was verified on an Apple M5 Pro with Unity 6000.6.3f1 and the built-in render pipeline, in Gamma and Linear color spaces; URP and HDRP on Metal have not been run. On every other Unity graphics API the constructor throws `NotSupportedException`; use
 `SkiaRenderTarget2D` there.

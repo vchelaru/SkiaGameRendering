@@ -20,14 +20,14 @@ using UnityEngine.UI;
 /// precompiled from <c>Scene/Sample.Unity.Scene.csproj</c>, copied into <c>Assets/Plugins/Scene</c>
 /// by <c>eng/build-unity-package.ps1</c>.
 ///
-/// The bottom right area is a <see cref="SkiaDirectCanvas"/> check on Direct3D 11, Direct3D 12, Vulkan, OpenGL and OpenGL ES 3: the main camera draws a
+/// The bottom right area is a <see cref="SkiaDirectCanvas"/> check on Direct3D 11, Direct3D 12, Vulkan, Metal, OpenGL and OpenGL ES 3: the main camera draws a
 /// yellow square, its <c>onPostRender</c> has Skia draw red, red and magenta shapes straight into the back
 /// buffer, and a second camera (higher depth, clears nothing but depth) then draws a green square on top.
 ///
 /// --smoke-test renders a few frames and quits with 0 if the texture holds Scene's red circle and
 /// blue SVG drop the right way up, and in every copy Skia's squares match Unity's references on
 /// screen, or 1 otherwise. Unity's own drawing is the oracle so the check holds in both color spaces:
-/// On Direct3D 11, Direct3D 12, Vulkan and OpenGL it also checks the direct canvas area: Skia over what the first camera drew,
+/// On Direct3D 11, Direct3D 12, Vulkan, Metal and OpenGL it also checks the direct canvas area: Skia over what the first camera drew,
 /// under what the second drew, the right way up and with red as red. It fails if Skia's premultiplied alpha is blended as straight alpha, or if a Linear project
 /// displays Skia's sRGB bytes as linear values.
 ///
@@ -35,7 +35,7 @@ using UnityEngine.UI;
 /// square, with Skia drawing red and magenta shapes onto the texture from that camera's <c>onPostRender</c>
 /// (the render texture path, which is drawn flipped, unlike the back buffer).
 /// <c>--smoke-test --msaa</c> runs the same checks with 4x MSAA on the back buffer and on that texture,
-/// on the backends whose direct canvas draws into multisampled targets (Direct3D 11 and OpenGL). On Direct3D 12 and Vulkan,
+/// on the backends whose direct canvas draws into multisampled targets (Direct3D 11 and OpenGL). On Direct3D 12, Vulkan and Metal,
 /// which refuse them, it instead expects the NotSupportedException from the target texture camera's draw and no Skia pixels.
 /// On OpenGL the plain run also fails if the screen camera's direct draws stop reaching the default framebuffer (FBO 0).
 /// </summary>
@@ -74,7 +74,7 @@ public sealed class SkiaSample : MonoBehaviour
     Texture2D _greyReference;
     Texture2D _translucentReference;
     static bool DirectCanvasSupported =>
-        SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLES3;
+        SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLES3 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal;
 
     SkiaDirectCanvas _direct;
     SKPaint _red;
@@ -84,7 +84,7 @@ public sealed class SkiaSample : MonoBehaviour
     Texture2D _greenTexture;
     bool _smokeTest;
     bool _msaa;
-    // Direct3D 12 and Vulkan throw NotSupportedException (logged from the render thread) instead of drawing into a multisampled target.
+    // Direct3D 12, Vulkan and Metal throw NotSupportedException (logged from the render thread) instead of drawing into a multisampled target.
     bool _expectRefusal;
     int _refusals;
     int _unexpectedFailures;
@@ -120,7 +120,7 @@ public sealed class SkiaSample : MonoBehaviour
         // An unfocused player stops updating, and a smoke test launched from a script may never get focus.
         if (_smokeTest)
             Application.runInBackground = true;
-        _expectRefusal = _msaa && (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan);
+        _expectRefusal = _msaa && (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal);
         if (_expectRefusal)
             Application.logMessageReceivedThreaded += CountRefusal;
 #if !UNITY_ANDROID
@@ -138,7 +138,7 @@ public sealed class SkiaSample : MonoBehaviour
         camera.orthographic = true;
         // A HDR camera renders into a 16-bit float texture, which SkiaDirectCanvas cannot draw into.
         camera.allowHDR = false;
-        // Direct3D 12 and Vulkan cannot draw into a multisampled target, which the project's Ultra quality level would give them.
+        // Direct3D 12, Vulkan and Metal cannot draw into a multisampled target, which the project's Ultra quality level would give them.
         QualitySettings.antiAliasing = _msaa ? 4 : 0;
 
         // Built by hand: CreatePrimitive adds a collider, which needs the Physics module.
@@ -255,7 +255,8 @@ public sealed class SkiaSample : MonoBehaviour
         _target.Canvas.DrawRect(GreyX, 0, Cell, Cell, _grey);
         _target.End();
 
-        if (_smokeTest && ++_frame == 5)
+        // The splash screen fades over the scene, which dims every pixel the direct canvas check reads absolutely.
+        if (_smokeTest && SplashScreen.isFinished && ++_frame == 5)
             StartCoroutine(RunSmokeTest());
     }
 
@@ -437,7 +438,7 @@ public sealed class SkiaSample : MonoBehaviour
             var over = ScreenPixel(DirectX + Cell + 3 * Cell / 4, DirectY + Cell / 2);
             var markTop = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell / 8);
             var markBottom = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell - Cell / 8);
-            // When Skia refuses the target (MSAA on Direct3D 12 and Vulkan) it must draw nothing, leaving the camera's own pixels.
+            // When Skia refuses the target (MSAA on Direct3D 12, Vulkan and Metal) it must draw nothing, leaving the camera's own pixels.
             var skiaRed = _expectRefusal ? (Color32)Background : new Color32(255, 0, 0, 255);
             var skiaMagenta = _expectRefusal ? (Color32)Background : new Color32(255, 0, 255, 255);
             pass &= Matches(fill, skiaRed)                            // channel order: red stays red

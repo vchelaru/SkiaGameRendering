@@ -22,6 +22,38 @@ namespace SkiaGameRendering.Core.Metal
     }
 
     /// <summary>
+    /// A Skia surface over a texture the host is rendering to, from
+    /// <see cref="MetalSkiaSurfaceFactory.CreateDirectSurface"/>. Disposing releases the surface, the
+    /// render target and the texture view made for an sRGB-format texture, if any.
+    /// </summary>
+    public sealed class MetalDirectSurface : IDisposable
+    {
+        IntPtr _view;
+
+        internal MetalDirectSurface(SKSurface surface, GRBackendRenderTarget renderTarget, IntPtr view)
+        {
+            Surface = surface;
+            RenderTarget = renderTarget;
+            _view = view;
+        }
+
+        public SKSurface Surface { get; }
+
+        public GRBackendRenderTarget RenderTarget { get; }
+
+        public void Dispose()
+        {
+            Surface.Dispose();
+            RenderTarget.Dispose();
+            if (_view != IntPtr.Zero)
+            {
+                MetalNative.SendVoid(_view, MetalNative.SelRelease);
+                _view = IntPtr.Zero;
+            }
+        }
+    }
+
+    /// <summary>
     /// Engine-agnostic Metal/Skia interop, the Metal member of the <c>Core.VK</c>/<c>Core.D3D12</c>
     /// family. Like them it creates nothing of its own: the host's <c>id&lt;MTLDevice&gt;</c> and
     /// <c>id&lt;MTLCommandQueue&gt;</c> go straight to Skia's <c>GrMtlGpu</c> through
@@ -54,6 +86,12 @@ namespace SkiaGameRendering.Core.Metal
     {
         /// <summary><c>MTLTextureUsageRenderTarget</c>.</summary>
         public const ulong TextureUsageRenderTarget = 0x4;
+
+        const ulong TextureType2D = 2;
+        const ulong PixelFormatRgba8Unorm = 70;
+        const ulong PixelFormatRgba8UnormSrgb = 71;
+        const ulong PixelFormatBgra8Unorm = 80;
+        const ulong PixelFormatBgra8UnormSrgb = 81;
 
         GRContext _grContext = null!;
 
@@ -126,6 +164,64 @@ namespace SkiaGameRendering.Core.Metal
                     $"SKSurface.Create failed for Metal backend. Check that {colorType} matches the texture's MTLPixelFormat.");
 
             return (surface, backendRT);
+        }
+
+        /// <summary>
+        /// Wraps a texture the host is rendering to right now (a back buffer, a camera's target), for
+        /// drawing on top of what it holds. Picks the <see cref="SKColorType"/> from the texture's pixel
+        /// format: <c>RGBA8Unorm</c> and <c>BGRA8Unorm</c> directly, and their sRGB variants (what a Linear
+        /// color space renders into) through a view in the Unorm format, so Skia's sRGB-encoded bytes are
+        /// stored as they are. Throws <see cref="NotSupportedException"/> naming the problem for a texture
+        /// Skia cannot draw into: multisampled, not a plain 2D texture, any other format, or smaller than
+        /// the size asked for. The caller disposes the result once the draw has been flushed.
+        /// </summary>
+        public MetalDirectSurface CreateDirectSurface(IntPtr texture, int width, int height, SKColorSpace? colorSpace = null)
+        {
+            var samples = (ulong)MetalNative.SendNUInt(texture, MetalNative.SelSampleCount);
+            if (samples > 1)
+                throw new NotSupportedException($"The render target is multisampled ({samples} samples); Skia cannot draw into it.");
+            var type = (ulong)MetalNative.SendNUInt(texture, MetalNative.SelTextureType);
+            if (type != TextureType2D)
+                throw new NotSupportedException($"The render target's MTLTextureType is {type}, not a plain 2D texture.");
+            var textureWidth = (long)(ulong)MetalNative.SendNUInt(texture, MetalNative.SelWidth);
+            var textureHeight = (long)(ulong)MetalNative.SendNUInt(texture, MetalNative.SelHeight);
+            if (textureWidth < width || textureHeight < height)
+                throw new NotSupportedException($"The render target is {textureWidth}x{textureHeight}, smaller than the {width}x{height} asked for.");
+
+            var format = (ulong)MetalNative.SendNUInt(texture, MetalNative.SelPixelFormat);
+            ulong viewFormat = format == PixelFormatRgba8UnormSrgb ? PixelFormatRgba8Unorm
+                : format == PixelFormatBgra8UnormSrgb ? PixelFormatBgra8Unorm
+                : 0;
+            var view = IntPtr.Zero;
+            try
+            {
+                if (viewFormat != 0)
+                {
+                    view = MetalNative.SendPtrNUInt(texture, MetalNative.SelNewTextureView, (nuint)viewFormat);
+                    if (view == IntPtr.Zero)
+                        throw new NotSupportedException($"Metal would not create a view of the render target's MTLPixelFormat {format} in {viewFormat}.");
+                    format = viewFormat;
+                }
+                SKColorType colorType;
+                if (format == PixelFormatRgba8Unorm)
+                    colorType = SKColorType.Rgba8888;
+                else if (format == PixelFormatBgra8Unorm)
+                    colorType = SKColorType.Bgra8888;
+                else
+                    throw new NotSupportedException(
+                        $"The render target's MTLPixelFormat is {format}; Skia can draw into RGBA8Unorm ({PixelFormatRgba8Unorm}) and BGRA8Unorm ({PixelFormatBgra8Unorm}), and their sRGB variants.");
+
+                var state = CreateTextureState(view != IntPtr.Zero ? view : texture);
+                var (surface, renderTarget) = CreateSurface(state, width, height, colorType, colorSpace);
+                var result = new MetalDirectSurface(surface, renderTarget, view);
+                view = IntPtr.Zero;
+                return result;
+            }
+            finally
+            {
+                if (view != IntPtr.Zero)
+                    MetalNative.SendVoid(view, MetalNative.SelRelease);
+            }
         }
 
         /// <summary>
