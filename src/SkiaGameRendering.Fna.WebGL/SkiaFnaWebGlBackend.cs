@@ -148,7 +148,7 @@ namespace SkiaGameRendering
                         backendTexture.Dispose();
                         throw;
                     }
-                    return new WebGlTarget(this, texture, surface, backendTexture);
+                    return new WebGlTarget(this, texture, surface, backendTexture) { SampleCount = multiSampleCount };
                 }
                 finally
                 {
@@ -176,6 +176,10 @@ namespace SkiaGameRendering
             var webTarget = (WebGlTarget)target;
             try
             {
+                // Skia leaves a multisampled surface over a texture unresolved at flush; a snapshot resolves it into
+                // the texture on the GPU (no readback).
+                if (webTarget.SampleCount > 1)
+                    webTarget.Surface!.Snapshot().Dispose();
                 webTarget.Surface!.Flush();
                 _grContext.Flush();
             }
@@ -397,6 +401,8 @@ namespace SkiaGameRendering
             }
 
             internal SKSurface? Surface { get; private set; }
+
+            internal int SampleCount { get; init; }
 
             public override Texture2D Texture => _texture ?? throw new ObjectDisposedException(nameof(WebGlTarget));
 
