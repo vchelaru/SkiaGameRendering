@@ -127,7 +127,6 @@ test("SkiaDirectCanvas draws into a multisampled FNA back buffer", async ({ page
     };
   });
   const errors = await open(page, "direct", "&msaa=1");
-  expect(await page.evaluate(() => globalThis.fnaSample.backBufferMultiSampleCount())).toBeGreaterThan(0);
   const points = { circle: [50, 50], lime: [450, 100], blueSquare: [410, 310], magenta: [620, 620], black: [790, 790] };
   const read = await draw(page, Object.values(points), 30);
   const pixel = Object.fromEntries(Object.keys(points).map((name, i) => [name, read[i]]));
@@ -136,6 +135,8 @@ test("SkiaDirectCanvas draws into a multisampled FNA back buffer", async ({ page
   near(pixel.blueSquare, [0, 0, 255]);
   near(pixel.magenta, [255, 0, 255]);
   near(pixel.black, [0, 0, 0]);
+  // The device exists once the first frame has run.
+  expect(await page.evaluate(() => globalThis.fnaSample.backBufferMultiSampleCount())).toBeGreaterThan(0);
   const samples = await page.evaluate(() => globalThis.sampleLog);
   expect(Math.max(...samples), `gl.SAMPLES seen by the interop: ${samples}`).toBeGreaterThan(0);
   expect(await glErrors(page), await glErrorLog(page)).toBe(0);
