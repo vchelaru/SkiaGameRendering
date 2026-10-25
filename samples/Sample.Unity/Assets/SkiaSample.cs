@@ -237,15 +237,19 @@ public sealed class SkiaSample : MonoBehaviour
     // HDRP changes every color it draws: automatic exposure scales it and the default volume profile tone maps it and adds bloom,
     // vignette and film grain, which would break the checks that compare against Unity's own colors. A global volume with fixed
     // exposure (the multiplier is 1 / (1.2 * 2^EV), so EV -log2(1.2) gives 1), no tone mapping and those effects at zero leaves them as authored.
-    // Reflection: the sample has no reference to the HDRP package.
+    // Reflection throughout: the sample has no reference to the HDRP or Core RP packages, and a built-in project does not compile against Volume.
     static void FixHdrpExposure()
     {
         const string Assembly = ", Unity.RenderPipelines.HighDefinition.Runtime";
-        var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+        const string CoreAssembly = ", Unity.RenderPipelines.Core.Runtime";
+        var profileType = Type.GetType("UnityEngine.Rendering.VolumeProfile" + CoreAssembly);
+        var profile = ScriptableObject.CreateInstance(profileType);
+        var components = new System.Collections.Generic.Dictionary<Type, object>();
         void Override(string typeName, string field, object value)
         {
             var type = Type.GetType("UnityEngine.Rendering.HighDefinition." + typeName + Assembly);
-            var component = profile.TryGet(type, out VolumeComponent existing) ? existing : (VolumeComponent)typeof(VolumeProfile).GetMethod("Add", new[] { typeof(Type), typeof(bool) }).Invoke(profile, new object[] { type, true });
+            if (!components.TryGetValue(type, out var component))
+                components[type] = component = profileType.GetMethod("Add", new[] { typeof(Type), typeof(bool) }).Invoke(profile, new object[] { type, true });
             var parameter = type.GetField(field).GetValue(component);
             parameter.GetType().GetProperty("overrideState").SetValue(parameter, true);
             var parameterType = parameter.GetType().GetProperty("value").PropertyType;
@@ -258,9 +262,10 @@ public sealed class SkiaSample : MonoBehaviour
         Override("Vignette", "intensity", 0f);
         Override("FilmGrain", "intensity", 0f);
         Override("ChromaticAberration", "intensity", 0f);
-        var volume = new GameObject("Fixed exposure").AddComponent<Volume>();
-        volume.isGlobal = true;
-        volume.sharedProfile = profile;
+        var volumeType = Type.GetType("UnityEngine.Rendering.Volume" + CoreAssembly);
+        var volume = new GameObject("Fixed exposure").AddComponent(volumeType);
+        volumeType.GetProperty("isGlobal").SetValue(volume, true);
+        volumeType.GetField("sharedProfile").SetValue(volume, profile);
     }
 
     // Centers a unit-sized object on a screen-space rectangle.
