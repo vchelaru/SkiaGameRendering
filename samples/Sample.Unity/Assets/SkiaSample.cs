@@ -514,8 +514,9 @@ public sealed class SkiaSample : MonoBehaviour
             var markTop = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell / 8);
             var markBottom = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell - Cell / 8);
             // When Skia refuses the target (MSAA on Direct3D 12, Vulkan and Metal) it must draw nothing, leaving the camera's own pixels.
-            // Under an SRP the back buffer is never multisampled (the camera resolves into it), so only the target texture is refused.
-            var screenRefused = _expectRefusal && GraphicsSettings.currentRenderPipeline == null;
+            // Under an SRP on Direct3D 12 and Vulkan the back buffer is never multisampled (the camera resolves into it), so only the target texture is refused.
+            // On Metal an SRP camera renders into the multisampled back buffer itself, so that is refused too.
+            var screenRefused = _expectRefusal && (GraphicsSettings.currentRenderPipeline == null || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal);
             var skiaRed = screenRefused ? (Color32)Background : new Color32(255, 0, 0, 255);
             var skiaMagenta = screenRefused ? (Color32)Background : new Color32(255, 0, 255, 255);
             pass &= Matches(fill, skiaRed)                            // channel order: red stays red

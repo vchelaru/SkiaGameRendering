@@ -337,7 +337,7 @@ game.AddSceneRenderer(renderer);
 
 ### Stride (D3D11) remarks
 
-- Windows and D3D11 only. For Vulkan (Windows/Linux/macOS), see `SkiaGameRendering.Stride.VK` /
+- Windows and D3D11 only. For Vulkan (Windows/Linux), see `SkiaGameRendering.Stride.VK` /
   [the Stride Vulkan section](#stride-vulkan) instead.
 - Requires Stride 4.4.1 or newer. Stride's D3D11 backend became Silk.NET (from SharpDX) in
   this release, which is what makes `GraphicsDevice.NativeDevice` a public
@@ -514,8 +514,8 @@ Raylib.CloseWindow();
   is itself a `Raylib.DrawTexture` call. If you need the raw texture without an immediate
   composite (drawing it more than once, or at a different size), call `EndWithoutDrawing()` and
   draw `Texture` yourself.
-- Platform support: Windows and Linux (Linux verified under WSLg — X11/GLX, Mesa llvmpipe). macOS
-  is not implemented.
+- Platform support: Windows, Linux (verified under WSLg — X11/GLX, Mesa llvmpipe) and macOS (a CGL
+  shared context, verified on Apple silicon by running `samples/Sample.Raylib.OGL`).
 - raylib only supports a single window, so `SkiaRenderer` holds one global context rather
   than keying off a window handle the way the MonoGame `SkiaRenderer` keys off a `GraphicsDevice`.
   `SkiaRaylibContext.Initialize` must run after `Raylib.InitWindow` — it reads the window handle

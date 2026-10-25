@@ -1,4 +1,4 @@
-# Builds samples/Sample.Unity as a URP or HDRP player, Build/Mono[-D3D12|-Vulkan|-GL]-URP|-HDRP[-Linear].
+# Builds samples/Sample.Unity as a URP or HDRP player, Build/Mono[-D3D12|-Vulkan|-GL]-URP|-HDRP[-Linear] (Sample.Unity.app on macOS, Metal).
 # The committed project stays built-in RP and Gamma: this adds the pipeline package to a temporary
 # Packages/manifest.json, has SampleBuild assign a pipeline asset (-srp), then restores the manifest,
 # ProjectSettings and removes Assets/SrpTemp. Run eng/build-unity-package.ps1 first.
@@ -14,10 +14,13 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $project = Join-Path $repo 'samples/Sample.Unity'
 $version = ((Get-Content (Join-Path $project 'ProjectSettings/ProjectVersion.txt') | Select-Object -First 1) -split ' ')[1]
-$unity = if ($env:UNITY_EXE) { $env:UNITY_EXE } else { "C:/Program Files/Unity/Hub/Editor/$version/Editor/Unity.exe" }
+$unity = if ($env:UNITY_EXE) { $env:UNITY_EXE }
+elseif ($IsMacOS) { "/Applications/Unity/Hub/Editor/$version/Unity.app/Contents/MacOS/Unity" }
+else { "C:/Program Files/Unity/Hub/Editor/$version/Editor/Unity.exe" }
+$builtInPackages = if ($IsMacOS) { Join-Path (Split-Path (Split-Path $unity)) 'Resources/PackageManager/BuiltInPackages' } else { Join-Path (Split-Path $unity) 'Data/Resources/PackageManager/BuiltInPackages' }
 $packageId = if ($Pipeline -eq 'urp') { 'com.unity.render-pipelines.universal' } else { 'com.unity.render-pipelines.high-definition' }
 # The editor ships both packages, so the manifest entry resolves offline.
-$packageVersion = (Get-Content (Join-Path (Split-Path $unity) "Data/Resources/PackageManager/BuiltInPackages/$packageId/package.json") -Raw | ConvertFrom-Json).version
+$packageVersion = (Get-Content (Join-Path $builtInPackages "$packageId/package.json") -Raw | ConvertFrom-Json).version
 
 $backup = Join-Path ([IO.Path]::GetTempPath()) "sgr-srp-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 New-Item -ItemType Directory $backup | Out-Null
