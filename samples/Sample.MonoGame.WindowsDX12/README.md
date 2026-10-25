@@ -1,6 +1,6 @@
 # Sample.MonoGame.WindowsDX12
 
-Renders the shared `Sample.Shared.Scene` through `SkiaRenderTarget2D` on MonoGame's native
+Renders the shared `SampleShared.Scene` through `SkiaRenderTarget2D` on MonoGame's native
 WindowsDX12 (D3D12) platform. `Game1.cs` is the same file the other MonoGame samples link.
 
 It needs MonoGame `3.8.6`, the first stable release with `GraphicsDevice.GetNativeHandles()`

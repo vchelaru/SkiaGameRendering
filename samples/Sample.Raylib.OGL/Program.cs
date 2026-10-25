@@ -1,5 +1,5 @@
 using Raylib_cs;
-using Sample.Shared;
+using SampleShared;
 using SkiaGameRendering;
 using SkiaSharp;
 

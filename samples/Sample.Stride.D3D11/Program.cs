@@ -3,9 +3,9 @@ using SkiaSharp;
 using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 using Stride.Games;
-// Aliased: Stride.Engine.Scene (a scene graph node) and Sample.Shared.Scene (the Skia drawing
+// Aliased: Stride.Engine.Scene (a scene graph node) and SampleShared.Scene (the Skia drawing
 // helper every sample shares) collide by name - they are unrelated types from unrelated domains.
-using SharedScene = Sample.Shared.Scene;
+using SharedScene = SampleShared.Scene;
 
 // Stride's default authoring flow is GameStudio plus an asset-pipeline project; the Community
 // Toolkit's code-only helpers (the default SceneSetup3D that Run applies, AddSceneRenderer) are its documented alternative

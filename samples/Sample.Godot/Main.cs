@@ -1,7 +1,7 @@
 using Godot;
 using SkiaGameRendering;
 using SkiaSharp;
-using SharedScene = Sample.Shared.Scene;
+using SharedScene = SampleShared.Scene;
 
 /// <summary>
 /// The scene root (see Main.tscn). Godot has no user-owned Draw() loop the way MonoGame/raylib do:

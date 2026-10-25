@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework.Graphics;
 using SkiaGameRendering;
 using Tests.Shared;
 
-namespace Sample.Shared
+namespace SampleShared
 {
     /// <summary>The extra smoke-test check of the Android (KNI and MonoGame) and iOS samples.</summary>
     static class MobileDirectCanvasCheck

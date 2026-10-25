@@ -1,6 +1,6 @@
 using System;
 using System.Collections;
-using Sample.Shared;
+using SampleShared;
 using SkiaGameRendering;
 using SkiaSharp;
 using UnityEngine;
@@ -160,15 +160,20 @@ public sealed class SkiaSample : MonoBehaviour
             _greenTexture = SolidTexture(Green);
             // Skia draws red over the right half of this yellow square, so its left half must stay yellow.
             AddSpriteAt(_yellowTexture, DirectX + Cell, DirectY, Cell, Cell, 0);
-            // The second camera draws on top of what the first one and Skia drew, without clearing color.
-            var front = new GameObject("Front camera");
-            _frontCamera = front.AddComponent<Camera>();
-            _frontCamera.CopyFrom(camera);
-            _frontCamera.clearFlags = CameraClearFlags.Depth;
-            _frontCamera.depth = camera.depth + 1;
-            _frontCamera.cullingMask = 1 << 1;
-            // Covers the right half of the cell Skia fills with red.
-            AddSpriteAt(_greenTexture, DirectX + Cell / 2, DirectY, Cell / 2, Cell, 1).gameObject.layer = 1;
+            // The second camera draws on top of what the first one and Skia drew, without clearing color. URP and HDRP have no such
+            // camera (a base camera clears color, an overlay camera is drawn inside its base camera's pass, before Skia), so there Skia
+            // draws last and the "front" cell expects its red.
+            if (GraphicsSettings.currentRenderPipeline == null)
+            {
+                var front = new GameObject("Front camera");
+                _frontCamera = front.AddComponent<Camera>();
+                _frontCamera.CopyFrom(camera);
+                _frontCamera.clearFlags = CameraClearFlags.Depth;
+                _frontCamera.depth = camera.depth + 1;
+                _frontCamera.cullingMask = 1 << 1;
+                // Covers the right half of the cell Skia fills with red.
+                AddSpriteAt(_greenTexture, DirectX + Cell / 2, DirectY, Cell / 2, Cell, 1).gameObject.layer = 1;
+            }
 
             // Layer 2 is only for the target texture camera's yellow square.
             camera.cullingMask &= ~(1 << 2);
@@ -254,6 +259,8 @@ public sealed class SkiaSample : MonoBehaviour
             StartCoroutine(RunSmokeTest());
     }
 
+    void DrawDirectSrp(ScriptableRenderContext context, Camera camera) => DrawDirect(camera);
+
     // After the main camera has drawn and before the front camera starts.
     void DrawDirect(Camera camera)
     {
@@ -317,7 +324,11 @@ public sealed class SkiaSample : MonoBehaviour
             _direct = new SkiaDirectCanvas();
             _red = new SKPaint { Color = SKColors.Red };
             _magenta = new SKPaint { Color = SKColors.Magenta };
-            Camera.onPostRender += DrawDirect;
+            // Only the built-in render pipeline raises Camera.onPostRender; URP and HDRP raise endCameraRendering.
+            if (GraphicsSettings.currentRenderPipeline != null)
+                RenderPipelineManager.endCameraRendering += DrawDirectSrp;
+            else
+                Camera.onPostRender += DrawDirect;
         }
         _translucent = new SKPaint { Color = new SKColor(Translucent.r, Translucent.g, Translucent.b, Translucent.a) };
         _grey = new SKPaint { Color = new SKColor(Grey.r, Grey.g, Grey.b, Grey.a) };
@@ -332,6 +343,7 @@ public sealed class SkiaSample : MonoBehaviour
     void OnDisable()
     {
         Camera.onPostRender -= DrawDirect;
+        RenderPipelineManager.endCameraRendering -= DrawDirectSrp;
         _direct?.Dispose();
         _direct = null;
         _red?.Dispose();
@@ -416,7 +428,7 @@ public sealed class SkiaSample : MonoBehaviour
             pass &= referencesDrawn && Matches(square, squareReference) && Matches(grey, greyReference);
             report += $" {name}: square={square} reference={squareReference} grey={grey} reference={greyReference}";
         }
-        if (_frontCamera != null)
+        if (_yellowTexture != null)
         {
             // Pure colors, so a Linear project's sRGB handling cannot move them.
             var fill = ScreenPixel(DirectX + Cell / 4, DirectY + Cell / 2);
@@ -429,7 +441,7 @@ public sealed class SkiaSample : MonoBehaviour
             var skiaRed = _expectRefusal ? (Color32)Background : new Color32(255, 0, 0, 255);
             var skiaMagenta = _expectRefusal ? (Color32)Background : new Color32(255, 0, 255, 255);
             pass &= Matches(fill, skiaRed)                            // channel order: red stays red
-                && Matches(front, Green)                              // the second camera draws over Skia
+                && Matches(front, _frontCamera != null ? Green : skiaRed)  // the second camera draws over Skia
                 && Matches(behind, Yellow)                            // Skia leaves what the first camera drew
                 && Matches(over, _expectRefusal ? Yellow : skiaRed)   // Skia draws over it
                 && Matches(markTop, skiaMagenta)                      // the right way up

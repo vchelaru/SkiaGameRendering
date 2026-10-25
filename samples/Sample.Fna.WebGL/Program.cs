@@ -2,7 +2,7 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Sample.Shared;
+using SampleShared;
 using SkiaGameRendering;
 using SkiaSharp;
 

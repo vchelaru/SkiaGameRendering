@@ -3,9 +3,9 @@ using SkiaSharp;
 using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 using Stride.Games;
-// Aliased: Stride.Engine.Scene (a scene graph node) and Sample.Shared.Scene (the Skia drawing
+// Aliased: Stride.Engine.Scene (a scene graph node) and SampleShared.Scene (the Skia drawing
 // helper every sample shares) collide by name.
-using SharedScene = Sample.Shared.Scene;
+using SharedScene = SampleShared.Scene;
 
 // Same code-only setup as Sample.Stride.D3D11, on Stride's Direct3D 12 backend
 // (StrideGraphicsApi=Direct3D12 in the csproj) through SkiaGameRendering.Stride.D3D12.

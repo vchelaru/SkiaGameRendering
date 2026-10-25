@@ -3,7 +3,7 @@ using System;
 using SkiaSharp;
 using Svg.Skia;
 
-namespace Sample.Shared;
+namespace SampleShared;
 
 /// <summary>
 /// The one Skia scene every sample draws, imported into every sample project through
@@ -56,8 +56,8 @@ public static class Scene
         if (_drop != null)
             return _drop;
 
-        using var stream = typeof(Scene).Assembly.GetManifestResourceStream("Sample.Shared.Drop.svg")
-            ?? throw new InvalidOperationException("Embedded resource Sample.Shared.Drop.svg is missing.");
+        using var stream = typeof(Scene).Assembly.GetManifestResourceStream("SampleShared.Drop.svg")
+            ?? throw new InvalidOperationException("Embedded resource SampleShared.Drop.svg is missing.");
         var svg = new SKSvg();
         svg.Load(stream);
         return _drop = svg;

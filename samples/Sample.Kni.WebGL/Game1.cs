@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Runtime.Versioning;
-using Sample.Shared;
+using SampleShared;
 using SkiaGameRendering;
 using SkiaSharp;
 
