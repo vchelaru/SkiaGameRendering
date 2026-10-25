@@ -119,7 +119,7 @@ namespace SkiaGameRendering.Tests
             target.End();
         }
 
-        static void DrawAndCheck()
+        internal static void DrawAndCheck()
         {
             using var target = new SkiaRenderTarget2D(Size, Size);
             Draw(target);
