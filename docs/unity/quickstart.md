@@ -58,6 +58,10 @@ with the matching material:
 Both work in Gamma and Linear color space projects, but only with the right one for where you
 draw, since IMGUI stays in gamma in a Linear project.
 
+## Render pipelines
+
+The examples above use `Camera.onPostRender`, which only the built-in render pipeline raises. Under URP, call `Begin`/`End` from `RenderPipelineManager.endCameraRendering` instead (and check `GraphicsSettings.currentRenderPipeline != null` to pick the hook). No library change is needed. Verified on Direct3D 11 in a Linear project with URP 17.6 (Unity 6000.6): a camera drawing to the screen and a camera with a `targetTexture` both received the Skia draw. HDRP has not been run. `samples/Sample.Unity` stays built-in only: its `Sample` namespace (from `Scene.cs`) collides with the Package Manager UI `Sample` type that `com.unity.render-pipelines.core` compiles against, so adding URP or HDRP to that project does not compile.
+
 ## Multisampling
 
 `SkiaRenderTarget2D(width, height, multiSampleCount)` takes the same parameter as the other engines, but only 0 (the default) works on Unity: 2, 4 and 8 throw `NotSupportedException`, and `SkiaRenderer.SupportsMultiSampledTargets` is false. See [SkiaRenderTarget2D](../documentation/SkiaRenderTarget2D.md#multisampling).

@@ -73,7 +73,7 @@ been verified (3.8.6); on any other build `SkiaRenderer.SupportsDirectCanvas` is
 
 Unity on Direct3D 11, Direct3D 12, Vulkan and OpenGL (Windows) has `SkiaDirectCanvas`, constructed with no arguments. Call `Begin`/`End` from the
 main thread while a camera renders, for example in `Camera.onPostRender` or a `MonoBehaviour.OnPostRender`
-(built-in render pipeline). Skia then draws onto the target that camera has bound, after what the camera drew so
+(built-in render pipeline; URP and HDRP never raise those, so subscribe `RenderPipelineManager.endCameraRendering` there, see the [Unity quick start](../unity/quickstart.md#render-pipelines)). Skia then draws onto the target that camera has bound, after what the camera drew so
 far and before anything drawn later, such as a camera with a higher depth. `Canvas` records on the main thread and
 the drawing is played back on Unity's render thread. The size is the active `RenderTexture`, or the screen when
 there is none. The camera must not be HDR (`Camera.allowHDR = false`): a 16-bit float target throws on the render
