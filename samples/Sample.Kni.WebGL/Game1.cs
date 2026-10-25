@@ -250,6 +250,20 @@ internal sealed class Game1 : Game
         SkiaRenderer.Dispose();
     }
 
+    /// <summary>Tests: what creating a SkiaRenderTarget2D with this multiSampleCount does.</summary>
+    public string TryMultiSample(int multiSampleCount)
+    {
+        try
+        {
+            using var target = new SkiaRenderTarget2D(GraphicsDevice, 16, 16, SKColorType.Rgba8888, multiSampleCount);
+            return "ok";
+        }
+        catch (Exception exception)
+        {
+            return exception.GetType().Name + ": " + exception.Message;
+        }
+    }
+
     public string GetDiagnostics()
     {
         var diagnostics = Backend?.Diagnostics;

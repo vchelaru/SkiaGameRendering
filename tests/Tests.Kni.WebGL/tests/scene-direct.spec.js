@@ -113,6 +113,14 @@ test("switches between the render-target path and SkiaDirectCanvas", async ({ pa
   expect(await directGlErrors(page), "GL errors Skia left in KNI's queue").toBeLessThanOrEqual(1);
 });
 
+test("rejects a multisampled render target with NotSupportedException and keeps drawing", async ({ page }) => {
+  const session = await open(page, "direct");
+  expect(await page.evaluate(() => globalThis.skiaKniSample.tryMultiSample(0))).toBe("ok");
+  expect(await page.evaluate(() => globalThis.skiaKniSample.tryMultiSample(4))).toMatch(/^NotSupportedException: .*multisampled/);
+  await waitForFrames(page, 10);
+  expect(session.errors).toEqual([]);
+});
+
 test("recreates the backend and keeps drawing", async ({ page }) => {
   const session = await open(page, "direct");
   for (let round = 0; round < 3; round++) {

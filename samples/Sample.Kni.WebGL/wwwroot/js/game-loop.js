@@ -40,6 +40,7 @@ globalThis.skiaKniSample = (() => {
             if (select && mode) select.value = mode;
             frame = requestAnimationFrame(tick);
         },
+        tryMultiSample: count => instance?.invokeMethod("TryMultiSample", count),
         stop,
     };
 })();
