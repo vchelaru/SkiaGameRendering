@@ -183,7 +183,7 @@ test("accepts Rgba8888 render targets and rejects other color types with NotSupp
 // reachable on this page; it would need a WebGL 1 context.
 test("raylib gets no vertex array objects from its WebGL 2 context and re-specifies its attributes every draw", async ({ page }) => {
   await open(page, "raylib");
-  const read = () => page.evaluate(() => ({ ...globalThis.skiaRaylibGl, frame: Number(document.getElementById("diagnostic-text").textContent.match(/frames (d+)/)[1]) }));
+  const read = () => page.evaluate(() => ({ ...globalThis.skiaRaylibGl, frame: Number(document.getElementById("diagnostic-text").textContent.match(/frames ([0-9]+)/)[1]) }));
   const before = await read();
   await waitForFrames(page, 30);
   const after = await read();
