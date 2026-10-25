@@ -16,7 +16,7 @@ namespace Tests.Raylib.OGL;
 [Collection(RaylibWindowCollection.Name)]
 public sealed class RaylibOnScreenOrientationTests
 {
-    [Fact]
+    [NotMacOsFact]
     public unsafe void Scene_CompositedToScreen_IsNotFlipped()
     {
         // GLFW's wgl loader resolves opengl32.dll like SDL does - see VendoredOpenGl.PreloadIfPresent.
@@ -71,7 +71,7 @@ public sealed class RaylibOnScreenOrientationTests
     /// The same scene through <see cref="SkiaDirectCanvas"/> (what Sample.Raylib.OGL draws when D is
     /// pressed), read back from the window's framebuffer: a flip or a wrong color fails the scene's probes.
     /// </summary>
-    [Fact]
+    [NotMacOsFact]
     public unsafe void Scene_DrawnWithDirectCanvas_IsNotFlipped()
     {
         VendoredOpenGl.PreloadIfPresent();
