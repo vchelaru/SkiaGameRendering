@@ -203,3 +203,22 @@ for (const mode of ["target", "direct"]) {
     expect(errors).toEqual([]);
   });
 }
+
+// Proves raylib itself skipped VAOs (Skia makes its own, so only a raylib-only frame says anything): ?mode=raylib draws no
+// Skia, and raylib re-specifies its vertex attributes on every draw (vertexAttribPointer, 4 a frame here) without a VAO
+// instead of binding one. The default page measures the same (0 binds), so this proves the path, not that es2=1 changes it.
+async function raylibGlCallsPerFrame(page, query) {
+  await open(page, query);
+  const read = () => page.evaluate(() => ({ ...globalThis.skiaRaylibEs2, frame: Number(document.getElementById("diagnostic-text").textContent.match(/frames (\d+)/)[1]) }));
+  const before = await read();
+  await waitForFrames(page, 30);
+  const after = await read();
+  const elapsed = after.frame - before.frame;
+  return { binds: (after.vaoBinds - before.vaoBinds) / elapsed, pointers: (after.attribPointers - before.attribPointers) / elapsed };
+}
+
+test("raylib skips vertex array objects and re-specifies its attributes when OES_vertex_array_object is hidden", async ({ page }) => {
+  const { binds, pointers } = await raylibGlCallsPerFrame(page, "raylib&es2=1");
+  expect(pointers, "vertexAttribPointer calls per raylib-only frame").toBeGreaterThanOrEqual(1);
+  expect(binds, "bindVertexArray calls per raylib-only frame").toBe(0);
+});

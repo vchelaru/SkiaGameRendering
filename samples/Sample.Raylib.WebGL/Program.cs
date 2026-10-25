@@ -65,11 +65,14 @@ public static class Game
         {
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.Black);
+            // ?mode=raylib draws raylib alone, so tests can count the GL calls raylib makes on its own.
             if (mode == "direct")
                 DrawDirect();
+            else if (mode == "raylib")
+                Raylib.DrawRectangle(40, 40, 200, 100, Color.Green);
             else
                 DrawTarget();
-            Raylib.DrawText(mode == "direct" ? "SkiaDirectCanvas" : "SkiaRenderTarget2D", 10, 10, 20, Color.White);
+            Raylib.DrawText(mode == "direct" ? "SkiaDirectCanvas" : mode == "raylib" ? "raylib only" : "SkiaRenderTarget2D", 10, 10, 20, Color.White);
             Raylib.EndDrawing();
             _frames++;
         }
@@ -79,7 +82,7 @@ public static class Game
             throw;
         }
 
-        return $"{(mode == "direct" ? "SkiaDirectCanvas" : "SkiaRenderTarget2D")} frames {_frames} errors {(_error.Length == 0 ? "none" : _error)}";
+        return $"{(mode == "direct" ? "SkiaDirectCanvas" : mode == "raylib" ? "raylib only" : "SkiaRenderTarget2D")} frames {_frames} errors {(_error.Length == 0 ? "none" : _error)}";
     }
 
     // Tests: what creating a SkiaRenderTarget2D with this SKColorType does.
