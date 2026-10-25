@@ -35,7 +35,10 @@ namespace SkiaGameRendering
         internal static int DirectEventId => _graphicsDeviceType == GraphicsDeviceType.Direct3D12 ? D3D12UnityBackend.DirectEventId : DrawEventId;
 
         /// <summary>The plugin event id the draw event is issued with.</summary>
-        internal static int DrawEventId => UsesPrepareEvent ? VulkanUnityBackend.DrawEventId : 0;
+        internal static int DrawEventId =>
+            UsesPrepareEvent ? VulkanUnityBackend.DrawEventId
+            : _graphicsDeviceType == GraphicsDeviceType.Direct3D12 ? D3D12UnityBackend.DrawEventId
+            : 0;
 
         /// <summary>
         /// Main thread. Throws unless one of the backends below can run on this device, and loads
