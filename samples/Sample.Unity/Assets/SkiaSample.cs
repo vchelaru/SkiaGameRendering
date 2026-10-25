@@ -174,7 +174,9 @@ public sealed class SkiaSample : MonoBehaviour
             camera.cullingMask &= ~(1 << 2);
             _targetYellow = SolidTexture(Yellow);
             AddSpriteAt(_targetYellow, TargetOriginX + Cell, 0, Cell, Cell, 2);
-            _targetTexture = new RenderTexture(TargetWidth, Cell, 24, RenderTextureFormat.ARGB32) { antiAliasing = _msaa ? 4 : 1 };
+            // A Linear project makes ARGB32 an sRGB texture by default, which SkiaDirectCanvas refuses on Direct3D 12 (DXGI_FORMAT_R8G8B8A8_UNORM_SRGB), so ask for a plain one there.
+            var readWrite = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 ? RenderTextureReadWrite.Linear : RenderTextureReadWrite.Default;
+            _targetTexture = new RenderTexture(TargetWidth, Cell, 24, RenderTextureFormat.ARGB32, readWrite) { antiAliasing = _msaa ? 4 : 1 };
             var target = new GameObject("Target camera");
             _targetCamera = target.AddComponent<Camera>();
             _targetCamera.CopyFrom(camera);
