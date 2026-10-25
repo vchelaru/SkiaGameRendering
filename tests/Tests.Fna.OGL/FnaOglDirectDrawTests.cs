@@ -23,9 +23,6 @@ public sealed class FnaOglDirectDrawTests(ITestOutputHelper output)
     const int GL_COLOR_ATTACHMENT0 = 0x8CE0;
     const int GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME = 0x8CD1;
 
-    static FnaOglDirectDrawTests() =>
-        Environment.SetEnvironmentVariable("FNA3D_FORCE_DRIVER", "OpenGL");
-
     [Fact]
     public void SupportsDirectCanvas() =>
         Assert.Equal("True", OneFrameGame.Render(() => new SkiaGlBackend(),

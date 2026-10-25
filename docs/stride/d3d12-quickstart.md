@@ -32,7 +32,6 @@ The same code as the D3D11 quick start, with the `SkiaStrideD3D12*` types:
 ```cs
 using SkiaGameRendering;
 using SkiaSharp;
-using Stride.CommunityToolkit.Bepu;
 using Stride.CommunityToolkit.Engine;
 using Stride.Engine;
 
@@ -43,7 +42,6 @@ var paint = new SKPaint { Color = SKColors.Crimson, IsAntialias = true };
 // Called as a static method because Game.Run(GameContext) hides the toolkit's Run extension.
 Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: rootScene =>
 {
-    game.SetupBase3DScene();
 
     // Draws straight into the back buffer. To draw into a texture and composite it instead, set
     // Canvas to a SkiaRenderTarget2D sized to the back buffer and clear it in SkiaDraw.
