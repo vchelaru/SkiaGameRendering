@@ -63,7 +63,7 @@ Vulkan has no bound-target query, so `Begin` takes the target from the `Graphics
 its image to `COLOR_ATTACHMENT_OPTIMAL` through Stride's own barrier and hands it back the same way. Unlike
 D3D11 and D3D12, sRGB-format targets work: Skia cannot wrap an sRGB-format `VkImage`, so the default Linear
 swap chain image is wrapped as its UNORM twin (Stride creates it without the mutable-format flag, which
-drivers accept for same-size formats but the validation layer reports).
+drivers accept for same-size formats but the validation layer reports, [#304](https://github.com/vchelaru/SkiaGameRendering/issues/304), upstream [stride#3695](https://github.com/stride3d/stride/issues/3695)). If a driver or validation layer rejects that image, draw through a `SkiaRenderTarget2D` set as the `Canvas` of a `SkiaSceneRenderer` instead; it composites onto the back buffer and never touches it.
 MonoGame's native WindowsDX12 has `SkiaDirectCanvas` too, with the Stride D3D12 limits (single-sample targets, no
 multisampled back buffer) and the same per-pass submission cost, and no drawing with MonoGame between `Begin`
 and `End`. MonoGame gives no way to get its current target's `ID3D12Resource` or to submit what it has recorded,
