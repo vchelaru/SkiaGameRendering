@@ -177,6 +177,14 @@ test("accepts Rgba8888 render targets and rejects other color types with NotSupp
     expect(await tryColorType(color), `SKColorType ${color}`).toMatch(/^NotSupportedException: .*Rgba8888/);
 });
 
+test("rejects a non-zero multiSampleCount with NotSupportedException and never falls back to 0", async ({ page }) => {
+  await open(page, "target");
+  const tryMultiSample = count => page.evaluate(c => DotNet.invokeMethod("Sample.Raylib.WebGL", "TryMultiSample", c), count);
+  expect(await tryMultiSample(0)).toBe("ok");
+  for (const count of [2, 4, 8, -1, 1, 3, 16])
+    expect(await tryMultiSample(count), `multiSampleCount ${count}`).toMatch(/^NotSupportedException: .*multiSampleCount/);
+});
+
 // raylib's build is OpenGL ES 2 and uses VAOs only through OES_vertex_array_object, which a WebGL 2 context never offers (VAOs
 // are core there), so raylib logs "VAO extension not found" and re-specifies its vertex attributes on every draw. Skia
 // makes its own VAOs, so only a ?mode=raylib frame (no Skia) says anything about raylib. The path with VAOs is not
