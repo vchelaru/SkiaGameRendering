@@ -25,7 +25,7 @@ This document tracks which framework/platform/backend combinations have been pro
 Which engine/backend pairs have a render target (`SkiaRenderTarget2D` or the engine's equivalent) and
 which also draw straight into the current target (`SkiaDirectCanvas`).
 
-✅ render target + direct  🟦 render target only  🟡 neither, but the engine has this API  ❌ the engine doesn't have this API
+✅ render target + direct  🟦 render target only  🟡 neither, but the engine has this API  ❌ the engine doesn't have this API  ⛔ engine has it, not supported for now
 
 | Engine | OpenGL / GLES | D3D11 | D3D12 | Vulkan | Metal | WebGL |
 |---|---|---|---|---|---|---|
@@ -35,7 +35,9 @@ which also draw straight into the current target (`SkiaDirectCanvas`).
 | raylib | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Stride | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌ |
-| Unity 6 | ✅ Windows, Android | ✅ | ✅ | ✅ | 🟦 | 🟡 |
+| Unity 6 | ✅ Windows, Android | ✅ | ✅ | ✅ | 🟦 | ⛔ |
+
+Unity WebGL is ⛔ because Unity's Emscripten must match the one SkiaSharp's wasm build uses (3.1.56) and nothing has been shown to work.
 
 FNA's D3D12, Vulkan and Metal are ❌ because FNA3D reaches them through its SDL_GPU driver, which
 exposes no native device handles.

@@ -13,7 +13,7 @@ https://github.com/vchelaru/SkiaGameRendering.git#upm
 To pin a version, use `#upm/v<version>` instead, for example `#upm/v0.19.0`.
 
 On Windows, set Player Settings > Other Settings > Graphics APIs for Windows to Direct3D11, Direct3D12, Vulkan
-or OpenGLCore. macOS uses Metal, its default. For Android, set Graphics APIs to OpenGLES3 only (not Vulkan, not OpenGLES2), the scripting backend to IL2CPP and the target architecture to ARM64; Unity 6000.6 no longer builds x86_64 Android players. Linux is not supported yet.
+or OpenGLCore. macOS uses Metal, its default. For Android, set Graphics APIs to OpenGLES3 only (not Vulkan, not OpenGLES2), the scripting backend to IL2CPP and the target architecture to ARM64; Unity 6000.6 no longer builds x86_64 Android players. Linux and WebGL are not supported yet.
 
 ## Limit code to supported platforms
 
