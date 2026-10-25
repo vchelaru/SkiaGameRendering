@@ -26,7 +26,7 @@ This document tracks which framework/platform/backend combinations have been pro
 | raylib          | 8.1.0 (Raylib-cs) | WebGL2 | Web | samples/Sample.Raylib.WebGL/ | Working | See `docs/raylib/webgl-quickstart.md`. Needs .NET 10 and `wasm-tools`. raylib and SkiaSharp share one Emscripten WebGL context. |
 | Unity           | 6       | D3D11, D3D12, Vulkan, OpenGL | Desktop (Windows x64) | samples/Sample.Unity/ | Working (local only) | See `docs/unity/quickstart.md`. Mono and IL2CPP. Verified by the maintainer locally, never in CI. Linux is not verified. |
 | Unity           | 6       | OpenGL ES 3 | Android | samples/Sample.Unity/ | Working (local only) | See `docs/unity/quickstart.md`. IL2CPP, arm64, OpenGLES3 only (not Vulkan, not OpenGLES2). |
-| Unity           | 6       | Metal | Desktop (macOS) | samples/Sample.Unity/ | Render target only (local only) | See `docs/unity/quickstart.md`. Verified on a Mac: the smoke test and the Editor tests pass. `SkiaDirectCanvas` is not implemented on Metal yet (open issue labelled Mac). |
+| Unity           | 6       | Metal | Desktop (macOS) | samples/Sample.Unity/ | Working (local only) | See `docs/unity/quickstart.md`. Verified on a Mac (Apple M5 Pro, Unity 6000.6.3f1, built-in pipeline, Gamma and Linear): the smoke test, including the `SkiaDirectCanvas` area, and the Editor tests pass. Direct canvas refuses MSAA targets like D3D12 and Vulkan. URP and HDRP on Metal unrun. |
 | Unity           | 6       | WebGL | Web | samples/Sample.Unity/ | Not supported | Unity's Emscripten has to match the one SkiaSharp's wasm build uses (3.1.56) and nothing has been shown to work. |
 | raylib          | 8.0.0 (Raylib-cs) | rlgl (OGL) | Desktop | samples/Sample.Raylib.OGL/ | Working (Windows + Linux) | See `docs/raylib/quickstart.md`. macOS not implemented. |
 | Godot           | 4.7.2 (GodotSharp) | Vulkan (RenderingDevice) | Desktop | samples/Sample.Godot/ | Working (Windows verified, incl. clean `--gpu-validation`; Linux expected, unrun; macOS unsupported: SkiaSharp's macOS build has no Vulkan) | See `docs/godot/quickstart.md`. No reflection: `RenderingDevice.GetDriverResource` is public. Zero-copy. |
@@ -49,7 +49,7 @@ which also draw straight into the current target (`SkiaDirectCanvas`).
 | raylib | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Stride | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌ |
-| Unity 6 | ✅ Windows, Android | ✅ | ✅ | ✅ | 🟦 | ⛔ |
+| Unity 6 | ✅ Windows, Android | ✅ | ✅ | ✅ | ✅ | ⛔ |
 
 Unity WebGL is ⛔ because Unity's Emscripten must match the one SkiaSharp's wasm build uses (3.1.56) and nothing has been shown to work.
 
@@ -75,7 +75,8 @@ Shared code to reuse when moving a 🟦 to ✅:
 - WebGL: KNI's `SkiaWebGlBackend` registers KNI's own WebGL2 context with SkiaSharp's Emscripten GL runtime
   (no second context exists to share objects with), so Skia and KNI drive one context. `KniStateInvalidation`
   resets KNI's state cache by reflection after each pass. None of that is reusable elsewhere.
-- Vulkan: Stride has direct draw (`SkiaStrideVulkanContext.BeginDirectDraw`). Unity Vulkan has direct draw too. Metal has no direct-draw code yet (Unity Metal is render target only, issue #356).
+- Vulkan: Stride has direct draw (`SkiaStrideVulkanContext.BeginDirectDraw`). Unity Vulkan has direct draw too.
+- Metal: `MetalSkiaSurfaceFactory.CreateDirectSurface` in `Core.Metal` wraps the target's `MTLTexture` (an sRGB format through a Unorm view). The adapter supplies the texture and commits the engine's open command buffer first, which ends its render pass; Skia then loads the target and the engine's next pass keeps the contents. Used by Unity (`MetalUnityBackend.DrawDirect`).
 - Godot: render target only is final on every renderer. Compatibility has no hook that runs while its target is bound. Forward+ and Mobile (RenderingDevice, Vulkan, D3D12 and Metal) defer all commands into a graph submitted at frame end, and nothing lets a native Skia queue submit run in order inside it.
 
 ## Multisampling

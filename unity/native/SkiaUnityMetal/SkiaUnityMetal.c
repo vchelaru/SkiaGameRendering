@@ -1,6 +1,6 @@
 // Hands Unity's Metal device and command queue to SkiaGameRendering.Unity, which gives both to
-// Core.Metal, and lets it commit Unity's current command buffer before Skia submits its own. Unity's
-// C# API exposes none of this. Built by eng/build-unity-metal-plugin.sh; the output is committed.
+// Core.Metal, lets it commit Unity's current command buffer before Skia submits its own, and names the
+// MTLTexture behind the render target Unity is rendering to. Unity's C# API exposes none of this. Built by eng/build-unity-metal-plugin.sh; the output is committed.
 //
 // The interface structs are declared here, not included from Unity's PluginAPI headers
 // (IUnityInterface.h, IUnityGraphicsMetal.h), so the build doesn't need a Unity install. Only the
@@ -14,13 +14,19 @@ typedef struct
     void* RegisterInterfaceSplit;
 } IUnityInterfaces;
 
-// IUnityGraphicsMetalV2's leading members, in header order.
+// IUnityGraphicsMetalV2's members up to the ones used, in header order.
 typedef struct
 {
     void* (*CommitCurrentCommandBuffer)(void);
     void* (*CommandQueue)(void);
     void* (*MetalBundle)(void);
     void* (*MetalDevice)(void);
+    void* (*CurrentCommandBuffer)(void);
+    void* (*CurrentCommandEncoder)(void);
+    void (*EndCurrentCommandEncoder)(void);
+    void* (*CurrentRenderPassDescriptor)(void);
+    void* (*RenderBufferFromHandle)(void* bufferHandle);
+    void* (*TextureFromRenderBuffer)(void* renderBuffer);
 } IUnityGraphicsMetalV2;
 
 static const unsigned long long MetalV2GuidHigh = 0xF58857784FEF46ECULL;
@@ -55,4 +61,13 @@ __attribute__((visibility("default"))) void SkiaUnityMetal_CommitCurrentCommandB
 {
     if (s_metal)
         s_metal->CommitCurrentCommandBuffer();
+}
+
+// Render thread only. The id<MTLTexture> behind a UnityRenderBuffer, which the main thread reads from
+// Graphics.activeColorBuffer.GetNativeRenderBufferPtr() to name the target Unity is rendering to. For a
+// multisampled buffer this is the multisampled texture. Null if Unity doesn't know the buffer. Owned by
+// Unity; don't release it.
+__attribute__((visibility("default"))) void* SkiaUnityMetal_TextureFromRenderBuffer(void* renderBuffer)
+{
+    return s_metal && renderBuffer ? s_metal->TextureFromRenderBuffer(renderBuffer) : 0;
 }

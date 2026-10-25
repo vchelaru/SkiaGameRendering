@@ -39,7 +39,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 | D3D11 (MonoGame/KNI/FNA WindowsDX, Stride, Unity) | ANGLE (GL ES → D3D11 translation) on the engine's shared device. FNA gets the device through `FNA3D_GetSysRendererEXT`; Unity uses the device its `RenderTexture` belongs to |
 | D3D12 (MonoGame WindowsDX12, Stride, Godot, Unity) | Skia's D3D12 backend on the engine's `ID3D12Device`/queue. MonoGame wraps the target with `RenderTarget2D.FromNativeHandle()`; Godot draws into a typed resource and does one GPU `CopyResource` per frame (no readback, not zero-copy); Unity goes through a small native plugin |
 | Vulkan (MonoGame DesktopVK, Stride, Godot, Unity) | Skia's Vulkan backend on the engine's `VkDevice`/`VkQueue`, no separate context. Godot's handles come from public `RenderingDevice.GetDriverResource`, no reflection; Unity's come from a small native plugin over `IUnityGraphicsVulkan` |
-| Metal (Godot, Unity) | Skia's Metal backend on the engine's `MTLDevice`/queue, drawn straight into the engine's `MTLTexture`; Unity goes through a small native plugin |
+| Metal (Godot, Unity) | Skia's Metal backend on the engine's `MTLDevice`/queue, drawn straight into the engine's `MTLTexture`; Unity goes through a small native plugin over `IUnityGraphicsMetalV2`, which also names the texture behind the bound target for `SkiaDirectCanvas` |
 | WebGL2 (KNI Blazor) | `SkiaRenderTarget2D`: cross-context `texSubImage2D(canvas)` from Skia's own canvas. `SkiaDirectCanvas`: KNI's WebGL2 context registered with SkiaSharp's Emscripten GL runtime, so Skia and KNI share one context and nothing is copied |
 
 Unity records draws to an `SKPicture` on the main thread and plays them back on its render thread.

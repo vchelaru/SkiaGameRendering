@@ -23,6 +23,12 @@ namespace SkiaGameRendering.Core.Metal
         [return: MarshalAs(UnmanagedType.I1)]
         public static extern bool SendBool(IntPtr receiver, IntPtr selector, IntPtr arg);
 
+        [DllImport(ObjC, EntryPoint = "objc_msgSend")]
+        public static extern IntPtr SendPtrNUInt(IntPtr receiver, IntPtr selector, nuint arg);
+
+        [DllImport(ObjC, EntryPoint = "objc_msgSend")]
+        public static extern void SendVoid(IntPtr receiver, IntPtr selector);
+
         [DllImport(ObjC, EntryPoint = "objc_getProtocol")]
         public static extern IntPtr GetProtocol(string name);
 
@@ -36,6 +42,13 @@ namespace SkiaGameRendering.Core.Metal
 #endif
 
         public static readonly IntPtr SelUsage = Selector("usage");
+        public static readonly IntPtr SelPixelFormat = Selector("pixelFormat");
+        public static readonly IntPtr SelSampleCount = Selector("sampleCount");
+        public static readonly IntPtr SelTextureType = Selector("textureType");
+        public static readonly IntPtr SelWidth = Selector("width");
+        public static readonly IntPtr SelHeight = Selector("height");
+        public static readonly IntPtr SelNewTextureView = Selector("newTextureViewWithPixelFormat:");
+        public static readonly IntPtr SelRelease = Selector("release");
         public static readonly IntPtr SelConformsToProtocol = Selector("conformsToProtocol:");
 
         /// <summary>

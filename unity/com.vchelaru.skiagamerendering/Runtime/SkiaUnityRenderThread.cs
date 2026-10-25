@@ -186,10 +186,11 @@ namespace SkiaGameRendering
             }
         }
 
-        // A multisampled back buffer has no resource the plugin can hand to Skia, which would otherwise surface as an
-        // InvalidOperationException about a missing resource; it is the same refusal as a multisampled target texture.
+        // A multisampled back buffer has no resource the plugin can hand to Skia (Direct3D 12, Vulkan), which would otherwise
+        // surface as an InvalidOperationException about a missing resource; on Metal Skia gets the multisampled texture and
+        // the backend refuses it with a NotSupportedException of its own. Either way it is the same refusal as a multisampled target texture.
         static Exception RefuseMultisampled(Command command, Exception ex) =>
-            command.Direct && command.MultisampledSamples > 1 && ex is InvalidOperationException
+            command.Direct && command.MultisampledSamples > 1 && (ex is InvalidOperationException || ex is NotSupportedException)
                 ? new NotSupportedException(
                     $"SkiaDirectCanvas does not draw into multisampled targets (the render target is multisampled, {command.MultisampledSamples} samples). " +
                     "Set QualitySettings.antiAliasing to 0, or the camera's allowMSAA to false.")

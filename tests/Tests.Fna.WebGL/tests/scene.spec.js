@@ -96,44 +96,12 @@ test("fails clearly when the WebGL context is lost and stays failed after it is 
   expect(errors).toEqual([]);
 });
 
-test("a 4-sample SkiaRenderTarget2D draws the Scene and resolves on the GPU", async ({ page }) => {
-  await page.addInitScript(() => {
-    globalThis.glLog = { multisampledStorage: [], blits: 0 };
-    const storage = WebGL2RenderingContext.prototype.renderbufferStorageMultisample;
-    WebGL2RenderingContext.prototype.renderbufferStorageMultisample = function (target, samples, ...rest) {
-      globalThis.glLog.multisampledStorage.push(samples);
-      return storage.call(this, target, samples, ...rest);
-    };
-    const blit = WebGL2RenderingContext.prototype.blitFramebuffer;
-    WebGL2RenderingContext.prototype.blitFramebuffer = function (...args) {
-      globalThis.glLog.blits++;
-      return blit.apply(this, args);
-    };
-  });
-  const errors = await open(page, "texture", "&targetsamples=4");
-  const [circle, drop, outside] = await draw(page, [[50, 50], [150, 50], [790, 790]], 5);
-  near(circle, [255, 0, 0]);
-  expect(drop[0]).toBeLessThan(100);
-  expect(drop[2]).toBeGreaterThan(150);
-  near(outside, [0, 0, 0]);
-  const log = await page.evaluate(() => globalThis.glLog);
-  expect(log.multisampledStorage, "Skia allocated a multisampled renderbuffer").toContain(4);
-  expect(log.blits, "Skia resolved it with blitFramebuffer").toBeGreaterThan(0);
-  expect(await glErrors(page), await glErrorLog(page)).toBe(0);
-  expect(errors).toEqual([]);
-});
-
-test("accepts multiSampleCount 4, reports support, and rejects invalid counts", async ({ page }) => {
+test("rejects a multisampled render target with NotSupportedException and keeps drawing", async ({ page }) => {
   await open(page, "texture");
   await draw(page, [[50, 50]]);
-  const tryCount = n => page.evaluate(c => globalThis.fnaSample.tryMultiSample(c), n);
-  expect(await tryCount(0)).toBe("ok");
-  expect(await tryCount(4)).toBe("ok");
-  expect(await page.evaluate(() => globalThis.fnaSample.supportsMultiSampledTargets())).toBe(true);
-  for (const count of [-1, 1, 3, 5, 16])
-    expect(await tryCount(count), `count ${count}`).toMatch(/^NotSupportedException/);
+  expect(await page.evaluate(() => globalThis.fnaSample.tryMultiSample(0))).toBe("ok");
+  expect(await page.evaluate(() => globalThis.fnaSample.tryMultiSample(4))).toMatch(/^NotSupportedException: .*multisampled/);
   await draw(page, [[50, 50]]);
-  expect(await glErrors(page), await glErrorLog(page)).toBe(0);
 });
 
 // SKColorType: Alpha8 = 1, Rgb565 = 2, Rgba8888 = 4, Bgra8888 = 6.

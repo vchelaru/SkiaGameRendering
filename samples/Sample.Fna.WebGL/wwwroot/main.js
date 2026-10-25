@@ -11,7 +11,6 @@ const program = exports.Sample.Fna.WebGL.Program;
 const mode = new URLSearchParams(location.search).get("mode") ?? "texture";
 // ?msaa=1 asks FNA3D for a multisampled back buffer (GraphicsDeviceManager.PreferMultiSampling).
 program.SetMultiSampling(new URLSearchParams(location.search).has("msaa"));
-program.SetTargetMultiSampleCount(Number(new URLSearchParams(location.search).get("targetsamples") ?? 0));
 program.SetMode(mode);
 await runtime.runMain();
 
@@ -23,7 +22,6 @@ globalThis.fnaSample = {
   setMode: m => program.SetMode(m),
   tryColorType: c => program.TryColorType(c),
   tryMultiSample: n => program.TryMultiSample(n),
-  supportsMultiSampledTargets: () => program.SupportsMultiSampledTargets(),
   backBufferMultiSampleCount: () => program.BackBufferMultiSampleCount(),
   // Draws one frame, then reads pixels [x, y] (top-left origin) from the canvas before it is presented.
   frameAndRead(points) {

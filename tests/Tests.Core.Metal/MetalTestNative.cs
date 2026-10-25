@@ -13,7 +13,10 @@ static class MetalTestNative
     const string MetalFramework = "/System/Library/Frameworks/Metal.framework/Metal";
 
     public const nuint MTLPixelFormatRGBA8Unorm = 70;
+    public const nuint MTLPixelFormatRGBA8UnormSrgb = 71;
     public const nuint MTLPixelFormatBGRA8Unorm = 80;
+    public const nuint MTLPixelFormatBGRA8UnormSrgb = 81;
+    public const nuint MTLPixelFormatRGBA16Float = 115;
     public const nuint MTLTextureUsageShaderRead = 0x1;
     public const nuint MTLTextureUsageRenderTarget = 0x4;
     public const nuint MTLStorageModePrivate = 2;
