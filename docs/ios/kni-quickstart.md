@@ -6,9 +6,10 @@
 
 ## Prerequisites
 
-- .NET 10 SDK and the iOS workload: `dotnet workload install ios`. The package targets
-  `net10.0-ios26.5`, the first iOS target SkiaSharp 4 ships native assets for. Building an app needs
-  a Mac with the Xcode that the iOS SDK pack asks for (Xcode 26.6 for `net10.0-ios26.5`).
+- .NET 10 SDK and the iOS workload: `dotnet workload install ios`. SkiaSharp itself needs `net10.0-ios26.0` or newer. These packages target
+  `net10.0-ios26.5`, so an app needs `net10.0-ios26.5` or later and a Mac with Xcode 26.6 (the iOS SDK pack
+  requires that exact Xcode). An app on `net10.0-ios26.0` or an older Xcode needs to update before it can
+  reference them; the NuGet compatibility rule was not checked against these exact packages.
 - KNI 4.3.9001 with `nkast.Kni.Platform.iOS.GL` and `<KniPlatform>iOS</KniPlatform>` in the app project.
 - iOS 15 or newer. KNI iOS renders with OpenGL ES, which Apple deprecated in iOS 12 but still ships.
 
