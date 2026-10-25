@@ -8,11 +8,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>SkiaGameRendering.Stride.D3D11</PackageId>
-    <!--
-      Still a prerelease suffix by choice: Stride 4.4.1 is stable, so NU5104 no longer forces it.
-      Dropping the suffix is a release decision.
-    -->
-    <Version>$(LibraryVersion)-beta</Version>
+    <Version>$(LibraryVersion)</Version>
     <Description>GPU SkiaSharp rendering into Stride Texture targets via D3D11/ANGLE, with zero-copy GPU texture sharing.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
