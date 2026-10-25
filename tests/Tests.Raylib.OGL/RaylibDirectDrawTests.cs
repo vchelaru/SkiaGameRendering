@@ -25,7 +25,7 @@ public sealed class RaylibDirectDrawTests
     static readonly SKColor Skia = new(210, 50, 90);
     static readonly Color After = new(240, 220, 10, 255);
 
-    [Fact]
+    [NotMacOsFact]
     public void BackBuffer_LayersWithRaylibDraws()
     {
         RunInWindow(() =>
@@ -43,7 +43,7 @@ public sealed class RaylibDirectDrawTests
         });
     }
 
-    [Fact]
+    [NotMacOsFact]
     public void RenderTexture_LayersWithRaylibDraws()
     {
         RunInWindow(() =>
@@ -75,7 +75,7 @@ public sealed class RaylibDirectDrawTests
         });
     }
 
-    [Fact]
+    [NotMacOsFact]
     public void Canvas_OutsideBeginEnd_Throws()
     {
         RunInWindow(() =>

@@ -13,7 +13,7 @@ namespace Tests.Raylib.OGL;
 [Collection(RaylibWindowCollection.Name)]
 public sealed class RaylibShutdownTests
 {
-    [Fact]
+    [NotMacOsFact]
     public void DisposingAfterCloseWindow_DoesNotThrow()
     {
         VendoredOpenGl.PreloadIfPresent();

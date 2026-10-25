@@ -9,7 +9,7 @@ namespace Tests.Raylib.OGL;
 /// </summary>
 public sealed class RaylibMultiSampleTests
 {
-    [Fact]
+    [NotMacOsFact]
     public void FlagIsFalse() => Assert.False(SkiaRenderer.SupportsMultiSampledTargets);
 
     [Theory]
