@@ -37,6 +37,7 @@ namespace SkiaGameRendering
         int _height;
         bool _flip;
         IntPtr _renderBuffer;
+        int _multisampledSamples;
         bool _isDisposed;
 
         public SkiaDirectCanvas()
@@ -66,6 +67,8 @@ namespace SkiaGameRendering
             _renderBuffer = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan
                 ? Graphics.activeColorBuffer.GetNativeRenderBufferPtr()
                 : IntPtr.Zero;
+            // With MSAA Unity renders a camera into an intermediate texture, so the back buffer shows up as a multisampled active texture.
+            _multisampledSamples = active != null ? active.antiAliasing : (Camera.current == null || Camera.current.allowMSAA) ? QualitySettings.antiAliasing : 0;
             _recorder ??= new SKPictureRecorder();
             _canvas = _recorder.BeginRecording(new SKRect(0, 0, _width, _height));
         }
@@ -92,6 +95,7 @@ namespace SkiaGameRendering
                 DeviceTexture = Texture2D.whiteTexture.GetNativeTexturePtr(),
                 // Only Direct3D 12 and Vulkan need it: it has no "currently bound target" to ask the device for.
                 RenderBuffer = _renderBuffer,
+                MultisampledSamples = _multisampledSamples,
             });
         }
 

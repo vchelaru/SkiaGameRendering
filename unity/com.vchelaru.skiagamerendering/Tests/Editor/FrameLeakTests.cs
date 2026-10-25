@@ -77,11 +77,11 @@ namespace SkiaGameRendering.Tests
             (GpuProbe.IsOpenGl ? GpuProbe.GlObjectCount() : GpuProbe.DeviceRefCount(), emptyState == IntPtr.Zero ? 0 : RefCount(emptyState), GpuProbe.PrivateBytes());
 
         // The ID3D11DeviceContextState AngleSkiaSurfaceFactory swaps in for every draw, or zero on
-        // Metal and OpenGL, which have none. The fields are private, so a rename fails this test with a null
+        // Metal, OpenGL, Direct3D 12 and Vulkan, which have none. The fields are private, so a rename fails this test with a null
         // reference rather than passing silently.
         static IntPtr EmptyStateOfTheFactory()
         {
-            if (GpuProbe.IsMetal || GpuProbe.IsOpenGl)
+            if (GpuProbe.IsMetal || GpuProbe.IsOpenGl || GpuProbe.IsD3D12 || GpuProbe.IsVulkan)
                 return IntPtr.Zero;
             const System.Reflection.BindingFlags nonPublic = System.Reflection.BindingFlags.NonPublic;
             var backend = typeof(SkiaRenderTarget2D).Assembly

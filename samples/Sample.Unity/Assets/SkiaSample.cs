@@ -87,6 +87,7 @@ public sealed class SkiaSample : MonoBehaviour
     // Direct3D 12 and Vulkan throw NotSupportedException (logged from the render thread) instead of drawing into a multisampled target.
     bool _expectRefusal;
     int _refusals;
+    int _unexpectedFailures;
     int _frame;
     Camera _targetCamera;
     RenderTexture _targetTexture;
@@ -341,6 +342,9 @@ public sealed class SkiaSample : MonoBehaviour
 
     void CountRefusal(string condition, string stackTrace, LogType type)
     {
+        // An InvalidOperationException is the old MSAA back buffer failure (#315), not a refusal.
+        if (type == LogType.Exception && condition.Contains("InvalidOperationException") && !condition.Contains("NotSupportedException"))
+            System.Threading.Interlocked.Increment(ref _unexpectedFailures);
         if (type == LogType.Exception && condition.Contains("NotSupportedException") && condition.Contains("does not draw into multisampled targets"))
             System.Threading.Interlocked.Increment(ref _refusals);
     }
@@ -452,9 +456,9 @@ public sealed class SkiaSample : MonoBehaviour
         }
         if (_expectRefusal)
         {
-            // The target texture's draw throws NotSupportedException each frame. The MSAA back buffer fails earlier (InvalidOperationException from the prepare event) and draws nothing too.
-            pass &= _refusals >= 1;
-            report += $" refusals={_refusals}";
+            // The target texture's draw and the MSAA back buffer's both throw NotSupportedException each frame; and neither may fail with an InvalidOperationException.
+            pass &= _refusals >= 1 && _unexpectedFailures == 0;
+            report += $" refusals={_refusals} unexpectedFailures={_unexpectedFailures}";
         }
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore)
         {

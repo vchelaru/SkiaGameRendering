@@ -50,6 +50,9 @@ namespace SkiaGameRendering
             // The UnityRenderBuffer of the target being rendered to, for a backend that cannot ask the
             // device for its bound target (Direct3D 12, Vulkan).
             internal IntPtr RenderBuffer;
+            // The sample count of the target a direct draw is aimed at (MSAA on the back buffer or the active texture), else 0.
+            // Only for the error: Direct3D 12 and Vulkan cannot find the resource of a multisampled back buffer.
+            internal int MultisampledSamples;
         }
 
         delegate void RenderEventDelegate(int eventId);
@@ -149,7 +152,7 @@ namespace SkiaGameRendering
             catch (Exception ex)
             {
                 // Throwing back into Unity's native render thread would crash the player.
-                Debug.LogException(ex);
+                Debug.LogException(RefuseMultisampled(command, ex));
             }
             finally
             {
@@ -179,9 +182,18 @@ namespace SkiaGameRendering
             catch (Exception ex)
             {
                 // Throwing back into Unity's native render thread would crash the player.
-                Debug.LogException(ex);
+                Debug.LogException(RefuseMultisampled(command, ex));
             }
         }
+
+        // A multisampled back buffer has no resource the plugin can hand to Skia, which would otherwise surface as an
+        // InvalidOperationException about a missing resource; it is the same refusal as a multisampled target texture.
+        static Exception RefuseMultisampled(Command command, Exception ex) =>
+            command.Direct && command.MultisampledSamples > 1 && ex is InvalidOperationException
+                ? new NotSupportedException(
+                    $"SkiaDirectCanvas does not draw into multisampled targets (the render target is multisampled, {command.MultisampledSamples} samples). " +
+                    "Set QualitySettings.antiAliasing to 0, or the camera's allowMSAA to false.")
+                : ex;
 
         static void ReleaseOnRenderThread()
         {
