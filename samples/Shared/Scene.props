@@ -5,7 +5,7 @@
   -->
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Scene.cs" Link="Scene.cs" />
-    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Drop.svg" LogicalName="Sample.Shared.Drop.svg" Link="Drop.svg" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Drop.svg" LogicalName="SampleShared.Drop.svg" Link="Drop.svg" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
   </ItemGroup>
 </Project>

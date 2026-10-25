@@ -4,7 +4,7 @@ using Android.OS;
 using Android.Util;
 using Android.Views;
 using Microsoft.Xna.Framework;
-using Sample.Shared;
+using SampleShared;
 using SkiaGameRendering;
 
 namespace Sample

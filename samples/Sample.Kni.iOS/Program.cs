@@ -1,7 +1,7 @@
 using Foundation;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Sample.Shared;
+using SampleShared;
 using SkiaGameRendering;
 using Tests.Shared;
 using UIKit;
