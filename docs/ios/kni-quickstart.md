@@ -7,8 +7,8 @@
 ## Prerequisites
 
 - .NET 10 SDK and the iOS workload: `dotnet workload install ios`. The package targets
-  `net10.0-ios26.0`, the first iOS target SkiaSharp 4 ships native assets for. Building an app needs
-  a Mac with the Xcode that the iOS SDK pack asks for (Xcode 26.0 for `net10.0-ios26.0`).
+  `net10.0-ios26.5`, the first iOS target SkiaSharp 4 ships native assets for. Building an app needs
+  a Mac with the Xcode that the iOS SDK pack asks for (Xcode 26.5 for `net10.0-ios26.5`).
 - KNI 4.3.9001 with `nkast.Kni.Platform.iOS.GL` and `<KniPlatform>iOS</KniPlatform>` in the app project.
 - iOS 15 or newer. KNI iOS renders with OpenGL ES, which Apple deprecated in iOS 12 but still ships.
 
@@ -41,7 +41,7 @@ texture name: KNI does not leave a new texture bound, so `SkiaRenderTarget2D` al
 `Sample.Kni.iOS`'s smoke test (`eng/run-ios-smoke-test.sh <.app> com.vchelaru.skiagamerendering.sample`)
 checks the scene's pixels on the back buffer, then `SkiaDirectCanvas` layered between `SpriteBatch`
 draws on the back buffer, a render target, a multisampled render target and the back buffer again after
-KNI rebuilds it. It runs on the CI iOS Simulator (iPhone, `macos-26` runner, Xcode 26.0) on every PR.
+KNI rebuilds it. It runs on the CI iOS Simulator (iPhone, `macos-26` runner, Xcode 26.5) on every PR.
 
 Build for the Simulator with `dotnet build samples/Sample.Kni.iOS/Sample.Kni.iOS.csproj -c Release -r iossimulator-arm64`.
 

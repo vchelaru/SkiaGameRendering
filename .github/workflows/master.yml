@@ -756,11 +756,11 @@ jobs:
         with:
           # SkiaSharp's iOS native assets only ship for net10.0-ios.
           dotnet-version: 10.0.x
-      # The projects target net10.0-ios26.0, whose iOS SDK pack requires Xcode 26.0 exactly. The newest
-      # pack wants an Xcode newer than the runner has, and 26.0 is installed but not the default.
-      - name: Select Xcode 26.0
+      # The projects target net10.0-ios26.5, whose iOS SDK pack requires Xcode 26.5 exactly. The default
+      # Xcode on the runner is 26.6, so 26.5 is selected explicitly.
+      - name: Select Xcode 26.5
         run: |
-          xcode=$(ls -d /Applications/Xcode_26.0*.app | sort -V | tail -n 1)
+          xcode=$(ls -d /Applications/Xcode_26.5*.app | sort -V | tail -n 1)
           echo "Selecting $xcode"
           sudo xcode-select -s "$xcode"
       - name: Install the iOS workload

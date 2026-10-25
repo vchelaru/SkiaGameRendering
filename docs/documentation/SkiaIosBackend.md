@@ -7,7 +7,7 @@ design as `SkiaAndroidBackend`, with an EAGL sharegroup in place of a shared EGL
 
 Namespace: `SkiaGameRendering`
 
-Assembly/package: `SkiaGameRendering.iOS` (targets `net10.0-ios26.0`)
+Assembly/package: `SkiaGameRendering.iOS` (targets `net10.0-ios26.5`)
 
 ```csharp
 public class SkiaIosBackend : SkiaSharedGlBackend
@@ -51,7 +51,7 @@ by themselves, so the explicit form is only for tests.
 
 ## KNI iOS
 
-The `SkiaGameRendering.Kni.iOS` package (targets `net10.0-ios26.0`) ships a `SkiaIosBackend` with the same name and namespace.
+The `SkiaGameRendering.Kni.iOS` package (targets `net10.0-ios26.5`) ships a `SkiaIosBackend` with the same name and namespace.
 
 Assembly/package: `SkiaGameRendering.Kni.iOS`
 

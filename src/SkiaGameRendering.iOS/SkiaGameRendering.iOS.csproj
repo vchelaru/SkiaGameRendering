@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
-    <!-- MonoGame.Framework.iOS ships net8.0-ios18.0, but SkiaSharp's iOS native assets need net10.0-ios26.0. -->
-    <TargetFramework>net10.0-ios26.0</TargetFramework>
+    <!-- MonoGame.Framework.iOS ships net8.0-ios18.0, but SkiaSharp's iOS native assets need net10.0-ios26.5. -->
+    <TargetFramework>net10.0-ios26.5</TargetFramework>
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
