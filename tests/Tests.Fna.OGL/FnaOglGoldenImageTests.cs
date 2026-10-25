@@ -21,9 +21,6 @@ public sealed class FnaOglGoldenImageTests(ITestOutputHelper output)
 {
     const string Golden = "fna-ogl-scene.png";
 
-    static FnaOglGoldenImageTests() =>
-        Environment.SetEnvironmentVariable("FNA3D_FORCE_DRIVER", "OpenGL");
-
     [Fact]
     public void Scene_DrawnThroughSkiaRenderTarget2D_MatchesGolden() =>
         OneFrameGame.RenderAndAssertGolden(() => new SkiaGlBackend(),

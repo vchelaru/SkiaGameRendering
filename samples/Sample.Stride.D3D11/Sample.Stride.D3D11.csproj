@@ -23,13 +23,11 @@
     <!--
       Stride's own authoring flow is GameStudio plus an asset-pipeline project, neither of which a
       NuGet-only sample has. The Community Toolkit is Stride's own documented way to get a
-      GraphicsCompositor/camera/light for a pure-code Game without either - SetupBase3DScene lives in
-      the Bepu physics flavor (there's no non-physics equivalent), so that's pulled in even though
-      this sample doesn't otherwise use physics. Sample-only: src/SkiaGameRendering.Stride.D3D11 depends on
-      neither package.
+      GraphicsCompositor/camera/light for a pure-code Game without either - Run applies a default 3D scene setup.
+      Sample-only: src/SkiaGameRendering.Stride.D3D11 depends on
+      the toolkit.
     -->
-    <PackageReference Include="Stride.CommunityToolkit.Bepu" Version="$(StrideCommunityToolkitVersion)" />
-    <PackageReference Include="Stride.CommunityToolkit.Windows" Version="$(StrideCommunityToolkitVersion)" />
+    <PackageReference Include="Stride.CommunityToolkit" Version="$(StrideCommunityToolkitVersion)" />
   </ItemGroup>
 
   <ItemGroup>

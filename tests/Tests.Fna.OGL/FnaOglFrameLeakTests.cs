@@ -13,9 +13,6 @@ namespace Tests.Fna.OGL;
 [Collection(FrameLeakCheck.Collection)]
 public sealed class FnaOglFrameLeakTests(ITestOutputHelper output)
 {
-    static FnaOglFrameLeakTests() =>
-        Environment.SetEnvironmentVariable("FNA3D_FORCE_DRIVER", "OpenGL");
-
     [Fact]
     public void DrawingFrames_GrowsNothing() =>
         OneFrameGame.Render(() => new SkiaGlBackend(), device =>
