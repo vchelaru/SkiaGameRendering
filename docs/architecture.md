@@ -22,7 +22,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaRenderTarget2D`, Windows/Linux/macOS)
 - `src/SkiaGameRendering.Core.D3D12/`: engine-agnostic D3D12/Skia interop shared by D3D12-based backends
 - `src/SkiaGameRendering.Stride.D3D12/`: Stride library (shared `Core.D3D12` + `SkiaRenderTarget2D`, Windows/D3D12 only)
-- `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s, `Core.D3D12`'s, `Core.VK`'s and `Core.Metal`'s netstandard2.1 builds + `SkiaRenderTarget2D`, Windows/D3D11, Windows/D3D12, Windows/Vulkan and macOS/Metal; the plugins' sources are `unity/native/SkiaUnityD3D12/`, `unity/native/SkiaUnityVulkan/` and `unity/native/SkiaUnityMetal/`)
+- `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s, `Core.D3D12`'s, `Core.VK`'s and `Core.Metal`'s netstandard2.1 builds + `SkiaRenderTarget2D`, Windows/D3D11, Windows/D3D12, Windows/Vulkan, macOS/Metal and Android/OpenGL ES; the plugins' sources are `unity/native/SkiaUnityD3D12/`, `unity/native/SkiaUnityVulkan/` and `unity/native/SkiaUnityMetal/`)
 - `src/SkiaGameRendering.Godot/` — Godot library (`Core.VK`, `Core.D3D12`, `Core.Metal` and `Core.OGL` behind one `SkiaRenderTarget2D`, backend chosen from the running driver; no reflection, all public Godot API)
 
 ## How each backend works
@@ -30,6 +30,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 | Backend | Technique |
 |---------|-----------|
 | OpenGL (MonoGame/KNI DesktopGL, FNA OpenGL) | Second SDL GL context shared with the engine's |
+| OpenGL ES (Unity Android) | The same `EglSharedContext` as KNI Android, created on Unity's render thread from its current EGL context; Unity's GL ES 3 camera target is a texture, which Skia draws into through a Skia-side FBO |
 | OpenGL ES (KNI Android) | Second EGL context sharing KNI's, created from the host's current `EGLConfig`; surfaceless where the driver allows it |
 | OpenGL ES (MonoGame iOS) | Second `EAGLContext` in MonoGame's sharegroup; the back buffer is MonoGame's FBO around a `CAEAGLLayer` renderbuffer |
 | OpenGL ES (KNI iOS) | Same as MonoGame iOS: second `EAGLContext` in KNI's sharegroup; KNI's back buffer is the same FBO around a `CAEAGLLayer` renderbuffer |

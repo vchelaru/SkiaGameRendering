@@ -15,9 +15,9 @@
     <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
   </PropertyGroup>
 
-  <!-- These two load native libraries through NativeLibrary, which netstandard2.1 lacks. Unity doesn't use them yet. -->
+  <!-- This one loads native libraries through NativeLibrary, which netstandard2.1 lacks. Unity doesn't use it yet. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <Compile Remove="CglSharedContext.cs;EglSharedContext.cs" />
+    <Compile Remove="CglSharedContext.cs" />
   </ItemGroup>
 
   <ItemGroup>
