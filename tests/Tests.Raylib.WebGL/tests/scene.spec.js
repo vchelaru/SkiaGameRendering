@@ -218,12 +218,14 @@ async function raylibGlCallsPerFrame(page, query) {
 
 test("raylib binds vertex array objects when the browser offers them", async ({ page }) => {
   const { binds, pointers } = await raylibGlCallsPerFrame(page, "raylib");
+  expect(`binds ${binds} pointers ${pointers}`).toBe("probe");
   expect(binds, "bindVertexArray calls per raylib-only frame").toBeGreaterThanOrEqual(1);
   expect(pointers, "vertexAttribPointer calls per raylib-only frame").toBeLessThan(1);
 });
 
 test("raylib skips vertex array objects and re-specifies its attributes when OES_vertex_array_object is hidden", async ({ page }) => {
   const { binds, pointers } = await raylibGlCallsPerFrame(page, "raylib&es2=1");
+  expect(`binds ${binds} pointers ${pointers}`).toBe("probe");
   expect(pointers, "vertexAttribPointer calls per raylib-only frame").toBeGreaterThanOrEqual(1);
   expect(binds, "bindVertexArray calls per raylib-only frame").toBe(0);
 });
