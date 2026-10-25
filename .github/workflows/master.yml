@@ -760,7 +760,7 @@ jobs:
       # runner's default Xcode is 26.6, selected explicitly so a runner image change cannot move it.
       - name: Select Xcode 26.6
         run: |
-          xcode=$(ls -d /Applications/Xcode_26.6*.app | sort -V | tail -n 1)
+          xcode=/Applications/Xcode_26.6.app
           echo "Selecting $xcode"
           sudo xcode-select -s "$xcode"
       - name: Install the iOS workload
