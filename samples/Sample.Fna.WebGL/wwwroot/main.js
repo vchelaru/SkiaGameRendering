@@ -27,6 +27,8 @@ globalThis.fnaSample = {
   frameAndRead(points) {
     program.Frame();
     const gl = document.getElementById("canvas").getContext("webgl2");
+    // FNA3D leaves its multisampled back buffer FBO bound after a frame, and readPixels on that is INVALID_OPERATION.
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
     const height = gl.drawingBufferHeight, px = new Uint8Array(4);
     return points.map(([x, y]) => { gl.readPixels(x, height - 1 - y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return Array.from(px); });
   },
