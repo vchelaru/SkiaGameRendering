@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
-    <!-- KNI ships net10.0-ios (nkast.Kni.Platform.iOS.GL), but SkiaSharp's iOS native assets need net10.0-ios26.5. -->
+    <!-- KNI ships net10.0-ios (nkast.Kni.Platform.iOS.GL), and SkiaSharp's iOS native assets need net10.0-ios26.0 or newer. This package targets ios26.5 because the CI SDK pack and Xcode 26.6 pairing requires it. -->
     <TargetFramework>net10.0-ios26.5</TargetFramework>
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
     <ImplicitUsings>enable</ImplicitUsings>
