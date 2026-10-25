@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -7,16 +8,17 @@ namespace SkiaGameRendering.Tests
 {
     /// <summary>
     /// The numbers the leak tests watch, read the native way for Unity's graphics API: references to
-    /// Unity's device (D3D11 COM references, or the MTLDevice's retain count on Metal; none on OpenGL) and the
-    /// process's private memory.
+    /// Unity's device (D3D11 COM references, or the MTLDevice's retain count on Metal) and the
+    /// process's private memory. OpenGL has no device object, so <see cref="FrameLeakTests"/> counts the
+    /// live GL objects there instead (see <see cref="GlObjectCount"/>). Unity's own play mode adds GL
+    /// objects on every cycle, so <see cref="DomainReloadTests"/> does not use that count.
     /// </summary>
     internal static class GpuProbe
     {
         internal static bool IsMetal => SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal;
-        // OpenGL has no device object to count references on; its tests check the drawing and the memory.
         internal static bool IsOpenGl => SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore;
 
-        /// <summary>References held on Unity's device, reached through a throwaway texture.</summary>
+        /// <summary>References held on Unity's device, reached through a throwaway texture. Zero on OpenGL, which has none.</summary>
         internal static int DeviceRefCount()
         {
             if (IsOpenGl)
@@ -41,6 +43,49 @@ namespace SkiaGameRendering.Tests
             {
                 texture.Release();
                 UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
+        // Names are handed out lowest-free-first, so the live ones sit far below this.
+        const int MaxGlName = 1 << 17;
+
+        /// <summary>
+        /// The live textures, renderbuffers and framebuffers on Windows OpenGL, counted by asking the GL
+        /// driver whether each name is an object (<c>glIs*</c>) on the Skia context, which shares Unity's
+        /// textures and renderbuffers and owns the framebuffers Skia draws through. Reaches that context
+        /// by reflection, and uses it from this thread, so call it only while no draw is queued.
+        /// Zero before the backend exists, and off Windows.
+        /// </summary>
+        internal static int GlObjectCount()
+        {
+            if (Application.platform != RuntimePlatform.WindowsEditor)
+                return 0;
+            const BindingFlags nonPublic = BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
+            var backend = typeof(SkiaRenderTarget2D).Assembly
+                .GetType("SkiaGameRendering.SkiaUnityRenderThread", throwOnError: true)
+                .GetField("_backend", nonPublic).GetValue(null);
+            if (backend == null)
+                return 0;
+            // A rename of the backend's context field fails the test with a null reference, not a pass.
+            var platform = backend.GetType().GetField("_platform", nonPublic).GetValue(backend);
+            var type = platform.GetType();
+            type.GetMethod("MakeSkiaContextCurrent").Invoke(platform, null);
+            try
+            {
+                var getProc = type.GetMethod("GetProcAddress", new[] { typeof(string) });
+                IsObjectFn Load(string name) => Marshal.GetDelegateForFunctionPointer<IsObjectFn>(
+                    (IntPtr)getProc.Invoke(platform, new object[] { name }));
+                var functions = new[] { Load("glIsTexture"), Load("glIsRenderbuffer"), Load("glIsFramebuffer") };
+                int count = 0;
+                foreach (var isObject in functions)
+                    for (uint name = 1; name <= MaxGlName; name++)
+                        if (isObject(name) != 0)
+                            count++;
+                return count;
+            }
+            finally
+            {
+                type.GetMethod("RestoreHostContext").Invoke(platform, null);
             }
         }
 
@@ -73,6 +118,9 @@ namespace SkiaGameRendering.Tests
             if (pool != IntPtr.Zero)
                 objc_autoreleasePoolPop(pool);
         }
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        delegate byte IsObjectFn(uint name);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate void GetDeviceFn(IntPtr self, out IntPtr device);

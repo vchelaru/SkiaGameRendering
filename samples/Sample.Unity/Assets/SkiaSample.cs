@@ -30,6 +30,12 @@ using UnityEngine.UI;
 /// On Direct3D 11, Direct3D 12, Vulkan and OpenGL it also checks the direct canvas area: Skia over what the first camera drew,
 /// under what the second drew, the right way up and with red as red. It fails if Skia's premultiplied alpha is blended as straight alpha, or if a Linear project
 /// displays Skia's sRGB bytes as linear values.
+///
+/// It also checks a second direct canvas: a camera with a <c>targetTexture</c> that gets its own yellow
+/// square, with Skia drawing red and magenta shapes onto the texture from that camera's <c>onPostRender</c>
+/// (the render texture path, which is drawn flipped, unlike the back buffer).
+/// <c>--smoke-test --msaa</c> runs the same checks with 4x MSAA on the back buffer and on that texture,
+/// on the backends whose direct canvas draws into multisampled targets (Direct3D 11 and OpenGL).
 /// </summary>
 public sealed class SkiaSample : MonoBehaviour
 {
@@ -46,6 +52,9 @@ public sealed class SkiaSample : MonoBehaviour
     // The direct canvas area: three Cell-wide squares in a row at the bottom right.
     const int DirectX = QuadX;
     const int DirectY = UiY;
+    // The target texture area: two Cells wide, one tall, drawn by a camera placed far off screen.
+    const int TargetWidth = 2 * Cell;
+    const int TargetOriginX = -4000;
     static readonly Color32 Yellow = new Color32(255, 255, 0, 255);
     static readonly Color32 Green = new Color32(0, 255, 0, 255);
     static readonly Color Background = Color.blue;
@@ -72,7 +81,11 @@ public sealed class SkiaSample : MonoBehaviour
     Texture2D _yellowTexture;
     Texture2D _greenTexture;
     bool _smokeTest;
+    bool _msaa;
     int _frame;
+    Camera _targetCamera;
+    RenderTexture _targetTexture;
+    Texture2D _targetYellow;
 
     // "--smoke-test" on the command line, or on Android, where there is none to type, in the "unity" extra:
     // adb shell am start -n <package>/com.unity3d.player.UnityPlayerGameActivity -e unity --smoke-test
@@ -97,6 +110,7 @@ public sealed class SkiaSample : MonoBehaviour
     void Start()
     {
         _smokeTest = HasSmokeTestArgument();
+        _msaa = Array.IndexOf(Environment.GetCommandLineArgs(), "--msaa") >= 0;
         // An unfocused player stops updating, and a smoke test launched from a script may never get focus.
         if (_smokeTest)
             Application.runInBackground = true;
@@ -115,8 +129,8 @@ public sealed class SkiaSample : MonoBehaviour
         camera.orthographic = true;
         // A HDR camera renders into a 16-bit float texture, which SkiaDirectCanvas cannot draw into.
         camera.allowHDR = false;
-        // Skia cannot draw into a multisampled target, which the project's Ultra quality level would give Direct3D 12.
-        QualitySettings.antiAliasing = 0;
+        // Direct3D 12 and Vulkan cannot draw into a multisampled target, which the project's Ultra quality level would give them.
+        QualitySettings.antiAliasing = _msaa ? 4 : 0;
 
         // Built by hand: CreatePrimitive adds a collider, which needs the Physics module.
         var quad = new GameObject("Skia quad");
@@ -146,6 +160,20 @@ public sealed class SkiaSample : MonoBehaviour
             _frontCamera.cullingMask = 1 << 1;
             // Covers the right half of the cell Skia fills with red.
             AddSpriteAt(_greenTexture, DirectX + Cell / 2, DirectY, Cell / 2, Cell, 1).gameObject.layer = 1;
+
+            // Layer 2 is only for the target texture camera's yellow square.
+            camera.cullingMask &= ~(1 << 2);
+            _targetYellow = SolidTexture(Yellow);
+            AddSpriteAt(_targetYellow, TargetOriginX + Cell, 0, Cell, Cell, 2);
+            _targetTexture = new RenderTexture(TargetWidth, Cell, 24, RenderTextureFormat.ARGB32) { antiAliasing = _msaa ? 4 : 1 };
+            var target = new GameObject("Target camera");
+            _targetCamera = target.AddComponent<Camera>();
+            _targetCamera.CopyFrom(camera);
+            _targetCamera.cullingMask = 1 << 2;
+            _targetCamera.depth = camera.depth - 1;
+            _targetCamera.orthographicSize = Cell / 2f;
+            _targetCamera.transform.position = new Vector3(TargetOriginX + TargetWidth / 2f, -Cell / 2f, -10);
+            _targetCamera.targetTexture = _targetTexture;
         }
 
         var canvas = new GameObject("Canvas").AddComponent<Canvas>();
@@ -218,7 +246,14 @@ public sealed class SkiaSample : MonoBehaviour
     // After the main camera has drawn and before the front camera starts.
     void DrawDirect(Camera camera)
     {
-        if (_direct == null || camera != Camera.main)
+        if (_direct == null)
+            return;
+        if (camera == _targetCamera)
+        {
+            DrawTarget();
+            return;
+        }
+        if (camera != Camera.main)
             return;
         _direct.Begin();
         var canvas = _direct.Canvas;
@@ -228,6 +263,20 @@ public sealed class SkiaSample : MonoBehaviour
         canvas.DrawRect(DirectX + Cell + Cell / 2, DirectY, Cell / 2, Cell, _red);
         // The top quarter only, so a vertical flip puts it at the bottom.
         canvas.DrawRect(DirectX + 2 * Cell, DirectY, Cell, Cell / 4, _magenta);
+        _direct.End();
+    }
+
+    // The target texture camera's pass: the same shapes as the screen's, in the texture's own pixels.
+    void DrawTarget()
+    {
+        _direct.Begin();
+        var canvas = _direct.Canvas;
+        // Over the blue the camera cleared to.
+        canvas.DrawRect(0, 0, Cell / 2, Cell, _red);
+        // Over the yellow square, which covers the right half of the texture.
+        canvas.DrawRect(Cell + Cell / 2, 0, Cell / 2, Cell, _red);
+        // The top eighth only, so a missing flip puts it at the bottom.
+        canvas.DrawRect(Cell / 2, 0, Cell / 2, Cell / 4, _magenta);
         _direct.End();
     }
 
@@ -290,6 +339,10 @@ public sealed class SkiaSample : MonoBehaviour
             Destroy(_yellowTexture);
         if (_greenTexture != null)
             Destroy(_greenTexture);
+        if (_targetYellow != null)
+            Destroy(_targetYellow);
+        if (_targetTexture != null)
+            _targetTexture.Release();
     }
 
     IEnumerator RunSmokeTest()
@@ -350,6 +403,26 @@ public sealed class SkiaSample : MonoBehaviour
                 && Matches(markTop, new Color32(255, 0, 255, 255))    // the right way up
                 && Matches(markBottom, new Color32(0, 0, 255, 255));
             report += $" direct: fill={fill} front={front} behind={behind} over={over} markTop={markTop} markBottom={markBottom}";
+        }
+        if (_targetCamera != null)
+        {
+            var targetReadback = new Texture2D(TargetWidth, Cell, TextureFormat.RGBA32, false);
+            RenderTexture.active = _targetTexture;
+            targetReadback.ReadPixels(new Rect(0, 0, TargetWidth, Cell), 0, 0);
+            RenderTexture.active = previous;
+            Color32 TargetPixel(int x, int y) => targetReadback.GetPixel(x, Cell - 1 - y);
+            var tFill = TargetPixel(Cell / 4, Cell / 2);
+            var tBlue = TargetPixel(Cell / 2 + Cell / 4, Cell / 2);
+            var tBehind = TargetPixel(Cell + Cell / 4, Cell / 2);
+            var tOver = TargetPixel(Cell + 3 * Cell / 4, Cell / 2);
+            var tMarkTop = TargetPixel(Cell / 2 + Cell / 4, Cell / 8);
+            Destroy(targetReadback);
+            pass &= Matches(tFill, new Color32(255, 0, 0, 255))     // Skia draws over the cleared color
+                && Matches(tBlue, new Color32(0, 0, 255, 255))      // and leaves the rest of it
+                && Matches(tBehind, Yellow)                         // and what the camera drew
+                && Matches(tOver, new Color32(255, 0, 0, 255))
+                && Matches(tMarkTop, new Color32(255, 0, 255, 255)); // the right way up
+            report += $" target: fill={tFill} blue={tBlue} behind={tBehind} over={tOver} markTop={tMarkTop}";
         }
         Destroy(readback);
         Destroy(screen);
