@@ -24,12 +24,18 @@ namespace SkiaGameRendering.Tests
     {
         internal const int Size = 64;
         const int Cycles = 5;
-        // Unity's own count wanders between otherwise identical cycles: by one on D3D11, by up to
-        // three on Metal, where in-flight command buffers retain the device. A leaked GRContext adds
-        // two per script reload on Metal, so five cycles still exceed this.
+        // Unity's own count wanders between otherwise identical cycles: on D3D11 by a few and back,
+        // even with no Skia in the process (a play mode loop with no Skia call spiked +5 for one
+        // cycle in 30), and by up to three on Metal, where in-flight command buffers retain the
+        // device. It doesn't trend: 30 cycles with Skia stayed within 4 of each other. A leaked
+        // GRContext adds two per script reload on Metal and a dozen on D3D11, so five cycles still
+        // exceed this. Because one cycle can spike, the check compares the lowest counts of the
+        // first and last two cycles (a leak raises every later cycle, a spike raises one).
+        // OpenGL has no device count. Its GL object count grows by the same amount per play mode
+        // cycle with and without Skia (Unity's own resources), so it can't be asserted on.
         internal static int AllowedGrowth => GpuProbe.IsMetal ? 5 : 2;
         const string CycleKey = "SkiaGameRendering.Tests.Cycle";
-        const string BaselineKey = "SkiaGameRendering.Tests.DeviceRefs";
+        const string ReferencesKey ="SkiaGameRendering.Tests.DeviceRefs";
 
         [SetUp]
         public void SetUp()
@@ -45,7 +51,7 @@ namespace SkiaGameRendering.Tests
             if (EditorApplication.isPlaying)
                 yield return new ExitPlayMode();
             SessionState.EraseInt(CycleKey);
-            SessionState.EraseInt(BaselineKey);
+            SessionState.EraseString(ReferencesKey);
         }
 
         [UnityTest]
@@ -86,17 +92,22 @@ namespace SkiaGameRendering.Tests
             }
         }
 
-        // The first cycle is the baseline, since it includes one-time costs (Unity's first play mode).
+        // The first cycles are the baseline, since they include one-time costs (Unity's first play mode).
         static void CheckDeviceReferences(string cycleName)
         {
             int cycle = SessionState.GetInt(CycleKey, 0);
             int references = GpuProbe.DeviceRefCount();
             Debug.Log($"Device references after {cycleName} {cycle}: {references}");
-            if (cycle == 1)
-                SessionState.SetInt(BaselineKey, references);
-            else
-                Assert.LessOrEqual(references - SessionState.GetInt(BaselineKey, 0), AllowedGrowth,
-                    $"Device references grew between {cycleName} 1 and {cycle}.");
+            var history = SessionState.GetString(ReferencesKey, "") + references + ",";
+            SessionState.SetString(ReferencesKey, history);
+            if (cycle < Cycles)
+                return;
+
+            var counts = Array.ConvertAll(history.TrimEnd(',').Split(','), int.Parse);
+            int first = Math.Min(counts[0], counts[1]);
+            int last = Math.Min(counts[counts.Length - 2], counts[counts.Length - 1]);
+            Assert.LessOrEqual(last - first, AllowedGrowth,
+                $"Device references grew over the {cycleName}s: {string.Join(", ", counts)}.");
         }
 
         // Red over the top half, transparent below, so the check also catches a flipped texture.
