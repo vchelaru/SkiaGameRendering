@@ -7,8 +7,8 @@
 ## Prerequisites
 
 - .NET 10 SDK and the iOS workload: `dotnet workload install ios`. The package targets
-  `net10.0-ios26.0`, the first iOS target SkiaSharp 4 ships native assets for. Building an app needs
-  a Mac with the Xcode that the iOS SDK pack asks for (Xcode 26.0 for `net10.0-ios26.0`).
+  `net10.0-ios26.5`; SkiaSharp 4 ships native assets from iOS 26.0 on. Building an app needs
+  a Mac with the Xcode that the iOS SDK pack asks for (Xcode 26.6 for `net10.0-ios26.5`).
 - MonoGame.Framework.iOS 3.8.4.1 or newer (the sample uses 3.8.5.1).
 - iOS 15 or newer. MonoGame iOS renders with OpenGL ES, which Apple deprecated in iOS 12 but still
   ships, on devices and in the Simulator.
@@ -53,7 +53,7 @@ draws on the back buffer, a render target, and the back buffer again after MonoG
 
 | Device | iOS | GLES | Result |
 |---|---|---|---|
-| CI iOS Simulator, iPhone, `macos-26` runner (Apple silicon), Xcode 26.0 | 26 | 3 | Run on every PR |
+| CI iOS Simulator, iPhone, `macos-26` runner (Apple silicon), Xcode 26.6 | 26 | 3 | Run on every PR |
 
 Build for the Simulator with `dotnet build samples/Sample.MonoGame.iOS/Sample.MonoGame.iOS.csproj -c Release -r iossimulator-arm64`.
 

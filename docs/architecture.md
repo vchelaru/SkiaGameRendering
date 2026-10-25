@@ -9,8 +9,8 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Kni.DesktopGL/` — KNI DesktopGL library (shared core + `SkiaGlBackend`)
 - `src/SkiaGameRendering.Kni.WindowsDX/` — KNI WindowsDX library (shared core + `SkiaAngleBackend`, on `Core.ANGLE`)
 - `src/SkiaGameRendering.Kni.Android/`: KNI Android library (shared core + `SkiaAndroidBackend`, on `Core.OGL`'s `EglSharedContext`; targets `net10.0-android36.0`)
-- `src/SkiaGameRendering.iOS/`: MonoGame iOS library (shared core + `SkiaIosBackend` and its `EaglSharedContext`, on `Core.OGL`; targets `net10.0-ios26.0`)
-- `src/SkiaGameRendering.Kni.iOS/`: KNI iOS library (links `SkiaIosBackend` and `EaglSharedContext` from the MonoGame iOS project, plus KNI's texture and render-target handling; targets `net10.0-ios26.0`)
+- `src/SkiaGameRendering.iOS/`: MonoGame iOS library (shared core + `SkiaIosBackend` and its `EaglSharedContext`, on `Core.OGL`; targets `net10.0-ios26.5`)
+- `src/SkiaGameRendering.Kni.iOS/`: KNI iOS library (links `SkiaIosBackend` and `EaglSharedContext` from the MonoGame iOS project, plus KNI's texture and render-target handling; targets `net10.0-ios26.5`)
 - `src/SkiaGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
 - `src/SkiaGameRendering.Fna.WindowsDX/`: FNA library (shared core + `SkiaAngleBackend`, on `Core.ANGLE`, Windows/D3D11 only)
 - `src/SkiaGameRendering.Fna.WebGL/`: FNA in the browser (shared core + `SkiaFnaWebGlBackend`). FNA3D and Skia drive one WebGL context, with the GL state FNA3D caches saved and restored around each Skia pass in JS
