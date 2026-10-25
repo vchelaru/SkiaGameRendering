@@ -64,3 +64,4 @@ A different canvas id: set `globalThis.skiaRaylibCanvasId` before `Blazor.start(
 - A Skia pass cannot be nested in another (`SkiaRenderTarget2D` and `SkiaDirectCanvas` passes are exclusive).
 - Context loss is not recovered. raylib's resources die with the context, so every pass throws `InvalidOperationException` from then on, even if the browser restores the context; close the window and start a new one.
 - Verified in Chromium, Firefox and WebKit (headless, software GL).
+- The optimized link fails with the .NET 10 SDK's Emscripten 3.1.56 pack (checked on 10.0.13, what CI resolves): `wasm-opt` reports `Unknown option '--enable-bulk-memory-opt'`. Until a newer pack ships, set `<EmccLinkOptimizationFlag>-O0</EmccLinkOptimizationFlag>` in your project to build; the output is larger and slower (size and speed cost not measured). Tracked in [#322](https://github.com/vchelaru/SkiaGameRendering/issues/322).
