@@ -35,7 +35,9 @@ using UnityEngine.UI;
 /// square, with Skia drawing red and magenta shapes onto the texture from that camera's <c>onPostRender</c>
 /// (the render texture path, which is drawn flipped, unlike the back buffer).
 /// <c>--smoke-test --msaa</c> runs the same checks with 4x MSAA on the back buffer and on that texture,
-/// on the backends whose direct canvas draws into multisampled targets (Direct3D 11 and OpenGL).
+/// on the backends whose direct canvas draws into multisampled targets (Direct3D 11 and OpenGL). On Direct3D 12 and Vulkan,
+/// which refuse them, it instead expects the NotSupportedException from the target texture camera's draw and no Skia pixels.
+/// On OpenGL the plain run also fails if the screen camera's direct draws stop reaching the default framebuffer (FBO 0).
 /// </summary>
 public sealed class SkiaSample : MonoBehaviour
 {
@@ -82,6 +84,9 @@ public sealed class SkiaSample : MonoBehaviour
     Texture2D _greenTexture;
     bool _smokeTest;
     bool _msaa;
+    // Direct3D 12 and Vulkan throw NotSupportedException (logged from the render thread) instead of drawing into a multisampled target.
+    bool _expectRefusal;
+    int _refusals;
     int _frame;
     Camera _targetCamera;
     RenderTexture _targetTexture;
@@ -114,6 +119,9 @@ public sealed class SkiaSample : MonoBehaviour
         // An unfocused player stops updating, and a smoke test launched from a script may never get focus.
         if (_smokeTest)
             Application.runInBackground = true;
+        _expectRefusal = _msaa && (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan);
+        if (_expectRefusal)
+            Application.logMessageReceivedThreaded += CountRefusal;
 #if !UNITY_ANDROID
         // Room for every copy; the default window can be smaller. Android keeps the device's own screen.
         Screen.SetResolution(2 * Width, 2 * Height, FullScreenMode.Windowed);
@@ -331,8 +339,23 @@ public sealed class SkiaSample : MonoBehaviour
         _grey?.Dispose();
     }
 
+    void CountRefusal(string condition, string stackTrace, LogType type)
+    {
+        if (type == LogType.Exception && condition.Contains("NotSupportedException") && condition.Contains("does not draw into multisampled targets"))
+            System.Threading.Interlocked.Increment(ref _refusals);
+    }
+
+    // The draw counts the OpenGL backend keeps, which this assembly cannot see: -1 if the field is missing.
+    static int GlDrawCount(string field)
+    {
+        var type = typeof(SkiaDirectCanvas).Assembly.GetType("SkiaGameRendering.OpenGlUnityBackend");
+        var info = type?.GetField(field, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        return info == null ? -1 : (int)info.GetValue(null);
+    }
+
     void OnDestroy()
     {
+        Application.logMessageReceivedThreaded -= CountRefusal;
         Destroy(_greyReference);
         Destroy(_translucentReference);
         if (_yellowTexture != null)
@@ -396,11 +419,14 @@ public sealed class SkiaSample : MonoBehaviour
             var over = ScreenPixel(DirectX + Cell + 3 * Cell / 4, DirectY + Cell / 2);
             var markTop = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell / 8);
             var markBottom = ScreenPixel(DirectX + 2 * Cell + Cell / 2, DirectY + Cell - Cell / 8);
-            pass &= Matches(fill, new Color32(255, 0, 0, 255))        // channel order: red stays red
+            // When Skia refuses the target (MSAA on Direct3D 12 and Vulkan) it must draw nothing, leaving the camera's own pixels.
+            var skiaRed = _expectRefusal ? (Color32)Background : new Color32(255, 0, 0, 255);
+            var skiaMagenta = _expectRefusal ? (Color32)Background : new Color32(255, 0, 255, 255);
+            pass &= Matches(fill, skiaRed)                            // channel order: red stays red
                 && Matches(front, Green)                              // the second camera draws over Skia
                 && Matches(behind, Yellow)                            // Skia leaves what the first camera drew
-                && Matches(over, new Color32(255, 0, 0, 255))         // Skia draws over it
-                && Matches(markTop, new Color32(255, 0, 255, 255))    // the right way up
+                && Matches(over, _expectRefusal ? Yellow : skiaRed)   // Skia draws over it
+                && Matches(markTop, skiaMagenta)                      // the right way up
                 && Matches(markBottom, new Color32(0, 0, 255, 255));
             report += $" direct: fill={fill} front={front} behind={behind} over={over} markTop={markTop} markBottom={markBottom}";
         }
@@ -417,12 +443,26 @@ public sealed class SkiaSample : MonoBehaviour
             var tOver = TargetPixel(Cell + 3 * Cell / 4, Cell / 2);
             var tMarkTop = TargetPixel(Cell / 2 + Cell / 4, Cell / 8);
             Destroy(targetReadback);
-            pass &= Matches(tFill, new Color32(255, 0, 0, 255))     // Skia draws over the cleared color
+            pass &= Matches(tFill, _expectRefusal ? (Color32)Background : new Color32(255, 0, 0, 255)) // Skia draws over the cleared color
                 && Matches(tBlue, new Color32(0, 0, 255, 255))      // and leaves the rest of it
                 && Matches(tBehind, Yellow)                         // and what the camera drew
-                && Matches(tOver, new Color32(255, 0, 0, 255))
-                && Matches(tMarkTop, new Color32(255, 0, 255, 255)); // the right way up
+                && Matches(tOver, _expectRefusal ? Yellow : new Color32(255, 0, 0, 255))
+                && Matches(tMarkTop, _expectRefusal ? (Color32)Background : new Color32(255, 0, 255, 255)); // the right way up
             report += $" target: fill={tFill} blue={tBlue} behind={tBehind} over={tOver} markTop={tMarkTop}";
+        }
+        if (_expectRefusal)
+        {
+            // The target texture's draw throws NotSupportedException each frame. The MSAA back buffer fails earlier (InvalidOperationException from the prepare event) and draws nothing too.
+            pass &= _refusals >= 1;
+            report += $" refusals={_refusals}";
+        }
+        if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore)
+        {
+            // The screen camera's pass must reach the window's default framebuffer (FBO 0), the target camera's a bound FBO.
+            int defaultDraws = GlDrawCount("DefaultFramebufferDraws"), attachmentDraws = GlDrawCount("AttachmentDraws");
+            // With MSAA Unity renders the screen camera into an FBO of its own, so only the plain run has to reach FBO 0.
+            pass &= (_msaa || defaultDraws > 0) && attachmentDraws > 0;
+            report += $" gl: fbo0Draws={defaultDraws} attachmentDraws={attachmentDraws}";
         }
         Destroy(readback);
         Destroy(screen);

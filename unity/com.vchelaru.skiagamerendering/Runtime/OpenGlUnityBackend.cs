@@ -41,6 +41,13 @@ namespace SkiaGameRendering
         const bool IsAndroid = false;
 #endif
 
+        // Direct draws onto the window's default framebuffer (FBO 0) and onto a bound FBO, read by reflection from the
+        // sample's smoke test, which fails if Unity stops rendering to FBO 0.
+        [UnityEngine.Scripting.Preserve]
+        internal static int DefaultFramebufferDraws;
+        [UnityEngine.Scripting.Preserve]
+        internal static int AttachmentDraws;
+
         readonly ISharedGlContext _platform;
         // Makes Skia's context current on the window's own default framebuffer.
         readonly Action _makeCurrentOnWindow;
@@ -119,6 +126,10 @@ namespace SkiaGameRendering
             // Still on Unity's context: what it is drawing into, and its draws so far submitted.
             var glTarget = GlSkiaSurfaceFactory.QueryDrawTarget(_gl);
             GlSkiaSurfaceFactory.Flush(_gl);
+            if (glTarget.IsDefaultFramebuffer)
+                System.Threading.Interlocked.Increment(ref DefaultFramebufferDraws);
+            else
+                System.Threading.Interlocked.Increment(ref AttachmentDraws);
             if (glTarget.IsDefaultFramebuffer)
                 _makeCurrentOnWindow();
             else
