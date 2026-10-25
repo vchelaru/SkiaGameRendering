@@ -96,6 +96,14 @@ test("fails clearly when the WebGL context is lost and stays failed after it is 
   expect(errors).toEqual([]);
 });
 
+test("rejects a multisampled render target with NotSupportedException and keeps drawing", async ({ page }) => {
+  await open(page, "texture");
+  await draw(page, [[50, 50]]);
+  expect(await page.evaluate(() => globalThis.fnaSample.tryMultiSample(0))).toBe("ok");
+  expect(await page.evaluate(() => globalThis.fnaSample.tryMultiSample(4))).toMatch(/^NotSupportedException: .*multisampled/);
+  await draw(page, [[50, 50]]);
+});
+
 // SKColorType: Alpha8 = 1, Rgb565 = 2, Rgba8888 = 4, Bgra8888 = 6.
 test("accepts Rgba8888 render targets and rejects other color types with NotSupportedException", async ({ page }) => {
   await open(page, "texture");

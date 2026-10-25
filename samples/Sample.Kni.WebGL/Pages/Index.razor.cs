@@ -51,6 +51,9 @@ public partial class Index
     }
 
     [JSInvokable]
+    public string TryMultiSample(int multiSampleCount) => _game?.TryMultiSample(multiSampleCount) ?? "no game";
+
+    [JSInvokable]
     public void Recreate() => _game?.RecreateSkia();
 
     public async ValueTask DisposeAsync()

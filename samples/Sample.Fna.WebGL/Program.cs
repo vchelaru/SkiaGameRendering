@@ -131,6 +131,21 @@ public static partial class Program
         }
     }
 
+    // Tests: what creating a SkiaRenderTarget2D with this multiSampleCount does.
+    [JSExport]
+    public static string TryMultiSample(int multiSampleCount)
+    {
+        try
+        {
+            using var target = new SkiaRenderTarget2D(_game!.GraphicsDevice, 16, 16, SKColorType.Rgba8888, multiSampleCount);
+            return "ok";
+        }
+        catch (Exception exception)
+        {
+            return exception.GetType().Name + ": " + exception.Message;
+        }
+    }
+
     [JSExport]
     public static int Frames() => _game?.Frames ?? 0;
 }
