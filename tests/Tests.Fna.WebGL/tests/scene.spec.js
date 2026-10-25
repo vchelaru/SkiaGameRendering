@@ -3,10 +3,10 @@ const { test, expect } = require("@playwright/test");
 // Sample.Fna.WebGL, FNA on WebGL2. Frames are driven by the test (?manual=1) so the canvas is read in the same
 // task as the draw, before the browser presents it and clears the drawing buffer. Points are top-left origin.
 
-async function open(page, mode) {
+async function open(page, mode, query = "") {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
-  await page.goto(`/?mode=${mode}&manual=1`);
+  await page.goto(`/?mode=${mode}&manual=1${query}`);
   await page.waitForFunction(() => globalThis.fnaSample, null, { timeout: 90000 });
   return errors;
 }
@@ -112,4 +112,32 @@ test("accepts Rgba8888 render targets and rejects other color types with NotSupp
   expect(await tryColorType(4)).toBe("ok");
   for (const color of [1, 2, 6])
     expect(await tryColorType(color), `SKColorType ${color}`).toMatch(/^NotSupportedException: .*Rgba8888/);
+});
+
+// ?msaa=1 makes FNA3D multisample its back buffer, so SkiaDirectCanvas gets a framebuffer with samples > 0. The
+// samples Skia is told come from gl.SAMPLES on FNA's draw framebuffer, logged here as the interop reads it.
+test("SkiaDirectCanvas draws into a multisampled FNA back buffer", async ({ page }) => {
+  await page.addInitScript(() => {
+    globalThis.sampleLog = [];
+    const getParameter = WebGL2RenderingContext.prototype.getParameter;
+    WebGL2RenderingContext.prototype.getParameter = function (name) {
+      const value = getParameter.call(this, name);
+      if (name === this.SAMPLES) globalThis.sampleLog.push(value);
+      return value;
+    };
+  });
+  const errors = await open(page, "direct", "&msaa=1");
+  expect(await page.evaluate(() => globalThis.fnaSample.backBufferMultiSampleCount())).toBeGreaterThan(0);
+  const points = { circle: [50, 50], lime: [450, 100], blueSquare: [410, 310], magenta: [620, 620], black: [790, 790] };
+  const read = await draw(page, Object.values(points), 30);
+  const pixel = Object.fromEntries(Object.keys(points).map((name, i) => [name, read[i]]));
+  near(pixel.circle, [255, 0, 0]);
+  near(pixel.lime, [0, 255, 0]);
+  near(pixel.blueSquare, [0, 0, 255]);
+  near(pixel.magenta, [255, 0, 255]);
+  near(pixel.black, [0, 0, 0]);
+  const samples = await page.evaluate(() => globalThis.sampleLog);
+  expect(Math.max(...samples), `gl.SAMPLES seen by the interop: ${samples}`).toBeGreaterThan(0);
+  expect(await glErrors(page), await glErrorLog(page)).toBe(0);
+  expect(errors).toEqual([]);
 });
