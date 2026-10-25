@@ -79,7 +79,7 @@ public static class Game
             throw;
         }
 
-        return $"{(mode == "direct" ? "SkiaDirectCanvas" : "SkiaRenderTarget2D")} frames {_frames} errors {(_error.Length == 0 ? "none" : _error)}";
+        return $"{(mode == "direct" ? "SkiaDirectCanvas" : mode == "raylib" ? "raylib only" : "SkiaRenderTarget2D")} frames {_frames} errors {(_error.Length == 0 ? "none" : _error)}";
     }
 
     // Tests: what creating a SkiaRenderTarget2D with this SKColorType does.
