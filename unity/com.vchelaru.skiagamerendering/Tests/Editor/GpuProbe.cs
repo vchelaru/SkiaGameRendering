@@ -17,11 +17,13 @@ namespace SkiaGameRendering.Tests
     {
         internal static bool IsMetal => SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal;
         internal static bool IsOpenGl => SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLCore;
+        internal static bool IsVulkan => SystemInfo.graphicsDeviceType == GraphicsDeviceType.Vulkan;
+        internal static bool IsD3D12 => SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12;
 
-        /// <summary>References held on Unity's device, reached through a throwaway texture. Zero on OpenGL, which has none.</summary>
+        /// <summary>References held on Unity's device, reached through a throwaway texture. Zero on OpenGL and Vulkan, which have no COM device to count.</summary>
         internal static int DeviceRefCount()
         {
-            if (IsOpenGl)
+            if (IsOpenGl || IsVulkan)
                 return 0;
             var texture = new RenderTexture(4, 4, 0);
             texture.Create();
@@ -31,6 +33,16 @@ namespace SkiaGameRendering.Tests
                 if (IsMetal)
                     // -[MTLTexture device] doesn't retain, so the count is Unity's and anything else's.
                     return (int)SendNUInt(SendIntPtr(nativeTexture, Selector("device")), Selector("retainCount"));
+
+                if (IsD3D12)
+                {
+                    // ID3D12DeviceChild::GetDevice(riid, ppvDevice) is vtable slot 7 (IUnknown 0-2, ID3D12Object 3-6), and AddRefs too.
+                    var vtable12 = Marshal.ReadIntPtr(nativeTexture);
+                    var getDevice12 = Marshal.GetDelegateForFunctionPointer<GetDevice12Fn>(Marshal.ReadIntPtr(vtable12, 7 * IntPtr.Size));
+                    var iid = new Guid("189819f1-1db6-4b57-be54-1821339b85f7");
+                    getDevice12(nativeTexture, ref iid, out var device12);
+                    return Marshal.Release(device12);
+                }
 
                 // ID3D11DeviceChild::GetDevice is vtable slot 3, and AddRefs the device, which the
                 // Release below gives back.
@@ -124,6 +136,9 @@ namespace SkiaGameRendering.Tests
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         delegate void GetDeviceFn(IntPtr self, out IntPtr device);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        delegate int GetDevice12Fn(IntPtr self, ref Guid riid, out IntPtr device);
 
         [StructLayout(LayoutKind.Sequential)]
         struct ProcessMemoryCountersEx
