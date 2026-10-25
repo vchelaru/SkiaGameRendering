@@ -58,6 +58,10 @@ with the matching material:
 Both work in Gamma and Linear color space projects, but only with the right one for where you
 draw, since IMGUI stays in gamma in a Linear project.
 
+## Multisampling
+
+`SkiaRenderTarget2D(width, height, multiSampleCount)` takes the same parameter as the other engines, but only 0 (the default) works on Unity: 2, 4 and 8 throw `NotSupportedException`, and `SkiaRenderer.SupportsMultiSampledTargets` is false. See [SkiaRenderTarget2D](../documentation/SkiaRenderTarget2D.md#multisampling).
+
 ## Sample
 
 `samples/Sample.Unity/` is a Unity 6 project. Run `eng/build-unity-package.ps1` first to fill the

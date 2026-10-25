@@ -468,6 +468,15 @@ public sealed class SkiaSample : MonoBehaviour
             pass &= (_msaa || defaultDraws > 0) && attachmentDraws > 0;
             report += $" gl: fbo0Draws={defaultDraws} attachmentDraws={attachmentDraws}";
         }
+        // Unity has no multisampled targets: the flag is false and a non-zero count throws on every graphics API, never falling back to 0.
+        bool multiSampleRefused = !SkiaRenderer.SupportsMultiSampledTargets;
+        foreach (var count in new[] { 2, 4, 8, 3, -1 })
+        {
+            try { new SkiaRenderTarget2D(16, 16, multiSampleCount: count).Dispose(); multiSampleRefused = false; }
+            catch (NotSupportedException) { }
+        }
+        pass &= multiSampleRefused;
+        report += $" multiSampleRefused={multiSampleRefused}";
         Destroy(readback);
         Destroy(screen);
 

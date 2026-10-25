@@ -96,9 +96,9 @@ It never falls back to 0.
 
 **Supported on** the OpenGL backends: MonoGame DesktopGL, Android and iOS, KNI DesktopGL, Android and iOS, and
 FNA OpenGL. **Throws `NotSupportedException`** on MonoGame WindowsDX (ANGLE/D3D11), WindowsDX12, DesktopVK, KNI
-WindowsDX, KNI WebGL, FNA WindowsDX and FNA WebGL. Godot ([section](#godot)), raylib ([section](#raylib)) and Stride ([D3D11](#stride-d3d11), [Vulkan](#stride-vulkan)) take the same
+WindowsDX, KNI WebGL, FNA WindowsDX and FNA WebGL. Godot ([section](#godot)), raylib ([section](#raylib)), Unity and Stride ([D3D11](#stride-d3d11), [Vulkan](#stride-vulkan)) all take the same
 `multiSampleCount` parameter so user code reads the same everywhere, but only 0 works there: 2, 4 and 8 throw
-`NotSupportedException`. Unity has its own target type and is not covered here yet.
+`NotSupportedException` (on Unity: `SkiaRenderTarget2D(width, height, multiSampleCount)` and the package's `SkiaRenderer.SupportsMultiSampledTargets`, on every graphics API). A `SkiaDirectCanvas` still draws into an MSAA back buffer on D3D11 and OpenGL, only D3D12 and Vulkan refuse that.
 
 **Portable code** asks `SkiaRenderer.SupportsMultiSampledTargets` instead of hard-coding a backend:
 
@@ -109,7 +109,7 @@ var canvas = new SkiaRenderTarget2D(GraphicsDevice, 1600, 900, multiSampleCount:
 
 It is true on the OpenGL backends listed above and false everywhere else. Like `SkiaRenderer.SupportsDirectCanvas`, it is
 false until the renderer is initialized (a first `SkiaRenderTarget2D` or an explicit `Initialize` does that), so
-create or initialize before reading it. On Godot, raylib and Stride it is always false and needs no initialization.
+create or initialize before reading it. On Godot, raylib, Unity and Stride it is always false and needs no initialization.
 It says the backend can multisample, not that this GPU offers 4 samples for your `SKColorType`; that case still throws.
 
 **Measured**, on a Ryzen 7 260 with an RTX 5060 Laptop GPU (driver 32.0.16.1047), MonoGame DesktopGL, 1600x900,
