@@ -19,6 +19,12 @@ public static class SkiaRenderer
 
     public static bool IsInitialized => _context != null;
 
+    /// <summary>
+    /// Always false: <see cref="SkiaRenderTarget2D"/>'s <c>multiSampleCount</c> exists for a portable API, but only 0
+    /// works here and 2, 4 and 8 throw <see cref="NotSupportedException"/>. Needs no initialization to answer.
+    /// </summary>
+    public static bool SupportsMultiSampledTargets => false;
+
     /// <summary>Always true: <see cref="SkiaDirectCanvas"/> draws on the context raylib renders with.</summary>
     public static bool SupportsDirectCanvas => true;
 

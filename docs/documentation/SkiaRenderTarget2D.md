@@ -96,8 +96,21 @@ It never falls back to 0.
 
 **Supported on** the OpenGL backends: MonoGame DesktopGL, Android and iOS, KNI DesktopGL, Android and iOS, and
 FNA OpenGL. **Throws `NotSupportedException`** on MonoGame WindowsDX (ANGLE/D3D11), WindowsDX12, DesktopVK, KNI
-WindowsDX, KNI WebGL, FNA WindowsDX and FNA WebGL. Godot ([section](#godot)), raylib ([section](#raylib)), Stride ([D3D11](#stride-d3d11), [Vulkan](#stride-vulkan)) and Unity have their own target types
-and do not offer it yet.
+WindowsDX, KNI WebGL, FNA WindowsDX and FNA WebGL. Godot ([section](#godot)), raylib ([section](#raylib)) and Stride ([D3D11](#stride-d3d11), [Vulkan](#stride-vulkan)) take the same
+`multiSampleCount` parameter so user code reads the same everywhere, but only 0 works there: 2, 4 and 8 throw
+`NotSupportedException`. Unity has its own target type and is not covered here yet.
+
+**Portable code** asks `SkiaRenderer.SupportsMultiSampledTargets` instead of hard-coding a backend:
+
+```csharp
+int samples = SkiaRenderer.SupportsMultiSampledTargets ? 4 : 0;
+var canvas = new SkiaRenderTarget2D(GraphicsDevice, 1600, 900, multiSampleCount: samples);
+```
+
+It is true on the OpenGL backends listed above and false everywhere else. Like `SkiaRenderer.SupportsDirectCanvas`, it is
+false until the renderer is initialized (a first `SkiaRenderTarget2D` or an explicit `Initialize` does that), so
+create or initialize before reading it. On Godot, raylib and Stride it is always false and needs no initialization.
+It says the backend can multisample, not that this GPU offers 4 samples for your `SKColorType`; that case still throws.
 
 **Measured**, on a Ryzen 7 260 with an RTX 5060 Laptop GPU (driver 32.0.16.1047), MonoGame DesktopGL, 1600x900,
 4 samples against none. CPU time of the render-target draw, median of 10 interleaved runs (a ratio above 1x is faster):
@@ -160,7 +173,7 @@ public sealed class SkiaRenderTarget2D : IDisposable
 
 | Signature | Description |
 | --- | --- |
-| `SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size texture. Must be called on the render thread (the main thread under the default "Safe" thread model). On the RenderingDevice drivers it stalls the GPU once, briefly, to hand the texture to Godot in a known state - create targets up front. The Compatibility renderer accepts `Rgba8888` only. |
+| `SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888, int multiSampleCount = 0)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size texture. Must be called on the render thread (the main thread under the default "Safe" thread model). On the RenderingDevice drivers it stalls the GPU once, briefly, to hand the texture to Godot in a known state - create targets up front. The Compatibility renderer accepts `Rgba8888` only. `multiSampleCount` must be 0 (the default): 2, 4 and 8 throw `NotSupportedException`, never a silent fallback; see [Multisampling](#multisampling). |
 
 ### Godot members
 
@@ -289,7 +302,7 @@ public sealed class SkiaRenderTarget2D : IDisposable
 
 | Signature | Description |
 | --- | --- |
-| `SkiaRenderTarget2D(GraphicsDevice graphicsDevice, int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size target. |
+| `SkiaRenderTarget2D(GraphicsDevice graphicsDevice, int width, int height, SKColorType colorType = SKColorType.Rgba8888, int multiSampleCount = 0)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size target. `multiSampleCount` must be 0 (the default): 2, 4 and 8 throw `NotSupportedException`, never a silent fallback; see [Multisampling](#multisampling). |
 
 ### Stride (D3D11) members
 
@@ -368,7 +381,7 @@ public sealed class SkiaRenderTarget2D : IDisposable
 
 | Signature | Description |
 | --- | --- |
-| `SkiaRenderTarget2D(GraphicsDevice graphicsDevice, int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size target. |
+| `SkiaRenderTarget2D(GraphicsDevice graphicsDevice, int width, int height, SKColorType colorType = SKColorType.Rgba8888, int multiSampleCount = 0)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size target. `multiSampleCount` must be 0 (the default): 2, 4 and 8 throw `NotSupportedException`, never a silent fallback; see [Multisampling](#multisampling). |
 
 ### Stride (Vulkan) members
 
@@ -445,7 +458,7 @@ public sealed class SkiaRenderTarget2D : IDisposable
 
 | Signature | Description |
 | --- | --- |
-| `SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size target. |
+| `SkiaRenderTarget2D(int width, int height, SKColorType colorType = SKColorType.Rgba8888, int multiSampleCount = 0)` | Auto-initializes `SkiaRenderer` on first use and allocates a fixed-size target. `multiSampleCount` must be 0 (the default): 2, 4 and 8 throw `NotSupportedException`, never a silent fallback; see [Multisampling](#multisampling). |
 
 ### raylib members
 

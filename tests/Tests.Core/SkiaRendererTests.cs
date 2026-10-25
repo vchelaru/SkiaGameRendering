@@ -21,6 +21,19 @@ public sealed class SkiaRendererTests : IDisposable
     public SkiaRendererTests() => SkiaRenderer.Dispose();
 
     [Fact]
+    public void SupportsMultiSampledTargets_IsFalseUntilInitializedThenFollowsTheBackend()
+    {
+        Assert.False(SkiaRenderer.SupportsMultiSampledTargets);
+
+        SkiaRenderer.Initialize(new FakeBackend { MultiSampleSupported = true }, _graphicsDevice);
+        Assert.True(SkiaRenderer.SupportsMultiSampledTargets);
+
+        SkiaRenderer.Dispose();
+        SkiaRenderer.Initialize(new FakeBackend(), _graphicsDevice);
+        Assert.False(SkiaRenderer.SupportsMultiSampledTargets);
+    }
+
+    [Fact]
     public void Initialize_IsIdempotentOnlyForSameConfiguration()
     {
         var backend = new FakeBackend();
@@ -208,6 +221,7 @@ public sealed class SkiaRendererTests : IDisposable
         internal override void EndRender(SkiaTarget target) => EndRenderCount++;
 
         public bool DirectCanvasSupported { get; set; }
+        public bool MultiSampleSupported { get; set; }
         public int BeginDirectDrawCount { get; private set; }
         public int EndDirectDrawCount { get; private set; }
         public Exception? BeginDirectDrawException { get; set; }
@@ -215,6 +229,7 @@ public sealed class SkiaRendererTests : IDisposable
         private readonly SKSurface _directSurface = SKSurface.Create(new SKImageInfo(1, 1));
 
         internal override bool SupportsDirectCanvas => DirectCanvasSupported;
+        internal override bool SupportsMultiSampledTargets => MultiSampleSupported;
 
         internal override SKCanvas BeginDirectDraw(out object pass)
         {

@@ -11,7 +11,7 @@ come from [Performance measurements](../performance.md); check your own scene be
   [SkiaDirectCanvas](SkiaDirectCanvas.md) for the platforms.
 - **Turn on MSAA on the engine back buffer** (for example `PreferMultiSampling` on MonoGame's
   `GraphicsDeviceManager`). Skia follows the sample count and can use faster paths for shapes and strokes. If you
-  draw into a `SkiaRenderTarget2D` on an OpenGL backend, pass `multiSampleCount`. Scenes full of shadows or
+  draw into a `SkiaRenderTarget2D` on an OpenGL backend, pass `multiSampleCount` (`SkiaRenderer.SupportsMultiSampledTargets ? 4 : 0` is portable; it is false until the renderer is initialized). Scenes full of shadows or
   already-rasterized images got slower with it, so measure first; see
   [Multisampling](SkiaRenderTarget2D.md#multisampling).
 - **Use few, large targets.** Every `Begin()`/`End()` pair switches GPU context and flushes Skia. On
