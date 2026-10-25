@@ -208,7 +208,7 @@ for (const mode of ["target", "direct"]) {
 // Skia, and raylib binds a VAO per draw when it has them, or re-specifies its vertex attributes per draw when it does not.
 async function raylibGlCallsPerFrame(page, query) {
   await open(page, query);
-  const read = () => page.evaluate(() => ({ ...globalThis.skiaRaylibEs2, frame: Number(document.getElementById("diagnostic-text").textContent.match(/frames (d+)/)[1]) }));
+  const read = () => page.evaluate(() => ({ ...globalThis.skiaRaylibEs2, frame: Number(document.getElementById("diagnostic-text").textContent.match(/frames (\d+)/)[1]) }));
   const before = await read();
   await waitForFrames(page, 30);
   const after = await read();
