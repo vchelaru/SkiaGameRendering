@@ -9,7 +9,7 @@ the Stride Vulkan support is structured.
 
 - .NET 10
 - Stride 4.4.1 or newer
-- Windows, Linux, or macOS, with a Vulkan 1.3-capable driver (Stride itself requires 1.3's dynamic
+- Windows or Linux (SkiaSharp's macOS build has no Vulkan), with a Vulkan 1.3-capable driver (Stride itself requires 1.3's dynamic
   rendering and synchronization2, plus 1.2's timeline semaphores - it hard-throws on device creation
   otherwise)
 

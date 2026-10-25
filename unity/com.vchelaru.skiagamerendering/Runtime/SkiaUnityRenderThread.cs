@@ -194,6 +194,11 @@ namespace SkiaGameRendering
                 ? new NotSupportedException(
                     $"SkiaDirectCanvas does not draw into multisampled targets (the render target is multisampled, {command.MultisampledSamples} samples). " +
                     "Set QualitySettings.antiAliasing to 0, or the camera's allowMSAA to false.")
+                // An SRP ignores QualitySettings.antiAliasing, so the main thread cannot see its sample count; Metal's backend names it.
+                : command.Direct && ex is NotSupportedException && ex.Message.Contains("is multisampled (")
+                ? new NotSupportedException(
+                    "SkiaDirectCanvas does not draw into multisampled targets (the render target is multisampled). " +
+                    "Set QualitySettings.antiAliasing to 0, the camera's allowMSAA to false, or under URP or HDRP the pipeline asset's Anti Aliasing (MSAA) to Disabled.")
                 : ex;
 
         static void ReleaseOnRenderThread()

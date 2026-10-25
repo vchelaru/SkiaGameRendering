@@ -9,7 +9,7 @@ raylib is the first engine this library supports that isn't MonoGame/KNI. Its pa
 
 - .NET 8
 - [Raylib-cs](https://www.nuget.org/packages/Raylib-cs) 8.0.0
-- Windows or Linux (Linux verified under WSLg — X11/GLX, Mesa llvmpipe). macOS is not implemented.
+- Windows, Linux (verified under WSLg — X11/GLX, Mesa llvmpipe) or macOS (CGL, verified on Apple silicon).
 
 ## Add the package
 
@@ -78,6 +78,6 @@ dotnet run --project samples\Sample.Raylib.OGL\Sample.Raylib.OGL.csproj -c Relea
 
 ## Known limitations
 
-- macOS is not implemented.
+- On macOS `SkiaRenderTarget2D` works but `SkiaDirectCanvas` does not (`SkiaRenderer.SupportsDirectCanvas` is false): Skia's CGL context has no drawable to draw into.
 - Only one raylib window is supported per process — `SkiaRenderer` holds a single global
   context rather than keying off a window handle.
