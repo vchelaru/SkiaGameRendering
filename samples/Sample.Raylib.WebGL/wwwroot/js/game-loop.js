@@ -1,24 +1,24 @@
-// ?es2=1 hides OES_vertex_array_object before raylib creates its context, so raylib's ES2 build takes its
-// no-VAO path (it re-specifies vertex attributes on every draw). Counts the VAOs created so tests can see it.
-globalThis.skiaRaylibEs2 = (() => {
-    const forced = new URLSearchParams(location.search).get("es2") === "1";
-    const state = { forced, vaosCreated: 0, vaoBinds: 0, attribPointers: 0 };
+// Counts the WebGL calls that show whether raylib uses vertex array objects. raylib's build is OpenGL ES 2 and only uses
+// VAOs through the OES_vertex_array_object extension, which a WebGL 2 context (the only kind it creates here) never
+// offers, so it asks for it, gets null and re-specifies its vertex attributes on every draw.
+globalThis.skiaRaylibGl = (() => {
+    const state = { vaoExtensionRequests: 0, vaoExtensionGranted: 0, vaoBinds: 0, attribPointers: 0 };
     const proto = WebGL2RenderingContext.prototype;
-    const createVertexArray = proto.createVertexArray;
-    proto.createVertexArray = function () { state.vaosCreated++; return createVertexArray.call(this); };
-    // With a VAO raylib sets its vertex attributes once and rebinds the VAO per draw; without one it re-specifies the
-    // attributes on every draw. ?mode=raylib draws no Skia, so these counts are raylib's alone.
+    const getExtension = proto.getExtension;
+    proto.getExtension = function (name) {
+        const result = getExtension.call(this, name);
+        if (/vertex_array_object/i.test(name)) {
+            state.vaoExtensionRequests++;
+            if (result)
+                state.vaoExtensionGranted++;
+        }
+        return result;
+    };
+    // ?mode=raylib draws no Skia, so these counts are raylib's alone.
     const bindVertexArray = proto.bindVertexArray;
     proto.bindVertexArray = function (vao) { state.vaoBinds++; return bindVertexArray.call(this, vao); };
     const vertexAttribPointer = proto.vertexAttribPointer;
     proto.vertexAttribPointer = function (...args) { state.attribPointers++; return vertexAttribPointer.apply(this, args); };
-    if (forced) {
-        const hidden = name => /vertex_array_object/i.test(name);
-        const getSupportedExtensions = proto.getSupportedExtensions;
-        proto.getSupportedExtensions = function () { return (getSupportedExtensions.call(this) ?? []).filter(name => !hidden(name)); };
-        const getExtension = proto.getExtension;
-        proto.getExtension = function (name) { return hidden(name) ? null : getExtension.call(this, name); };
-    }
     return state;
 })();
 
