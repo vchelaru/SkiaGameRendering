@@ -7,7 +7,7 @@ namespace SkiaGameRendering.Tests
 {
     /// <summary>
     /// Draws one target hundreds of times and fails if anything grows per frame: the device's
-    /// references, on D3D11 the references on the empty context state every draw swaps in and out (a
+    /// references (on OpenGL, the live GL textures, renderbuffers and framebuffers), on D3D11 the references on the empty context state every draw swaps in and out (a
     /// missed Release there climbs by one a frame), or the process's private memory. Warms up first,
     /// and holds only the second half of the run to a loose memory limit, since the Editor's own
     /// allocations move that number too. Runs with the other Editor tests (see the repo's CLAUDE.md).
@@ -74,7 +74,7 @@ namespace SkiaGameRendering.Tests
         }
 
         static (int Device, int EmptyState, long Memory) Sample(IntPtr emptyState) =>
-            (GpuProbe.DeviceRefCount(), emptyState == IntPtr.Zero ? 0 : RefCount(emptyState), GpuProbe.PrivateBytes());
+            (GpuProbe.IsOpenGl ? GpuProbe.GlObjectCount() : GpuProbe.DeviceRefCount(), emptyState == IntPtr.Zero ? 0 : RefCount(emptyState), GpuProbe.PrivateBytes());
 
         // The ID3D11DeviceContextState AngleSkiaSurfaceFactory swaps in for every draw, or zero on
         // Metal and OpenGL, which have none. The fields are private, so a rename fails this test with a null
