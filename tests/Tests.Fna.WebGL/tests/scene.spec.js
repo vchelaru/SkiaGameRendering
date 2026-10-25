@@ -115,8 +115,9 @@ test("accepts Rgba8888 render targets and rejects other color types with NotSupp
 });
 
 // ?msaa=1 sets PreferMultiSampling, so FNA3D is asked for a multisampled back buffer. On CI it still hands Skia a
-// framebuffer with 0 samples (#230), so this checks the request does not break drawing and records the samples the
-// interop saw (gl.SAMPLES on FNA's draw framebuffer) instead of requiring a number above 0.
+// framebuffer with 0 samples and PresentationParameters.MultiSampleCount stays 0 (#230), so this checks the request
+// does not break drawing and records both numbers instead of requiring one above 0. Raise it to > 0 if FNA3D ever
+// grants multisampling on WebGL.
 test("SkiaDirectCanvas draws correctly when FNA is asked for a multisampled back buffer", async ({ page }) => {
   await page.addInitScript(() => {
     globalThis.sampleLog = [];
@@ -137,7 +138,8 @@ test("SkiaDirectCanvas draws correctly when FNA is asked for a multisampled back
   near(pixel.magenta, [255, 0, 255]);
   near(pixel.black, [0, 0, 0]);
   // The device exists once the first frame has run.
-  expect(await page.evaluate(() => globalThis.fnaSample.backBufferMultiSampleCount())).toBeGreaterThan(0);
+  const granted = await page.evaluate(() => globalThis.fnaSample.backBufferMultiSampleCount());
+  test.info().annotations.push({ type: "PresentationParameters.MultiSampleCount", description: String(granted) });
   const samples = await page.evaluate(() => globalThis.sampleLog);
   expect(samples.length, "the interop read gl.SAMPLES").toBeGreaterThan(0);
   test.info().annotations.push({ type: "gl.SAMPLES", description: [...new Set(samples)].join(",") });
