@@ -53,6 +53,7 @@ static const unsigned long long D3D12V7GuidLow = 0x915AABCB9BC3F0D3ULL;
 
 static IUnityGraphicsD3D12v7* s_d3d12;
 static const int DirectEventId = 0x534B03;
+static const int DrawEventId = 0x534B04;
 static IDXGIAdapter1* s_adapter;
 static ID3D12CommandAllocator* s_allocator;
 static ID3D12GraphicsCommandList* s_emptyList;
@@ -74,6 +75,12 @@ extern "C" __declspec(dllexport) void __stdcall UnityPluginLoad(IUnityInterfaces
         // the queue can be used (access 1), with the camera's target still bound (it is read afterward).
         UnityD3D12PluginEventConfig config = { 1, 2, true };
         s_d3d12->ConfigureEvent(DirectEventId, &config);
+        // A SkiaRenderTarget2D draw, and the releases queued with it, need the same. On the default config the event runs
+        // on the render thread, where the queue is off limits and Skia's submit can pass Unity's own still-unsubmitted
+        // work (such as a new texture's first-use clear), which then wipes what Skia drew. Nothing reads the bound
+        // target afterward, so it isn't bound.
+        UnityD3D12PluginEventConfig drawConfig = { 1, 2, false };
+        s_d3d12->ConfigureEvent(DrawEventId, &drawConfig);
     }
 }
 

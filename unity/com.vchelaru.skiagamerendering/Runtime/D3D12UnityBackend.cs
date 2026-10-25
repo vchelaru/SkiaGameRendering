@@ -22,6 +22,9 @@ namespace SkiaGameRendering
         /// <summary>The plugin event id <see cref="SkiaDirectCanvas"/> draws with; the plugin configures it on load.</summary>
         internal const int DirectEventId = 0x534B03;
 
+        /// <summary>The plugin event id <see cref="SkiaRenderTarget2D"/> draws and releases run on; the plugin configures it like <see cref="DirectEventId"/>, minus the bound target.</summary>
+        internal const int DrawEventId = 0x534B04;
+
         /// <summary>
         /// Main thread. Unity refuses to load a native plugin from any other thread, and only calls its
         /// UnityPluginLoad, which is where the plugin gets Unity's D3D12 interface, when it loads.
