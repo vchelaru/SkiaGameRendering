@@ -119,8 +119,6 @@ sets the real one. To find the last published version of a package, read
 
 ## Gotchas
 
-- **File an issue only for work someone can start now.** Never file one for a hypothetical, a "when X becomes available"
-  reminder, or a limit the docs already state. A verification that finds an unsupported feature updates the docs, not the tracker.
 - **`gh` defaults to the wrong repo.** This repo is a fork of `mfigueirido/SkiaMonoGameRendering`,
   so `gh pr create`/`gh issue create` without an explicit target silently resolve to that upstream
   parent instead of `vchelaru/SkiaGameRendering`. Always pass `--repo vchelaru/SkiaGameRendering`
