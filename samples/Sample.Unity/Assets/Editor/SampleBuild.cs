@@ -98,6 +98,15 @@ public static class SampleBuild
             var assetType = Type.GetType("UnityEngine.Rendering.HighDefinition.HDRenderPipelineAsset, Unity.RenderPipelines.HighDefinition.Runtime")
                 ?? throw new Exception("com.unity.render-pipelines.high-definition is not in Packages/manifest.json.");
             asset = (RenderPipelineAsset)ScriptableObject.CreateInstance(assetType);
+            // HDRP multisamples only in Forward lit shader mode, and compiles the MSAA shader variants only when the asset allows a
+            // sample count; SkiaSample turns the count on or off at run time, and turns it on per camera.
+            var settingsProperty = assetType.GetProperty("currentPlatformRenderPipelineSettings");
+            var settings = settingsProperty.GetValue(asset);
+            var lit = settings.GetType().GetField("supportedLitShaderMode");
+            lit.SetValue(settings, Enum.Parse(lit.FieldType, "ForwardOnly"));
+            var samples = settings.GetType().GetField("msaaSampleCount");
+            samples.SetValue(settings, Enum.Parse(samples.FieldType, "MSAA4x"));
+            settingsProperty.SetValue(asset, settings);
         }
         else
             throw new Exception("-srp takes urp or hdrp.");
