@@ -30,7 +30,7 @@ foreach (var appManagesLayout in new[] { false, true })
         && drop[0] < 100 && drop[2] > 150
         && gradient[0] > 100 && gradient[1] < 80 && gradient[2] > 100
         && logo[0] > 70 && logo[0] < 150 && logo[1] > 70 && logo[1] < 150 && logo[2] > 70 && logo[2] < 150 && logo[3] > 200
-        && margin[3] == 0;
+        && margin[0] == SharedScene.Background.Red && margin[1] == SharedScene.Background.Green && margin[2] == SharedScene.Background.Blue && margin[3] == 255;
     Console.WriteLine($"appManagesLayout={appManagesLayout}: circle={string.Join(",", circle)} drop={string.Join(",", drop)} gradient={string.Join(",", gradient)} logo={string.Join(",", logo)} margin={string.Join(",", margin)} {(passed ? "ok" : "MISMATCH")}");
     if (!passed)
         failures++;
@@ -174,6 +174,7 @@ static unsafe byte[] Run(bool appManagesLayout, int frames, string? screenshotDi
     {
         // Skia: exactly the shared Scene, every frame.
         skia.Begin();
+        skia.Canvas.Clear(SharedScene.Background);
         SharedScene.Draw(skia.Canvas);
         skia.End();
 

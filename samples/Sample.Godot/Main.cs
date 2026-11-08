@@ -62,7 +62,7 @@ public partial class Main : Node2D
         if (!_skiaOff)
         {
             _canvas.Begin();
-            _canvas.Canvas.Clear(SKColors.CornflowerBlue);
+            _canvas.Canvas.Clear(SharedScene.Background);
             SharedScene.Draw(_canvas.Canvas);
             _canvas.End();
         }

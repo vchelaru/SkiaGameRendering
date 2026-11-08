@@ -36,7 +36,7 @@ test("SkiaRenderTarget2D draws the Scene into an FNA texture", async ({ page }) 
   expect(gradient[2], `gradient ${gradient}`).toBeGreaterThan(100);
   expect(drop[0]).toBeLessThan(100);
   expect(drop[2]).toBeGreaterThan(150);
-  near(outside, [0, 0, 0]);
+  near(outside, [100, 149, 237]);
   expect(await glErrors(page), await glErrorLog(page)).toBe(0);
   expect(errors).toEqual([]);
 });
@@ -58,7 +58,7 @@ test("SkiaDirectCanvas layers Skia between FNA's draws on the back buffer and a 
   near(pixel.yellowBottomLeft, [255, 255, 0]);
   near(pixel.yellowTopRight, [255, 255, 0]);
   near(pixel.magenta, [255, 0, 255]);      // FNA draws last, so its cached GL state survived every Skia pass
-  near(pixel.black, [0, 0, 0]);
+  near(pixel.black, [100, 149, 237]);
   expect(await glErrors(page), await glErrorLog(page)).toBe(0);
   expect(errors).toEqual([]);
 });
@@ -69,7 +69,7 @@ test("switches between the render-target path and SkiaDirectCanvas", async ({ pa
     await page.evaluate(m => globalThis.fnaSample.setMode(m), mode);
     const [circle, outside] = await draw(page, [[50, 50], [790, 790]], 3);
     near(circle, [255, 0, 0]);
-    near(outside, [0, 0, 0]);
+    near(outside, [100, 149, 237]);
   }
   expect(errors).toEqual([]);
 });
@@ -141,7 +141,7 @@ test("SkiaDirectCanvas draws correctly into FNA's multisampled back buffer", asy
   near(pixel.blueSquare, [0, 0, 255]);
   near(pixel.redCircle, [255, 0, 0]);
   near(pixel.magenta, [255, 0, 255]);
-  near(pixel.black, [0, 0, 0]);
+  near(pixel.black, [100, 149, 237]);
   expect(await page.evaluate(() => globalThis.fnaSample.backBufferMultiSampleCount())).toBe(4);
   const samples = await page.evaluate(() => globalThis.sampleLog);
   expect(samples, "the interop saw FNA3D's multisampled FBO").toContain(4);
@@ -185,7 +185,7 @@ for (const samples of [2, 8]) {
     near(circle, [255, 0, 0]);
     expect(drop[0]).toBeLessThan(100);
     expect(drop[2]).toBeGreaterThan(150);
-    near(outside, [0, 0, 0]);
+    near(outside, [100, 149, 237]);
     const log = await page.evaluate(() => globalThis.glLog);
     expect(log.multisampledStorage, "Skia allocated a multisampled renderbuffer").toContain(samples);
     expect(log.blits, "Skia resolved it with blitFramebuffer").toBeGreaterThan(0);

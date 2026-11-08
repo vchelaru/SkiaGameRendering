@@ -68,7 +68,7 @@ internal sealed class Game1 : Game
             SkiaRenderer.Initialize(GraphicsDevice);
 
         GraphicsDevice.SetRenderTarget(null);
-        GraphicsDevice.Clear(Color.Black);
+        GraphicsDevice.Clear(new Color(Scene.Background.Red, Scene.Background.Green, Scene.Background.Blue));
 
         if (_drawMode != "texture")
         {
@@ -132,7 +132,7 @@ internal sealed class Game1 : Game
             DrawLayersInTarget(_plainTarget);
             if (drawMsaa)
                 DrawLayersInTarget(_msaaTarget);
-            GraphicsDevice.Clear(Color.Black);
+            GraphicsDevice.Clear(new Color(Scene.Background.Red, Scene.Background.Green, Scene.Background.Blue));
 
             _direct.Begin();
             Scene.Draw(_direct.Canvas);

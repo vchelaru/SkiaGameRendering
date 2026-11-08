@@ -51,7 +51,7 @@ async function expectScene(page) {
   expect(circle[2], `circle ${circle}`).toBeLessThan(50);
   expect(drop[0], `drop ${drop}`).toBeLessThan(100);
   expect(drop[2], `drop ${drop}`).toBeGreaterThan(150);
-  expect(outside.slice(0, 3), `outside ${outside}`).toEqual([0, 0, 0]);
+  expect(outside.slice(0, 3), `outside ${outside}`).toEqual([100, 149, 237]);
 }
 
 const directGlErrors = page => page.evaluate(() => globalThis.skiaGameWebGl.getDirectGlErrorCount());

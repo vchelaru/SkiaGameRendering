@@ -64,7 +64,7 @@ public static class Game
         try
         {
             Raylib.BeginDrawing();
-            Raylib.ClearBackground(Color.Black);
+            Raylib.ClearBackground(new Color((int)Scene.Background.Red, (int)Scene.Background.Green, (int)Scene.Background.Blue, 255));
             // ?mode=raylib draws raylib alone, so tests can count the GL calls raylib makes on its own.
             if (mode == "direct")
                 DrawDirect();

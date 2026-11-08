@@ -33,6 +33,8 @@ void Start(Scene rootScene)
     renderer.SkiaDraw += skCanvas =>
     {
         var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
+        // The 800x800 canvas covers the window, so this clear hides the 3D scene behind it (see Scene.Background).
+        skCanvas.Clear(SharedScene.Background);
         SharedScene.Draw(skCanvas);
     };
     game.AddSceneRenderer(renderer);

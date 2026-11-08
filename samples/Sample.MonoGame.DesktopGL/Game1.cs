@@ -41,6 +41,8 @@ namespace Sample
         public string ScreenshotPath { get; init; }
 
         // The canvas is always the Scene's fixed size; the 800x800 window shows it 1:1.
+        // Behind the Scene, in every sample (see Scene.Background).
+        private static readonly Color ClearColor = new Color(Scene.Background.Red, Scene.Background.Green, Scene.Background.Blue);
         private static int CanvasWidth => Scene.Width;
         private static int CanvasHeight => Scene.Height;
 
@@ -77,7 +79,7 @@ namespace Sample
                 SkiaRenderer.Initialize(GraphicsDevice);
 
             GraphicsDevice.SetRenderTarget(null);
-            GraphicsDevice.Clear(Color.Black);
+            GraphicsDevice.Clear(ClearColor);
 
             if (SkiaRenderer.IsInitialized)
             {
@@ -150,11 +152,11 @@ namespace Sample
         /// <summary>
         /// The 800x800 canvas fills the 800x800 back buffer. Scene's four 400x400 cells hold the red circle,
         /// the blue SVG water drop (which proves the SVG parser survived trimming), the gradient and the logo
-        /// PNG (opaque gray text, transparent margin); the transparent part shows the black clear color.
+        /// PNG (opaque gray text, transparent margin); the transparent part shows the clear color.
         /// </summary>
         private void CheckSmokeTestFrame()
         {
-            var passed = CheckScene(ReadBackBufferPixel, Color.Black, out var text);
+            var passed = CheckScene(ReadBackBufferPixel, ClearColor, out var text);
 
             System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: {text}");
             ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;

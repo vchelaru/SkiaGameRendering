@@ -59,9 +59,8 @@ void Start(Scene rootScene)
     // so it draws on top of the 3D scene Run's default SceneSetup3D created.
     renderer.SkiaDraw += skCanvas =>
     {
-        // A direct canvas draws on top of the 3D scene, so clearing would wipe it.
-        if (!direct)
-            skCanvas.Clear(SKColors.Transparent);
+        // The 800x800 canvas covers the window, so this clear hides the 3D scene behind it (see Scene.Background).
+        skCanvas.Clear(SharedScene.Background);
         SharedScene.Draw(skCanvas);
     };
     game.AddSceneRenderer(renderer);

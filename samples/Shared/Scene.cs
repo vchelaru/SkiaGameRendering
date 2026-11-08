@@ -33,6 +33,12 @@ public static class Scene
     public const int LogoTransparentX = Cell + CellCenter;
     public const int LogoTransparentY = Cell + 60;
 
+    /// <summary>
+    /// The solid color every sample's window or back buffer is cleared to behind the Scene (cornflower blue), so
+    /// screenshots of different runtimes compare. The Scene itself leaves it transparent.
+    /// </summary>
+    public static readonly SKColor Background = new(100, 149, 237);
+
     private static SKSvg? _drop;
     private static SKImage? _logo;
 
