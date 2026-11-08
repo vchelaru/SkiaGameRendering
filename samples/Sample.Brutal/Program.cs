@@ -23,7 +23,8 @@ var queueFamily = physicalDevice.GetFirstQueueFamilyWithFlag(VkQueueFlags.Graphi
 var properties = physicalDevice.GetProperties();
 unsafe { Console.WriteLine($"GPU: {Brutal.Strings.Utf8.GetString(properties.DeviceName)}"); }
 
-int exitCode;
+var smokeTest = args.Contains("--smoke-test");
+int exitCode = 0;
 unsafe
 {
     var priority = 1.0f;
@@ -55,8 +56,13 @@ unsafe
     var px = PixelReadback.ReadPixel(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily,
         target.VkImage, Size / 2, Size / 2);
     Console.WriteLine($"pixel ({Size / 2},{Size / 2}) = {px[0]},{px[1]},{px[2]},{px[3]} (expected 255,0,0,255)");
-    exitCode = px[0] == 255 && px[1] == 0 && px[2] == 0 && px[3] == 255 ? 0 : 1;
-    Console.WriteLine(exitCode == 0 ? "PASS" : "FAIL");
+    if (!smokeTest)
+        Console.WriteLine("Pass --smoke-test to assert it.");
+    if (smokeTest)
+    {
+        exitCode = px[0] == 255 && px[1] == 0 && px[2] == 0 && px[3] == 255 ? 0 : 1;
+        Console.WriteLine(exitCode == 0 ? "PASS" : "FAIL");
+    }
     device.WaitIdle();
 }
 return exitCode;

@@ -823,10 +823,38 @@ jobs:
           VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
           VK_LOADER_DEBUG: layer
 
+  # BRUTAL has no windowing requirement here: the sample and tests make a headless Vulkan device on
+  # Mesa's lavapipe. The Khronos validation layer runs with synchronization validation, and any VUID- or
+  # SYNC-HAZARD message fails the job. GitHub's runners have no GPU, so no Windows job runs this.
+  brutal-linux:
+    if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',brutal-linux,')))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Install Mesa and the Vulkan validation layer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers libvulkan1 vulkan-validationlayers vulkan-tools
+      - name: Confirm the Khronos validation layer is installed
+        run: vulkaninfo --summary | grep VK_LAYER_KHRONOS_validation
+      - run: dotnet build samples/Sample.Brutal/Sample.Brutal.csproj -c Release
+      - run: dotnet build tests/Tests.Brutal/Tests.Brutal.csproj -c Release
+      - name: Run the smoke test and the layout tests under validation
+        run: |
+          dotnet samples/Sample.Brutal/bin/Release/net10.0/Sample.Brutal.dll --smoke-test 2>&1 | tee brutal-smoke.txt
+          dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalLayoutContractTests" --logger "console;verbosity=detailed" 2>&1 | tee brutal-tests.txt
+          if grep -E "VUID-|SYNC-HAZARD" brutal-smoke.txt brutal-tests.txt; then echo "Validation errors above"; exit 1; fi
+        env:
+          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+          VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+
   # Opens an issue when a nightly run fails, so a failure is never lost in the Actions tab.
   nightly-report:
     if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
-    needs: [desktop-and-core, desktop-builds, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, windowsdx12-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux]
+    needs: [desktop-and-core, desktop-builds, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, windowsdx12-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux, brutal-linux]
     runs-on: ubuntu-latest
     permissions:
       issues: write
