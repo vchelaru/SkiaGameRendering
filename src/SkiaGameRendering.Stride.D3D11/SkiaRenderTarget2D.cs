@@ -115,6 +115,11 @@ namespace SkiaGameRendering
         /// <see cref="Texture"/> for something the composite can't express (e.g. drawing it more than
         /// once, or at a different size), or when no <see cref="GraphicsContext"/> is available at the
         /// call site. You're then responsible for drawing <see cref="Texture"/> yourself.
+        /// <para>
+        /// Under Stride's Linear color space <see cref="Texture"/> holds sRGB-encoded bytes, so drawing it yourself
+        /// onto the sRGB back buffer encodes them twice. Sample an sRGB view of it instead
+        /// (<c>Texture.ToTextureView</c> with <c>Format = Texture.ViewFormat.ToSRgb()</c>), as <see cref="End"/> does.
+        /// </para>
         /// </summary>
         public void EndWithoutDrawing() => EndCore(graphicsContext: null);
 
@@ -144,7 +149,7 @@ namespace SkiaGameRendering
             {
                 _spriteBatch ??= new SpriteBatch(_graphicsDevice);
                 _spriteBatch.Begin(graphicsContext);
-                _spriteBatch.Draw(Texture, Vector2.Zero);
+                _spriteBatch.Draw(_target!.SampleTexture, Vector2.Zero);
                 _spriteBatch.End();
             }
         }

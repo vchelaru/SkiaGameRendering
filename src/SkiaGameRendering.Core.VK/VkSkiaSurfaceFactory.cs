@@ -317,7 +317,7 @@ namespace SkiaGameRendering.Core.VK
         /// touches the underlying image). Pass <c>SKColorSpace.CreateSrgbLinear()</c> to have Skia
         /// linearize every color it draws (paint colors are always given to Skia as standard sRGB
         /// 8-bit) before writing raw bytes - the host is then responsible for treating what comes out
-        /// as linear-light data. Stride's adapter uses this to compensate for Stride's own hardware
+        /// as linear-light data. Skia then also blends and interpolates gradients in linear space, which is why Stride no longer uses this. It once compensated for Stride's own hardware
         /// sRGB encode-on-write when its default Linear <c>GraphicsDevice.ColorSpace</c> pipeline
         /// composites this texture into an sRGB-formatted render target (see
         /// <c>SkiaStrideVulkanTarget</c>'s doc comment for the full mechanism and the numbers that

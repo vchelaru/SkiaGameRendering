@@ -257,8 +257,8 @@ namespace SkiaGameRendering.Core.ANGLE
         /// applied when Skia writes into the wrapped D3D11 texture (via ANGLE), independent of the
         /// texture's own DXGI format (never touched by this parameter). See the identical parameter
         /// on <c>VkSkiaSurfaceFactory.CreateSurface</c> for the full mechanism this exists for:
-        /// Stride's adapter passes <c>SKColorSpace.CreateSrgbLinear()</c> to compensate for Stride's
-        /// own hardware sRGB encode-on-write under its default Linear color-space pipeline. Pass
+        /// Pass <c>SKColorSpace.CreateSrgbLinear()</c> to store linear values (Skia then also blends in
+        /// linear space; Stride no longer uses this, see <c>SkiaStrideVulkanTarget</c>). Pass
         /// <c>null</c> (the default) for the previous raw-passthrough behavior.
         /// </param>
         public (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(

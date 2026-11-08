@@ -102,6 +102,11 @@ namespace SkiaGameRendering
         /// <see cref="Texture"/> yourself. <see cref="Texture"/> is left in Stride's <c>Common</c>
         /// layout, so before sampling it call <c>CommandList.ResourceBarrierTransition(Texture,
         /// BarrierLayout.ShaderResource)</c>, as any Stride D3D12 render target needs.
+        /// <para>
+        /// Under Stride's Linear color space <see cref="Texture"/> holds sRGB-encoded bytes, so drawing it yourself
+        /// onto the sRGB back buffer encodes them twice. Sample an sRGB view of it instead
+        /// (<c>Texture.ToTextureView</c> with <c>Format = Texture.ViewFormat.ToSRgb()</c>), as <see cref="End"/> does.
+        /// </para>
         /// </summary>
         public void EndWithoutDrawing() => EndCore(graphicsContext: null);
 
@@ -126,7 +131,7 @@ namespace SkiaGameRendering
                 graphicsContext.CommandList.ResourceBarrierTransition(Texture, BarrierLayout.ShaderResource);
                 _spriteBatch ??= new SpriteBatch(_graphicsDevice);
                 _spriteBatch.Begin(graphicsContext);
-                _spriteBatch.Draw(Texture, Vector2.Zero);
+                _spriteBatch.Draw(_target!.SampleTexture, Vector2.Zero);
                 _spriteBatch.End();
             }
         }

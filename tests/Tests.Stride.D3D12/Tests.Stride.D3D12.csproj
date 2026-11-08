@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
   <Import Project="..\..\eng\StrideAudit.props" />
+  <Import Project="..\..\samples\Shared\Scene.props" />
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -31,6 +32,7 @@
   <ItemGroup>
     <Compile Include="..\Shared\EngineReflectionPin.cs" Link="EngineReflectionPin.cs" />
     <Compile Include="..\Shared\StrideTestParallelism.cs" Link="StrideTestParallelism.cs" />
+    <Compile Include="..\Shared\StrideLinearScene.cs" Link="StrideLinearScene.cs" />
     <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
     <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
     <Compile Include="..\Shared\FrameLeakCheck.cs" Link="FrameLeakCheck.cs" />

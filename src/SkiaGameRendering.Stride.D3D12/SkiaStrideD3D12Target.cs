@@ -12,15 +12,16 @@ namespace SkiaGameRendering
     /// typeless in <c>Texture.ConvertToNativeDescription2D</c>), unlike Godot's typeless textures that
     /// force the Godot D3D12 backend to copy.
     /// <para>
-    /// <b>Linear-color-space compensation</b> is the same as <c>SkiaStrideVulkanTarget</c>'s (see its
-    /// doc comment): under Stride's default Linear pipeline the back buffer is sRGB-formatted, so the
-    /// surface is tagged <c>SKColorSpace.CreateSrgbLinear()</c> to cancel the hardware encode-on-write.
+    /// <b>Linear color space</b> is handled as in <c>SkiaStrideVulkanTarget</c> (see its doc comment): the texture
+    /// keeps sRGB-encoded bytes and is composited through an sRGB view, so Stride's encode-on-write cancels the
+    /// view's decode on sample.
     /// </para>
     /// </summary>
     internal sealed class SkiaStrideD3D12Target : IDisposable
     {
         readonly SkiaStrideD3D12Context _context;
         Texture? _texture;
+        Texture? _sampleView;
         SKSurface? _surface;
         GRBackendRenderTarget? _renderTarget;
         bool _disposed;
@@ -34,16 +35,30 @@ namespace SkiaGameRendering
                 graphicsDevice, width, height, ToPixelFormat(colorType),
                 TextureFlags.RenderTarget | TextureFlags.ShaderResource);
 
+            // Under Stride's Linear pipeline the back buffer is sRGB-format and encodes on write. Sampling
+            // this gamma-encoded texture through an sRGB view decodes it first, so the encode cancels it
+            // and the bytes Skia drew land unchanged. See SkiaStrideVulkanTarget's doc comment.
+            if (graphicsDevice.ColorSpace == ColorSpace.Linear)
+            {
+                var srgb = _texture.ViewFormat.ToSRgb();
+                if (srgb != _texture.ViewFormat)
+                    _sampleView = _texture.ToTextureView(new TextureViewDescription
+                    {
+                        Format = srgb,
+                        Type = ViewType.Single,
+                        ArraySlice = 0,
+                        MipLevel = 0,
+                        Flags = TextureFlags.ShaderResource,
+                    });
+            }
+
             try
             {
                 BeginDraw();
                 try
                 {
                     var state = _context.CreateTextureState(_texture);
-                    var skiaColorSpace = graphicsDevice.ColorSpace == ColorSpace.Linear
-                        ? SKColorSpace.CreateSrgbLinear()
-                        : null;
-                    (_surface, _renderTarget) = _context.CreateSurface(state, width, height, colorType, skiaColorSpace);
+                    (_surface, _renderTarget) = _context.CreateSurface(state, width, height, colorType);
                 }
                 finally
                 {
@@ -59,6 +74,9 @@ namespace SkiaGameRendering
                 throw;
             }
         }
+
+        /// <summary>What to sample when drawing this target in Stride: <see cref="Texture"/> itself under the Gamma pipeline, an sRGB view of it under Linear.</summary>
+        internal Texture SampleTexture => _sampleView ?? Texture;
 
         internal Texture Texture => _texture ?? throw new ObjectDisposedException(nameof(SkiaStrideD3D12Target));
 
@@ -134,6 +152,8 @@ namespace SkiaGameRendering
             // The transitioner's queued barriers hold no reference to the resource (Skia's do), so
             // drain them before Stride releases its own.
             _context.WaitForIdle();
+            _sampleView?.Dispose();
+            _sampleView = null;
             _texture?.Dispose();
             _texture = null;
         }
