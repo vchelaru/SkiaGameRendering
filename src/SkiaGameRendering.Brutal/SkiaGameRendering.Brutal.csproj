@@ -20,7 +20,7 @@
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
     <!-- The main SkiaSharp package only carries Windows/macOS native assets implicitly; BRUTAL runs on Linux. -->
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="[$(SkiaSharpVersion)]" />
-    <ProjectReferenceInclude="..\SkiaGameRendering.Core.VK\SkiaGameRendering.Core.VK.csproj" />
+    <ProjectReference Include="..\SkiaGameRendering.Core.VK\SkiaGameRendering.Core.VK.csproj" />
   </ItemGroup>
 
   <ItemGroup>
