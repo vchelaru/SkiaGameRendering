@@ -33,7 +33,7 @@ jobs:
         run: dotnet workload install android
       # Packing the iOS library needs the workload but no Mac.
       - name: Install the iOS workload
-        run: dotnet workload install ios
+        run: dotnet workload install ios --from-rollback-file eng/ios-rollback.json
 
       - name: Pack SkiaGameRendering.Core.OGL
         run: dotnet pack src/SkiaGameRendering.Core.OGL/SkiaGameRendering.Core.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
