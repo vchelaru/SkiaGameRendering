@@ -40,6 +40,8 @@ Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
 
 void Start(Scene rootScene)
 {
+    // The Toolkit's Run overrides the preferred back buffer size above, so size the window here.
+    game.Window.SetSize(new Int2(SharedScene.Width, SharedScene.Height));
     var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
 
     // SkiaRenderTarget2D auto-initializes SkiaRenderer against
