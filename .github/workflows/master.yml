@@ -861,6 +861,7 @@ jobs:
         run: dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalGoldenImageTests"
         env:
           SKIAGAMERENDERING_UPDATE_GOLDENS: 1
+          SKIAGAMERENDERING_PINNED_RASTERIZER: 1
       - name: TEMP upload golden
         uses: actions/upload-artifact@v4
         with:
