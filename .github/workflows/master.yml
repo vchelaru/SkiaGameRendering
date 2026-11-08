@@ -843,6 +843,7 @@ jobs:
       - run: dotnet build samples/Sample.Brutal/Sample.Brutal.csproj -c Release
       - run: dotnet build tests/Tests.Brutal/Tests.Brutal.csproj -c Release
       - name: Run the smoke test and the layout tests under validation
+        shell: bash -eo pipefail {0}
         run: |
           dotnet samples/Sample.Brutal/bin/Release/net10.0/Sample.Brutal.dll --smoke-test 2>&1 | tee brutal-smoke.txt
           dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalLayoutContractTests" --logger "console;verbosity=detailed" 2>&1 | tee brutal-tests.txt
