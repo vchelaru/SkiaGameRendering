@@ -37,6 +37,11 @@ sealed unsafe class BrutalDevice : IDisposable
     public byte[] ReadPixel(SkiaRenderTarget2D target, int x, int y) =>
         PixelReadback.ReadPixel(_instance.VkHandle, PhysicalDevice.VkHandle, _device.VkHandle, Queue.VkHandle, (uint)Queue.Family, target.VkImage, x, y);
 
+    /// <summary>Whole-image readback (test-only). The image is in COLOR_ATTACHMENT_OPTIMAL when the app manages layout, else SHADER_READ_ONLY_OPTIMAL.</summary>
+    public byte[] ReadImage(SkiaRenderTarget2D target, bool appManagesLayout) =>
+        PixelReadback.ReadRegion(_instance.VkHandle, PhysicalDevice.VkHandle, _device.VkHandle, Queue.VkHandle, (uint)Queue.Family,
+            target.VkImage, 0, 0, target.Width, target.Height, appManagesLayout ? 2u : 5u);
+
     public void Dispose()
     {
         _device.WaitIdle();

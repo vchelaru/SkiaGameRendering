@@ -1,7 +1,9 @@
 // A BRUTAL Vulkan renderer that samples SkiaRenderTarget2D.VkImage on a textured quad every frame.
 // Headless: the quad is drawn into an offscreen image (no window or swapchain), with dynamic rendering.
-// --smoke-test renders 30 animated frames in both layout modes, reads ONE pixel of the last frame back
-// through Vulkan (test-only) and exits 0 if it is right.
+// --smoke-test renders 30 frames in both layout modes (the last one is the shared golden scene), reads the whole
+// final image back through Vulkan (test-only) and compares it to tests/Tests.Brutal/goldens/brutal-scene.png with
+// the repo's golden comparison (pixel comparison only under SKIAGAMERENDERING_PINNED_RASTERIZER=1, as elsewhere).
+// SKIAGAMERENDERING_BRUTAL_SCREENSHOTS=<dir> also saves the Skia target and the final quad-pass image as PNGs.
 using Brutal.ShaderCApi;
 using Brutal.VulkanApi;
 using Brutal.VulkanApi.Abstractions;
@@ -9,23 +11,33 @@ using SkiaGameRendering;
 using SkiaGameRendering.Core.VK;
 using SkiaSharp;
 
-const int Size = 256;
+const int Size = Tests.Shared.GoldenScene.Width; // 128: the shared golden scene, drawn 1:1 through the quad
 const int Frames = 30;
 var smokeTest = args.Contains("--smoke-test");
 
 var failures = 0;
 foreach (var appManagesLayout in new[] { false, true })
 {
-    var (px, expected) = Run(appManagesLayout);
-    var ok = px.SequenceEqual(expected);
-    Console.WriteLine($"appManagesLayout={appManagesLayout}: pixel {string.Join(",", px)} expected {string.Join(",", expected)} {(ok ? "ok" : "MISMATCH")}");
-    if (!ok)
+    var final = Run(appManagesLayout);
+    try
+    {
+        Tests.Shared.GoldenImage.AssertSceneOrientation(final);
+        if (Tests.Shared.GoldenImage.PinnedRasterizerInUse)
+            Tests.Shared.GoldenImage.AssertMatchesGolden(final, "brutal-scene.png");
+        else
+            Console.WriteLine("Golden comparison skipped (not the pinned rasterizer); orientation checked.");
+        Console.WriteLine($"appManagesLayout={appManagesLayout}: ok");
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine($"appManagesLayout={appManagesLayout}: MISMATCH {e.Message}");
         failures++;
+    }
 }
 Console.WriteLine(failures == 0 ? "PASS" : "FAIL");
 return smokeTest ? (failures == 0 ? 0 : 1) : 0;
 
-static unsafe (byte[] pixel, byte[] expected) Run(bool appManagesLayout)
+static unsafe byte[] Run(bool appManagesLayout)
 {
     var instanceExtensions = new HashSet<string>();
     VulkanHelpers.AddPlatformRequiredExtensions(instanceExtensions);
@@ -153,11 +165,14 @@ static unsafe (byte[] pixel, byte[] expected) Run(bool appManagesLayout)
     var outLayout = VkImageLayout.Undefined;
     for (var frame = 0; frame < Frames; frame++)
     {
-        // Skia: animated disc on a blue background.
+        // Skia: an animated disc on a blue background, then the shared golden scene on the last frame.
         skia.Begin();
-        skia.Canvas.Clear(new SKColor(30, 144, 255));
-        using (var paint = new SKPaint { Color = new SKColor(255, 0, 0), IsAntialias = true })
+        if (frame == Frames - 1)
+            Tests.Shared.GoldenScene.Draw(skia.Canvas);
+        else
         {
+            skia.Canvas.Clear(new SKColor(30, 144, 255));
+            using var paint = new SKPaint { Color = new SKColor(255, 0, 0), IsAntialias = true };
             var (cx, cy) = DiscCenter(frame);
             skia.Canvas.DrawCircle(cx, cy, 10, paint);
         }
@@ -199,8 +214,15 @@ static unsafe (byte[] pixel, byte[] expected) Run(bool appManagesLayout)
     }
     device.WaitIdle();
 
-    var (lx, ly) = DiscCenter(Frames - 1);
-    var pixel = PixelReadback.ReadPixel(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)family, outAlloc.Image, (int)lx, (int)ly);
+    var screenshots = Environment.GetEnvironmentVariable("SKIAGAMERENDERING_BRUTAL_SCREENSHOTS");
+    var final = PixelReadback.ReadRegion(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)family, outAlloc.Image, 0, 0, Size, Size);
+    if (!string.IsNullOrEmpty(screenshots) && !appManagesLayout)
+    {
+        Directory.CreateDirectory(screenshots);
+        Save(final, Path.Combine(screenshots, "quad-final.png"));
+        var skiaPixels = PixelReadback.ReadRegion(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)family, skia.VkImage, 0, 0, Size, Size);
+        Save(skiaPixels, Path.Combine(screenshots, "quad-skia-target.png"));
+    }
 
     device.DestroyFence(fence, null);
     device.DestroyCommandPool(commandPool, null);
@@ -212,11 +234,19 @@ static unsafe (byte[] pixel, byte[] expected) Run(bool appManagesLayout)
     device.DestroyImageView(outView, null);
     device.DestroyImageView(skiaView, null);
     VkImageAllocator.Destroy(device.VkHandle, outAlloc);
-    return (pixel, [255, 0, 0, 255]);
+    return final;
+}
+
+static void Save(byte[] rgba, string path)
+{
+    using var bitmap = new SKBitmap(new SKImageInfo(Size, Size, SKColorType.Rgba8888, SKAlphaType.Unpremul));
+    System.Runtime.InteropServices.Marshal.Copy(rgba, 0, bitmap.GetPixels(), rgba.Length);
+    using var data = SKImage.FromBitmap(bitmap).Encode(SKEncodedImageFormat.Png, 100);
+    File.WriteAllBytes(path, data.ToArray());
 }
 
 static (float x, float y) DiscCenter(int frame)
 {
     var a = frame * 0.2f;
-    return (MathF.Round(128 + 80 * MathF.Cos(a)), MathF.Round(128 + 80 * MathF.Sin(a)));
+    return (MathF.Round(64 + 40 * MathF.Cos(a)), MathF.Round(64 + 40 * MathF.Sin(a)));
 }

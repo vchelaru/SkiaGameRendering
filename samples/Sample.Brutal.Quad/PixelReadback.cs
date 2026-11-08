@@ -14,14 +14,18 @@ static class PixelReadback
     }
 
     // Test-only: copies one texel of a SHADER_READ_ONLY_OPTIMAL image to a host buffer and returns RGBA.
-    public static unsafe byte[] ReadPixel(IntPtr instance, IntPtr physical, IntPtr device, IntPtr queue, uint family, ulong imageHandle, int x, int y)
+    public static byte[] ReadPixel(IntPtr instance, IntPtr physical, IntPtr device, IntPtr queue, uint family, ulong imageHandle, int x, int y, uint oldLayout = 5) =>
+        ReadRegion(instance, physical, device, queue, family, imageHandle, x, y, 1, 1, oldLayout);
+
+    /// <summary>Copies a w x h region to a host buffer and returns tightly packed top-down RGBA. oldLayout is 5 (SHADER_READ_ONLY_OPTIMAL) or 2 (COLOR_ATTACHMENT_OPTIMAL).</summary>
+    public static unsafe byte[] ReadRegion(IntPtr instance, IntPtr physical, IntPtr device, IntPtr queue, uint family, ulong imageHandle, int x, int y, int w, int h, uint oldLayout = 5)
     {
         var image = (IntPtr)(long)imageHandle;
         static void Ok(int r, string what) { if (r != VK_SUCCESS) throw new InvalidOperationException($"{what} failed: {r}"); }
 
         var bufferInfo = new VkBufferCreateInfo
         {
-            sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, size = 4, usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT, sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, size = (ulong)(w * h * 4), usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT, sharingMode = VK_SHARING_MODE_EXCLUSIVE,
         };
         Ok(vkCreateBuffer(device, &bufferInfo, IntPtr.Zero, out var buffer), "vkCreateBuffer");
         vkGetBufferMemoryRequirements(device, buffer, out var req);
@@ -46,17 +50,17 @@ static class PixelReadback
         var barrier = new VkImageMemoryBarrier
         {
             sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            srcAccessMask = 0x20 /* SHADER_READ */, dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
-            oldLayout = 5 /* SHADER_READ_ONLY_OPTIMAL: the library's contract */, newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            srcAccessMask = oldLayout == 2 ? 0x100u /* COLOR_ATTACHMENT_WRITE */ : 0x20u /* SHADER_READ */, dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+            oldLayout = oldLayout, newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED, dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED, image = image,
             subresourceRange = new VkImageSubresourceRange { aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, levelCount = 1, layerCount = 1 },
         };
-        vkCmdPipelineBarrier(cb, 0x80 /* FRAGMENT_SHADER */, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, IntPtr.Zero, 0, IntPtr.Zero, 1, &barrier);
+        vkCmdPipelineBarrier(cb, oldLayout == 2 ? 0x400u /* COLOR_ATTACHMENT_OUTPUT */ : 0x80u /* FRAGMENT_SHADER */, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, IntPtr.Zero, 0, IntPtr.Zero, 1, &barrier);
         var region = new VkBufferImageCopy
         {
             imageSubresource = new VkImageSubresourceLayers { aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, layerCount = 1 },
             imageOffset = new VkOffset3D { x = x, y = y, z = 0 },
-            imageExtent = new VkExtent3D { width = 1, height = 1, depth = 1 },
+            imageExtent = new VkExtent3D { width = (uint)w, height = (uint)h, depth = 1 },
         };
         vkCmdCopyImageToBuffer(cb, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer, 1, &region);
         Ok(vkEndCommandBuffer(cb), "vkEndCommandBuffer");
@@ -69,9 +73,9 @@ static class PixelReadback
         var fenceLocal = fence;
         Ok(vkWaitForFences(device, 1, ref fenceLocal, true, UINT64_MAX), "vkWaitForFences");
 
-        Ok(vkMapMemory(device, memory, 0, 4, 0, out var mapped), "vkMapMemory");
-        var bytes = new byte[4];
-        Marshal.Copy(mapped, bytes, 0, 4);
+        Ok(vkMapMemory(device, memory, 0, (ulong)(w * h * 4), 0, out var mapped), "vkMapMemory");
+        var bytes = new byte[w * h * 4];
+        Marshal.Copy(mapped, bytes, 0, bytes.Length);
         vkUnmapMemory(device, memory);
 
         vkDestroyFence(device, fence, IntPtr.Zero);

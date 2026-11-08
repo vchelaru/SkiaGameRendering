@@ -23,5 +23,8 @@
     <!-- Test-only raw Vulkan readback, shared with the sample. -->
     <Compile Include="..\Tests.Core.VK\VulkanTestNative.cs" Link="VulkanTestNative.cs" />
     <Compile Include="..\..\samples\Sample.Brutal\PixelReadback.cs" Link="PixelReadback.cs" />
+    <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
+    <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
