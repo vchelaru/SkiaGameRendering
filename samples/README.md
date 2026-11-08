@@ -19,6 +19,10 @@
 - `Sample.Stride.D3D12/`: Stride sample (Windows, D3D12 via `StrideGraphicsApi=Direct3D12`)
 - `Sample.Godot/` — Godot 4.7 project (Vulkan, D3D12 or Compatibility via `--rendering-driver`; `dotnet build` it, then open or run it with a Godot .NET editor binary - not shipped here)
 - `Sample.Unity/`: Unity 6 project (Windows D3D11 and D3D12, macOS Metal). Run `eng/build-unity-package.ps1` first to fill the package's `Plugins/`; `--smoke-test` checks the rendered pixels and exits
+- `Sample.Brutal/`: BRUTAL headless Vulkan sample (`--smoke-test` checks one pixel through Vulkan; Windows, Linux)
+- `Sample.Brutal.Quad/`: BRUTAL renderer that draws the shared Scene through `SkiaRenderTarget2D` and samples it on a textured quad into an offscreen image (headless; `--smoke-test` checks the Scene pixels; Windows, Linux)
 - `Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
 DesktopGL, WindowsDX, KNI WindowsDX, and both FNA samples share the same `Game1.cs` via a linked file include; KNI DesktopGL has its own copy.
+
+Every sample draws the same `Shared/Scene.cs` (linked through `Shared/Scene.props`, never copied). Gaps in what it shows get added there, and each sample's `--smoke-test` must check them.

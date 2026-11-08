@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- BRUTAL is CalVer (year.month.n) and ships as Ahwoo.Brutal.*; Vulkan pulls in its own Core/Strings dependencies. -->
+    <PackageReference Include="Ahwoo.Brutal.Vulkan" Version="2026.10.3" />
+    <!-- Raw Vulkan P/Invokes for the test-only pixel readback in Program.cs; not library code. -->
+    <Compile Include="..\..\tests\Tests.Core.VK\VulkanTestNative.cs" Link="VulkanTestNative.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Brutal\SkiaGameRendering.Brutal.csproj" />
+  </ItemGroup>
+
+</Project>
