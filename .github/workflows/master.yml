@@ -219,6 +219,8 @@ jobs:
       # A Godot.NET.Sdk project builds with the plain .NET SDK (GodotSharp comes from NuGet); no
       # Godot binary is needed to compile it. Running it is tests/Tests.Godot's job, above.
       - run: dotnet build samples/Sample.Godot/Sample.Godot.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Brutal/SkiaGameRendering.Brutal.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.Brutal/Sample.Brutal.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.DesktopGL/Benchmarks.ShapeRendering.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.WindowsDX/Benchmarks.ShapeRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.DirectDraw.DesktopGL/Benchmarks.DirectDraw.DesktopGL.csproj -c ${{ matrix.configuration }}
