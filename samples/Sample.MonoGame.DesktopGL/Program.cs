@@ -1,6 +1,6 @@
 // --smoke-test renders a few frames, checks the back buffer for the scene, and exits with 0 or 1.
 // CI runs the NativeAOT-published exe this way to prove the library still works trimmed.
-// --screenshot <path> saves the Scene as a PNG (the README image) and exits.
+// --screenshot <path> saves the Skia surface (the Scene alone, transparent background) to <path> and the composited back buffer to <path>-backbuffer.png, then exits.
 var screenshot = System.Array.IndexOf(args, "--screenshot");
 using var game = new Sample.Game1(smokeTest: System.Array.IndexOf(args, "--smoke-test") >= 0)
 {
