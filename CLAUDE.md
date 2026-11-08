@@ -99,6 +99,8 @@ authoritative list of what CI builds, runs and in what order.
 `Directory.Build.props` sets `TreatWarningsAsErrors`, so a new C# warning fails the build. MSBuild
 task warnings from third-party targets stay warnings; don't silence them there.
 
+To compare what runtimes render, load the `compare-runtime-renders` skill: capture with each sample's `--screenshot` and diff with `eng/compare-renders.py`, never by eye.
+
 **When no CI job checks it, you may launch a sample `.exe`/`dotnet run` and screenshot it to verify objective output**: a
 solid fullscreen color, a known static frame, a specific pixel value — by launching it, waiting for
 it to render, and comparing a screenshot's pixels against the expected value; kill the process when

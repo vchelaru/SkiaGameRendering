@@ -39,6 +39,7 @@ namespace Sample
         /// When set, saves the Scene to this PNG path, with a transparent background, and exits.
         /// </summary>
         public string ScreenshotPath { get; init; }
+        private bool _screenshotSaved;
 
         // The canvas is always the Scene's fixed size; the 800x800 window shows it 1:1.
         // Behind the Scene, in every sample (see Scene.Background).
@@ -104,6 +105,8 @@ namespace Sample
                 if (checkFrame && readback == "1")
                     CheckSkiaSurface();
                 _canvas.End();
+                if (_screenshotSaved)
+                    SaveBackBufferScreenshot();
 
                 if (checkFrame && !_skiaChecked)
                     CheckSmokeTestFrame();
@@ -200,6 +203,26 @@ namespace Sample
             if (!_canvas!.ReadPixels(bitmap.Info, bitmap.GetPixels(), bitmap.RowBytes, 0, 0))
                 throw new System.InvalidOperationException("Skia surface readback failed.");
             using var stream = System.IO.File.Create(ScreenshotPath);
+            bitmap.Encode(stream, SkiaSharp.SKEncodedImageFormat.Png, 100);
+            _screenshotSaved = true;
+        }
+
+        /// <summary>Saves the back buffer after the composite (the final frame) next to the Skia screenshot, as "-backbuffer.png".</summary>
+        private void SaveBackBufferScreenshot()
+        {
+            var pixels = new Color[CanvasWidth * CanvasHeight];
+            GraphicsDevice.GetBackBufferData(new Rectangle(0, 0, CanvasWidth, CanvasHeight), pixels, 0, pixels.Length);
+            using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(CanvasWidth, CanvasHeight, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul));
+            var rgba = new byte[pixels.Length * 4];
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                rgba[i * 4] = pixels[i].R;
+                rgba[i * 4 + 1] = pixels[i].G;
+                rgba[i * 4 + 2] = pixels[i].B;
+                rgba[i * 4 + 3] = pixels[i].A;
+            }
+            System.Runtime.InteropServices.Marshal.Copy(rgba, 0, bitmap.GetPixels(), rgba.Length);
+            using var stream = System.IO.File.Create(System.IO.Path.ChangeExtension(ScreenshotPath, null) + "-backbuffer.png");
             bitmap.Encode(stream, SkiaSharp.SKEncodedImageFormat.Png, 100);
             ExitGame();
         }
