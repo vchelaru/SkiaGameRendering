@@ -24,3 +24,5 @@
 - `Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
 DesktopGL, WindowsDX, KNI WindowsDX, and both FNA samples share the same `Game1.cs` via a linked file include; KNI DesktopGL has its own copy.
+
+Every sample draws the same `Shared/Scene.cs` (linked through `Shared/Scene.props`, never copied). Gaps in what it shows get added there, and each sample's `--smoke-test` must check them.
