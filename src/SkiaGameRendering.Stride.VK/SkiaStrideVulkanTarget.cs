@@ -15,23 +15,21 @@ namespace SkiaGameRendering
     /// the back buffer is sRGB-format and the GPU gamma-encodes whatever is written to it. Skia's bytes are already
     /// sRGB-encoded, so compositing the texture as is encodes them twice and every mid-tone comes out light.
     /// The texture therefore keeps plain sRGB-encoded bytes (Skia blends and interpolates gradients in sRGB, as on
-    /// every other runtime), and <see cref="SampleTexture"/> is an sRGB view of it that <see cref="SkiaRenderTarget2D"/>
-    /// composites with: the GPU decodes on sample and re-encodes on write, so the bytes land unchanged.
+    /// every other runtime), and <see cref="PrepareForSampling"/> copies it into a second, sRGB-format image that
+    /// <see cref="SkiaRenderTarget2D"/> composites: the GPU decodes on sample and re-encodes on write, so the bytes
+    /// land unchanged. A copy rather than an sRGB view of the Skia image, because Stride creates images without
+    /// <c>VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT</c>, which a view of another format requires; a same-size copy between
+    /// the two formats is legal and moves the bytes unconverted.
     /// Tagging the Skia surface as linear instead (the earlier approach) cancels the encode too, but then Skia blends
     /// and interpolates in linear space, which lightens gradients and translucent fills, and 8-bit linear storage
     /// bands dark gradients (the shared scene's gradient cell read 196,28,160 against 180,23,158 elsewhere).
-    /// Under <c>ColorSpace.Gamma</c> the back buffer is plain and no view is made.
-    /// <para>
-    /// Like <see cref="SkiaDirectCanvas"/>'s view of the swap chain, the view of this image is a format other than
-    /// the one it was created with, which Stride creates without <c>VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT</c>; drivers
-    /// accept it for same-size formats (checked on an NVIDIA GPU, not under the validation layer).
-    /// </para>
+    /// Under <c>ColorSpace.Gamma</c> the back buffer is plain and no copy is made.
     /// </summary>
     internal sealed class SkiaStrideVulkanTarget : IDisposable
     {
         readonly SkiaStrideVulkanContext _context;
         Texture? _texture;
-        Texture? _sampleView;
+        Texture? _sampleCopy;
         SKSurface? _surface;
         GRBackendRenderTarget? _renderTarget;
         VkTextureState? _renderState;
@@ -50,21 +48,13 @@ namespace SkiaGameRendering
                 graphicsDevice, width, height, ToPixelFormat(colorType),
                 TextureFlags.RenderTarget | TextureFlags.ShaderResource);
 
-            // Under Stride's Linear pipeline the back buffer is sRGB-format and encodes on write. Sampling
-            // this gamma-encoded texture through an sRGB view decodes it first, so the encode cancels it
-            // and the bytes Skia drew land unchanged. See the class doc comment.
+            // Under Stride's Linear pipeline the back buffer is sRGB-format and encodes on write; see the
+            // class doc comment for why the composite samples an sRGB-format copy.
             if (graphicsDevice.ColorSpace == ColorSpace.Linear)
             {
                 var srgb = _texture.ViewFormat.ToSRgb();
                 if (srgb != _texture.ViewFormat)
-                    _sampleView = _texture.ToTextureView(new TextureViewDescription
-                    {
-                        Format = srgb,
-                        Type = ViewType.Single,
-                        ArraySlice = 0,
-                        MipLevel = 0,
-                        Flags = TextureFlags.ShaderResource,
-                    });
+                    _sampleCopy = Texture.New2D(graphicsDevice, width, height, srgb, TextureFlags.ShaderResource);
             }
 
             _context.BeginDraw();
@@ -85,8 +75,18 @@ namespace SkiaGameRendering
             _context.EndDraw();
         }
 
-        /// <summary>What to sample when drawing this target in Stride: <see cref="Texture"/> itself under the Gamma pipeline, an sRGB view of it under Linear.</summary>
-        internal Texture SampleTexture => _sampleView ?? Texture;
+        /// <summary>What to sample when drawing this target in Stride: <see cref="Texture"/> itself under the Gamma pipeline, the sRGB copy under Linear.</summary>
+        internal Texture SampleTexture => _sampleCopy ?? Texture;
+
+        /// <summary>Records the copy into <see cref="SampleTexture"/> (a no-op under Gamma). Call after Skia is done, before sampling.</summary>
+        internal void PrepareForSampling(CommandList commandList)
+        {
+            if (_sampleCopy == null)
+                return;
+            commandList.ResourceBarrierTransition(Texture, BarrierLayout.CopySource);
+            commandList.ResourceBarrierTransition(_sampleCopy, BarrierLayout.CopyDest);
+            commandList.Copy(Texture, _sampleCopy);
+        }
 
         internal Texture Texture => _texture ?? throw new ObjectDisposedException(nameof(SkiaStrideVulkanTarget));
 
@@ -125,8 +125,8 @@ namespace SkiaGameRendering
                 _context.EndDraw();
             }
 
-            _sampleView?.Dispose();
-            _sampleView = null;
+            _sampleCopy?.Dispose();
+            _sampleCopy = null;
             _texture?.Dispose();
             _texture = null;
         }

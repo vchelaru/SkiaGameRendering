@@ -145,7 +145,8 @@ namespace SkiaGameRendering
             {
                 // Stride's Vulkan SpriteBatch samples through a descriptor declaring
                 // SHADER_READ_ONLY_OPTIMAL but does not move the image there; its callers do.
-                graphicsContext.CommandList.ResourceBarrierTransition(Texture, BarrierLayout.ShaderResource);
+                _target!.PrepareForSampling(graphicsContext.CommandList);
+                graphicsContext.CommandList.ResourceBarrierTransition(_target.SampleTexture, BarrierLayout.ShaderResource);
                 _spriteBatch ??= new SpriteBatch(_graphicsDevice);
                 _spriteBatch.Begin(graphicsContext);
                 _spriteBatch.Draw(_target!.SampleTexture, Vector2.Zero);

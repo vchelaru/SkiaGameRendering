@@ -153,6 +153,23 @@ public sealed class StrideVulkanLayoutValidationTests
 
                 Assert.Equal(new Color(0, 128, 0, 255), directPixel);
 
+                // Then the render-target path in Linear color space, which composites an sRGB-format copy of the
+                // Skia image onto an sRGB target. No tolerance: the copy must not need a mutable-format image.
+                device.ColorSpace = ColorSpace.Linear;
+                using var srgbTarget = Texture.New2D(
+                    device, 8, 8, PixelFormat.R8G8B8A8_UNorm_SRgb, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+                using var linearCanvas = new SkiaRenderTarget2D(device, 8, 8);
+                foreach (var color in new[] { SKColors.Red, SKColors.Blue, SKColors.Green })
+                {
+                    using var commandList = CommandList.New(device);
+                    commandList.SetRenderTargetAndViewport(null, srgbTarget);
+                    commandList.Clear(srgbTarget, new Color4(0f, 0f, 0f, 0f));
+                    linearCanvas.Begin();
+                    linearCanvas.Canvas.Clear(color);
+                    linearCanvas.End(new GraphicsContext(device, commandList: commandList));
+                    device.ExecuteCommandList(commandList.Close());
+                }
+
                 // Then the swap chain back buffer in Stride's default Linear color space: an sRGB-format image that
                 // Skia sees as its UNORM twin. Stride creates it without VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT, so the
                 // layer reports the view as invalid (VUID-VkImageViewCreateInfo-image-12397), which OnMessage tolerates.
