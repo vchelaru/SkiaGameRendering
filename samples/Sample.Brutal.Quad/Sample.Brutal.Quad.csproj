@@ -14,16 +14,12 @@
     <PackageReference Include="Ahwoo.Brutal.Vulkan" Version="2026.10.3" />
     <PackageReference Include="Ahwoo.Brutal.Vulkan.Abstractions" Version="2026.10.3" />
     <PackageReference Include="Ahwoo.Brutal.ShaderC" Version="2026.10.3" />
-    <PackageReference Include="xunit.assert" Version="2.9.3" />
     <Compile Include="..\..\tests\Tests.Core.VK\VulkanTestNative.cs" Link="VulkanTestNative.cs" />
-    <!-- The repo's golden comparison and shared scene, and the golden itself (tests/Tests.Brutal). -->
-    <Compile Include="..\..\tests\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
-    <Compile Include="..\..\tests\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
-    <Content Include="..\..\tests\Tests.Brutal\goldens\**" Link="goldens\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SkiaGameRendering.Brutal\SkiaGameRendering.Brutal.csproj" />
   </ItemGroup>
 
+  <Import Project="..\Shared\Scene.props" />
 </Project>
