@@ -21,6 +21,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Core.Metal/`: engine-agnostic Metal/Skia interop shared by Metal-based backends (Godot on macOS today)
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaRenderTarget2D`, Windows/Linux)
 - `src/SkiaGameRendering.Brutal/` — BRUTAL library (shared `Core.VK`; raw Vulkan handles in, a `VkImage` out; Windows/Linux)
+- `src/SkiaGameRendering.Brutal.OGL/` — BRUTAL's OpenGL path (shared `Core.OGL`; a GL proc-address function in, a `GL_TEXTURE_2D` out; Skia draws on the app's own context, no second context)
 - `src/SkiaGameRendering.Core.D3D12/`: engine-agnostic D3D12/Skia interop shared by D3D12-based backends
 - `src/SkiaGameRendering.Stride.D3D12/`: Stride library (shared `Core.D3D12` + `SkiaRenderTarget2D`, Windows/D3D12 only)
 - `unity/com.vchelaru.skiagamerendering/`: Unity UPM package (`Core.ANGLE`'s, `Core.D3D12`'s, `Core.VK`'s and `Core.Metal`'s netstandard2.1 builds + `SkiaRenderTarget2D`, Windows/D3D11, Windows/D3D12, Windows/Vulkan, macOS/Metal and Android/OpenGL ES; the plugins' sources are `unity/native/SkiaUnityD3D12/`, `unity/native/SkiaUnityVulkan/` and `unity/native/SkiaUnityMetal/`)

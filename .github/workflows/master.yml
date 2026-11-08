@@ -222,6 +222,8 @@ jobs:
       - run: dotnet build src/SkiaGameRendering.Brutal/SkiaGameRendering.Brutal.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Brutal/Sample.Brutal.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Brutal.Quad/Sample.Brutal.Quad.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaGameRendering.Brutal.OGL/SkiaGameRendering.Brutal.OGL.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build samples/Sample.Brutal.OGL/Sample.Brutal.OGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.Brutal/Benchmarks.Brutal.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.DesktopGL/Benchmarks.ShapeRendering.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.WindowsDX/Benchmarks.ShapeRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
@@ -866,10 +868,39 @@ jobs:
             samples/**/golden-failures/*.png
           if-no-files-found: ignore
 
+  # BRUTAL's OpenGL path: a hidden GLFW window (BRUTAL's own package) with a 3.3 core context on Mesa llvmpipe.
+  brutal-ogl-linux:
+    if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',brutal-ogl-linux,')))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet build samples/Sample.Brutal.OGL/Sample.Brutal.OGL.csproj -c Release
+      - run: dotnet build tests/Tests.Brutal.OGL/Tests.Brutal.OGL.csproj -c Release
+      - name: Run the smoke test and the tests under Xvfb
+        # GLFW's X11 backend needs a display even for a hidden window; see the raylib-linux job.
+        run: |
+          xvfb-run --auto-servernum -e /dev/stderr -s "-screen 0 1280x1024x24 -noreset" -- dotnet samples/Sample.Brutal.OGL/bin/Release/net10.0/Sample.Brutal.OGL.dll --smoke-test
+          xvfb-run --auto-servernum -e /dev/stderr -s "-screen 0 1280x1024x24 -noreset" -- dotnet test tests/Tests.Brutal.OGL/Tests.Brutal.OGL.csproj -c Release --no-build --logger "console;verbosity=detailed"
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 1
+          GALLIUM_DRIVER: llvmpipe
+          SKIAGAMERENDERING_PINNED_RASTERIZER: 1
+      - name: Upload golden image diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-image-diffs-brutal-ogl-linux
+          path: |
+            tests/**/golden-failures/*.png
+          if-no-files-found: ignore
+
   # Opens an issue when a nightly run fails, so a failure is never lost in the Actions tab.
   nightly-report:
     if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
-    needs: [desktop-and-core, desktop-builds, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, windowsdx12-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux, brutal-linux]
+    needs: [desktop-and-core, desktop-builds, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, windowsdx12-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux, brutal-linux, brutal-ogl-linux]
     runs-on: ubuntu-latest
     permissions:
       issues: write
