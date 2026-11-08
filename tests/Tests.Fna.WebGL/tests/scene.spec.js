@@ -67,7 +67,7 @@ test("switches between the render-target path and SkiaDirectCanvas", async ({ pa
   const errors = await open(page, "texture");
   for (const mode of ["direct", "texture", "direct"]) {
     await page.evaluate(m => globalThis.fnaSample.setMode(m), mode);
-    const [circle, outside] = await draw(page, [[50, 50], [790, 790]], 3);
+    const [circle, outside] = await draw(page, [[200, 200], [790, 790]], 3);
     near(circle, [255, 0, 0]);
     near(outside, [100, 149, 237]);
   }
@@ -181,7 +181,7 @@ for (const samples of [2, 8]) {
       };
     });
     const drawErrors = await open(page, "texture", `&targetsamples=${samples}`);
-    const [circle, drop, outside] = await draw(page, [[50, 50], [150, 50], [790, 790]], 5);
+    const [circle, drop, outside] = await draw(page, [[200, 200], [600, 200], [790, 790]], 5);
     near(circle, [255, 0, 0]);
     expect(drop[0]).toBeLessThan(100);
     expect(drop[2]).toBeGreaterThan(150);
