@@ -711,8 +711,16 @@ jobs:
           dotnet-version: 10.0.x
       - name: Install the Android workload
         run: dotnet workload install android
+      # The SDK download is ~125 MB from Google and sometimes ends early (XAIAD7024 "response ended
+      # prematurely"), so retry it.
       - name: Install the Android SDK platform and build tools
-        run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -t:InstallAndroidDependencies -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:AcceptAndroidSDKLicenses=True
+        run: |
+          for attempt in 1 2 3; do
+            dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -t:InstallAndroidDependencies -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:AcceptAndroidSDKLicenses=True && exit 0
+            echo "SDK install failed on attempt $attempt; retrying."
+            sleep 15
+          done
+          exit 1
       - name: Build the KNI Android sample
         run: dotnet build samples/Sample.Kni.Android/Sample.Kni.Android.csproj -c Release -p:AndroidSdkDirectory=$HOME/android-sdk -p:JavaSdkDirectory=$JAVA_HOME_17_X64 -p:EmulatorRuntime=true
       - name: Build the MonoGame Android sample
@@ -722,6 +730,10 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+          # Diagnostics for an emulator that never boots: is KVM usable, and how much CPU/RAM is there.
+          ls -l /dev/kvm
+          nproc
+          free -m
       # sdkmanager exits 0 when the system image arrives as a corrupt zip ("Error on ZipFile unknown
       # archive"), so success is the image file existing, not the exit code. The emulator action below
       # then finds the image installed and skips its own download.
@@ -746,6 +758,8 @@ jobs:
           # The default AVD's screen is narrower than the smoke test's (400, 400) background pixel.
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # The default 600 s was not enough on a slow runner (the boot-completed poll timed out).
+          emulator-boot-timeout: 900
           disable-animations: true
           # The runner executes each script line as its own command and stops at the first failure.
           script: |
@@ -818,8 +832,11 @@ jobs:
       # default screen is 8-bit, which GLX cannot give a GL context, hence the explicit 24-bit one.
       # The vulkan case runs under --gpu-validation with synchronization validation on and fails on
       # any VUID- or SYNC-HAZARD message (see GodotSampleTests).
+      # A hung run once left the job silent for ~3 hours until the runner was lost with no logs. The step
+      # timeout fails it with its output, and --blame-hang writes a dump of the stuck test host.
       - name: Run the Godot sample on vulkan and opengl3 under Xvfb
-        run: xvfb-run --auto-servernum -s "-screen 0 1280x720x24" -- dotnet test tests/Tests.Godot/Tests.Godot.csproj --logger "console;verbosity=detailed"
+        timeout-minutes: 20
+        run: xvfb-run --auto-servernum -s "-screen 0 1280x720x24" -- dotnet test tests/Tests.Godot/Tests.Godot.csproj --logger "console;verbosity=detailed" --blame-hang --blame-hang-timeout 10m
         env:
           LIBGL_ALWAYS_SOFTWARE: 1
           GALLIUM_DRIVER: llvmpipe
