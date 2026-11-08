@@ -23,6 +23,10 @@ using SharedScene = SampleShared.Scene;
 var smokeTest = args.Contains("--smoke-test");
 var directSmokeTest = args.Contains("--direct-smoke-test");
 var direct = directSmokeTest;
+// --screenshot <path> saves the engine back buffer after the composite (the final frame) to a PNG and exits;
+// <path> with "-skia" before the extension gets the Skia texture alone.
+var shotAt = Array.IndexOf(Environment.GetCommandLineArgs(), "--screenshot");
+var shotPath = shotAt >= 0 && shotAt + 1 < Environment.GetCommandLineArgs().Length ? Environment.GetCommandLineArgs()[shotAt + 1] : null;
 var exitCode = 0;
 using var game = new Game();
 // The Scene is a fixed 800x800 canvas; the window is sized to show it 1:1.
@@ -67,6 +71,8 @@ void Start(Scene rootScene)
 
     if (smokeTest || directSmokeTest)
         game.AddSceneRenderer(new SmokeCheckRenderer { Game = game, SetExitCode = code => exitCode = code });
+    if (shotPath != null)
+        game.AddSceneRenderer(new ScreenshotRenderer { Game = game, Path = shotPath, SkiaTexture = canvas?.Texture });
 }
 
 // Not a `using` declaration above: canvas must be disposed before SkiaRenderer.Dispose()
@@ -119,5 +125,44 @@ public sealed class SmokeCheckRenderer : SceneRendererBase
         Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: format={backBuffer.ViewFormat}, circle={circle}, drop={drop}, gradient={gradient}, logo={logo}");
         SetExitCode!(passed ? 0 : 1);
         Game.Exit();
+    }
+}
+
+/// <summary>Saves the back buffer after a few frames (the composite is already done by then), then exits.</summary>
+public sealed class ScreenshotRenderer : SceneRendererBase
+{
+    public Game? Game { get; set; }
+    public string Path { get; set; } = "";
+    public Texture? SkiaTexture { get; set; }
+    int _frames;
+
+    protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
+    {
+        if (++_frames < 10)
+            return;
+        Save(Game!.GraphicsDevice.Presenter.BackBuffer, drawContext, Path);
+        if (SkiaTexture != null)
+            Save(SkiaTexture, drawContext, System.IO.Path.ChangeExtension(Path, null) + "-skia.png");
+        Game.Exit();
+    }
+
+    static void Save(Texture texture, RenderDrawContext drawContext, string path)
+    {
+        var pixels = texture.GetData<Color>(drawContext.CommandList);
+        var bgra = texture.Format is PixelFormat.B8G8R8A8_UNorm or PixelFormat.B8G8R8A8_UNorm_SRgb;
+        using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(texture.Width, texture.Height, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Unpremul));
+        var rgba = new byte[pixels.Length * 4];
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            var c = pixels[i];
+            rgba[i * 4] = bgra ? c.B : c.R;
+            rgba[i * 4 + 1] = c.G;
+            rgba[i * 4 + 2] = bgra ? c.R : c.B;
+            rgba[i * 4 + 3] = c.A;
+        }
+        System.Runtime.InteropServices.Marshal.Copy(rgba, 0, bitmap.GetPixels(), rgba.Length);
+        using var png = SkiaSharp.SKImage.FromBitmap(bitmap).Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        System.IO.File.WriteAllBytes(path, png.ToArray());
+        Console.WriteLine($"Saved {path} ({texture.Format})");
     }
 }

@@ -1,11 +1,17 @@
 // BRUTAL + SkiaGameRendering.Brutal. Creates a BRUTAL Vulkan device with no window, draws with Skia into a
 // Vulkan image, and with --smoke-test reads ONE pixel back through Vulkan to check it (exit 0 = pass).
 // The readback is test-only verification; the library has no CPU readback path.
+// --screenshot <path> instead draws the shared Scene on its background at 800x800 and saves the Skia target to a PNG.
+// BRUTAL has no engine frame, so the Skia target is the whole output.
+using System.Runtime.InteropServices;
 using Brutal.VulkanApi;
+using SampleShared;
 using SkiaGameRendering;
 using SkiaSharp;
 
 const int Size = 64;
+var shotAt = Array.IndexOf(args, "--screenshot");
+var shotPath = shotAt >= 0 && shotAt + 1 < args.Length ? args[shotAt + 1] : null;
 
 var extensions = new HashSet<string>();
 VulkanHelpers_AddPlatformExtensions(extensions);
@@ -40,6 +46,23 @@ unsafe
 
     using var context = new SkiaVulkanContext(
         instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily);
+    if (shotPath != null)
+    {
+        using var scene = new SkiaRenderTarget2D(context, Scene.Width, Scene.Height);
+        scene.Begin();
+        scene.Canvas.Clear(Scene.Background);
+        Scene.Draw(scene.Canvas);
+        scene.End(synchronous: true);
+        var rgba = PixelReadback.ReadRegion(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily,
+            scene.VkImage, 0, 0, Scene.Width, Scene.Height);
+        using var bitmap = new SKBitmap(new SKImageInfo(Scene.Width, Scene.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul));
+        Marshal.Copy(rgba, 0, bitmap.GetPixels(), rgba.Length);
+        using var png = SKImage.FromBitmap(bitmap).Encode(SKEncodedImageFormat.Png, 100);
+        File.WriteAllBytes(shotPath, png.ToArray());
+        device.WaitIdle();
+        return 0;
+    }
+
     using var target = new SkiaRenderTarget2D(context, Size, Size);
 
     // Two frames: the second checks the layout round trip (app -> Skia -> app -> Skia -> app).

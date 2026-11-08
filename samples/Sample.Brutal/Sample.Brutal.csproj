@@ -20,4 +20,5 @@
     <ProjectReference Include="..\..\src\SkiaGameRendering.Brutal\SkiaGameRendering.Brutal.csproj" />
   </ItemGroup>
 
+  <Import Project="..\Shared\Scene.props" />
 </Project>
