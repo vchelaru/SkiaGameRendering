@@ -31,7 +31,7 @@ public sealed class BrutalOglTests
 
     public BrutalOglTests(ITestOutputHelper output) => _output = output;
 
-    [Fact]
+    [GlWindowFact]
     public void Scene_MatchesGolden_ThroughBrutalGlfwContext()
     {
         using var window = new BrutalGlWindow(GoldenScene.Width, GoldenScene.Height);
@@ -52,7 +52,7 @@ public sealed class BrutalOglTests
                 "used whichever GL driver this machine has. Orientation was still checked.");
     }
 
-    [Fact]
+    [GlWindowFact]
     public unsafe void Begin_End_And_Create_LeaveTheAppsFramebufferAndTextureBound()
     {
         using var window = new BrutalGlWindow(64, 64);
