@@ -20,7 +20,14 @@ namespace SkiaGameRendering
     /// right away. <see cref="End"/> has submitted Skia's work to the context's queue; a consumer on that
     /// same queue is ordered behind it, with the writes made visible to fragment-shader reads. A consumer
     /// on another queue needs <c>End(synchronous: true)</c> plus its own ownership handling. The app
-    /// creates its own <c>VkImageView</c>. Disposing needs the GPU to be finished with the image.
+    /// creates its own <c>VkImageView</c>.
+    /// </para>
+    /// <para>
+    /// <b>appManagesLayout.</b> With <c>appManagesLayout: true</c> the library records no transitions: the image
+    /// stays in <c>COLOR_ATTACHMENT_OPTIMAL</c> between Skia passes, and the app records, in its own command
+    /// buffer around its sampling, COLOR_ATTACHMENT_OPTIMAL to SHADER_READ_ONLY_OPTIMAL before the read and back
+    /// after it (src COLOR_ATTACHMENT_OUTPUT / COLOR_ATTACHMENT_WRITE to dst FRAGMENT_SHADER / SHADER_READ, and the
+    /// reverse). That removes the library's two small submits per frame. Disposing needs the GPU to be finished with the image.
     /// </para>
     /// </summary>
     public sealed class SkiaRenderTarget2D : IDisposable
@@ -32,10 +39,11 @@ namespace SkiaGameRendering
         VkImageAllocation _allocation;
         SKSurface? _surface;
         GRBackendRenderTarget? _renderTarget;
+        readonly bool _appManagesLayout;
         bool _hasBegun;
         bool _disposed;
 
-        public SkiaRenderTarget2D(SkiaVulkanContext context, int width, int height, SKColorType colorType = SKColorType.Rgba8888)
+        public SkiaRenderTarget2D(SkiaVulkanContext context, int width, int height, SKColorType colorType = SKColorType.Rgba8888, bool appManagesLayout = false)
         {
             ArgumentNullException.ThrowIfNull(context);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
@@ -48,13 +56,15 @@ namespace SkiaGameRendering
             };
 
             _context = context;
+            _appManagesLayout = appManagesLayout;
             Width = width;
             Height = height;
             _allocation = VkImageAllocator.Create(context.Instance, context.PhysicalDevice, context.Device, width, height, format);
             try
             {
                 // Hand the image to the app's layout contract first: UNDEFINED -> SHADER_READ_ONLY.
-                Transition(VkConstants.ImageLayoutUndefined, VkConstants.ImageLayoutShaderReadOnlyOptimal);
+                Transition(VkConstants.ImageLayoutUndefined,
+                    _appManagesLayout ? VkConstants.ImageLayoutColorAttachmentOptimal : VkConstants.ImageLayoutShaderReadOnlyOptimal);
 
                 // Skia is told COLOR_ATTACHMENT_OPTIMAL, which is where Begin() puts the image before it draws.
                 var state = context.Factory.CreateTextureState(
@@ -102,7 +112,8 @@ namespace SkiaGameRendering
             if (_hasBegun)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 
-            Transition(VkConstants.ImageLayoutShaderReadOnlyOptimal, VkConstants.ImageLayoutColorAttachmentOptimal);
+            if (!_appManagesLayout)
+                Transition(VkConstants.ImageLayoutShaderReadOnlyOptimal, VkConstants.ImageLayoutColorAttachmentOptimal);
             _context.Factory.BeginDraw();
             _hasBegun = true;
             if (clear)
@@ -127,7 +138,8 @@ namespace SkiaGameRendering
                 _context.Factory.EndDraw(synchronous);
                 _hasBegun = false;
             }
-            Transition(VkConstants.ImageLayoutColorAttachmentOptimal, VkConstants.ImageLayoutShaderReadOnlyOptimal);
+            if (!_appManagesLayout)
+                Transition(VkConstants.ImageLayoutColorAttachmentOptimal, VkConstants.ImageLayoutShaderReadOnlyOptimal);
             if (synchronous)
                 _context.Transitioner.WaitForCompletion();
         }
