@@ -22,7 +22,7 @@ Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
 void Start(Scene rootScene)
 {
     // The Toolkit's Run overrides the preferred back buffer size above, so size the window here.
-    game.Window.SetSize(new Int2(SharedScene.Width, SharedScene.Height));
+    game.Window.SetSize(new Stride.Core.Mathematics.Int2(SharedScene.Width, SharedScene.Height));
 
     // Draws straight into the back buffer the compositor is rendering to. Constructing it initializes
     // SkiaRenderer against game.GraphicsDevice.
