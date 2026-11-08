@@ -135,7 +135,10 @@ namespace SkiaGameRendering
             _context.RefreshEngineView((int)Texture.Id);
 
             if (composite)
+                // Skia's texture is premultiplied; raylib's default blend is straight-alpha and would apply alpha twice.
+                RaylibApi.BeginBlendMode(Raylib_cs.BlendMode.AlphaPremultiply);
                 RaylibApi.DrawTexture(Texture, 0, 0, RaylibColor.White);
+                RaylibApi.EndBlendMode();
         }
 
         public void Dispose()

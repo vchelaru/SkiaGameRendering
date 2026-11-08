@@ -161,7 +161,10 @@ public sealed class SkiaRenderTarget2D : IDisposable
         }
 
         if (composite)
+            // Skia's texture is premultiplied; raylib's default blend is straight-alpha and would apply alpha twice.
+            RaylibApi.BeginBlendMode(BlendMode.AlphaPremultiply);
             RaylibApi.DrawTexture(_texture, 0, 0, RaylibColor.White);
+            RaylibApi.EndBlendMode();
     }
 
     public void Dispose()
