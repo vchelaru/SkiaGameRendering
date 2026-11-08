@@ -1,6 +1,7 @@
 // BRUTAL + SkiaGameRendering.Brutal.OGL. Opens a hidden GLFW window with an OpenGL 3.3 core context, draws with Skia
 // into a GL texture, and with --smoke-test reads ONE pixel back with glReadPixels to check it (exit 0 = pass).
 // The readback is test-only verification; the library has no CPU readback path.
+// With no flags it opens a visible window that redraws the shared Scene every frame.
 // --screenshot <path> instead draws the shared Scene on its background at 800x800 and saves the Skia target to a PNG.
 using System.Runtime.InteropServices;
 using Brutal.GlfwApi;
@@ -22,7 +23,8 @@ if (!Glfw.Init())
 Glfw.WindowHint(GlfwWindowHint.ContextVersionMajor, 3);
 Glfw.WindowHint(GlfwWindowHint.ContextVersionMinor, 3);
 Glfw.WindowHint(GlfwWindowHint.OpenGlProfile, 0x32001 /* GLFW_OPENGL_CORE_PROFILE */);
-Glfw.WindowHint(GlfwWindowHint.Visible, 0);
+var interactive = shotPath == null && !smokeTest;
+Glfw.WindowHint(GlfwWindowHint.Visible, interactive ? 1 : 0);
 var createInfo = new GlfwWindow.CreateInfo { Title = "Sample.Brutal.OGL", Size = new(Scene.Width, Scene.Height) };
 using var window = Glfw.CreateWindow(in createInfo);
 window.MakeContextCurrent();
@@ -31,6 +33,27 @@ static IntPtr GetProc(string name) => Glfw.GetProcAddress(System.Text.Encoding.A
 
 using var context = new SkiaGlContext(GetProc);
 var exitCode = 0;
+
+if (interactive)
+{
+    // The shared Scene redrawn every frame into a Skia texture, then blitted to the window (flipped, since GL's
+    // window row 0 is the bottom). Close the window to exit.
+    using var scene = new SkiaRenderTarget2D(context, Scene.Width, Scene.Height);
+    var blit = new GlBlit(GetProc, scene.GlTexture);
+    Glfw.SwapInterval(1);
+    while (!window.ShouldClose)
+    {
+        Glfw.PollEvents();
+        scene.Begin();
+        scene.Canvas.Clear(Scene.Background);
+        Scene.Draw(scene.Canvas);
+        scene.End();
+        blit.ToWindow(Scene.Width, Scene.Height, window.FramebufferSize.X, window.FramebufferSize.Y);
+        window.SwapBuffers();
+    }
+    blit.Dispose();
+    return 0;
+}
 
 if (shotPath != null)
 {
