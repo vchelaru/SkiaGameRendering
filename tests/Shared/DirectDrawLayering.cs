@@ -66,6 +66,9 @@ static class DirectDrawLayering
         Probe("Skia over before", Size * 3 / 8, Size / 16, skia);
         Probe("Skia alone, at the top", Size * 5 / 8, Size / 16, skia);
         Probe("after over Skia", Size * 5 / 8, Size * 3 / 16, After);
+        // Clear of the Skia strip: if this fails too, the final SpriteBatch pass never reached the target
+        // (a lost draw or resolve); if only the probe above fails, it landed under the Skia pass.
+        Probe("after alone", Size * 7 / 8, Size * 3 / 8, After);
         Probe("background where a flipped Skia rect would be", Size * 5 / 8, Size * 15 / 16, Background);
         Probe("background", Size / 8, Size * 7 / 8, Background);
         return string.Join("; ", errors);
