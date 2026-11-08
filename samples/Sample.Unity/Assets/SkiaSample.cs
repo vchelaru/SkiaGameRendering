@@ -325,7 +325,11 @@ public sealed class SkiaSample : MonoBehaviour
         }
 
         _target.Begin();
-        Scene.Draw(_target.Canvas, Width, Height);
+        // The Scene is a fixed 800x800 canvas; this layout is 256 tall, so it is drawn at 0.32 scale (cells of 128).
+        _target.Canvas.Save();
+        _target.Canvas.Scale(Height / (float)Scene.Height);
+        Scene.Draw(_target.Canvas);
+        _target.Canvas.Restore();
         _target.Canvas.DrawRect(SquareX, 0, Cell, Cell, _translucent);
         _target.Canvas.DrawRect(GreyX, 0, Cell, Cell, _grey);
         _target.End();

@@ -39,18 +39,19 @@ async function expectRegion(page, index) {
   expect(layout.mismatches(probes, read.pixels), layout.regions[index].name).toEqual([]);
 }
 
-// The Scene's first two cells and a corner nothing draws on: a red circle, the blue water drop, black.
+// The Scene's first row of cells (400 px, a fixed 800x800 canvas at the top left) and a corner nothing draws on: a red circle, the blue
+// water drop, black. The layout squares are drawn over the lower cells, so the gradient and logo are checked in scene.spec.js.
 async function expectScene(page) {
   const size = await page.locator("#theCanvas").evaluate(element => ({ width: element.width, height: element.height }));
-  const cell = Math.min(size.width, size.height) / 2;
-  const points = [[cell / 2, cell / 2], [cell * 1.5, cell / 2], [size.width - 4, size.height - 4]].map(p => p.map(Math.floor));
-  const { pixels: [circle, drop, outside] } = await readPixels(page, points);
+  const cell = 400;
+  const points = [[cell / 2, cell / 2], [cell * 1.5, cell / 2], [size.width - 4, size.height - 4]];
+  const { pixels: [circle, drop, outside] } = await readPixels(page, points.map(p => p.map(Math.floor)));
   expect(circle[0], `circle ${circle}`).toBeGreaterThan(200);
   expect(circle[1], `circle ${circle}`).toBeLessThan(50);
   expect(circle[2], `circle ${circle}`).toBeLessThan(50);
   expect(drop[0], `drop ${drop}`).toBeLessThan(100);
   expect(drop[2], `drop ${drop}`).toBeGreaterThan(150);
-  expect(outside.slice(0, 3), `outside ${outside}`).toEqual([0, 0, 0]);
+  expect(outside.slice(0, 3), `outside ${outside}`).toEqual([100, 149, 237]);
 }
 
 const directGlErrors = page => page.evaluate(() => globalThis.skiaGameWebGl.getDirectGlErrorCount());

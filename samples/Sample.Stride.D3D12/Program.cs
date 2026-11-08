@@ -10,6 +10,9 @@ using SharedScene = SampleShared.Scene;
 // Same code-only setup as Sample.Stride.D3D11, on Stride's Direct3D 12 backend
 // (StrideGraphicsApi=Direct3D12 in the csproj) through SkiaGameRendering.Stride.D3D12.
 using var game = new Game();
+// The Scene is a fixed 800x800 canvas; the window is sized to show it 1:1.
+game.GraphicsDeviceManager.PreferredBackBufferWidth = SharedScene.Width;
+game.GraphicsDeviceManager.PreferredBackBufferHeight = SharedScene.Height;
 
 SkiaDirectCanvas? canvas = null;
 
@@ -18,6 +21,8 @@ Stride.CommunityToolkit.Engine.GameExtensions.Run(game, start: Start);
 
 void Start(Scene rootScene)
 {
+    // The Toolkit's Run overrides the preferred back buffer size above, so size the window here.
+    game.Window.SetSize(new Stride.Core.Mathematics.Int2(SharedScene.Width, SharedScene.Height));
 
     // Draws straight into the back buffer the compositor is rendering to. Constructing it initializes
     // SkiaRenderer against game.GraphicsDevice.
@@ -28,7 +33,9 @@ void Start(Scene rootScene)
     renderer.SkiaDraw += skCanvas =>
     {
         var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
-        SharedScene.Draw(skCanvas, backBuffer.Width, backBuffer.Height);
+        // The 800x800 canvas covers the window, so this clear hides the 3D scene behind it (see Scene.Background).
+        skCanvas.Clear(SharedScene.Background);
+        SharedScene.Draw(skCanvas);
     };
     game.AddSceneRenderer(renderer);
 }

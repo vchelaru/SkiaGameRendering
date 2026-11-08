@@ -50,7 +50,7 @@ public class SampleGame : Game
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.SetRenderTarget(null);
-        GraphicsDevice.Clear(Color.Black);
+        GraphicsDevice.Clear(new Color(Scene.Background.Red, Scene.Background.Green, Scene.Background.Blue));
 
         if (Mode == "direct")
             DrawDirect();
@@ -63,9 +63,9 @@ public class SampleGame : Game
 
     private void DrawTexture()
     {
-        _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
+        _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, Scene.Width, Scene.Height);
         _canvas.Begin();
-        Scene.Draw(_canvas.Canvas, 200, 200);
+        Scene.Draw(_canvas.Canvas);
         _canvas.End();
     }
 
@@ -84,11 +84,11 @@ public class SampleGame : Game
             _direct.Canvas.DrawCircle(60, 60, 30, paint);
         _direct.End();
         GraphicsDevice.SetRenderTarget(null);
-        GraphicsDevice.Clear(Color.Black);
+        GraphicsDevice.Clear(new Color(Scene.Background.Red, Scene.Background.Green, Scene.Background.Blue));
 
         // The Scene straight into the back buffer.
         _direct.Begin();
-        Scene.Draw(_direct.Canvas, 200, 200);
+        Scene.Draw(_direct.Canvas);
         _direct.End();
 
         // FNA draws after Skia: the cached GL state must still be FNA's.

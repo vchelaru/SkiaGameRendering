@@ -10,23 +10,45 @@ namespace SampleShared;
 /// <c>Scene.props</c> so a human comparing screenshots across backends is comparing the same
 /// picture rather than each sample's own one-off drawing code. Each sample keeps its own
 /// engine-specific Game/Program - only the actual Skia canvas commands live here.
-/// Shapes sit in a grid of square cells, half the canvas's shorter side each, filled left to
-/// right then top to bottom, as many columns as fit across: a red circle, an embedded SVG water drop,
-/// then a rounded rectangle with a linear gradient. Add new shapes in the next free cell. The DesktopGL/WindowsDX/Unity <c>--smoke-test</c> and <c>tests/Tests.Godot</c> check
-/// the center of the first two cells, so moving either shape means updating those checks.
+/// The canvas is always <see cref="Width"/> x <see cref="Height"/> (800x800): no sample picks its own
+/// size, so the layout is identical everywhere, and a window of any size shows it 1:1 or scaled to fit.
+/// Shapes sit in a 2x2 grid of <see cref="Cell"/>-sized cells, filled left to right then top to bottom: a red circle
+/// (cell 0), an embedded SVG water drop (1), a rounded rectangle with a linear gradient (2), then the
+/// Gum logo, an embedded PNG with transparency (3). Add new shapes in the next free cell. The smoke tests of every
+/// sample and <c>tests/Tests.Godot</c> check the centers of these cells (and two logo pixels, see
+/// <see cref="LogoOpaqueX"/>), so moving a shape means updating those checks.
 /// </summary>
 public static class Scene
 {
+    public const int Width = 800;
+    public const int Height = 800;
+    public const int Cell = 400;
+
+    /// <summary>Cell centers in canvas pixels: circle (100,100 in a 200 cell grid) is CellCenter, CellCenter and so on.</summary>
+    public const int CellCenter = Cell / 2;
+
+    /// <summary>A pixel inside the logo's opaque part, and one in the logo cell's transparent top margin.</summary>
+    public const int LogoOpaqueX = 595;
+    public const int LogoOpaqueY = 600;
+    public const int LogoTransparentX = Cell + CellCenter;
+    public const int LogoTransparentY = Cell + 60;
+
+    /// <summary>
+    /// The solid color every sample's window or back buffer is cleared to behind the Scene (cornflower blue), so
+    /// screenshots of different runtimes compare. The Scene itself leaves it transparent.
+    /// </summary>
+    public static readonly SKColor Background = new(100, 149, 237);
+
     private static SKSvg? _drop;
+    private static SKImage? _logo;
 
-    public static void Draw(SKCanvas canvas, float width, float height)
+    public static void Draw(SKCanvas canvas)
     {
-        float cell = Math.Min(width, height) / 2f;
-        float inset = cell * 0.1f;
-
-        int columns = Math.Max(1, (int)(width / cell));
-        float size = cell - 2 * inset;
-        SKRect Cell(int index) => SKRect.Create(index % columns * cell + inset, index / columns * cell + inset, size, size);
+        const float cell = Cell;
+        const float inset = cell * 0.1f;
+        const float size = cell - 2 * inset;
+        const int columns = Width / Cell;
+        static SKRect CellRect(int index) => SKRect.Create(index % columns * cell + inset, index / columns * cell + inset, size, size);
 
         using var paint = new SKPaint { Color = SKColors.Red, Style = SKPaintStyle.Fill, IsAntialias = true };
         canvas.DrawCircle(cell / 2f, cell / 2f, cell / 2f - inset, paint);
@@ -34,7 +56,7 @@ public static class Scene
         var picture = LoadDrop().Picture;
         if (picture != null)
         {
-            var drop = Cell(1);
+            var drop = CellRect(1);
             canvas.Save();
             canvas.Translate(drop.Left, drop.Top);
             canvas.Scale(size / Math.Max(picture.CullRect.Width, picture.CullRect.Height));
@@ -42,12 +64,20 @@ public static class Scene
             canvas.Restore();
         }
 
-        var rect = Cell(2);
+        var rect = CellRect(2);
         using var gradient = SKShader.CreateLinearGradient(
             new SKPoint(rect.Left, rect.Top), new SKPoint(rect.Right, rect.Bottom),
             new[] { new SKColor(0xF7, 0x25, 0x85), new SKColor(0x72, 0x09, 0xB7) }, SKShaderTileMode.Clamp);
         using var gradientPaint = new SKPaint { Shader = gradient, IsAntialias = true };
         canvas.DrawRoundRect(rect, size * 0.2f, size * 0.2f, gradientPaint);
+
+        // A decoded PNG with transparency, fitted to the cell with its aspect ratio kept.
+        var logo = LoadLogo();
+        var logoCell = CellRect(3);
+        var fit = Math.Min(logoCell.Width / logo.Width, logoCell.Height / logo.Height);
+        var logoRect = SKRect.Create(
+            logoCell.MidX - logo.Width * fit / 2f, logoCell.MidY - logo.Height * fit / 2f, logo.Width * fit, logo.Height * fit);
+        canvas.DrawImage(logo, logoRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
     }
 
     // Embedded rather than loaded from disk so desktop, WASM, and NativeAOT all read it the same way.
@@ -61,5 +91,16 @@ public static class Scene
         var svg = new SKSvg();
         svg.Load(stream);
         return _drop = svg;
+    }
+
+    private static SKImage LoadLogo()
+    {
+        if (_logo != null)
+            return _logo;
+
+        using var stream = typeof(Scene).Assembly.GetManifestResourceStream("SampleShared.Gum.png")
+            ?? throw new InvalidOperationException("Embedded resource SampleShared.Gum.png is missing.");
+        return _logo = SKImage.FromEncodedData(stream)
+            ?? throw new InvalidOperationException("Could not decode the embedded Gum.png.");
     }
 }
