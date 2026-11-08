@@ -63,9 +63,9 @@ public class SampleGame : Game
 
     private void DrawTexture()
     {
-        _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
+        _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, Scene.Width, Scene.Height);
         _canvas.Begin();
-        Scene.Draw(_canvas.Canvas, 200, 200);
+        Scene.Draw(_canvas.Canvas);
         _canvas.End();
     }
 
@@ -88,7 +88,7 @@ public class SampleGame : Game
 
         // The Scene straight into the back buffer.
         _direct.Begin();
-        Scene.Draw(_direct.Canvas, 200, 200);
+        Scene.Draw(_direct.Canvas);
         _direct.End();
 
         // FNA draws after Skia: the cached GL state must still be FNA's.

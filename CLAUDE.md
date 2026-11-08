@@ -18,7 +18,8 @@ the release.
 `SkiaRenderTarget2D`'s `Begin()`/`Canvas`/`End()`, like `SpriteBatch`; don't add callback-style
 variants.
 
-**Every runtime draws the one shared scene, `samples/Shared/Scene.cs`, linked and never copied.** If Skia should show something it lacks (transparency, blend modes, lines, text), add it there, and every runtime's smoke test and golden must cover what the scene shows.
+**Every runtime draws the one shared scene, `samples/Shared/Scene.cs`, linked and never copied.** If Skia should show something it lacks (transparency, blend modes, lines, text), add it there, and every runtime's smoke test and golden must cover what the scene shows. The scene is a fixed
+800x800 canvas (`Scene.Width`/`Scene.Height`): no sample picks its own canvas size, only its window.
 
 This repo began as a fork of [mfigueirido/SkiaMonoGameRendering](https://github.com/mfigueirido/SkiaMonoGameRendering),
 and has since diverged. It exists to close the vector-rendering gap between SkiaGum and

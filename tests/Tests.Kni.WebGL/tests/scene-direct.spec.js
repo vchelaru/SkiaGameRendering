@@ -39,12 +39,24 @@ async function expectRegion(page, index) {
   expect(layout.mismatches(probes, read.pixels), layout.regions[index].name).toEqual([]);
 }
 
-// The Scene's first two cells and a corner nothing draws on: a red circle, the blue water drop, black.
+// The Scene's cells (400 px, a fixed 800x800 canvas at the top left) and a corner nothing draws on: a red circle, the blue
+// water drop, black; the gradient and logo too when the canvas is tall enough to show them.
 async function expectScene(page) {
   const size = await page.locator("#theCanvas").evaluate(element => ({ width: element.width, height: element.height }));
-  const cell = Math.min(size.width, size.height) / 2;
-  const points = [[cell / 2, cell / 2], [cell * 1.5, cell / 2], [size.width - 4, size.height - 4]].map(p => p.map(Math.floor));
-  const { pixels: [circle, drop, outside] } = await readPixels(page, points);
+  const cell = 400;
+  const tall = size.height > 620;
+  const points = [[cell / 2, cell / 2], [cell * 1.5, cell / 2], [size.width - 4, size.height - 4]];
+  if (tall)
+    points.push([cell / 2, cell * 1.5], [595, 600]);
+  const { pixels: [circle, drop, outside, gradient, logo] } = await readPixels(page, points.map(p => p.map(Math.floor)));
+  if (tall) {
+    expect(gradient[0], `gradient ${gradient}`).toBeGreaterThan(120);
+    expect(gradient[2], `gradient ${gradient}`).toBeGreaterThan(100);
+    for (const c of logo.slice(0, 3)) {
+      expect(c, `logo ${logo}`).toBeGreaterThan(70);
+      expect(c, `logo ${logo}`).toBeLessThan(150);
+    }
+  }
   expect(circle[0], `circle ${circle}`).toBeGreaterThan(200);
   expect(circle[1], `circle ${circle}`).toBeLessThan(50);
   expect(circle[2], `circle ${circle}`).toBeLessThan(50);

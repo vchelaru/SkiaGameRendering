@@ -28,8 +28,12 @@ const glErrorLog = page => page.evaluate(() => globalThis.skiaFnaWebGl.errorLog(
 
 test("SkiaRenderTarget2D draws the Scene into an FNA texture", async ({ page }) => {
   const errors = await open(page, "texture");
-  const [circle, drop, outside] = await draw(page, [[50, 50], [150, 50], [790, 790]], 5);
+  const [circle, drop, outside, gradient, logo] = await draw(page, [[200, 200], [600, 200], [790, 790], [200, 600], [595, 600]], 5);
   near(circle, [255, 0, 0]);
+  for (const c of logo.slice(0, 3))
+    expect(c, `logo ${logo}`).toBeGreaterThan(70), expect(c, `logo ${logo}`).toBeLessThan(150);
+  expect(gradient[0], `gradient ${gradient}`).toBeGreaterThan(120);
+  expect(gradient[2], `gradient ${gradient}`).toBeGreaterThan(100);
   expect(drop[0]).toBeLessThan(100);
   expect(drop[2]).toBeGreaterThan(150);
   near(outside, [0, 0, 0]);
@@ -40,7 +44,7 @@ test("SkiaRenderTarget2D draws the Scene into an FNA texture", async ({ page }) 
 test("SkiaDirectCanvas layers Skia between FNA's draws on the back buffer and a render target", async ({ page }) => {
   const errors = await open(page, "direct");
   const points = {
-    circle: [50, 50], drop: [150, 50], lime: [450, 100], blueSquare: [410, 310], redCircle: [460, 360],
+    circle: [200, 200], drop: [600, 200], lime: [450, 100], blueSquare: [410, 310], redCircle: [460, 360],
     yellowBottomLeft: [405, 395], yellowTopRight: [495, 305], magenta: [620, 620], black: [790, 790],
   };
   const read = await draw(page, Object.values(points), 30);
@@ -127,7 +131,7 @@ test("SkiaDirectCanvas draws correctly into FNA's multisampled back buffer", asy
     };
   });
   const errors = await open(page, "direct", "&msaa=1");
-  const points = { circle: [50, 50], drop: [150, 50], lime: [450, 100], blueSquare: [410, 310], redCircle: [460, 360], magenta: [620, 620], black: [790, 790] };
+  const points = { circle: [200, 200], drop: [600, 200], lime: [450, 100], blueSquare: [410, 310], redCircle: [460, 360], magenta: [620, 620], black: [790, 790] };
   const read = await draw(page, Object.values(points), 30);
   const pixel = Object.fromEntries(Object.keys(points).map((name, i) => [name, read[i]]));
   near(pixel.circle, [255, 0, 0]);

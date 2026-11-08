@@ -28,8 +28,8 @@ public partial class Main : Node2D
         SkiaRenderer.Initialize();
         GD.Print($"SkiaGameRendering.Godot on {SkiaRenderer.Driver} (zero-copy: {SkiaRenderer.IsZeroCopy}, D3D12 enhanced barriers: {SkiaRenderer.D3D12UsesEnhancedBarriers?.ToString() ?? "n/a"})");
 
-        var size = GetViewportRect().Size;
-        _canvas = new SkiaRenderTarget2D((int)size.X, (int)size.Y);
+        // The Scene is a fixed 800x800 canvas, and project.godot gives the window an 800x800 viewport that scales to fit.
+        _canvas = new SkiaRenderTarget2D(SharedScene.Width, SharedScene.Height);
 
         AddChild(new Sprite2D
         {
@@ -63,7 +63,7 @@ public partial class Main : Node2D
         {
             _canvas.Begin();
             _canvas.Canvas.Clear(SKColors.CornflowerBlue);
-            SharedScene.Draw(_canvas.Canvas, _canvas.Width, _canvas.Height);
+            SharedScene.Draw(_canvas.Canvas);
             _canvas.End();
         }
 

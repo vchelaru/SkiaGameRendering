@@ -36,14 +36,13 @@ namespace Sample
         public System.Func<GraphicsDevice, bool> ExtraSmokeCheck { get; set; }
 
         /// <summary>
-        /// When set, saves the Scene's first row of cells to this PNG path, with a transparent
-        /// background, and exits. Makes the README image.
+        /// When set, saves the Scene to this PNG path, with a transparent background, and exits.
         /// </summary>
         public string ScreenshotPath { get; init; }
 
-        // In screenshot mode, cells are 400 pixels and the first row holds three of them.
-        private int CanvasWidth => ScreenshotPath != null ? 1200 : 200;
-        private int CanvasHeight => ScreenshotPath != null ? 800 : 200;
+        // The canvas is always the Scene's fixed size; the 800x800 window shows it 1:1.
+        private static int CanvasWidth => Scene.Width;
+        private static int CanvasHeight => Scene.Height;
 
         public Game1(bool smokeTest = false)
         {
@@ -87,7 +86,7 @@ namespace Sample
                     new SkiaRenderTarget2D(GraphicsDevice, 64, 64).Dispose();
                 _canvas ??= new SkiaRenderTarget2D(GraphicsDevice, CanvasWidth, CanvasHeight);
                 _canvas.Begin();
-                Scene.Draw(_canvas.Canvas, CanvasWidth, CanvasHeight);
+                Scene.Draw(_canvas.Canvas);
                 if (ScreenshotPath != null && ++_frameCount == 3)
                     SaveScreenshot();
                 var checkFrame = false;
@@ -149,22 +148,33 @@ namespace Sample
         }
 
         /// <summary>
-        /// The 200x200 canvas lands at the back buffer's origin. Scene's first two 100x100 cells hold
-        /// the red circle and the blue SVG water drop (which proves the SVG parser survived trimming);
-        /// anything outside the canvas is still the black clear color.
+        /// The 800x800 canvas fills the 800x800 back buffer. Scene's four 400x400 cells hold the red circle,
+        /// the blue SVG water drop (which proves the SVG parser survived trimming), the gradient and the logo
+        /// PNG (opaque gray text, transparent margin); the transparent part shows the black clear color.
         /// </summary>
         private void CheckSmokeTestFrame()
         {
-            var circle = ReadBackBufferPixel(50, 50);
-            var drop = ReadBackBufferPixel(150, 50);
-            var outside = ReadBackBufferPixel(400, 400);
-            var passed = circle.R > 200 && circle.G < 50 && circle.B < 50
-                && drop.R < 100 && drop.B > 150
-                && outside == Color.Black;
+            var passed = CheckScene(ReadBackBufferPixel, Color.Black, out var text);
 
-            System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: circle={circle}, drop={drop}, outside={outside}");
+            System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: {text}");
             ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;
             ExitGame();
+        }
+
+        /// <summary>The shared check of the Scene's four cell centers and a transparent pixel, against <paramref name="background"/>.</summary>
+        private static bool CheckScene(System.Func<int, int, Color> read, Color background, out string text)
+        {
+            var circle = read(Scene.CellCenter, Scene.CellCenter);
+            var drop = read(Scene.Cell + Scene.CellCenter, Scene.CellCenter);
+            var gradient = read(Scene.CellCenter, Scene.Cell + Scene.CellCenter);
+            var logo = read(Scene.LogoOpaqueX, Scene.LogoOpaqueY);
+            var margin = read(Scene.LogoTransparentX, Scene.LogoTransparentY);
+            text = $"circle={circle}, drop={drop}, gradient={gradient}, logo={logo}, margin={margin}";
+            return circle.R > 200 && circle.G < 50 && circle.B < 50
+                && drop.R < 100 && drop.B > 150
+                && gradient.R > 120 && gradient.G < 80 && gradient.B > 100
+                && logo.R > 70 && logo.R < 150 && logo.G > 70 && logo.G < 150 && logo.B > 70 && logo.B < 150 && logo.A > 200
+                && margin == background;
         }
 
         /// <summary>
@@ -175,19 +185,16 @@ namespace Sample
         private void CheckSkiaSurface()
         {
             _skiaChecked = true;
-            var circle = ReadSkiaPixel(50, 50);
-            var drop = ReadSkiaPixel(150, 50);
-            var passed = circle.R > 200 && circle.G < 50 && circle.B < 50
-                && drop.R < 100 && drop.B > 150;
+            var passed = CheckScene(ReadSkiaPixel, Color.Transparent, out var text);
 
-            System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")} (Skia surface readback): circle={circle}, drop={drop}");
+            System.Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")} (Skia surface readback): {text}");
             ExitCode = passed && !_leakFailed && (ExtraSmokeCheck?.Invoke(GraphicsDevice) ?? true) ? 0 : 1;
             ExitGame();
         }
 
         private void SaveScreenshot()
         {
-            using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(CanvasWidth, CanvasHeight / 2, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Premul));
+            using var bitmap = new SkiaSharp.SKBitmap(new SkiaSharp.SKImageInfo(CanvasWidth, CanvasHeight, SkiaSharp.SKColorType.Rgba8888, SkiaSharp.SKAlphaType.Premul));
             if (!_canvas!.ReadPixels(bitmap.Info, bitmap.GetPixels(), bitmap.RowBytes, 0, 0))
                 throw new System.InvalidOperationException("Skia surface readback failed.");
             using var stream = System.IO.File.Create(ScreenshotPath);

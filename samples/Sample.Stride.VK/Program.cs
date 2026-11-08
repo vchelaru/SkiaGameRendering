@@ -25,6 +25,9 @@ var directSmokeTest = args.Contains("--direct-smoke-test");
 var direct = directSmokeTest;
 var exitCode = 0;
 using var game = new Game();
+// The Scene is a fixed 800x800 canvas; the window is sized to show it 1:1.
+game.GraphicsDeviceManager.PreferredBackBufferWidth = SharedScene.Width;
+game.GraphicsDeviceManager.PreferredBackBufferHeight = SharedScene.Height;
 
 SkiaRenderTarget2D? canvas = null;
 SkiaDirectCanvas? directCanvas = null;
@@ -46,7 +49,7 @@ void Start(Scene rootScene)
     if (direct)
         renderer.DirectCanvas = directCanvas = new SkiaDirectCanvas(game.GraphicsDevice);
     else
-        renderer.Canvas = canvas = new SkiaRenderTarget2D(game.GraphicsDevice, backBuffer.Width, backBuffer.Height);
+        renderer.Canvas = canvas = new SkiaRenderTarget2D(game.GraphicsDevice, SharedScene.Width, SharedScene.Height);
 
     // SkiaSceneRenderer is the DrawCore hook Stride needs to run a Skia draw every
     // frame - Stride drives rendering through its GraphicsCompositor, not a user-owned Draw() call
@@ -57,7 +60,7 @@ void Start(Scene rootScene)
         // A direct canvas draws on top of the 3D scene, so clearing would wipe it.
         if (!direct)
             skCanvas.Clear(SKColors.Transparent);
-        SharedScene.Draw(skCanvas, backBuffer.Width, backBuffer.Height);
+        SharedScene.Draw(skCanvas);
     };
     game.AddSceneRenderer(renderer);
 
@@ -101,13 +104,18 @@ public sealed class SmokeCheckRenderer : SceneRendererBase
             return bgra ? new Color(c.B, c.G, c.R, c.A) : c;
         }
 
-        var cell = Math.Min(backBuffer.Width, backBuffer.Height) / 2f;
-        var circle = At(cell / 2, cell / 2);
-        var drop = At(cell * 1.5f, cell / 2);
+        // The 800x800 canvas fills the 800x800 back buffer: circle, drop, gradient and logo cells (cell 400),
+        // plus an opaque gray pixel of the logo's text. The 3D scene shows through the margin, so it is not checked.
+        var circle = At(SharedScene.CellCenter, SharedScene.CellCenter);
+        var drop = At(SharedScene.Cell + SharedScene.CellCenter, SharedScene.CellCenter);
+        var gradient = At(SharedScene.CellCenter, SharedScene.Cell + SharedScene.CellCenter);
+        var logo = At(SharedScene.LogoOpaqueX, SharedScene.LogoOpaqueY);
         var passed = circle.R > 200 && circle.G < 50 && circle.B < 50
-            && drop.R < 100 && drop.B > 150;
+            && drop.R < 100 && drop.B > 150
+            && gradient.R > 120 && gradient.G < 80 && gradient.B > 100
+            && logo.R > 70 && logo.R < 150 && logo.G > 70 && logo.G < 150 && logo.B > 70 && logo.B < 150;
 
-        Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: format={backBuffer.ViewFormat}, circle={circle}, drop={drop}");
+        Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: format={backBuffer.ViewFormat}, circle={circle}, drop={drop}, gradient={gradient}, logo={logo}");
         SetExitCode!(passed ? 0 : 1);
         Game.Exit();
     }

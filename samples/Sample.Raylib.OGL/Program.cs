@@ -3,8 +3,8 @@ using SampleShared;
 using SkiaGameRendering;
 using SkiaSharp;
 
-const int Width = 800;
-const int Height = 600;
+const int Width = Scene.Width;
+const int Height = Scene.Height;
 
 Raylib.InitWindow(Width, Height, "Sample: raylib + SkiaGameRendering.Raylib.OGL");
 Raylib.SetTargetFPS(60);
@@ -35,7 +35,7 @@ while (!Raylib.WindowShouldClose())
     {
         direct!.Begin();
         direct.Canvas.Clear(SKColors.CornflowerBlue);
-        Scene.Draw(direct.Canvas, Width, Height);
+        Scene.Draw(direct.Canvas);
         direct.End();
     }
     else
@@ -44,7 +44,7 @@ while (!Raylib.WindowShouldClose())
         // or draw call needed here.
         canvas.Begin();
         canvas.Canvas.Clear(SKColors.CornflowerBlue);
-        Scene.Draw(canvas.Canvas, Width, Height);
+        Scene.Draw(canvas.Canvas);
         canvas.End();
     }
 

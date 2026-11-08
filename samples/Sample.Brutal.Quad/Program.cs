@@ -1,6 +1,6 @@
 // A BRUTAL Vulkan renderer that samples SkiaRenderTarget2D.VkImage on a textured quad every frame.
 // Headless: the quad is drawn into an offscreen image (no window or swapchain), with dynamic rendering.
-// Each frame draws samples/Shared/Scene.cs (the scene every other sample draws) plus a small orbiting dot.
+// Each frame draws exactly samples/Shared/Scene.cs, the scene every other sample draws (800x800).
 // --smoke-test renders 30 frames in both layout modes, reads the final image back through Vulkan (test-only) and checks
 // the shared scene's first two cells (red circle, blue drop), the gradient cell and an empty corner, like the other samples.
 // SKIAGAMERENDERING_BRUTAL_SCREENSHOTS=<dir> renders 61 frames and saves the quad output at frames 0, 30 and 60.
@@ -12,7 +12,7 @@ using SkiaGameRendering.Core.VK;
 using SkiaSharp;
 using SharedScene = SampleShared.Scene;
 
-const int Size = 800; // same as Sample.MonoGame.DesktopGL's 800x800 window; Scene cells are 400x400
+const int Size = SharedScene.Width; // the Scene is a fixed 800x800 canvas
 var screenshotDir = Environment.GetEnvironmentVariable("SKIAGAMERENDERING_BRUTAL_SCREENSHOTS");
 var frames = string.IsNullOrEmpty(screenshotDir) ? 30 : 61;
 var smokeTest = args.Contains("--smoke-test");
@@ -21,15 +21,17 @@ var failures = 0;
 foreach (var appManagesLayout in new[] { false, true })
 {
     var final = Run(appManagesLayout, frames, screenshotDir);
-    var circle = At(final, 200, 200);
-    var drop = At(final, 600, 200);
-    var gradient = At(final, 200, 600);
-    var corner = At(final, 799, 799);
+    var circle = At(final, SharedScene.CellCenter, SharedScene.CellCenter);
+    var drop = At(final, SharedScene.Cell + SharedScene.CellCenter, SharedScene.CellCenter);
+    var gradient = At(final, SharedScene.CellCenter, SharedScene.Cell + SharedScene.CellCenter);
+    var logo = At(final, SharedScene.LogoOpaqueX, SharedScene.LogoOpaqueY);
+    var margin = At(final, SharedScene.LogoTransparentX, SharedScene.LogoTransparentY);
     var passed = circle[0] > 200 && circle[1] < 50 && circle[2] < 50
         && drop[0] < 100 && drop[2] > 150
         && gradient[0] > 100 && gradient[1] < 80 && gradient[2] > 100
-        && corner[3] == 0;
-    Console.WriteLine($"appManagesLayout={appManagesLayout}: circle={string.Join(",", circle)} drop={string.Join(",", drop)} gradient={string.Join(",", gradient)} corner={string.Join(",", corner)} {(passed ? "ok" : "MISMATCH")}");
+        && logo[0] > 70 && logo[0] < 150 && logo[1] > 70 && logo[1] < 150 && logo[2] > 70 && logo[2] < 150 && logo[3] > 200
+        && margin[3] == 0;
+    Console.WriteLine($"appManagesLayout={appManagesLayout}: circle={string.Join(",", circle)} drop={string.Join(",", drop)} gradient={string.Join(",", gradient)} logo={string.Join(",", logo)} margin={string.Join(",", margin)} {(passed ? "ok" : "MISMATCH")}");
     if (!passed)
         failures++;
 }
@@ -170,14 +172,9 @@ static unsafe byte[] Run(bool appManagesLayout, int frames, string? screenshotDi
     var outLayout = VkImageLayout.Undefined;
     for (var frame = 0; frame < frames; frame++)
     {
-        // Skia: the shared Scene, plus a dot orbiting in the empty bottom-right cell so frames differ.
+        // Skia: exactly the shared Scene, every frame.
         skia.Begin();
-        SharedScene.Draw(skia.Canvas, Size, Size);
-        using (var paint = new SKPaint { Color = SKColors.Orange, IsAntialias = true })
-        {
-            var angle = frame * 0.1f;
-            skia.Canvas.DrawCircle(600 + 120 * MathF.Cos(angle), 600 + 120 * MathF.Sin(angle), 14, paint);
-        }
+        SharedScene.Draw(skia.Canvas);
         skia.End();
 
         device.WaitForFence(fence, -1);

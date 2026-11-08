@@ -1,12 +1,12 @@
 const { test, expect } = require("@playwright/test");
 
-// Sample.Raylib.WebGL draws samples/Shared/Scene.cs on an 800x600 canvas, through a SkiaRenderTarget2D
+// Sample.Raylib.WebGL draws samples/Shared/Scene.cs on an 800x800 canvas, through a SkiaRenderTarget2D
 // (?mode=target, the default) or SkiaDirectCanvas (?mode=direct). Pixels are read back from raylib's own
-// WebGL context, so what is checked is what is on screen. Scene's cells are 300 px: a red circle in the
-// first, the blue SVG water drop in the second. Direct mode also layers raylib and Skia draws on the canvas and
+// WebGL context, so what is checked is what is on screen. Scene's cells are 400 px: a red circle, the blue SVG water
+// drop, the pink gradient and the Gum logo. Direct mode also layers raylib and Skia draws on the canvas and
 // on a RenderTexture2D; the rectangles and colors below repeat Game.DrawDirect in samples/Sample.Raylib.WebGL.
 
-const WIDTH = 800, HEIGHT = 600;
+const WIDTH = 800, HEIGHT = 800;
 const TOLERANCE = 3;
 
 const diagnostics = page => page.locator("#diagnostic-text").textContent();
@@ -65,13 +65,18 @@ async function expectColors(page, probes) {
 }
 
 async function expectScene(page) {
-  const { pixels: [circle, drop, outside] } = await readPixels(page, [[150, 150], [450, 150], [WIDTH - 4, HEIGHT - 4]]);
+  const { pixels: [circle, drop, outside, gradient, logo] } = await readPixels(page, [[200, 200], [600, 200], [WIDTH - 4, HEIGHT - 4], [200, 600], [595, 600]]);
   expect(circle[0], `circle ${circle}`).toBeGreaterThan(200);
   expect(circle[1], `circle ${circle}`).toBeLessThan(50);
   expect(circle[2], `circle ${circle}`).toBeLessThan(50);
   expect(drop[0], `drop ${drop}`).toBeLessThan(100);
   expect(drop[2], `drop ${drop}`).toBeGreaterThan(150);
   expect(outside.slice(0, 3), `outside ${outside}`).toEqual([0, 0, 0]);
+  expect(gradient[0], `gradient ${gradient}`).toBeGreaterThan(120);
+  expect(gradient[1], `gradient ${gradient}`).toBeLessThan(80);
+  expect(gradient[2], `gradient ${gradient}`).toBeGreaterThan(100);
+  for (const c of logo.slice(0, 3))
+    expect(c, `logo ${logo}`).toBeGreaterThan(70), expect(c, `logo ${logo}`).toBeLessThan(150);
 }
 
 // raylib's own text, drawn after the Skia pass: its texture state has to survive Skia.

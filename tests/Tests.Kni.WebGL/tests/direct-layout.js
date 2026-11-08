@@ -39,7 +39,8 @@ const interleavingProbes = [
   ["Skia D alone", 88, 88, colors.d],
 ];
 
-const sceneCell = (width, height) => Math.floor(Math.min(width, height) / 2);
+// The Scene is a fixed 800x800 canvas with 400 px cells, whatever the canvas size.
+const sceneCell = () => 400;
 
 // The squares sit in a row below the Scene's cells: the back buffer's layers, the interleaving, then the
 // layers in a plain render target and in a 4x multisampled one, both drawn onto the back buffer.

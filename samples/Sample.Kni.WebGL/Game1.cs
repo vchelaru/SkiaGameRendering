@@ -79,14 +79,14 @@ internal sealed class Game1 : Game
         {
             // SkiaRenderTarget2D is fixed-size for its lifetime, so a browser resize or DPR change
             // means a new one.
-            if (_canvas == null || _canvas.Texture.Width != _width || _canvas.Texture.Height != _height)
+            if (_canvas == null || _canvas.Texture.Width != Scene.Width || _canvas.Texture.Height != Scene.Height)
             {
                 _canvas?.Dispose();
-                _canvas = new SkiaRenderTarget2D(GraphicsDevice, _width, _height);
+                _canvas = new SkiaRenderTarget2D(GraphicsDevice, Scene.Width, Scene.Height);
             }
 
             _canvas.Begin();
-            Scene.Draw(_canvas.Canvas, _width, _height);
+            Scene.Draw(_canvas.Canvas);
             _canvas.End();
         }
 
@@ -108,7 +108,7 @@ internal sealed class Game1 : Game
             if (sceneOnly)
             {
                 _direct.Begin();
-                Scene.Draw(_direct.Canvas, _width, _height);
+                Scene.Draw(_direct.Canvas);
                 _direct.End();
                 _directFrames++;
                 return;
@@ -135,10 +135,10 @@ internal sealed class Game1 : Game
             GraphicsDevice.Clear(Color.Black);
 
             _direct.Begin();
-            Scene.Draw(_direct.Canvas, _width, _height);
+            Scene.Draw(_direct.Canvas);
             _direct.End();
 
-            var cell = Math.Min(_width, _height) / 2;
+            var cell = Scene.Cell;
             var y = cell + Gap;
             var x = Gap;
 

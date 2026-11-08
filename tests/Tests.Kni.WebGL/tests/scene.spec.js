@@ -1,13 +1,24 @@
 const { test, expect } = require("@playwright/test");
 
-// Sample.Kni.WebGL draws samples/Shared/Scene.cs over the whole canvas in physical pixels. Scene's
-// cells are half the canvas's shorter side: a red circle in the first, the blue SVG water drop in the
-// second. Same cells the desktop samples' --smoke-test checks.
+// Sample.Kni.WebGL draws samples/Shared/Scene.cs, a fixed 800x800 canvas, at the canvas's top left. Scene's
+// cells are 400 px: a red circle, the blue SVG water drop, the pink gradient and the Gum logo. Same cells the
+// desktop samples' --smoke-test checks; the lower row is read only when the canvas is tall enough to show it.
+// The gradient and logo cells, when the canvas is tall enough to show them.
+function expectGradientAndLogo(gradient, logo) {
+  expect(gradient[0], `gradient ${gradient}`).toBeGreaterThan(120);
+  expect(gradient[1], `gradient ${gradient}`).toBeLessThan(80);
+  expect(gradient[2], `gradient ${gradient}`).toBeGreaterThan(100);
+  for (const c of logo.slice(0, 3)) {
+    expect(c, `logo ${logo}`).toBeGreaterThan(70);
+    expect(c, `logo ${logo}`).toBeLessThan(150);
+  }
+}
+
 async function readScenePixels(canvas) {
   return canvas.evaluate(element => new Promise(resolve => {
     requestAnimationFrame(() => {
       const gl = element.getContext("webgl2");
-      const cell = Math.min(element.width, element.height) / 2;
+      const cell = 400;
       const read = (x, y) => {
         const pixel = new Uint8Array(4);
         // readPixels counts rows from the bottom.
@@ -18,6 +29,8 @@ async function readScenePixels(canvas) {
         circle: read(cell / 2, cell / 2),
         drop: read(cell * 1.5, cell / 2),
         outside: read(element.width - 4, element.height - 4),
+        gradient: element.height > 620 ? read(cell / 2, cell * 1.5) : null,
+        logo: element.height > 620 ? read(595, 600) : null,
       });
     });
   }));
@@ -32,7 +45,9 @@ test("draws the shared Scene through KNI", async ({ page }) => {
 
   const canvas = page.locator("#theCanvas");
   await test.info().attach("scene", { body: await canvas.screenshot(), contentType: "image/png" });
-  const { circle, drop, outside } = await readScenePixels(canvas);
+  const { circle, drop, outside, gradient, logo } = await readScenePixels(canvas);
+  if (gradient)
+    expectGradientAndLogo(gradient, logo);
   expect(circle[0], `circle ${circle}`).toBeGreaterThan(200);
   expect(circle[1], `circle ${circle}`).toBeLessThan(50);
   expect(circle[2], `circle ${circle}`).toBeLessThan(50);

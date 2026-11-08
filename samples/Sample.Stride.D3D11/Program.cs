@@ -11,6 +11,9 @@ using SharedScene = SampleShared.Scene;
 // Toolkit's code-only helpers (the default SceneSetup3D that Run applies, AddSceneRenderer) are its documented alternative
 // for a pure-code Game like this one - see Sample.Stride.D3D11.csproj's comment.
 using var game = new Game();
+// The Scene is a fixed 800x800 canvas; the window is sized to show it 1:1.
+game.GraphicsDeviceManager.PreferredBackBufferWidth = SharedScene.Width;
+game.GraphicsDeviceManager.PreferredBackBufferHeight = SharedScene.Height;
 
 SkiaDirectCanvas? canvas = null;
 
@@ -36,7 +39,7 @@ void Start(Scene rootScene)
     renderer.SkiaDraw += skCanvas =>
     {
         var backBuffer = game.GraphicsDevice.Presenter.BackBuffer;
-        SharedScene.Draw(skCanvas, backBuffer.Width, backBuffer.Height);
+        SharedScene.Draw(skCanvas);
     };
     game.AddSceneRenderer(renderer);
 }

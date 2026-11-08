@@ -25,8 +25,8 @@ internal static class Program
 [SupportedOSPlatform("browser")]
 public static class Game
 {
-    private const int Width = 800;
-    private const int Height = 600;
+    private const int Width = Scene.Width;
+    private const int Height = Scene.Height;
 
     // Direct mode: raylib's green rectangle, a Skia strip over its right half, a raylib rectangle over the strip.
     private static readonly Color Green = new(30, 180, 40, 255);
@@ -118,7 +118,7 @@ public static class Game
     private static void DrawTarget()
     {
         _target!.Begin();
-        Scene.Draw(_target.Canvas, Width, Height);
+        Scene.Draw(_target.Canvas);
         _target.End();
     }
 
@@ -137,7 +137,7 @@ public static class Game
         Raylib.DrawRectangle(620, 20, 160, 120, Green);
 
         _direct.Begin();
-        Scene.Draw(_direct.Canvas, Width, Height);
+        Scene.Draw(_direct.Canvas);
         using (var paint = new SKPaint { Color = Pink })
             _direct.Canvas.DrawRect(700, 20, 80, 120, paint);
         _direct.End();
