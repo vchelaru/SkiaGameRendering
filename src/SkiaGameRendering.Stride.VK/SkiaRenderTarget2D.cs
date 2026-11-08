@@ -118,6 +118,11 @@ namespace SkiaGameRendering
         /// call site. You're then responsible for drawing <see cref="Texture"/> yourself. It is left in
         /// <c>COLOR_ATTACHMENT_OPTIMAL</c>, so before sampling it call
         /// <c>CommandList.ResourceBarrierTransition(Texture, BarrierLayout.ShaderResource)</c>.
+        /// <para>
+        /// Under Stride's Linear color space <see cref="Texture"/> holds sRGB-encoded bytes, so drawing it yourself
+        /// onto the sRGB back buffer encodes them twice. Sample an sRGB view of it instead
+        /// (<c>Texture.ToTextureView</c> with <c>Format = Texture.ViewFormat.ToSRgb()</c>), as <see cref="End"/> does.
+        /// </para>
         /// </summary>
         public void EndWithoutDrawing() => EndCore(graphicsContext: null);
 
@@ -140,10 +145,11 @@ namespace SkiaGameRendering
             {
                 // Stride's Vulkan SpriteBatch samples through a descriptor declaring
                 // SHADER_READ_ONLY_OPTIMAL but does not move the image there; its callers do.
-                graphicsContext.CommandList.ResourceBarrierTransition(Texture, BarrierLayout.ShaderResource);
+                _target!.PrepareForSampling(graphicsContext.CommandList);
+                graphicsContext.CommandList.ResourceBarrierTransition(_target.SampleTexture, BarrierLayout.ShaderResource);
                 _spriteBatch ??= new SpriteBatch(_graphicsDevice);
                 _spriteBatch.Begin(graphicsContext);
-                _spriteBatch.Draw(Texture, Vector2.Zero);
+                _spriteBatch.Draw(_target!.SampleTexture, Vector2.Zero);
                 _spriteBatch.End();
             }
         }

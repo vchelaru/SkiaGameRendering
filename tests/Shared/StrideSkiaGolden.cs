@@ -17,18 +17,10 @@ namespace Tests.Shared;
 /// <para>
 /// Both entry points run on a <see cref="ColorSpace.Gamma"/> device, where the readback is the
 /// scene's own colors and the two paths are pixel-identical. Under Stride's default
-/// <see cref="ColorSpace.Linear"/> pipeline neither is: the backend hands Skia a linear color space
-/// so Stride's own sRGB encode-on-write lands the right color, which leaves the Skia texture holding
-/// linearized values (the scene's 220,60,40 rect reads back as 182,12,5) and the composite target
-/// holding them re-encoded after 8-bit linear storage (220,61,38 for that rect, and up to 6 channel
-/// steps out on the scene's dark background, where 8-bit linear quantizes hardest).
-/// <para>
-/// That pipeline is what <c>StrideCompositeColorTests</c> / <c>StrideVulkanCompositeColorTests</c>
-/// cover, with a solid mid-tone color and a tolerance. These tests cover the half those can't -
-/// shapes, antialiasing, gradients and blending - and want an exact comparison, so they take the
-/// color space that gives them one.
-/// </para>
-/// </para>
+/// <see cref="ColorSpace.Linear"/> pipeline the canvas still holds the scene's own sRGB bytes and the
+/// composite goes through an sRGB view of it, so the sRGB back buffer ends up with those bytes too (up to
+/// a rounding step); <see cref="AssertSharedSceneMatchesOtherRuntimes"/> covers that with the samples'
+/// shared scene, and each project's <c>CompositeColorTests</c> with a solid color.
 /// </summary>
 static partial class StrideSkiaGolden
 {
