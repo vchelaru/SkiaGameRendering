@@ -21,11 +21,24 @@ namespace SkiaGameRendering
         /// </summary>
         internal static bool UsesPrepareEvent { get; private set; }
 
+        /// <summary>
+        /// Whether the backend overrides <see cref="DrawDirect"/>, for <see cref="SkiaDirectCanvas"/>. Set by
+        /// <see cref="PrepareOnMainThread"/>; a backend adds its direct canvas by overriding
+        /// <see cref="DrawDirect"/> and setting this for its graphics API there.
+        /// </summary>
+        internal static bool SupportsDirectCanvas { get; private set; }
+
         /// <summary>The plugin event id <see cref="SkiaUnityRenderThread"/> issues the prepare event with.</summary>
         internal const int PrepareEventId = VulkanUnityBackend.PrepareEventId;
 
+        /// <summary>The plugin event id a <see cref="SkiaDirectCanvas"/> draw is issued with.</summary>
+        internal static int DirectEventId => _graphicsDeviceType == GraphicsDeviceType.Direct3D12 ? D3D12UnityBackend.DirectEventId : DrawEventId;
+
         /// <summary>The plugin event id the draw event is issued with.</summary>
-        internal static int DrawEventId => UsesPrepareEvent ? VulkanUnityBackend.DrawEventId : 0;
+        internal static int DrawEventId =>
+            UsesPrepareEvent ? VulkanUnityBackend.DrawEventId
+            : _graphicsDeviceType == GraphicsDeviceType.Direct3D12 ? D3D12UnityBackend.DrawEventId
+            : 0;
 
         /// <summary>
         /// Main thread. Throws unless one of the backends below can run on this device, and loads
@@ -37,22 +50,36 @@ namespace SkiaGameRendering
             // SystemInfo can't be read from the render thread; Create runs there.
             _graphicsDeviceType = api;
             if (api == GraphicsDeviceType.Direct3D11)
+            {
+                SupportsDirectCanvas = true;
                 return;
+            }
             // Skia draws on a second context that shares Unity's; only the Windows (WGL) one exists so far.
             if (api == GraphicsDeviceType.OpenGLCore
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
+            {
+                SupportsDirectCanvas = true;
                 return;
+            }
+            // Android: the same backend on an EGL shared context. GLES 2 lacks what Skia's FBOs need.
+            if (api == GraphicsDeviceType.OpenGLES3 && Application.platform == RuntimePlatform.Android)
+            {
+                SupportsDirectCanvas = true;
+                return;
+            }
             if (api == GraphicsDeviceType.Vulkan
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
             {
                 VulkanUnityBackend.LoadPlugin();
                 UsesPrepareEvent = true;
+                SupportsDirectCanvas = true;
                 return;
             }
             if (api == GraphicsDeviceType.Direct3D12
                 && (Application.platform == RuntimePlatform.WindowsEditor || Application.platform == RuntimePlatform.WindowsPlayer))
             {
                 D3D12UnityBackend.LoadPlugin();
+                SupportsDirectCanvas = true;
                 return;
             }
             // The Metal plugin is only built for macOS so far; iOS needs it as a static library.
@@ -60,10 +87,11 @@ namespace SkiaGameRendering
                 && (Application.platform == RuntimePlatform.OSXEditor || Application.platform == RuntimePlatform.OSXPlayer))
             {
                 MetalUnityBackend.LoadPlugin();
+                SupportsDirectCanvas = true;
                 return;
             }
             throw new NotSupportedException(
-                $"SkiaGameRendering.Unity supports Direct3D11, Direct3D12, Vulkan and OpenGL on Windows and Metal on macOS so far, not {api} on {Application.platform}.");
+                $"SkiaGameRendering.Unity supports Direct3D11, Direct3D12, Vulkan and OpenGL on Windows, OpenGL ES 3 on Android and Metal on macOS so far, not {api} on {Application.platform}.");
         }
 
         /// <summary>Creates the backend for Unity's current device, the first time anything draws.</summary>
@@ -73,7 +101,7 @@ namespace SkiaGameRendering
                 GraphicsDeviceType.Metal => new MetalUnityBackend(),
                 GraphicsDeviceType.Direct3D12 => new D3D12UnityBackend(),
                 GraphicsDeviceType.Vulkan => new VulkanUnityBackend(),
-                GraphicsDeviceType.OpenGLCore => new OpenGlUnityBackend(),
+                GraphicsDeviceType.OpenGLCore or GraphicsDeviceType.OpenGLES3 => new OpenGlUnityBackend(),
                 _ => new AngleUnityBackend(nativeTexture),
             };
 
@@ -84,8 +112,22 @@ namespace SkiaGameRendering
         /// </summary>
         internal virtual void Prepare(SkiaRenderTarget2D.RenderState target) { }
 
+        /// <summary>
+        /// The <see cref="SkiaDirectCanvas"/> version of <see cref="Prepare"/>: runs in the prepare plugin event
+        /// before a direct draw's draw event, and names the render target by the <c>UnityRenderBuffer</c>
+        /// the main thread read. Only called when <see cref="UsesPrepareEvent"/> is set.
+        /// </summary>
+        internal virtual void PrepareDirect(IntPtr renderBuffer) { }
+
         /// <summary>Plays <paramref name="picture"/> back onto the target's texture, creating its surface on the first draw.</summary>
         internal abstract void Draw(SkiaRenderTarget2D.RenderState target, SKPicture picture);
+
+        /// <summary>
+        /// Plays <paramref name="picture"/> onto the render target Unity has bound right now, on top of what
+        /// it holds, with the origin at the target's top left (flipped first when <paramref name="flip"/>).
+        /// </summary>
+        internal virtual void DrawDirect(SKPicture picture, int width, int height, bool flip, IntPtr renderBuffer) =>
+            throw new NotSupportedException("SkiaDirectCanvas is not supported on this graphics API yet.");
 
         /// <summary>Clears the surface and draws the picture onto it the way Unity expects.</summary>
         protected static void PlayBack(SKSurface surface, SKPicture picture, int height)

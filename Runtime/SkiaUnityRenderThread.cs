@@ -38,6 +38,21 @@ namespace SkiaGameRendering
             internal SkiaRenderTarget2D.RenderState? Target;
             // null means "dispose the target's render-thread state".
             internal SKPicture? Picture;
+            // A direct draw (SkiaDirectCanvas): Picture is played onto whatever render target is bound
+            // when the command runs, and Target is null.
+            internal bool Direct;
+            internal int Width;
+            internal int Height;
+            // Whether row 0 of the bound target is Unity's bottom row, so the picture is played back flipped.
+            internal bool Flip;
+            // Any texture on Unity's device, for a backend that finds the device through one.
+            internal IntPtr DeviceTexture;
+            // The UnityRenderBuffer of the target being rendered to, for a backend that cannot ask the
+            // device for its bound target (Direct3D 12, Vulkan).
+            internal IntPtr RenderBuffer;
+            // The sample count of the target a direct draw is aimed at (MSAA on the back buffer or the active texture), else 0.
+            // Only for the error: Direct3D 12 and Vulkan cannot find the resource of a multisampled back buffer.
+            internal int MultisampledSamples;
         }
 
         delegate void RenderEventDelegate(int eventId);
@@ -45,6 +60,10 @@ namespace SkiaGameRendering
         static readonly RenderEventDelegate Callback = OnRenderEvent;
         static readonly IntPtr CallbackPtr = Marshal.GetFunctionPointerForDelegate(Callback);
         static readonly ConcurrentQueue<Command> Commands = new ConcurrentQueue<Command>();
+        // The commands whose prepare event has not run yet. Unity runs the events that need the queue (the
+        // draw events) later than the ones that don't (the prepare events), so a prepare event does not find
+        // its own command at the head of Commands.
+        static readonly ConcurrentQueue<Command> Prepares = new ConcurrentQueue<Command>();
 
         static SkiaUnityBackend? _backend;
         // Targets with render-thread state, so ReleaseAll can reach the ones never disposed.
@@ -72,10 +91,23 @@ namespace SkiaGameRendering
             }
             _anyIssued = true;
             Commands.Enqueue(command);
-            // A draw needs its prepare event first when the backend asks for one. Events run in
-            // order, so the prepare event finds its draw's command still at the head of the queue.
+            if (command.Direct)
+            {
+                if (SkiaUnityBackend.UsesPrepareEvent)
+                {
+                    Prepares.Enqueue(command);
+                    GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.PrepareEventId);
+                }
+                GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.DirectEventId);
+                return;
+            }
+            // A draw needs its prepare event first when the backend asks for one. Prepare events
+            // run in the order the commands were issued, as do draw events, so the backend pairs them up.
             if (SkiaUnityBackend.UsesPrepareEvent && command.Target != null && command.Picture != null)
+            {
+                Prepares.Enqueue(command);
                 GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.PrepareEventId);
+            }
             GL.IssuePluginEvent(CallbackPtr, SkiaUnityBackend.DrawEventId);
         }
 
@@ -108,7 +140,9 @@ namespace SkiaGameRendering
 
             try
             {
-                if (command.Target == null)
+                if (command.Direct)
+                    DrawDirect(command);
+                else if (command.Target == null)
                     ReleaseOnRenderThread();
                 else if (command.Picture == null)
                     DisposeTarget(command.Target);
@@ -118,31 +152,54 @@ namespace SkiaGameRendering
             catch (Exception ex)
             {
                 // Throwing back into Unity's native render thread would crash the player.
-                Debug.LogException(ex);
+                Debug.LogException(RefuseMultisampled(command, ex));
             }
             finally
             {
                 command.Picture?.Dispose();
-                if (command.Target == null)
+                if (command.Target == null && !command.Direct)
                     Released.Set();
             }
         }
 
         static void PrepareOnRenderThread()
         {
-            if (!Commands.TryPeek(out var command) || command.Target == null || command.Picture == null)
+            if (!Prepares.TryDequeue(out var command))
                 return;
             try
             {
-                _backend ??= SkiaUnityBackend.Create(command.Target.NativeTexture);
-                _backend.Prepare(command.Target);
+                if (command.Direct)
+                {
+                    _backend ??= SkiaUnityBackend.Create(command.DeviceTexture);
+                    _backend.PrepareDirect(command.RenderBuffer);
+                }
+                else
+                {
+                    _backend ??= SkiaUnityBackend.Create(command.Target!.NativeTexture);
+                    _backend.Prepare(command.Target);
+                }
             }
             catch (Exception ex)
             {
                 // Throwing back into Unity's native render thread would crash the player.
-                Debug.LogException(ex);
+                Debug.LogException(RefuseMultisampled(command, ex));
             }
         }
+
+        // A multisampled back buffer has no resource the plugin can hand to Skia (Direct3D 12, Vulkan), which would otherwise
+        // surface as an InvalidOperationException about a missing resource; on Metal Skia gets the multisampled texture and
+        // the backend refuses it with a NotSupportedException of its own. Either way it is the same refusal as a multisampled target texture.
+        static Exception RefuseMultisampled(Command command, Exception ex) =>
+            command.Direct && command.MultisampledSamples > 1 && (ex is InvalidOperationException || ex is NotSupportedException)
+                ? new NotSupportedException(
+                    $"SkiaDirectCanvas does not draw into multisampled targets (the render target is multisampled, {command.MultisampledSamples} samples). " +
+                    "Set QualitySettings.antiAliasing to 0, or the camera's allowMSAA to false.")
+                // An SRP ignores QualitySettings.antiAliasing, so the main thread cannot see its sample count; Metal's backend names it.
+                : command.Direct && ex is NotSupportedException && ex.Message.Contains("is multisampled (")
+                ? new NotSupportedException(
+                    "SkiaDirectCanvas does not draw into multisampled targets (the render target is multisampled). " +
+                    "Set QualitySettings.antiAliasing to 0, the camera's allowMSAA to false, or under URP or HDRP the pipeline asset's Anti Aliasing (MSAA) to Disabled.")
+                : ex;
 
         static void ReleaseOnRenderThread()
         {
@@ -157,6 +214,12 @@ namespace SkiaGameRendering
             _backend ??= SkiaUnityBackend.Create(target.NativeTexture);
             LiveTargets.Add(target);
             _backend.Draw(target, picture);
+        }
+
+        static void DrawDirect(Command command)
+        {
+            _backend ??= SkiaUnityBackend.Create(command.DeviceTexture);
+            _backend.DrawDirect(command.Picture!, command.Width, command.Height, command.Flip, command.RenderBuffer);
         }
 
         static void DisposeTarget(SkiaRenderTarget2D.RenderState target)
