@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\eng\Versions.props" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- BRUTAL is CalVer (year.month.n) and ships as Ahwoo.Brutal.*. GLFW makes the window and GL context; the
+         library itself references no BRUTAL package. -->
+    <PackageReference Include="Ahwoo.Brutal.Glfw" Version="2026.10.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SkiaGameRendering.Brutal.OGL\SkiaGameRendering.Brutal.OGL.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\Shared\Scene.props" />
+</Project>

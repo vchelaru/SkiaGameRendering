@@ -49,6 +49,40 @@ Vulkan and exits 0 if it is right.
   target without decoding the sampled value first, colors are encoded twice. Stride has the same issue; see
   its Vulkan quickstart.
 
+## OpenGL
+
+BRUTAL also ships OpenGL bindings (`Ahwoo.BRUTAL.OpenGl`) next to its GLFW and SDL windowing packages. For an app on
+an OpenGL 3.3+ context use `SkiaGameRendering.Brutal.OGL`, which draws into a `GL_TEXTURE_2D`. Windows and Linux.
+
+```
+dotnet add package SkiaGameRendering.Brutal.OGL
+```
+
+Create the context while your GL context is current, passing the window library's proc-address function:
+
+```csharp
+var context = new SkiaGlContext(name => Glfw.GetProcAddress(Encoding.ASCII.GetBytes(name + "\0")));
+var target = new SkiaRenderTarget2D(context, 512, 512);
+
+target.Begin();
+target.Canvas.DrawCircle(256, 256, 200, paint);
+target.End();
+
+// Bind target.GlTexture and draw with it.
+```
+
+- **Same context.** Skia draws on your GL context, not a second one, so create, `Begin`, `End` and dispose all run on the
+  thread that owns it with it current. Dispose targets before the `SkiaGlContext`.
+- **State.** The constructor, `Begin()` and `End()` restore only your draw framebuffer binding (and the constructor your
+  texture binding). Program, vertex array, buffers, viewport, scissor, blend, depth/stencil and pixel-store state are left
+  as Skia had them, so set yours again after `End()`.
+- **Texture.** `GL_RGBA8`, linear filtering, clamped, premultiplied alpha; canvas row 0 is texel row 0. No MSAA, and only
+  `Rgba8888`.
+- **Package.** It has no dependency on any BRUTAL package.
+
+`samples/Sample.Brutal.OGL` is a complete example on a hidden GLFW window; `--smoke-test` reads one pixel back with
+`glReadPixels` and exits 0 if it is right. `Tests.Brutal.OGL` runs the shared scene against a golden image in CI.
+
 ## BRUTAL license
 
 BRUTAL's license is MIT plus attribution terms for the end application: credits notice, its logo before

@@ -83,6 +83,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Stride.D3D12/SkiaGameRendering.Stride.D3D12.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Brutal
         run: dotnet pack src/SkiaGameRendering.Brutal/SkiaGameRendering.Brutal.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Brutal.OGL
+        run: dotnet pack src/SkiaGameRendering.Brutal.OGL/SkiaGameRendering.Brutal.OGL.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
 
       - uses: actions/upload-artifact@v4
         with:
