@@ -855,19 +855,16 @@ jobs:
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
           VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
-      # TEMP-GOLDEN: generates the golden on lavapipe; removed once brutal-scene.png is committed.
-      - name: TEMP generate golden
-        continue-on-error: true
-        run: dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalGoldenImageTests"
-        env:
-          SKIAGAMERENDERING_UPDATE_GOLDENS: 1
           SKIAGAMERENDERING_PINNED_RASTERIZER: 1
-      - name: TEMP upload golden
+      - name: Upload golden image diffs
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: brutal-golden
-          path: tests/Tests.Brutal/goldens/*.png
-          if-no-files-found: error
+          name: golden-image-diffs-brutal-linux
+          path: |
+            tests/**/golden-failures/*.png
+            samples/**/golden-failures/*.png
+          if-no-files-found: ignore
 
   # Opens an issue when a nightly run fails, so a failure is never lost in the Actions tab.
   nightly-report:
