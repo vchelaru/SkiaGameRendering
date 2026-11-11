@@ -26,6 +26,9 @@ public sealed class BrutalOglTests
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void BindFramebuffer(int target, int id);
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void GenTextures(int n, out int ids);
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void BindTexture(int target, int id);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void Viewport(int x, int y, int width, int height);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void TexImage2D(int target, int level, int internalFormat, int width, int height, int border, int format, int type, IntPtr data);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void FramebufferTexture2D(int target, int attachment, int texTarget, int texture, int level);
 
     readonly ITestOutputHelper _output;
 
@@ -76,6 +79,84 @@ public sealed class BrutalOglTests
         target.End();
         Assert.Equal(appFramebuffer, Query(GL_DRAW_FRAMEBUFFER_BINDING));
         Assert.Equal(appTexture, Query(GL_TEXTURE_BINDING_2D));
+    }
+
+    [GlWindowFact]
+    public void Scene_DrawnWithDirectCanvasIntoBackBuffer_MatchesGolden()
+    {
+        using var window = new BrutalGlWindow(GoldenScene.Width, GoldenScene.Height);
+        using var context = new SkiaGlContext(BrutalGlWindow.GetProc);
+        using var direct = new SkiaDirectCanvas(context);
+        T Load<T>(string name) where T : Delegate => Marshal.GetDelegateForFunctionPointer<T>(BrutalGlWindow.GetProc(name));
+        Load<Viewport>("glViewport")(0, 0, GoldenScene.Width, GoldenScene.Height);
+
+        // Twice: the second pass reuses the cached back buffer surface.
+        byte[] pixels = [];
+        for (var i = 0; i < 2; i++)
+        {
+            direct.Begin();
+            GoldenScene.Draw(direct.Canvas);
+            direct.End();
+            pixels = GlReadback.ReadDefaultFramebuffer(BrutalGlWindow.GetProc, GoldenScene.Width, GoldenScene.Height);
+        }
+
+        GoldenImage.AssertSceneOrientation(pixels);
+        if (GoldenImage.PinnedRasterizerInUse)
+            GoldenImage.AssertMatchesGolden(pixels, "brutal-ogl-scene.png");
+        else
+            _output.WriteLine("Golden comparison skipped: this run used whichever GL driver this machine has. Orientation was still checked.");
+    }
+
+    [GlWindowFact]
+    public unsafe void DirectCanvas_IntoAppFbo_DrawsTopDownAndRestoresTheFramebuffer()
+    {
+        const int Size = 64;
+        using var window = new BrutalGlWindow(Size, Size);
+        T Load<T>(string name) where T : Delegate => Marshal.GetDelegateForFunctionPointer<T>(BrutalGlWindow.GetProc(name));
+        int Query(int name) { int v; Load<GetIntegerv>("glGetIntegerv")(name, &v); return v; }
+
+        Load<GenTextures>("glGenTextures")(1, out var texture);
+        Load<BindTexture>("glBindTexture")(GL_TEXTURE_2D, texture);
+        Load<TexImage2D>("glTexImage2D")(GL_TEXTURE_2D, 0, 0x8058 /* GL_RGBA8 */, Size, Size, 0, 0x1908 /* GL_RGBA */, 0x1401 /* GL_UNSIGNED_BYTE */, IntPtr.Zero);
+        Load<GenFramebuffers>("glGenFramebuffers")(1, out var appFramebuffer);
+        Load<BindFramebuffer>("glBindFramebuffer")(GL_FRAMEBUFFER, appFramebuffer);
+        Load<FramebufferTexture2D>("glFramebufferTexture2D")(GL_FRAMEBUFFER, 0x8CE0 /* GL_COLOR_ATTACHMENT0 */, GL_TEXTURE_2D, texture, 0);
+        Load<Viewport>("glViewport")(0, 0, Size, Size);
+
+        using var context = new SkiaGlContext(BrutalGlWindow.GetProc);
+        using var direct = new SkiaDirectCanvas(context);
+        // Twice, so the second pass checks the per-pass FBO is rebuilt and freed cleanly.
+        for (var i = 0; i < 2; i++)
+        {
+            direct.Begin();
+            direct.Canvas.Clear(SKColors.Red);
+            using (var paint = new SKPaint { Color = SKColors.Lime })
+                direct.Canvas.DrawRect(0, 0, 16, 16, paint);
+            direct.End();
+            Assert.Equal(appFramebuffer, Query(GL_DRAW_FRAMEBUFFER_BINDING));
+        }
+
+        var rgba = GlReadback.ReadTexture(BrutalGlWindow.GetProc, texture, Size, Size);
+        // Canvas row 0 is the window-style top, which is the texture's last row.
+        int At(int x, int texelRow) => (texelRow * Size + x) * 4;
+        Assert.Equal((0, 255, 0), (rgba[At(8, Size - 8)], rgba[At(8, Size - 8) + 1], rgba[At(8, Size - 8) + 2]));
+        Assert.Equal((255, 0, 0), (rgba[At(8, 8)], rgba[At(8, 8) + 1], rgba[At(8, 8) + 2]));
+    }
+
+    [GlWindowFact]
+    public void DirectCanvas_OutsideBeginEnd_Throws()
+    {
+        using var window = new BrutalGlWindow(64, 64);
+        using var context = new SkiaGlContext(BrutalGlWindow.GetProc);
+        using var direct = new SkiaDirectCanvas(context);
+        Assert.Throws<InvalidOperationException>(() => direct.Canvas);
+        Assert.Throws<InvalidOperationException>(direct.End);
+
+        direct.Begin();
+        Assert.Throws<InvalidOperationException>(direct.Begin);
+        Assert.Throws<InvalidOperationException>(direct.Dispose);
+        direct.End();
+        Assert.Throws<InvalidOperationException>(() => direct.Canvas);
     }
 
     static void SaveScreenshot(byte[] rgba)

@@ -3,6 +3,8 @@
 // The readback is test-only verification; the library has no CPU readback path.
 // With no flags it opens a visible window that redraws the shared Scene every frame.
 // --screenshot <path> instead draws the shared Scene on its background at 800x800 and saves the Skia target to a PNG.
+// --direct (interactive) draws the Scene with SkiaDirectCanvas straight into the window, with no texture and no blit.
+// --smoke-test also draws the Scene through SkiaDirectCanvas into the default framebuffer and compares it to the texture render.
 using System.Runtime.InteropServices;
 using Brutal.GlfwApi;
 using SampleShared;
@@ -30,9 +32,31 @@ using var window = Glfw.CreateWindow(in createInfo);
 window.MakeContextCurrent();
 
 static IntPtr GetProc(string name) => Glfw.GetProcAddress(System.Text.Encoding.ASCII.GetBytes(name + "\0"));
+static void SetViewport(int width, int height) =>
+    Marshal.GetDelegateForFunctionPointer<Viewport>(GetProc("glViewport"))(0, 0, width, height);
 
 using var context = new SkiaGlContext(GetProc);
 var exitCode = 0;
+
+if (interactive && args.Contains("--direct"))
+{
+    using var direct = new SkiaDirectCanvas(context);
+    Glfw.SwapInterval(1);
+    while (!window.ShouldClose)
+    {
+        Glfw.PollEvents();
+        var size = window.FramebufferSize;
+        SetViewport(size.X, size.Y);
+        direct.Begin();
+        direct.Canvas.Clear(Scene.Background);
+        // Scene is 800x800; scale it to the window like the texture path's blit does.
+        direct.Canvas.Scale(size.X / (float)Scene.Width, size.Y / (float)Scene.Height);
+        Scene.Draw(direct.Canvas);
+        direct.End();
+        window.SwapBuffers();
+    }
+    return 0;
+}
 
 if (interactive)
 {
@@ -94,4 +118,47 @@ using (var target = new SkiaRenderTarget2D(context, Size, Size))
         Console.WriteLine(exitCode == 0 ? "PASS" : "FAIL");
     }
 }
+
+if (smokeTest && exitCode == 0)
+{
+    // The same Scene through the texture and straight into the default framebuffer must agree, which also
+    // checks the direct canvas is not flipped.
+    using var scene = new SkiaRenderTarget2D(context, Scene.Width, Scene.Height);
+    scene.Begin();
+    scene.Canvas.Clear(Scene.Background);
+    Scene.Draw(scene.Canvas);
+    scene.End();
+    var viaTexture = GlReadback.ReadTexture(GetProc, scene.GlTexture, Scene.Width, Scene.Height);
+
+    using var direct = new SkiaDirectCanvas(context);
+    SetViewport(Scene.Width, Scene.Height);
+    byte[] viaBackBuffer = [];
+    // Twice: the second pass reuses the cached back buffer surface.
+    for (var pass = 0; pass < 2; pass++)
+    {
+        direct.Begin();
+        direct.Canvas.Clear(Scene.Background);
+        Scene.Draw(direct.Canvas);
+        direct.End();
+        viaBackBuffer = GlReadback.ReadDefaultFramebuffer(GetProc, Scene.Width, Scene.Height);
+    }
+
+    // Both readbacks are top row first.
+    var differing = 0;
+    for (var p = 0; p < Scene.Width * Scene.Height; p++)
+        for (var c = 0; c < 3; c++)
+            if (Math.Abs(viaTexture[p * 4 + c] - viaBackBuffer[p * 4 + c]) > 4)
+            {
+                differing++;
+                break;
+            }
+    var fraction = differing / (double)(Scene.Width * Scene.Height);
+    var directPass = fraction < 0.005;
+    Console.WriteLine($"direct canvas vs texture: {differing} pixels differ ({fraction:P3}) -> {(directPass ? "PASS" : "FAIL")}");
+    if (!directPass)
+        exitCode = 1;
+}
 return exitCode;
+
+[UnmanagedFunctionPointer(CallingConvention.Winapi)]
+delegate void Viewport(int x, int y, int width, int height);
