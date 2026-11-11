@@ -225,6 +225,7 @@ jobs:
       - run: dotnet build src/SkiaGameRendering.Brutal.OGL/SkiaGameRendering.Brutal.OGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build samples/Sample.Brutal.OGL/Sample.Brutal.OGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.Brutal/Benchmarks.Brutal.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build benchmarks/Benchmarks.Brutal.OGL/Benchmarks.Brutal.OGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.DesktopGL/Benchmarks.ShapeRendering.DesktopGL.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.ShapeRendering.WindowsDX/Benchmarks.ShapeRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
       - run: dotnet build benchmarks/Benchmarks.DirectDraw.DesktopGL/Benchmarks.DirectDraw.DesktopGL.csproj -c ${{ matrix.configuration }}

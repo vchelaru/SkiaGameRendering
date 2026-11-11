@@ -113,6 +113,29 @@ target.End();
   `Rgba8888`.
 - **Package.** It has no dependency on any BRUTAL package.
 
+### SkiaDirectCanvas
+
+To skip the texture and draw into the framebuffer you already have bound (the back buffer, or an FBO of your own), use
+`SkiaDirectCanvas`. Same `Begin()`/`Canvas`/`End()` shape:
+
+```csharp
+var direct = new SkiaDirectCanvas(context);
+
+// each frame, after your own drawing:
+direct.Begin();
+direct.Canvas.DrawCircle(256, 256, 200, paint);
+direct.End();
+// set your GL state again, draw more, swap buffers
+```
+
+- **Size.** The current GL viewport. Set it to the whole target before `Begin()`; a partial viewport is treated as a smaller target.
+- **No clear.** `Begin()` draws on top of what is there. Canvas row 0 is the top as a window shows it (the last texel row of an FBO texture).
+- **Targets.** The back buffer is assumed to be RGBA8. An FBO's color attachment must be a texture or renderbuffer, else `NotSupportedException`.
+  An FBO's Skia framebuffer is rebuilt every pass. Multisampled targets are passed to Skia with their sample count and are untested here.
+- **State.** `End()` restores only your draw framebuffer binding, like the texture target.
+
+`Sample.Brutal.OGL --direct` shows it in a window, and `--smoke-test` checks it against the texture render.
+
 `samples/Sample.Brutal.OGL` is a complete example on a hidden GLFW window; `--smoke-test` reads one pixel back with
 `glReadPixels` and exits 0 if it is right. `Tests.Brutal.OGL` runs the shared scene against a golden image in CI.
 
@@ -123,7 +146,22 @@ gameplay, and shipping `NOTICE.txt`. That applies to apps built on BRUTAL, not t
 
 ## Measured
 
-`benchmarks/Benchmarks.Brutal` (headless, no window) times `Begin()`, the draw calls and `End()` per frame.
+OpenGL, `benchmarks/Benchmarks.Brutal.OGL` (hidden GLFW window, never presented, 1920x1080, random solid-color rects on black). "Texture" is
+`SkiaRenderTarget2D` Begin/draw/End plus an app fullscreen-triangle pass sampling it onto the back buffer; "Direct" is
+`SkiaDirectCanvas` into the back buffer. CPU is a stopwatch around the frame; throughput is the whole loop plus `glFinish`, divided by frames.
+GPU: NVIDIA GeForce RTX 5060 Laptop GPU, GL 3.3.0 NVIDIA 610.47, Windows 11. Warmup 30, frames 200, one run per row.
+
+| Load | Path | CPU ms/frame | Throughput ms/frame |
+|---|---|---|---|
+| 1 rect | Texture + fullscreen draw | 0.102 | 0.106 |
+| 1 rect | Direct | 0.035 | 0.036 |
+| 1000 rects | Texture + fullscreen draw | 1.672 | 1.677 |
+| 1000 rects | Direct | 1.115 | 1.121 |
+
+On this machine only: direct saves about 0.07 ms of fixed cost per frame (the 1-rect rows) and about 0.55 ms at 1000 rects.
+The two halves of each 1000-rect run differ by up to 25%, so read that gap as roughly 0.4 to 0.7 ms.
+
+Vulkan, `benchmarks/Benchmarks.Brutal` (headless, no window) times `Begin()`, the draw calls and `End()` per frame.
 "CPU" is a stopwatch around that span; "Throughput" is the whole loop plus a device wait, divided by frames. "Layout"
 is who records the transitions: `library` (default, two small submits per frame) or `app` (`appManagesLayout: true`,
 no consumer pass in this benchmark, so no barriers at all). Rects are random solid fills, paths a small cubic
