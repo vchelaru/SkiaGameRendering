@@ -15,6 +15,21 @@ static unsafe class GlReadback
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void ReadPixels(int x, int y, int w, int h, int format, int type, byte* data);
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void DeleteFramebuffers(int n, ref int ids);
 
+    /// <summary>RGBA bytes of the default framebuffer (the back buffer), flipped so row 0 is the top as a window shows it.</summary>
+    public static byte[] ReadDefaultFramebuffer(Func<string, IntPtr> getProc, int width, int height)
+    {
+        T Load<T>(string name) where T : Delegate => Marshal.GetDelegateForFunctionPointer<T>(getProc(name));
+        Load<BindFramebuffer>("glBindFramebuffer")(GL_FRAMEBUFFER, 0);
+        var bottomUp = new byte[width * height * 4];
+        fixed (byte* p = bottomUp)
+            Load<ReadPixels>("glReadPixels")(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, p);
+        var rgba = new byte[bottomUp.Length];
+        var stride = width * 4;
+        for (var y = 0; y < height; y++)
+            Buffer.BlockCopy(bottomUp, (height - 1 - y) * stride, rgba, y * stride, stride);
+        return rgba;
+    }
+
     /// <summary>RGBA bytes of a texture, row 0 = texel row 0 (the top of the canvas).</summary>
     public static byte[] ReadTexture(Func<string, IntPtr> getProc, int texture, int width, int height)
     {

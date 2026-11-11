@@ -67,6 +67,15 @@ namespace SkiaGameRendering
             return texture;
         }
 
+        /// <summary>The current viewport's width and height, which is how big the app says its draw target is.</summary>
+        public unsafe (int Width, int Height) GetViewportSize()
+        {
+            const int GL_VIEWPORT = 0x0BA2;
+            var viewport = stackalloc int[4];
+            _getIntegerv(GL_VIEWPORT, viewport);
+            return (viewport[2], viewport[3]);
+        }
+
         public void Delete(int texture) => _deleteTextures(1, ref texture);
     }
 }
