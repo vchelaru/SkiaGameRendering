@@ -3,6 +3,8 @@
 // Each frame draws exactly samples/Shared/Scene.cs, the scene every other sample draws (800x800).
 // --smoke-test renders 30 frames in both layout modes, reads the final image back through Vulkan (test-only) and checks
 // the shared scene's first two cells (red circle, blue drop), the gradient cell and an empty corner, like the other samples.
+// --smoke-test also runs a direct pass: the app clears an offscreen image (standing in for a swapchain image) and submits,
+// then SkiaDirectCanvas draws the same Scene straight into it; the result must match the quad-sampled texture path.
 // SKIAGAMERENDERING_BRUTAL_SCREENSHOTS=<dir> renders 61 frames and saves the quad output at frames 0, 30 and 60.
 using Brutal.ShaderCApi;
 using Brutal.VulkanApi;
@@ -18,9 +20,11 @@ var frames = string.IsNullOrEmpty(screenshotDir) ? 30 : 61;
 var smokeTest = args.Contains("--smoke-test");
 
 var failures = 0;
+byte[]? viaTexture = null;
 foreach (var appManagesLayout in new[] { false, true })
 {
     var final = Run(appManagesLayout, frames, screenshotDir);
+    viaTexture ??= final;
     var circle = At(final, SharedScene.CellCenter, SharedScene.CellCenter);
     var drop = At(final, SharedScene.Cell + SharedScene.CellCenter, SharedScene.CellCenter);
     var gradient = At(final, SharedScene.CellCenter, SharedScene.Cell + SharedScene.CellCenter);
@@ -35,6 +39,22 @@ foreach (var appManagesLayout in new[] { false, true })
     if (!passed)
         failures++;
 }
+{
+    var viaDirect = Run(appManagesLayout: false, frames, screenshotDir: null, direct: true);
+    var differing = 0;
+    for (var p = 0; p < Size * Size; p++)
+        for (var c = 0; c < 4; c++)
+            if (Math.Abs(viaTexture![p * 4 + c] - viaDirect[p * 4 + c]) > 4)
+            {
+                differing++;
+                break;
+            }
+    var fraction = differing / (double)(Size * Size);
+    var directPass = fraction < 0.005;
+    Console.WriteLine($"direct canvas vs quad-sampled texture: {differing} pixels differ ({fraction:P3}) {(directPass ? "ok" : "MISMATCH")}");
+    if (!directPass)
+        failures++;
+}
 Console.WriteLine(failures == 0 ? "PASS" : "FAIL");
 return smokeTest ? (failures == 0 ? 0 : 1) : 0;
 
@@ -44,7 +64,7 @@ static byte[] At(byte[] rgba, int x, int y)
     return [rgba[o], rgba[o + 1], rgba[o + 2], rgba[o + 3]];
 }
 
-static unsafe byte[] Run(bool appManagesLayout, int frames, string? screenshotDir)
+static unsafe byte[] Run(bool appManagesLayout, int frames, string? screenshotDir, bool direct = false)
 {
     var instanceExtensions = new HashSet<string>();
     VulkanHelpers.AddPlatformRequiredExtensions(instanceExtensions);
@@ -71,6 +91,7 @@ static unsafe byte[] Run(bool appManagesLayout, int frames, string? screenshotDi
 
     using var context = new SkiaVulkanContext(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)family);
     using var skia = new SkiaRenderTarget2D(context, Size, Size, SKColorType.Rgba8888, appManagesLayout);
+    using var skiaDirect = new SkiaDirectCanvas(context);
 
     // Offscreen output image: Core.VK's allocator gives COLOR_ATTACHMENT | TRANSFER_SRC | SAMPLED, device-local.
     var outAlloc = VkImageAllocator.Create(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, Size, Size, 37);
@@ -172,6 +193,36 @@ static unsafe byte[] Run(bool appManagesLayout, int frames, string? screenshotDi
     var outLayout = VkImageLayout.Undefined;
     for (var frame = 0; frame < frames; frame++)
     {
+        if (direct)
+        {
+            // The app's own pass: clear the image and submit it, as the app does with its frame before Skia draws on top.
+            device.WaitForFence(fence, -1);
+            device.ResetFences([fence]);
+            cb.Reset();
+            cb.Begin(VkCommandBufferUsageFlags.OneTimeSubmitBit);
+            Barrier(outImage, outLayout, VkImageLayout.ColorAttachmentOptimal,
+                VkPipelineStageFlags.TopOfPipeBit | VkPipelineStageFlags.FragmentShaderBit, VkPipelineStageFlags.ColorAttachmentOutputBit,
+                VkAccessFlags.None, VkAccessFlags.ColorAttachmentWriteBit);
+            var clearColor = new VkRenderingAttachmentInfo
+            {
+                ImageView = outView, ImageLayout = VkImageLayout.ColorAttachmentOptimal,
+                LoadOp = VkAttachmentLoadOp.Clear, StoreOp = VkAttachmentStoreOp.Store,
+                ClearValue = new VkClearColorValue { Float32 = new Brutal.Numerics.float4(1, 0, 1, 1) },
+            };
+            cb.BeginRendering(new VkRenderingInfo { RenderArea = new VkRect2D(new VkExtent2D(Size, Size)), LayerCount = 1, ColorAttachmentCount = 1, ColorAttachments = &clearColor });
+            cb.EndRendering();
+            cb.End();
+            queue.Submit([], [], [cb], [], fence);
+
+            // Skia draws the Scene straight into that image and hands it back ready to be read.
+            skiaDirect.Begin(outAlloc.Image, 37, Size, Size, currentLayout: 2);
+            skiaDirect.Canvas.Clear(SharedScene.Background);
+            SharedScene.Draw(skiaDirect.Canvas);
+            skiaDirect.End(finalLayout: 5);
+            outLayout = VkImageLayout.ShaderReadOnlyOptimal;
+            continue;
+        }
+
         // Skia: exactly the shared Scene, every frame.
         skia.Begin();
         skia.Canvas.Clear(SharedScene.Background);

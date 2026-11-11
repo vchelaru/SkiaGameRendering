@@ -1,5 +1,6 @@
 // Headless (no window) per-frame cost of SkiaRenderTarget2D Begin/draw/End on a BRUTAL Vulkan device.
-// Usage: Benchmarks.Brutal [--warmup 30] [--frames 200] [--out results.md]
+// Usage: Benchmarks.Brutal [--warmup 30] [--frames 200] [--out results.md] [--direct]
+// --direct instead compares SkiaRenderTarget2D with SkiaDirectCanvas at 1920x1080 (1 rect and 1000 rects).
 // Per config it reports: CPU ms/frame (Stopwatch around Begin..End, i.e. what the render thread pays) and
 // throughput ms/frame (the whole loop plus a device WaitIdle, i.e. what the GPU can sustain).
 using System.Diagnostics;
@@ -74,6 +75,73 @@ var loads = new (string name, Action<SKCanvas, int, int> draw)[]
             c.DrawText($"Line {i}: The quick brown fox jumps over the lazy dog 0123456789", 10, 20 + i * (h - 40) / 200f, font, textPaint);
     }),
 };
+
+if (args.Contains("--direct"))
+{
+    // 1920x1080, one load per row. "Texture" is SkiaRenderTarget2D (library-managed layout, async End); "Direct" is
+    // SkiaDirectCanvas into a plain app-owned image standing in for the swapchain image. Neither has a consumer pass.
+    // Each row is measured in two halves of the frames so a disagreement between halves shows.
+    const int W = 1920, H = 1080;
+    var directLoads = new (string name, Action<SKCanvas> draw)[]
+    {
+        ("1 rect", c => { c.Clear(SKColors.Black); paint.Color = rects[0].c; c.DrawRect(rects[0].x % (W - 130), rects[0].y % (H - 130), rects[0].w, rects[0].h, paint); }),
+        ("1000 rects", c => loads[1].draw(c, W, H)),
+    };
+    var directLines = new List<string>
+    {
+        $"GPU: {gpu} ({driver}). OS: {System.Runtime.InteropServices.RuntimeInformation.OSDescription}. {W}x{H}, warmup {warmup}, frames {frames}.",
+        "",
+        "| Load | Path | CPU ms/frame | Throughput ms/frame | Halves (CPU ms) |",
+        "|---|---|---|---|---|",
+    };
+    using var textureTarget = new SkiaRenderTarget2D(context, W, H);
+    using var directCanvas = new SkiaDirectCanvas(context);
+    var appImage = SkiaGameRendering.Core.VK.VkImageAllocator.Create(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, W, H, 37);
+    // Hand the image to the app's layout (SHADER_READ_ONLY_OPTIMAL), as a presented-then-reacquired image would be.
+    directCanvas.Begin(appImage.Image, 37, W, H, 0);
+    directCanvas.End(finalLayout: 5, synchronous: true);
+    foreach (var (name, draw) in directLoads)
+    foreach (var isDirect in new[] { false, true })
+    {
+        void Frame()
+        {
+            if (isDirect)
+            {
+                directCanvas.Begin(appImage.Image, 37, W, H, 5);
+                draw(directCanvas.Canvas);
+                directCanvas.End(finalLayout: 5);
+            }
+            else
+            {
+                textureTarget.Begin();
+                draw(textureTarget.Canvas);
+                textureTarget.End();
+            }
+        }
+        for (var i = 0; i < warmup; i++)
+            Frame();
+        device.WaitIdle();
+        var halfMs = new double[2];
+        var total = Stopwatch.GetTimestamp();
+        for (var i = 0; i < frames; i++)
+        {
+            var t0 = Stopwatch.GetTimestamp();
+            Frame();
+            halfMs[i * 2 / frames] += Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
+        }
+        device.WaitIdle();
+        var throughput = Stopwatch.GetElapsedTime(total).TotalMilliseconds / frames;
+        var perHalf = frames / 2;
+        var line = $"| {name} | {(isDirect ? "Direct" : "Texture")} | {(halfMs[0] + halfMs[1]) / frames:F3} | {throughput:F3} | {halfMs[0] / perHalf:F3} / {halfMs[1] / (frames - perHalf):F3} |";
+        directLines.Add(line);
+        Console.WriteLine(line);
+    }
+    device.WaitIdle();
+    SkiaGameRendering.Core.VK.VkImageAllocator.Destroy(device.VkHandle, appImage);
+    File.WriteAllLines(output, directLines);
+    Console.WriteLine($"Wrote {output}");
+    return;
+}
 
 var lines = new List<string>
 {
