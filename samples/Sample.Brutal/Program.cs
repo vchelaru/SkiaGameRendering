@@ -86,6 +86,48 @@ unsafe
         exitCode = px[0] == 255 && px[1] == 0 && px[2] == 0 && px[3] == 255 ? 0 : 1;
         Console.WriteLine(exitCode == 0 ? "PASS" : "FAIL");
     }
+
+    if (smokeTest && exitCode == 0)
+    {
+        // The same Scene through the texture and straight into an app-owned image (what a swapchain image is) must agree.
+        using var scene = new SkiaRenderTarget2D(context, Scene.Width, Scene.Height);
+        scene.Begin();
+        scene.Canvas.Clear(Scene.Background);
+        Scene.Draw(scene.Canvas);
+        scene.End(synchronous: true);
+        var viaTexture = PixelReadback.ReadRegion(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily,
+            scene.VkImage, 0, 0, Scene.Width, Scene.Height);
+
+        var appImage = SkiaGameRendering.Core.VK.VkImageAllocator.Create(
+            instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, Scene.Width, Scene.Height, 37 /* R8G8B8A8_UNORM */);
+        using var direct = new SkiaDirectCanvas(context);
+        // Twice: the second pass starts from the layout the first one handed back.
+        for (var pass = 0; pass < 2; pass++)
+        {
+            direct.Begin(appImage.Image, 37, Scene.Width, Scene.Height, pass == 0 ? 0u : 5u);
+            direct.Canvas.Clear(Scene.Background);
+            Scene.Draw(direct.Canvas);
+            direct.End(finalLayout: 5, synchronous: true);
+        }
+        var viaDirect = PixelReadback.ReadRegion(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily,
+            appImage.Image, 0, 0, Scene.Width, Scene.Height);
+        device.WaitIdle();
+        SkiaGameRendering.Core.VK.VkImageAllocator.Destroy(device.VkHandle, appImage);
+
+        var differing = 0;
+        for (var p = 0; p < Scene.Width * Scene.Height; p++)
+            for (var c = 0; c < 4; c++)
+                if (Math.Abs(viaTexture[p * 4 + c] - viaDirect[p * 4 + c]) > 4)
+                {
+                    differing++;
+                    break;
+                }
+        var fraction = differing / (double)(Scene.Width * Scene.Height);
+        var directPass = fraction < 0.005;
+        Console.WriteLine($"direct canvas vs texture: {differing} pixels differ ({fraction:P3}) -> {(directPass ? "PASS" : "FAIL")}");
+        if (!directPass)
+            exitCode = 1;
+    }
     device.WaitIdle();
 }
 return exitCode;

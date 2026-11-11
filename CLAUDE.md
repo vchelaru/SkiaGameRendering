@@ -67,6 +67,8 @@ authoritative list of what CI builds, runs and in what order.
   and asks it to report how long each build and test step took. A brief that says "regenerate on
   every backend this machine can run" overrides these rules and costs a quarter hour, so don't
   write one.
+- A benchmark comparing a direct canvas against a render target times the render-target side with
+  the pass that composites its texture onto the target, since that pass is the cost direct removes.
 - A PreToolUse hook (`.claude/hooks/block-full-test-runs.sh`, on Bash and PowerShell) refuses a
   `dotnet test` that does not name one test `.csproj`, has no `--filter`, or filters on a
   namespace or a bare word. Prefix `SGR_ALLOW_FULL_TESTS=1` (PowerShell:

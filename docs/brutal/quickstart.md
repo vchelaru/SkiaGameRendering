@@ -49,6 +49,39 @@ Vulkan and exits 0 if it is right.
   target without decoding the sampled value first, colors are encoded twice. Stride has the same issue; see
   its Vulkan quickstart.
 
+### SkiaDirectCanvas (Vulkan)
+
+To draw straight into an image you already have, typically the swapchain image, with no intermediate image and no sampling
+pass, use `SkiaDirectCanvas`. Same `Begin()`/`Canvas`/`End()` shape. Vulkan has no bound-target query and BRUTAL has no renderer
+type, so `Begin` takes the target:
+
+```csharp
+var direct = new SkiaDirectCanvas(context);
+
+// each frame, after submitting your own drawing into the image on the context's queue:
+direct.Begin(swapchainImage, swapchainFormat, width, height, currentLayout);
+direct.Canvas.DrawCircle(256, 256, 200, paint);
+direct.End(finalLayout: presentSrcLayout);   // omit to hand it back in the layout it came in
+// then submit your later work / present
+```
+
+- **Layout.** `Begin` moves the image from `currentLayout` (`UNDEFINED` if you don't need its contents) to
+  `COLOR_ATTACHMENT_OPTIMAL`; `End` moves it to `finalLayout` or back to where it came from. Both are small submits whose barriers
+  cover all earlier commands on the queue.
+- **Submit order.** Skia submits inside `End`, not into your command buffer. Submit what draws into the image before `Begin` and what
+  reads it after `End`; `End(synchronous: true)` blocks, for another queue or the CPU.
+- **Image.** `COLOR_ATTACHMENT` usage (checked against the `imageUsage` you pass, default `COLOR_ATTACHMENT | TRANSFER_SRC |
+  TRANSFER_DST`; Skia insists on the transfer bits when wrapping, and drawing doesn't use them), the context's queue family,
+  8-bit RGBA or BGRA. Anything else throws `NotSupportedException` or `ArgumentException` before anything is submitted.
+- **No MSAA.** Pass the image's `sampleCount`; anything but 1 throws `NotSupportedException`.
+- **sRGB.** Skia cannot wrap an sRGB `VkImage`, so an sRGB-format image is wrapped as its UNORM twin and Skia writes the bytes as
+  given. If the image lacks `MUTABLE_FORMAT`, the validation layer reports it; drivers accept it for same-size formats. See
+  [SkiaDirectCanvas](../documentation/SkiaDirectCanvas.md).
+- **Cost.** Three queue submits per pass and a Skia surface wrapped per pass. Use it once per frame. The queue-lock contract above applies.
+
+`Sample.Brutal --smoke-test` and `Sample.Brutal.Quad --smoke-test` draw the shared scene through it into an app-owned image and compare it
+with the texture path. The `Tests.Brutal` layout tests check the layouts under the validation layer in CI.
+
 ## OpenGL
 
 BRUTAL also ships OpenGL bindings (`Ahwoo.BRUTAL.OpenGl`) next to its GLFW and SDL windowing packages. For an app on
@@ -180,3 +213,24 @@ the larger gaps coming from `sync`. Numbers vary run to run by a few percent; on
 - Linux, Mesa lavapipe with the Khronos validation layer and synchronization validation: the `brutal-linux` job
   in `.github/workflows/master.yml` runs the same smoke test and tests, failing on any VUID or SYNC-HAZARD message.
 - Not measured: performance, multi-threaded queue use, AMD or Intel GPUs.
+
+### Direct canvas vs render target (Vulkan)
+
+`Benchmarks.Brutal --direct` (headless, 1920x1080, random solid rects on black). Both paths end each frame with the same
+app-owned image in `SHADER_READ_ONLY_OPTIMAL`. "Texture" is `SkiaRenderTarget2D` Begin/draw/End (library-managed layout, async End) plus
+the app's own pass that samples its image onto the app image (a fullscreen triangle with a fragment shader, recorded and submitted every
+frame, two frames in flight). "Direct" is `SkiaDirectCanvas` into the app image, with no such pass. CPU is a stopwatch around the whole
+frame including the fence wait; throughput is the whole loop plus a device wait, divided by frames.
+GPU: NVIDIA GeForce RTX 5060 Laptop GPU (driverVersion 0x988BC000, API 1.4), Windows 11. Warmup 30, frames 200, two runs, both shown.
+In run 2 the two halves of the 1 rect Direct row (0.263 / 0.194) and the 1000 rects Direct row (1.496 / 1.147) differed by more than 10%.
+
+| Load | Path | CPU ms/frame (run 1 / run 2) | Throughput ms/frame (run 1 / run 2) |
+|---|---|---|---|
+| 1 rect | Texture + sampling pass | 0.197 / 0.215 | 0.198 / 0.216 |
+| 1 rect | Direct | 0.269 / 0.229 | 0.270 / 0.230 |
+| 1000 rects | Texture + sampling pass | 1.521 / 1.357 | 1.522 / 1.358 |
+| 1000 rects | Direct | 1.480 / 1.322 | 1.482 / 1.323 |
+
+On this machine only: at 1 rect the direct canvas is not faster (0.27 and 0.23 ms against 0.20 and 0.22); at 1000 rects it is about
+0.04 ms faster in both runs, inside the run-to-run noise. This benchmark shows no frame-time saving from direct, and it does not
+measure the saved full-size image.

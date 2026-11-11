@@ -50,7 +50,7 @@ which also draw straight into the current target (`SkiaDirectCanvas`).
 | Stride | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌ |
 | Unity 6 | ✅ Windows, Android | ✅ | ✅ | ✅ | ✅ | ⛔ |
-| BRUTAL | ✅ | ❌ | ❌ | 🟦 | ❌ | ❌ |
+| BRUTAL | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 
 Unity WebGL is ⛔ because Unity's Emscripten must match the one SkiaSharp's wasm build uses (3.1.56) and nothing has been shown to work.
 

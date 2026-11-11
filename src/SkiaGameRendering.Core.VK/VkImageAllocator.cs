@@ -28,6 +28,7 @@ namespace SkiaGameRendering.Core.VK
         const uint VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO = 5;
         const uint VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO = 14;
         const uint VK_IMAGE_TYPE_2D = 1;
+        const uint VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT = 0x8;
         const uint VK_SAMPLE_COUNT_1_BIT = 1;
         const uint VK_IMAGE_TILING_OPTIMAL = 0;
         const uint VK_SHARING_MODE_EXCLUSIVE = 0;
@@ -40,10 +41,11 @@ namespace SkiaGameRendering.Core.VK
 
         /// <summary>
         /// Creates a <paramref name="width"/> x <paramref name="height"/> image of
-        /// <paramref name="format"/> (a <c>VkFormat</c>) in device-local memory.
+        /// <paramref name="format"/> (a <c>VkFormat</c>) in device-local memory. <paramref name="mutableFormat"/> adds
+        /// <c>MUTABLE_FORMAT</c>, so a view in the format's UNORM/sRGB twin is valid.
         /// </summary>
         public static VkImageAllocation Create(
-            IntPtr instance, IntPtr physicalDevice, IntPtr device, int width, int height, uint format)
+            IntPtr instance, IntPtr physicalDevice, IntPtr device, int width, int height, uint format, bool mutableFormat = false)
         {
             if (instance == IntPtr.Zero)
                 throw new ArgumentException("Vulkan instance native pointer is null.", nameof(instance));
@@ -68,6 +70,7 @@ namespace SkiaGameRendering.Core.VK
             var createInfo = new VkImageCreateInfo
             {
                 sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+                flags = mutableFormat ? VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT : 0,
                 imageType = VK_IMAGE_TYPE_2D,
                 format = format,
                 extent = new VkExtent3D { width = (uint)width, height = (uint)height, depth = 1 },

@@ -42,6 +42,29 @@ public sealed class BrutalGoldenImageTests
                 "used whichever Vulkan driver this machine has. Orientation was still checked.");
     }
 
+    [Fact]
+    public void Scene_DirectCanvasIntoAppImage_MatchesGolden()
+    {
+        using var vk = new BrutalDevice();
+        var image = vk.CreateAppImage(GoldenScene.Width, GoldenScene.Height, 37);
+        try
+        {
+            using var direct = new SkiaDirectCanvas(vk.Context);
+            direct.Begin(image.Image, 37, GoldenScene.Width, GoldenScene.Height, currentLayout: 0, clear: true);
+            GoldenScene.Draw(direct.Canvas);
+            direct.End(finalLayout: 5, synchronous: true);
+
+            var pixels = vk.ReadAppImage(image, GoldenScene.Width, GoldenScene.Height);
+            SaveScreenshot(pixels, "scene-direct.png");
+            GoldenImage.AssertSceneOrientation(pixels);
+            if (GoldenImage.PinnedRasterizerInUse)
+                GoldenImage.AssertMatchesGolden(pixels, "brutal-scene.png");
+            else
+                _output.WriteLine("Golden comparison skipped: this run used whichever Vulkan driver this machine has. Orientation was still checked.");
+        }
+        finally { vk.Destroy(image); }
+    }
+
     static void SaveScreenshot(byte[] rgba, string name)
     {
         var dir = Environment.GetEnvironmentVariable("SKIAGAMERENDERING_BRUTAL_SCREENSHOTS");
