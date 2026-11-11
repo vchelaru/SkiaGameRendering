@@ -45,8 +45,8 @@ sealed unsafe class BrutalDevice : IDisposable
             target.VkImage, 0, 0, target.Width, target.Height, appManagesLayout ? 2u : 5u);
 
     /// <summary>An app-owned image (what a swapchain image stands in for): UNDEFINED layout, COLOR_ATTACHMENT | TRANSFER_SRC | TRANSFER_DST | SAMPLED.</summary>
-    public VkImageAllocation CreateAppImage(int width, int height, uint format) =>
-        VkImageAllocator.Create(_instance.VkHandle, PhysicalDevice.VkHandle, _device.VkHandle, width, height, format);
+    public VkImageAllocation CreateAppImage(int width, int height, uint format, bool mutableFormat = false) =>
+        VkImageAllocator.Create(_instance.VkHandle, PhysicalDevice.VkHandle, _device.VkHandle, width, height, format, mutableFormat);
 
     public void Destroy(VkImageAllocation image)
     {
@@ -194,7 +194,7 @@ public sealed class BrutalLayoutContractTests
     public void DirectCanvas_SrgbImage_IsWrittenWithoutEncoding()
     {
         using var vk = new BrutalDevice();
-        var image = vk.CreateAppImage(16, 16, Rgba8Srgb);
+        var image = vk.CreateAppImage(16, 16, Rgba8Srgb, mutableFormat: true); // without MUTABLE_FORMAT the validation layer flags the UNORM wrap
         try
         {
             using var direct = new SkiaDirectCanvas(vk.Context);
