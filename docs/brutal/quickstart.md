@@ -178,20 +178,21 @@ the larger gaps coming from `sync`. Numbers vary run to run by a few percent; on
 
 ### Direct canvas vs render target (Vulkan)
 
-`Benchmarks.Brutal --direct` (headless, 1920x1080, random solid rects on black). "Texture" is `SkiaRenderTarget2D` Begin/draw/End
-(library-managed layout, async End); "Direct" is `SkiaDirectCanvas` into a plain app-owned image standing in for the swapchain image.
-Neither path has a consumer pass, so the app's sampling or composite pass that the texture path needs is not in either number.
-CPU is a stopwatch around Begin..End; throughput is the whole loop plus a device wait, divided by frames.
-GPU: NVIDIA GeForce RTX 5060 Laptop GPU (driverVersion 0x988BC000, API 1.4), Windows 11. Warmup 30, frames 200. The two halves of
-several rows differed by more than 10% (the direct rows' first half was slower in every run), so each row was run twice; both runs are shown.
+`Benchmarks.Brutal --direct` (headless, 1920x1080, random solid rects on black). Both paths end each frame with the same
+app-owned image in `SHADER_READ_ONLY_OPTIMAL`. "Texture" is `SkiaRenderTarget2D` Begin/draw/End (library-managed layout, async End) plus
+the app's own pass that samples its image onto the app image (a fullscreen triangle with a fragment shader, recorded and submitted every
+frame, two frames in flight). "Direct" is `SkiaDirectCanvas` into the app image, with no such pass. CPU is a stopwatch around the whole
+frame including the fence wait; throughput is the whole loop plus a device wait, divided by frames.
+GPU: NVIDIA GeForce RTX 5060 Laptop GPU (driverVersion 0x988BC000, API 1.4), Windows 11. Warmup 30, frames 200, two runs, both shown.
+In run 2 the two halves of the 1 rect Direct row (0.263 / 0.194) and the 1000 rects Direct row (1.496 / 1.147) differed by more than 10%.
 
 | Load | Path | CPU ms/frame (run 1 / run 2) | Throughput ms/frame (run 1 / run 2) |
 |---|---|---|---|
-| 1 rect | Texture | 0.133 / 0.101 | 0.136 / 0.103 |
-| 1 rect | Direct | 0.235 / 0.183 | 0.235 / 0.184 |
-| 1000 rects | Texture | 1.309 / 1.336 | 1.310 / 1.340 |
-| 1000 rects | Direct | 1.381 / 1.870 | 1.383 / 1.872 |
+| 1 rect | Texture + sampling pass | 0.197 / 0.215 | 0.198 / 0.216 |
+| 1 rect | Direct | 0.269 / 0.229 | 0.270 / 0.230 |
+| 1000 rects | Texture + sampling pass | 1.521 / 1.357 | 1.522 / 1.358 |
+| 1000 rects | Direct | 1.480 / 1.322 | 1.482 / 1.323 |
 
-On this machine only: in this setup the direct canvas costs more per frame than the render target, about 0.08 ms at 1 rect, and
-at 1000 rects is between equal and 0.5 ms slower with run-to-run noise as large as the gap. What it removes is the app's pass that
-samples the texture and the full-size image, which this benchmark does not measure.
+On this machine only: at 1 rect the direct canvas is not faster (0.27 and 0.23 ms against 0.20 and 0.22); at 1000 rects it is about
+0.04 ms faster in both runs, inside the run-to-run noise. This benchmark shows no frame-time saving from direct, and it does not
+measure the saved full-size image.

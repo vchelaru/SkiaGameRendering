@@ -10,6 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Ahwoo.Brutal.Vulkan" Version="2026.10.3" />
+    <PackageReference Include="Ahwoo.Brutal.Vulkan.Abstractions" Version="2026.10.3" />
+    <PackageReference Include="Ahwoo.Brutal.ShaderC" Version="2026.10.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\SkiaGameRendering.Brutal\SkiaGameRendering.Brutal.csproj" />
