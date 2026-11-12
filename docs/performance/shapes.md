@@ -1,9 +1,9 @@
 # Shapes
 
-Filled circles, and a mixed scene of circles, rounded rectangles with a border, thick lines and triangles.
+Filled circles, filled rotating rectangles, and a mixed scene of circles, rounded rectangles with a border, thick lines and triangles.
 
-- **Engine side:** `Apos.Shapes`: one `ShapeBatch`, signed-distance-field shapes drawn as instanced quads.
-- **Skia side:** `SKCanvas.DrawCircle`, `DrawRoundRect` (fill and stroke), `DrawLine` and `DrawPath`, anti-aliased. Rotation goes through the canvas matrix.
+- **Engine side:** `Apos.Shapes`: one `ShapeBatch`, signed-distance-field shapes drawn as instanced quads. The rectangle scenes also run `SpriteBatch` stretching a white pixel, which has aliased edges; the table shows whichever is faster.
+- **Skia side:** `SKCanvas.DrawCircle`, `DrawRect`, `DrawRoundRect` (fill and stroke), `DrawLine` and `DrawPath`, anti-aliased. Rotation goes through the canvas matrix.
 
 | Engine | Skia (direct) |
 |---|---|
@@ -20,7 +20,6 @@ Screenshots: mixed shapes 2k, KNI DesktopGL. The scenes are 1600x900 and animate
 | Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
 | Circles 500 | 1017 (Apos.Shapes) | 820 | 81% |
-| Circles 2k | 562 (Apos.Shapes) | 431 | 77% |
 | Circles 10k | 217 (Apos.Shapes) | 101 | 47% |
 | Mixed shapes 2k | 543 (Apos.Shapes) | 69 | 13% |
 | Mixed shapes 10k | 146 (Apos.Shapes) | 15 | 10% |
@@ -30,7 +29,6 @@ Screenshots: mixed shapes 2k, KNI DesktopGL. The scenes are 1600x900 and animate
 | Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
 | Circles 500 | 1637 (Apos.Shapes) | 834 | 51% |
-| Circles 2k | 852 (Apos.Shapes) | 462 | 54% |
 | Circles 10k | 270 (Apos.Shapes) | 91 | 34% |
 | Mixed shapes 2k | 679 (Apos.Shapes) | 70 | 10% |
 | Mixed shapes 10k | 170 (Apos.Shapes) | 15 | 9% |
@@ -40,7 +38,6 @@ Screenshots: mixed shapes 2k, KNI DesktopGL. The scenes are 1600x900 and animate
 | Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
 |---|---:|---:|---:|
 | Circles 500 | 405 (Apos.Shapes) | 804 | 199% |
-| Circles 2k | 108 (Apos.Shapes) | 323 | 299% |
 | Circles 10k | 22 (Apos.Shapes) | 82 | 373% |
 | Mixed shapes 2k | 77 (Apos.Shapes) | 59 | 77% |
 | Mixed shapes 10k | 16 (Apos.Shapes) | 13 | 81% |

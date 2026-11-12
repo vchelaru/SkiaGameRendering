@@ -7,6 +7,7 @@ namespace Performance
         Sprites,
         MultiTexture,
         Circles,
+        Rectangles,
         Shapes,
         Gradients,
         Shadows,
@@ -108,8 +109,10 @@ namespace Performance
             foreach (var (name, count) in new[] { ("Textures 0", 0), ("Textures 300", 300), ("Textures 3k", 3_000), ("Textures 30k", 30_000) })
                 scenes.Add(Formula("sprites-textures", name, SceneKind.MultiTexture, count, width, height, 8f, 24f, 10f, 30f));
 
-            foreach (var (name, count) in new[] { ("Circles 500", 500), ("Circles 2k", 2_000), ("Circles 10k", 10_000) })
+            foreach (var (name, count) in new[] { ("Circles 500", 500), ("Circles 10k", 10_000) })
                 scenes.Add(Formula("shapes", name, SceneKind.Circles, count, width, height, 6f, 18f, 10f, 30f));
+            foreach (var (name, count) in new[] { ("Rectangles 500", 500), ("Rectangles 10k", 10_000) })
+                scenes.Add(Formula("shapes", name, SceneKind.Rectangles, count, width, height, 6f, 18f, 10f, 30f));
             scenes.Add(Formula("shapes", "Mixed shapes 2k", SceneKind.Shapes, 2_000, width, height, 8f, 20f, 10f, 30f));
             scenes.Add(Formula("shapes", "Mixed shapes 10k", SceneKind.Shapes, 10_000, width, height, 8f, 20f, 10f, 30f));
 
@@ -136,7 +139,7 @@ namespace Performance
             foreach (var (name, count) in new[] { ("Translucent 10 layers", 10), ("Translucent 40 layers", 40) })
                 scenes.Add(Formula("fill-rate", name, SceneKind.FillTranslucent, count, width, height, 0.8f, 1f, 5f, 15f));
 
-            foreach (var (name, count) in new[] { ("UI 50", 50), ("UI 200", 200), ("UI 1k", 1_000) })
+            foreach (var (name, count) in new[] { ("UI 50", 50), ("UI 1k", 1_000) })
                 scenes.Add(Formula("ui", name, SceneKind.Ui, count, width, height, 40f, 60f, 3f, 8f));
 
             return scenes.ToArray();

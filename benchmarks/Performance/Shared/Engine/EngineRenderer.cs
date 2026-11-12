@@ -87,6 +87,7 @@ namespace Performance
                 case SceneKind.FillOpaque:
                 case SceneKind.FillTranslucent: return new[] { SpriteBatchLabel, AposLabel };
                 case SceneKind.Ui: return new[] { UiLabel };
+                case SceneKind.Rectangles: return new[] { SpriteBatchLabel, AposLabel };
                 default: return new[] { AposLabel };
             }
         }
@@ -99,6 +100,7 @@ namespace Performance
                 case SceneKind.Sprites: DrawSprites(scene, t); break;
                 case SceneKind.MultiTexture: DrawMultiTexture(scene, t, renderer == SortedLabel); break;
                 case SceneKind.Circles: DrawCircles(scene, t); break;
+                case SceneKind.Rectangles: DrawRectangles(scene, t, renderer); break;
                 case SceneKind.Shapes: DrawShapes(scene, t); break;
                 case SceneKind.Gradients: DrawGradients(scene, t); break;
                 case SceneKind.Shadows: DrawShadows(scene, t); break;
@@ -146,6 +148,34 @@ namespace Performance
             for (int i = 0; i < items.Length; i++)
                 _shapes.FillCircle(Position(scene, i, t), items[i].Size, _solid[i % _solid.Length]);
             _shapes.End();
+        }
+
+        // SpriteBatch stretches a white pixel (fast, aliased edges); Apos.Shapes draws anti-aliased edges.
+        private void DrawRectangles(PerfScene scene, float t, string renderer)
+        {
+            var items = scene.Items;
+            if (renderer == AposLabel)
+            {
+                _shapes.Begin();
+                for (int i = 0; i < items.Length; i++)
+                {
+                    float s = items[i].Size;
+                    var size = new Vector2(s * 2f, s * 1.4f);
+                    _shapes.FillRectangle(Position(scene, i, t) - size / 2f, size, _solid[i % _solid.Length], 0f, scene.Rotation(i, t));
+                }
+                _shapes.End();
+                return;
+            }
+
+            var origin = new Vector2(0.5f);
+            _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp);
+            for (int i = 0; i < items.Length; i++)
+            {
+                float s = items[i].Size;
+                _spriteBatch.Draw(_pixel, Position(scene, i, t), null, _solid[i % _solid.Length], scene.Rotation(i, t), origin,
+                    new Vector2(s * 2f, s * 1.4f), SpriteEffects.None, 0f);
+            }
+            _spriteBatch.End();
         }
 
         private void DrawShapes(PerfScene scene, float t)
@@ -339,30 +369,28 @@ namespace Performance
             var panel = new Color(38, 42, 54);
             var border = new Color(90, 98, 120);
 
-            _shapes.Begin();
-            for (int i = 0; i < items.Length; i++)
-            {
-                float s = items[i].Size;
-                var size = new Vector2(s * 3f, s * 1.6f);
-                var xy = Position(scene, i, t) - size / 2f;
-                _shapes.FillRectangleBlurred(xy + new Vector2(0f, 4f), size, shadow, 10f, CornerRadius);
-                _shapes.DrawRectangle(xy, size, panel, border, 1.5f, CornerRadius);
-            }
-            _shapes.End();
-
             var font = GetSpriteFont(16);
             var origin = new Vector2(PerfAssets.Size / 2f);
-            _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp);
+
+            // Each card draws completely before the next, as a real UI does, so every card costs a ShapeBatch
+            // flush (shadow, panel, border) and a SpriteBatch flush (icon, label).
             for (int i = 0; i < items.Length; i++)
             {
                 float s = items[i].Size;
                 var size = new Vector2(s * 3f, s * 1.6f);
                 var xy = Position(scene, i, t) - size / 2f;
+
+                _shapes.Begin();
+                _shapes.FillRectangleBlurred(xy + new Vector2(0f, 4f), size, shadow, 10f, CornerRadius);
+                _shapes.DrawRectangle(xy, size, panel, border, 1.5f, CornerRadius);
+                _shapes.End();
+
+                _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp);
                 var iconCenter = xy + new Vector2(s * 0.8f, size.Y / 2f);
                 _spriteBatch.Draw(_textures[i % _textures.Length], iconCenter, null, Color.White, 0f, origin, s * 0.9f / PerfAssets.Size, SpriteEffects.None, 0f);
                 _spriteBatch.DrawString(font, $"Item {i}", xy + new Vector2(s * 1.5f, size.Y / 2f - font.LineSpacing / 2f), Color.White);
+                _spriteBatch.End();
             }
-            _spriteBatch.End();
         }
 
         public void Dispose()
