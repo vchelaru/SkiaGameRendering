@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 
 namespace Performance
 {
@@ -10,38 +8,56 @@ namespace Performance
     /// <param name="Renderer">The column the result lands in, for example "SpriteBatch" or "Skia render target".</param>
     public sealed record PerfEntry(PerfScene Scene, string Kind, string Renderer);
 
+    /// <summary>What a <see cref="PerfRunner"/> needs from the engine that owns the window and the frame loop.</summary>
+    public interface IPerfHost
+    {
+        /// <summary>Called once per entry before the first draw, for work that must not count (building caches).</summary>
+        void PrepareEntry(PerfEntry entry);
+
+        /// <summary>
+        /// Draws <paramref name="entry"/> at animation time <paramref name="t"/> onto the window.
+        /// Throwing marks the entry as not supported here and moves on.
+        /// </summary>
+        void DrawEntry(PerfEntry entry, float t);
+
+        /// <summary>Saves what <see cref="DrawEntry"/> just drew as a PNG at <paramref name="path"/>.</summary>
+        void SaveScreenshot(PerfEntry entry, string path);
+
+        /// <summary>False while the window is in the background.</summary>
+        bool IsActive { get; }
+
+        void SetTitle(string title);
+
+        /// <summary>Platform and GPU line for the results header.</summary>
+        string GpuDescription { get; }
+
+        /// <summary>The MSAA line for the results header: what was requested and what the host got.</summary>
+        string MsaaDescription { get; }
+    }
+
     /// <summary>
-    /// The loop shared by every performance app: an uncapped window (no vsync, no fixed timestep)
-    /// that sweeps each <see cref="PerfEntry"/> through a warmup and a measured window, shows the
-    /// last second's FPS in the title bar, and on completion writes a results table plus one
-    /// screenshot per entry next to the exe, then exits. Subclasses only list their entries and draw them.
+    /// The measurement loop shared by every performance app, with no engine in it: it sweeps each
+    /// <see cref="PerfEntry"/> through a warmup and a measured window, shows the last second's FPS in the title
+    /// bar, and on completion writes a results table plus one screenshot per entry next to the exe. The host
+    /// owns the window and calls <see cref="Frame"/> once per frame, uncapped (no vsync, no fixed timestep).
     ///
-    /// Frame time is wall-clock time between successive Draw calls, so it covers everything the game
-    /// pays for per frame (update, draw submission, Present and any GPU wait), not only the draw calls.
+    /// Frame time is wall-clock time between successive <see cref="Frame"/> calls, so it covers everything the
+    /// game pays for per frame (update, draw submission, Present and any GPU wait), not only the draw calls.
     /// The draw CPU column is the time spent inside the entry's draw code alone.
-    ///
-    /// Arguments: <c>--page slug[,slug]</c> runs only those pages' scenes; <c>--scene N</c> holds entry N
-    /// (0-based, after the page filter) indefinitely instead of sweeping; <c>--no-screenshots</c> skips the PNGs;
-    /// <c>--quick</c> shortens the warmup and measured windows for a smoke run.
     /// </summary>
-    public abstract class PerfGame : Game
+    public sealed class PerfRunner
     {
         public const int Width = 1600;
         public const int Height = 900;
-
-        // --quick shortens both windows for smoke runs; results from it are not for the docs.
-        private readonly double WarmupSeconds;
-        private readonly double MeasureSeconds;
 
         // Screenshots draw at this fixed animation time so every renderer's image is comparable.
         private const float ScreenshotTime = 1f;
 
         private readonly string _label;
-        private readonly string[]? _pages;
-        private readonly int? _heldEntry;
-        private readonly bool _screenshots;
+        private readonly PerfOptions _options;
+        private readonly IPerfHost _host;
 
-        private PerfEntry[] _entries = null!;
+        private PerfEntry[] _entries = Array.Empty<PerfEntry>();
         private int _entryIndex;
         private Phase _phase = Phase.Warmup;
         private double _phaseSeconds;
@@ -56,7 +72,6 @@ namespace Performance
         private readonly Stopwatch _drawClock = new();
         private double _titleSeconds;
         private int _titleFrames;
-        private string? _skipReason;
         private int _preparedEntry = -1;
 
         /// <summary>True once every entry has been measured and the results written.</summary>
@@ -64,61 +79,30 @@ namespace Performance
 
         private enum Phase { Warmup, Measure, Screenshot }
 
-        protected PerfGame(string label, string[] args)
+        public PerfRunner(string label, PerfOptions options, IPerfHost host)
         {
             _label = label;
-            int sceneArg = Array.IndexOf(args, "--scene");
-            if (sceneArg >= 0 && sceneArg + 1 < args.Length)
-                _heldEntry = int.Parse(args[sceneArg + 1]);
-            int pageArg = Array.IndexOf(args, "--page");
-            if (pageArg >= 0 && pageArg + 1 < args.Length)
-                _pages = args[pageArg + 1].Split(',');
-            _screenshots = !args.Contains("--no-screenshots");
-            bool quick = args.Contains("--quick");
-            WarmupSeconds = quick ? 0.3 : 2.0;
-            MeasureSeconds = quick ? 0.5 : 4.0;
-
-            new GraphicsDeviceManager(this)
-            {
-                PreferredBackBufferWidth = Width,
-                PreferredBackBufferHeight = Height,
-                SynchronizeWithVerticalRetrace = false,
-                GraphicsProfile = GraphicsProfile.HiDef,
-            };
-            IsFixedTimeStep = false;
-            // Otherwise MonoGame sleeps 20 ms per frame while the window is in the background.
-            InactiveSleepTime = TimeSpan.Zero;
-            IsMouseVisible = true;
-            Window.Title = label;
+            _options = options;
+            _host = host;
+            host.SetTitle(label);
         }
 
-        protected override void LoadContent()
+        public PerfOptions Options => _options;
+
+        /// <summary>Builds the scenes, keeps the requested pages and lists each one's entries. Call once the renderer exists.</summary>
+        public void Start(Func<PerfScene, IEnumerable<PerfEntry>> entries)
         {
             var scenes = PerfScene.BuildAll(Width, Height);
-            if (_pages != null)
-                scenes = scenes.Where(s => _pages.Contains(s.Page)).ToArray();
-
-            LoadRenderer();
-            _entries = scenes.SelectMany(Entries).ToArray();
-            _entryIndex = _heldEntry ?? 0;
+            if (_options.Pages != null)
+                scenes = scenes.Where(s => _options.Pages.Contains(s.Page)).ToArray();
+            _entries = scenes.SelectMany(entries).ToArray();
+            _entryIndex = _options.HeldEntry ?? 0;
+            if (_entryIndex >= _entries.Length)
+                Finish();
         }
 
-        /// <summary>Creates the renderer's GPU resources.</summary>
-        protected abstract void LoadRenderer();
-
-        /// <summary>The entries to measure for <paramref name="scene"/>, in order; none when this renderer has nothing to draw for it.</summary>
-        protected abstract IEnumerable<PerfEntry> Entries(PerfScene scene);
-
-        /// <summary>
-        /// Draws <paramref name="entry"/> at animation time <paramref name="t"/> onto the back buffer.
-        /// Throwing marks the entry as not supported here and moves on.
-        /// </summary>
-        protected abstract void DrawEntry(PerfEntry entry, float t);
-
-        /// <summary>Called once per entry before the first draw, for work that must not count (building caches).</summary>
-        protected virtual void PrepareEntry(PerfEntry entry) { }
-
-        protected override void Draw(GameTime gameTime)
+        /// <summary>Measures the frame that just ended and draws the next one.</summary>
+        public void Frame()
         {
             double frameMs = _frameClock.Elapsed.TotalMilliseconds;
             bool firstFrame = !_frameClock.IsRunning;
@@ -127,10 +111,7 @@ namespace Performance
                 Advance(frameMs);
 
             if (_entryIndex >= _entries.Length)
-            {
-                base.Draw(gameTime);
                 return;
-            }
 
             var entry = _entries[_entryIndex];
             bool screenshot = _phase == Phase.Screenshot;
@@ -140,34 +121,35 @@ namespace Performance
                 if (_preparedEntry != _entryIndex)
                 {
                     _preparedEntry = _entryIndex;
-                    PrepareEntry(entry);
+                    _host.PrepareEntry(entry);
                 }
                 _drawClock.Restart();
-                DrawEntry(entry, screenshot ? ScreenshotTime : (float)_entrySeconds);
+                _host.DrawEntry(entry, screenshot ? ScreenshotTime : (float)_entrySeconds);
                 _drawClock.Stop();
                 if (_phase == Phase.Measure && !firstFrame)
                     _drawMs.Add(_drawClock.Elapsed.TotalMilliseconds);
             }
             catch (Exception exception)
             {
-                _skipReason = $"{exception.GetType().Name}: {exception.Message}".Replace('\n', ' ').Replace('|', '/');
-                if (_skipReason.Length > 160)
-                    _skipReason = _skipReason[..160];
-                Console.Error.WriteLine($"[{_label}] {entry.Scene.Name} / {entry.Renderer}: {_skipReason}");
-                RecordSkipped(entry, _skipReason);
+                string reason = $"{exception.GetType().Name}: {exception.Message}".Replace('\n', ' ').Replace('|', '/');
+                if (reason.Length > 160)
+                    reason = reason[..160];
+                Console.Error.WriteLine($"[{_label}] {entry.Scene.Name} / {entry.Renderer}: {reason}");
+                RecordSkipped(entry, reason);
                 NextEntry();
-                base.Draw(gameTime);
                 return;
             }
 
             if (screenshot)
             {
-                if (_screenshots && PerfEnvironment.Screenshots)
-                    SaveScreenshot(entry);
+                if (_options.Screenshots && PerfEnvironment.Screenshots)
+                {
+                    string dir = Path.Combine(AppContext.BaseDirectory, "screenshots");
+                    Directory.CreateDirectory(dir);
+                    _host.SaveScreenshot(entry, Path.Combine(dir, $"{Slug(_label)}-{Slug(entry.Scene.Name)}-{Slug(entry.Renderer)}.png"));
+                }
                 NextEntry();
             }
-
-            base.Draw(gameTime);
         }
 
         private void Advance(double frameMs)
@@ -185,15 +167,15 @@ namespace Performance
             {
                 double fps = _titleFrames / _titleSeconds;
                 var entry = _entries[_entryIndex];
-                Window.Title = $"{_label} | {entry.Scene.Name} | {entry.Renderer} | {fps:0} FPS ({1000.0 / fps:0.00} ms)";
+                _host.SetTitle($"{_label} | {entry.Scene.Name} | {entry.Renderer} | {fps:0} FPS ({1000.0 / fps:0.00} ms)");
                 _titleSeconds = 0;
                 _titleFrames = 0;
             }
 
-            if (_heldEntry != null)
+            if (_options.HeldEntry != null)
                 return;
 
-            if (_phase == Phase.Warmup && _phaseSeconds >= WarmupSeconds)
+            if (_phase == Phase.Warmup && _phaseSeconds >= _options.WarmupSeconds)
             {
                 _phase = Phase.Measure;
                 _phaseSeconds = 0;
@@ -205,9 +187,9 @@ namespace Performance
             {
                 _frameMs.Add(frameMs);
                 // The OS or driver can still throttle a background window, so record it.
-                if (!IsActive)
+                if (!_host.IsActive)
                     _inactiveFrames++;
-                if (_phaseSeconds >= MeasureSeconds)
+                if (_phaseSeconds >= _options.MeasureSeconds)
                 {
                     RecordResult(_entries[_entryIndex]);
                     _phase = Phase.Screenshot;
@@ -218,19 +200,20 @@ namespace Performance
         private void NextEntry()
         {
             _entryIndex++;
-            _skipReason = null;
             if (_entryIndex >= _entries.Length)
             {
-                WriteResults();
-                Finished = true;
-                // A page has no process to end; it reads Finished.
-                if (PerfEnvironment.Publish == null)
-                    Exit();
+                Finish();
                 return;
             }
             _phase = Phase.Warmup;
             _phaseSeconds = 0;
             _entrySeconds = 0;
+        }
+
+        private void Finish()
+        {
+            WriteResults();
+            Finished = true;
         }
 
         private void RecordResult(PerfEntry entry)
@@ -256,32 +239,6 @@ namespace Performance
         private static double Percentile(List<double> sorted, double p) =>
             sorted.Count == 0 ? 0 : sorted[(int)Math.Min(sorted.Count - 1, Math.Round(p * (sorted.Count - 1)))];
 
-        /// <summary>Saves what is on the back buffer. Desktop apps write a PNG; platforms without a file system override this.</summary>
-        protected virtual void SaveScreenshot(PerfEntry entry)
-        {
-            var data = new Color[Width * Height];
-            GraphicsDevice.GetBackBufferData(data);
-            using var texture = new Texture2D(GraphicsDevice, Width, Height);
-            texture.SetData(data);
-
-            string dir = Path.Combine(AppContext.BaseDirectory, "screenshots");
-            Directory.CreateDirectory(dir);
-            using var stream = File.Create(Path.Combine(dir, $"{Slug(_label)}-{Slug(entry.Scene.Name)}-{Slug(entry.Renderer)}.png"));
-            texture.SaveAsPng(stream, Width, Height);
-        }
-
-        /// <summary>Platform and GPU lines for the results header.</summary>
-        protected abstract string GpuDescription { get; }
-
-        /// <summary>Writes the results. Desktop apps write a markdown file next to the exe; platforms without a file system override this.</summary>
-        protected virtual void PublishResults(string fileName, string markdown)
-        {
-            if (PerfEnvironment.Publish != null)
-                PerfEnvironment.Publish(fileName, markdown);
-            else
-                File.WriteAllText(Path.Combine(AppContext.BaseDirectory, fileName), markdown);
-        }
-
         private void WriteResults()
         {
             var machine = PerfEnvironment.Machine?.Invoke()
@@ -293,9 +250,11 @@ namespace Performance
             sb.AppendLine($"- Commit: {machine.Commit}");
             sb.AppendLine($"- OS: {machine.Os}");
             sb.AppendLine($"- CPU: {machine.Cpu}");
-            sb.AppendLine($"- GPU: {GpuDescription}");
+            sb.AppendLine($"- GPU: {_host.GpuDescription}");
             sb.AppendLine($"- Power: {machine.Power}");
-            sb.AppendLine($"- Window: {Width}x{Height}, vsync off, {MeasureSeconds:0}s measured per entry after {WarmupSeconds:0}s warmup");
+            sb.AppendLine($"- Window: {Width}x{Height}, vsync off, {_options.MeasureSeconds:0}s measured per entry after {_options.WarmupSeconds:0}s warmup");
+            sb.AppendLine($"- Skia antialiasing: {(_options.Antialias ? "on" : "off (--no-aa)")}");
+            sb.AppendLine($"- MSAA: {_host.MsaaDescription}");
             if (_anyInactive)
                 sb.AppendLine("- **Warning: the window was in the background for some measured frames (Inactive column). Those rows may be throttled; rerun with the window focused.**");
             sb.AppendLine();
@@ -304,7 +263,11 @@ namespace Performance
             foreach (var row in _resultRows)
                 sb.AppendLine(row);
 
-            PublishResults($"perf-results-{Slug(_label)}.md", sb.ToString());
+            string fileName = $"perf-results-{Slug(_label)}.md";
+            if (PerfEnvironment.Publish != null)
+                PerfEnvironment.Publish(fileName, sb.ToString());
+            else
+                File.WriteAllText(Path.Combine(AppContext.BaseDirectory, fileName), sb.ToString());
         }
 
         private static string Slug(string text) =>

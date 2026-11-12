@@ -1,15 +1,9 @@
-using Microsoft.Xna.Framework;
 using SkiaSharp;
 using Svg.Skia;
 
 namespace Performance
 {
-    /// <summary>
-    /// Draws every scene with plain <see cref="SKCanvas"/> calls: nothing from the engine and no
-    /// Apos.Shapes. Sprites go through <c>DrawAtlas</c> on GPU-resident images, as the README recommends.
-    /// It draws onto whatever canvas it is handed, so the same code runs under a
-    /// <c>SkiaRenderTarget2D</c> and under a <c>SkiaDirectCanvas</c>.
-    /// </summary>
+    /// <summary>Which of a scene's Skia paths to draw.</summary>
     public enum SkiaVariant
     {
         /// <summary>The recommended path for the scene.</summary>
@@ -18,13 +12,20 @@ namespace Performance
         PreRasterizedSvg,
     }
 
+    /// <summary>
+    /// Draws every scene with plain <see cref="SKCanvas"/> calls: nothing from the engine and no
+    /// Apos.Shapes. Sprites go through <c>DrawAtlas</c> on GPU-resident images, as the README recommends.
+    /// It draws onto whatever canvas it is handed, so the same code runs under a
+    /// <c>SkiaRenderTarget2D</c> and under a <c>SkiaDirectCanvas</c>, on any engine.
+    /// </summary>
     public sealed class SkiaSceneDrawer : IDisposable
     {
         private const float ShadowBlur = 12f;
         private const float CornerRadius = 8f;
         private static readonly SKSamplingOptions Linear = new(SKFilterMode.Linear);
 
-        private readonly SKPaint _paint = new() { IsAntialias = true };
+        private readonly bool _antialias;
+        private readonly SKPaint _paint;
         private readonly SKImage[] _rasterImages;
         private SKImage[]? _gpuImages;
         private GRContext? _imageContext;
@@ -48,8 +49,15 @@ namespace Performance
         private SKShader[]? _gradients;
         private PerfScene? _preparedScene;
 
-        public SkiaSceneDrawer()
+        /// <param name="antialias">
+        /// False (<c>--no-aa</c>) turns antialiasing off on the one paint every draw uses (shapes, text, images and
+        /// <c>DrawAtlas</c>) and makes fonts aliased. Image sampling stays linear either way. The SVG scene replays
+        /// the SVG's own paints, which keep their antialiasing.
+        /// </param>
+        public SkiaSceneDrawer(bool antialias = true)
         {
+            _antialias = antialias;
+            _paint = new SKPaint { IsAntialias = antialias };
             var info = new SKImageInfo(PerfAssets.Size, PerfAssets.Size, SKColorType.Rgba8888, SKAlphaType.Premul);
             _rasterImages = new SKImage[1 + PerfScene.TextureCount];
             _rasterImages[0] = SKImage.FromPixelCopy(info, PerfAssets.BuildPixels())
@@ -185,7 +193,7 @@ namespace Performance
         private SKFont Font(int size)
         {
             if (!_fonts.TryGetValue(size, out var font))
-                _fonts[size] = font = new SKFont(_typeface, size) { Edging = SKFontEdging.SubpixelAntialias };
+                _fonts[size] = font = new SKFont(_typeface, size) { Edging = _antialias ? SKFontEdging.SubpixelAntialias : SKFontEdging.Alias };
             return font;
         }
 

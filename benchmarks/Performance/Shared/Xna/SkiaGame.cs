@@ -17,11 +17,8 @@ namespace Performance
     /// </summary>
     public sealed class SkiaGame : PerfGame
     {
-        public const string TargetLabel = "Skia render target";
-        public const string DirectLabel = "Skia direct";
-        public const string PreRasterizedSuffix = " (pre-rasterized SVG)";
-
-        private SkiaRenderTarget2D _target = null!;
+        private SkiaRenderTarget2D? _target;
+        private string? _targetUnavailable;
         private SkiaDirectCanvas? _direct;
         private string? _directUnavailable;
         private SkiaSceneDrawer _drawer = null!;
@@ -30,7 +27,15 @@ namespace Performance
 
         protected override void LoadRenderer()
         {
-            _target = new SkiaRenderTarget2D(GraphicsDevice, Width, Height);
+            try
+            {
+                // --msaa reaches the render target too; backends without multisampled targets refuse it.
+                _target = new SkiaRenderTarget2D(GraphicsDevice, Width, Height, SKColorType.Rgba8888, Options.MultiSampleCount);
+            }
+            catch (Exception exception)
+            {
+                _targetUnavailable = $"{exception.GetType().Name}: {exception.Message}";
+            }
             try
             {
                 _direct = new SkiaDirectCanvas(GraphicsDevice);
@@ -39,26 +44,17 @@ namespace Performance
             {
                 _directUnavailable = $"{exception.GetType().Name}: {exception.Message}";
             }
-            _drawer = new SkiaSceneDrawer();
+            _drawer = new SkiaSceneDrawer(Options.Antialias);
         }
 
-        protected override IEnumerable<PerfEntry> Entries(PerfScene scene)
-        {
-            yield return new PerfEntry(scene, "skia", TargetLabel);
-            yield return new PerfEntry(scene, "skia", DirectLabel);
-            if (scene.Kind == SceneKind.Svg)
-            {
-                yield return new PerfEntry(scene, "skia", TargetLabel + PreRasterizedSuffix);
-                yield return new PerfEntry(scene, "skia", DirectLabel + PreRasterizedSuffix);
-            }
-        }
+        protected override IEnumerable<PerfEntry> Entries(PerfScene scene) => SkiaEntries.For(scene, direct: true);
 
         protected override void DrawEntry(PerfEntry entry, float t)
         {
             GraphicsDevice.Clear(Color.Black);
 
-            var variant = entry.Renderer.EndsWith(PreRasterizedSuffix) ? SkiaVariant.PreRasterizedSvg : SkiaVariant.Default;
-            if (entry.Renderer.StartsWith(DirectLabel))
+            var variant = SkiaEntries.VariantOf(entry);
+            if (SkiaEntries.IsDirect(entry))
             {
                 if (_direct == null)
                     throw new NotSupportedException(_directUnavailable ?? "SkiaDirectCanvas is not supported here.");
@@ -76,6 +72,9 @@ namespace Performance
             }
             else
             {
+                if (_target == null)
+                    throw new NotSupportedException(_targetUnavailable ?? "SkiaRenderTarget2D is not supported here.");
+
                 _target.Begin();
                 try
                 {
@@ -96,11 +95,16 @@ namespace Performance
 
         protected override string GpuDescription => GpuInfo.Query(GraphicsDevice);
 
+        protected override string MsaaDescription =>
+            Options.MultiSampleCount == 0
+                ? base.MsaaDescription
+                : $"{base.MsaaDescription}, Skia render target {(_target != null ? $"{Options.MultiSampleCount}x" : "refused")}";
+
         protected override void UnloadContent()
         {
             _drawer.Dispose();
             _direct?.Dispose();
-            _target.Dispose();
+            _target?.Dispose();
             SkiaRenderer.Dispose();
         }
     }

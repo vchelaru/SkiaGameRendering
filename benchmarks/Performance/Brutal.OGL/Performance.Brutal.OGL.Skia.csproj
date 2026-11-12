@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\..\eng\Versions.props" />
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationManifest>..\app.manifest</ApplicationManifest>
+    <RootNamespace>Performance</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Ahwoo.Brutal.Glfw" Version="2026.10.5" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\SkiaGameRendering.Brutal.OGL\SkiaGameRendering.Brutal.OGL.csproj" />
+  </ItemGroup>
+  <!-- Skia only: BRUTAL has no 2D renderer of its own to compare against. -->
+  <Import Project="..\Shared\Performance.Core.props" />
+  <ItemGroup>
+    <Compile Include="..\Shared\Skia\*.cs" Link="Shared\Skia\%(Filename)%(Extension)" />
+    <!-- The sample's present blit and its readback, which here only saves the screenshots. -->
+    <Compile Include="..\..\..\samples\Sample.Brutal.OGL\GlBlit.cs" Link="GlBlit.cs" />
+    <Compile Include="..\..\..\samples\Sample.Brutal.OGL\GlReadback.cs" Link="GlReadback.cs" />
+  </ItemGroup>
+</Project>

@@ -5,7 +5,11 @@ namespace Performance
     {
         private EngineRenderer _engine = null!;
 
-        public RawGame(string label, string[] args) : base(label, args) { }
+        public RawGame(string label, string[] args) : base(label, args)
+        {
+            if (!Options.Antialias)
+                throw new ArgumentException("--no-aa only applies to the Skia apps.");
+        }
 
         protected override void LoadRenderer() => _engine = new EngineRenderer(GraphicsDevice);
 

@@ -22,8 +22,8 @@ How to draw so it runs fast is in [Performance tips](documentation/performance-t
 
 ## How it is measured
 
-Each platform has two apps under `benchmarks/Performance/`, built from the same scene code
-(`Shared/`, linked into every app):
+Each platform has two apps under `benchmarks/Performance/`, built from the same scene code and measure loop
+(`Shared/`, linked into every app, with a thin host per engine):
 
 - **Raw** draws with the engine alone: `SpriteBatch`, [Apos.Shapes](https://github.com/Apostolique/Apos.Shapes)
   for shapes, gradients, shadows and SVG, a `SpriteFont` baked from the TTF (one per size) and
@@ -53,7 +53,8 @@ as WebAssembly while Skia is native code compiled to WebAssembly.
 ## Running
 
 Desktop (any scene subset with `--page slug[,slug]`; `--quick` shortens the windows for a smoke run;
-`--no-screenshots` skips the PNGs):
+`--no-screenshots` skips the PNGs; `--no-aa` turns antialiasing off on every Skia paint and font, Skia apps only;
+`--msaa 2|4|8` asks for a multisampled back buffer and Skia render target; the results header records both):
 
 ```bash
 dotnet build benchmarks/Performance/Kni.DesktopGL/Performance.Kni.DesktopGL.sln -c Release
@@ -63,6 +64,16 @@ benchmarks/Performance/Kni.DesktopGL/Skia/bin/Release/net8.0/Performance.Kni.Des
 
 `Performance.MonoGame.DesktopGL.sln` and `Performance.MonoGame.WindowsDX.sln` work the same way. Each app
 writes `perf-results-<app>.md` and a `screenshots` folder next to the exe, and exits when done.
+
+BRUTAL has no 2D renderer of its own, so it has only a Skia app per backend, drawing through `SkiaRenderTarget2D`
+and blitting it to the window. They do not take `--msaa` yet.
+
+```bash
+dotnet build benchmarks/Performance/Brutal.OGL/Performance.Brutal.OGL.Skia.csproj -c Release
+benchmarks/Performance/Brutal.OGL/bin/Release/net10.0/Performance.Brutal.OGL.Skia
+dotnet build benchmarks/Performance/Brutal.Vulkan/Performance.Brutal.Vulkan.Skia.csproj -c Release
+benchmarks/Performance/Brutal.Vulkan/bin/Release/net10.0/Performance.Brutal.Vulkan.Skia
+```
 
 Browser (needs the `wasm-tools-net8` workload and Node):
 
