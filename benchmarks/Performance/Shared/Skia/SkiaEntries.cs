@@ -8,8 +8,19 @@ namespace Performance
         public const string PreRasterizedSuffix = " (pre-rasterized SVG)";
 
         /// <param name="direct">False where the host has no <c>SkiaDirectCanvas</c> entry.</param>
-        public static IEnumerable<PerfEntry> For(PerfScene scene, bool direct)
+        /// <param name="targetSizes">
+        /// True where the host draws <see cref="SceneKind.GuideTargetSize"/> scenes into a target of the scene's
+        /// <see cref="PerfScene.TargetWidth"/> by <see cref="PerfScene.TargetHeight"/>. Elsewhere those scenes are left out.
+        /// </param>
+        public static IEnumerable<PerfEntry> For(PerfScene scene, bool direct, bool targetSizes = false)
         {
+            // Guide scenes measure a Skia technique rather than the canvas, so the render target row is enough.
+            if (scene.SkiaOnly)
+            {
+                if (scene.Kind != SceneKind.GuideTargetSize || targetSizes)
+                    yield return new PerfEntry(scene, "skia", TargetLabel);
+                yield break;
+            }
             yield return new PerfEntry(scene, "skia", TargetLabel);
             if (direct)
                 yield return new PerfEntry(scene, "skia", DirectLabel);

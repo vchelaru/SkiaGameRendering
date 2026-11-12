@@ -8,12 +8,6 @@ using SkiaGameRendering;
 using SkiaSharp;
 
 var options = PerfOptions.Parse(args);
-if (options.MultiSampleCount > 0)
-{
-    // TODO: pass options.MultiSampleCount to SkiaRenderTarget2D once BRUTAL OpenGL's takes a sample count.
-    Console.Error.WriteLine("--msaa is not supported on BRUTAL OpenGL yet: its SkiaRenderTarget2D has no sample count.");
-    return 2;
-}
 
 if (!Glfw.Init())
 {
@@ -33,9 +27,9 @@ Glfw.SwapInterval(0);
 static IntPtr GetProc(string name) => Glfw.GetProcAddress(System.Text.Encoding.ASCII.GetBytes(name + "\0"));
 
 using var context = new SkiaGlContext(GetProc);
-var host = new BrutalGlHost(window, context, options.Antialias);
+var host = new BrutalGlHost(window, context, options.Antialias, options.MultiSampleCount);
 var runner = new PerfRunner("BRUTAL OpenGL Skia", options, host);
-runner.Start(scene => SkiaEntries.For(scene, direct: false));
+runner.Start(scene => SkiaEntries.For(scene, direct: false, targetSizes: true));
 while (!runner.Finished && !window.ShouldClose)
 {
     Glfw.PollEvents();
@@ -52,38 +46,58 @@ sealed class BrutalGlHost : IPerfHost, IDisposable
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate IntPtr GetString(uint name);
 
     readonly GlfwWindow _window;
+    readonly SkiaGlContext _context;
     readonly SkiaRenderTarget2D _target;
     readonly GlBlit _blit;
     readonly SkiaSceneDrawer _drawer;
     readonly Func<string, IntPtr> _getProc;
 
-    public BrutalGlHost(GlfwWindow window, SkiaGlContext context, bool antialias)
+    readonly int _multiSampleCount;
+
+    public BrutalGlHost(GlfwWindow window, SkiaGlContext context, bool antialias, int multiSampleCount)
     {
         _window = window;
+        _context = context;
+        _multiSampleCount = multiSampleCount;
         _getProc = name => Glfw.GetProcAddress(System.Text.Encoding.ASCII.GetBytes(name + "\0"));
-        _target = new SkiaRenderTarget2D(context, PerfRunner.Width, PerfRunner.Height);
+        _target = new SkiaRenderTarget2D(context, PerfRunner.Width, PerfRunner.Height, multiSampleCount: multiSampleCount);
         _blit = new GlBlit(_getProc, _target.GlTexture);
         _drawer = new SkiaSceneDrawer(antialias);
     }
 
-    public void PrepareEntry(PerfEntry entry) { }
+    // Render targets for the target-size guide scenes, made in PrepareEntry so creating them is not measured.
+    readonly Dictionary<(int Width, int Height), (SkiaRenderTarget2D Target, GlBlit Blit)> _sizedTargets = new();
+
+    public void PrepareEntry(PerfEntry entry)
+    {
+        var size = (entry.Scene.TargetWidth, entry.Scene.TargetHeight);
+        if (size.TargetWidth > 0 && !_sizedTargets.ContainsKey(size))
+        {
+            var target = new SkiaRenderTarget2D(_context, size.TargetWidth, size.TargetHeight, multiSampleCount: _multiSampleCount);
+            _sizedTargets[size] = (target, new GlBlit(_getProc, target.GlTexture));
+        }
+    }
 
     public void DrawEntry(PerfEntry entry, float t)
     {
-        _target.Begin(clear: false);
+        // A target-size scene draws into a target of its own size, which the blit scales to the window.
+        var (target, blit) = entry.Scene.TargetWidth > 0
+            ? _sizedTargets[(entry.Scene.TargetWidth, entry.Scene.TargetHeight)]
+            : (_target, _blit);
+        target.Begin(clear: false);
         try
         {
             // The blit copies rather than blends, so black here matches the other apps' black clear behind the composite.
-            _target.Canvas.Clear(SKColors.Black);
+            target.Canvas.Clear(SKColors.Black);
             // Uploads need Skia's GPU context current, which it only is between Begin and End.
-            _drawer.Prepare((GRContext)_target.Canvas.Context!,entry.Scene);
-            _drawer.Draw(_target.Canvas, entry.Scene, t, SkiaEntries.VariantOf(entry));
+            _drawer.Prepare((GRContext)target.Canvas.Context!, entry.Scene);
+            _drawer.Draw(target.Canvas, entry.Scene, t, SkiaEntries.VariantOf(entry));
         }
         finally
         {
-            _target.End();
+            target.End();
         }
-        _blit.ToWindow(PerfRunner.Width, PerfRunner.Height, _window.FramebufferSize.X, _window.FramebufferSize.Y);
+        blit.ToWindow(target.Width, target.Height, _window.FramebufferSize.X, _window.FramebufferSize.Y);
     }
 
     public void SaveScreenshot(PerfEntry entry, string path)
@@ -102,12 +116,17 @@ sealed class BrutalGlHost : IPerfHost, IDisposable
     public string GpuDescription =>
         Marshal.PtrToStringAnsi(Marshal.GetDelegateForFunctionPointer<GetString>(_getProc("glGetString"))(GL_RENDERER)) ?? "unknown";
 
-    public string MsaaDescription => "off";
+    public string MsaaDescription => _multiSampleCount > 0 ? $"{_multiSampleCount}x on the render target" : "off";
 
     public void Dispose()
     {
         _drawer.Dispose();
         _blit.Dispose();
         _target.Dispose();
+        foreach (var (target, blit) in _sizedTargets.Values)
+        {
+            blit.Dispose();
+            target.Dispose();
+        }
     }
 }

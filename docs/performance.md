@@ -18,7 +18,8 @@ scene has a page with a screenshot, what each side does, and a table per platfor
 
 ## Tips
 
-How to draw so it runs fast is in [Performance tips](documentation/performance-tips.md). This page is the measurements.
+How to draw so it runs fast, with the reasons and the numbers behind each tip, is in
+[Performance tips](documentation/performance-tips.md). This page is the engine-versus-Skia measurements.
 
 ## How it is measured
 
@@ -52,7 +53,7 @@ as WebAssembly while Skia is native code compiled to WebAssembly.
 
 ## Running
 
-Desktop (any scene subset with `--page slug[,slug]`; `--quick` shortens the windows for a smoke run;
+Desktop (any scene subset with `--page slug[,slug]`; `--scenes "name[,name]"` keeps only the scenes with those exact names, ignoring case, and combines with `--page`; `--quick` shortens the windows for a smoke run;
 `--no-screenshots` skips the PNGs; `--no-aa` turns antialiasing off on every Skia paint and font, Skia apps only;
 `--msaa 2|4|8` asks for a multisampled back buffer and Skia render target; the results header records both):
 
@@ -66,7 +67,9 @@ benchmarks/Performance/Kni.DesktopGL/Skia/bin/Release/net8.0/Performance.Kni.Des
 writes `perf-results-<app>.md` and a `screenshots` folder next to the exe, and exits when done.
 
 BRUTAL has no 2D renderer of its own, so it has only a Skia app per backend, drawing through `SkiaRenderTarget2D`
-and blitting it to the window. They do not take `--msaa` yet.
+and blitting it to the window. The OpenGL app takes `--msaa`; the Vulkan app does not yet. The `guide-*` pages
+(clipping, `SKPicture`, `SaveLayer`, target size, draw order, object reuse, shadows, strokes, sampling) are
+Skia-only and back the numbers in [Performance tips](documentation/performance-tips.md).
 
 ```bash
 dotnet build benchmarks/Performance/Brutal.OGL/Performance.Brutal.OGL.Skia.csproj -c Release

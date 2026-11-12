@@ -4,6 +4,7 @@ namespace Performance
     /// The command line every performance app takes, whichever engine hosts it.
     /// <list type="bullet">
     /// <item><c>--page slug[,slug]</c> runs only those pages' scenes.</item>
+    /// <item><c>--scenes "name[,name]"</c> runs only the scenes with those names (exact, ignoring case); combines with <c>--page</c>.</item>
     /// <item><c>--scene N</c> holds entry N (0-based, after the page filter) indefinitely instead of sweeping.</item>
     /// <item><c>--no-screenshots</c> skips the PNGs.</item>
     /// <item><c>--quick</c> shortens the warmup and measured windows for a smoke run; its results are not for the docs.</item>
@@ -14,6 +15,7 @@ namespace Performance
     public sealed class PerfOptions
     {
         public string[]? Pages { get; private init; }
+        public string[]? SceneNames { get; private init; }
         public int? HeldEntry { get; private init; }
         public bool Screenshots { get; private init; } = true;
         public bool Quick { get; private init; }
@@ -44,6 +46,7 @@ namespace Performance
             return new PerfOptions
             {
                 Pages = Value("--page")?.Split(','),
+                SceneNames = Value("--scenes")?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
                 HeldEntry = Value("--scene") is { } scene ? int.Parse(scene) : null,
                 Screenshots = !args.Contains("--no-screenshots"),
                 Quick = args.Contains("--quick"),

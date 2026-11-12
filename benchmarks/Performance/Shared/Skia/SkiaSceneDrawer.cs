@@ -18,7 +18,7 @@ namespace Performance
     /// It draws onto whatever canvas it is handed, so the same code runs under a
     /// <c>SkiaRenderTarget2D</c> and under a <c>SkiaDirectCanvas</c>, on any engine.
     /// </summary>
-    public sealed class SkiaSceneDrawer : IDisposable
+    public sealed partial class SkiaSceneDrawer : IDisposable
     {
         private const float ShadowBlur = 12f;
         private const float CornerRadius = 8f;
@@ -105,6 +105,7 @@ namespace Performance
                 _gpuImages = null;
                 _svgImage?.Dispose();
                 _svgImage = null;
+                ResetGuideImages();
                 _imageContext = context;
             }
 
@@ -124,6 +125,8 @@ namespace Performance
                 _svgSource = new SKRect[scene.Count];
                 Array.Fill(_svgSource, new SKRect(0, 0, SvgImageSize, SvgImageSize));
             }
+
+            PrepareGuide(context, scene);
 
             _gpuImages ??= Array.ConvertAll(_rasterImages, image =>
                 image.ToTextureImage(context) ?? throw new InvalidOperationException("SKImage.ToTextureImage failed."));
@@ -155,7 +158,6 @@ namespace Performance
                     PrepareAtlas(scene.Count, 1);
                     break;
                 case SceneKind.MultiTexture:
-                case SceneKind.Ui:
                     PrepareAtlas(scene.Count, PerfScene.TextureCount);
                     break;
 
@@ -212,6 +214,8 @@ namespace Performance
                 case SceneKind.Sprites: DrawSprites(canvas, scene, t); break;
                 case SceneKind.MultiTexture: DrawMultiTexture(canvas, scene, t); break;
                 case SceneKind.Circles: DrawCircles(canvas, scene, t); break;
+                case SceneKind.Rectangles: DrawRectangles(canvas, scene, t, rounded: false); break;
+                case SceneKind.RoundedRectangles: DrawRectangles(canvas, scene, t, rounded: true); break;
                 case SceneKind.Shapes: DrawShapes(canvas, scene, t); break;
                 case SceneKind.Gradients: DrawGradients(canvas, scene, t); break;
                 case SceneKind.Shadows: DrawShadows(canvas, scene, t); break;
@@ -221,7 +225,7 @@ namespace Performance
                 case SceneKind.FillOpaque: DrawFill(canvas, scene, t, translucent: false); break;
                 case SceneKind.FillTranslucent: DrawFill(canvas, scene, t, translucent: true); break;
                 case SceneKind.Ui: DrawUi(canvas, scene, t); break;
-                default: throw new NotSupportedException(scene.Kind.ToString());
+                default: DrawGuide(canvas, scene, t); break;
             }
         }
 
@@ -273,6 +277,28 @@ namespace Performance
                 var pos = scene.Position(i, t);
                 _paint.Color = Solid(i);
                 canvas.DrawCircle(pos.X, pos.Y, items[i].Size, _paint);
+            }
+        }
+
+        private void DrawRectangles(SKCanvas canvas, PerfScene scene, float t, bool rounded)
+        {
+            var items = scene.Items;
+            for (int i = 0; i < items.Length; i++)
+            {
+                var pos = scene.Position(i, t);
+                float s = items[i].Size;
+                _paint.Color = Solid(i);
+                // Axis-aligned, one call per item and no canvas transform, like DrawCircles, so the
+                // circle and rectangle rows compare the shape alone.
+                if (rounded)
+                {
+                    float r = PerfScene.CornerRadius(s);
+                    canvas.DrawRoundRect(pos.X - s, pos.Y - s * 0.7f, s * 2f, s * 1.4f, r, r, _paint);
+                }
+                else
+                {
+                    canvas.DrawRect(pos.X - s, pos.Y - s * 0.7f, s * 2f, s * 1.4f, _paint);
+                }
             }
         }
 
@@ -420,12 +446,15 @@ namespace Performance
             }
         }
 
+        // Each card draws completely (shadow, panel, border, icon, label) before the next, as a real UI does,
+        // even though it keeps Skia from batching the icons or text across cards.
         private void DrawUi(SKCanvas canvas, PerfScene scene, float t)
         {
             var items = scene.Items;
             var panel = new SKColor(38, 42, 54);
             var border = new SKColor(90, 98, 120);
             var shadow = new SKColor(0, 0, 0, 120);
+            var font = Font(16);
 
             for (int i = 0; i < items.Length; i++)
             {
@@ -445,34 +474,14 @@ namespace Performance
                 _paint.Color = border;
                 canvas.DrawRoundRect(rect, CornerRadius, CornerRadius, _paint);
                 _paint.Style = SKPaintStyle.Fill;
-            }
 
-            float half = PerfAssets.Size / 2f;
-            int groups = PerfScene.TextureCount;
-            for (int i = 0; i < items.Length; i++)
-            {
-                float s = items[i].Size;
-                float h = s * 1.6f;
-                var pos = scene.Position(i, t);
-                float iconX = pos.X - s * 1.5f + s * 0.8f;
-                _transforms[i % groups][i / groups] = SKRotationScaleMatrix.Create(s * 0.9f / PerfAssets.Size, 0f, iconX, pos.Y, half, half);
-            }
-            for (int k = 0; k < groups; k++)
-            {
-                if (_transforms[k].Length > 0)
-                    canvas.DrawAtlas(_gpuImages![1 + k], _sources[k], _transforms[k], Linear, _paint);
-            }
+                float iconX = rect.Left + s * 0.8f, iconHalf = s * 0.45f;
+                _paint.Color = SKColors.White;
+                canvas.DrawImage(_gpuImages![1 + i % PerfScene.TextureCount],
+                    new SKRect(iconX - iconHalf, pos.Y - iconHalf, iconX + iconHalf, pos.Y + iconHalf), Linear, _paint);
 
-            var font = Font(16);
-            _paint.Color = SKColors.White;
-            for (int i = 0; i < items.Length; i++)
-            {
-                float s = items[i].Size;
-                float h = s * 1.6f;
-                var pos = scene.Position(i, t);
-                float x = pos.X - s * 1.5f + s * 1.5f;
-                float top = pos.Y - h / 2f + h / 2f - font.Spacing / 2f;
-                canvas.DrawText($"Item {i}", x, top - font.Metrics.Ascent, SKTextAlign.Left, font, _paint);
+                float top = pos.Y - font.Spacing / 2f;
+                canvas.DrawText($"Item {i}", rect.Left + s * 1.5f, top - font.Metrics.Ascent, SKTextAlign.Left, font, _paint);
             }
         }
 
@@ -495,6 +504,7 @@ namespace Performance
             _shadowBlur.Dispose();
             _uiShadowBlur.Dispose();
             _triangle.Dispose();
+            DisposeGuide();
             _paint.Dispose();
         }
     }
