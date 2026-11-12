@@ -878,23 +878,6 @@ jobs:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
           VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
           SKIAGAMERENDERING_PINNED_RASTERIZER: 1
-      - name: TEMP stability loop (revert before merge)
-        shell: bash {0}
-        run: |
-          fails=0
-          for i in $(seq 1 25); do
-            dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalLayoutContractTests|FullyQualifiedName~BrutalGoldenImageTests|FullyQualifiedName~BrutalMultiSampleTests" > /tmp/run$i.txt 2>&1
-            rc=$?
-            echo "iteration $i exit $rc $(grep -E 'Passed!|Failed!|aborted' /tmp/run$i.txt | head -1)"
-            if grep -qE "VUID-|SYNC-HAZARD" /tmp/run$i.txt; then echo "validation errors in iteration $i"; rc=1; fi
-            [ $rc -ne 0 ] && fails=$((fails+1))
-          done
-          echo "failures: $fails / 25"
-          [ $fails -eq 0 ]
-        env:
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-          VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
-          SKIAGAMERENDERING_PINNED_RASTERIZER: 1
       - name: Upload golden image diffs
         if: failure()
         uses: actions/upload-artifact@v4
