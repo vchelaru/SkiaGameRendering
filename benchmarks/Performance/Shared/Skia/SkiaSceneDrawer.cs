@@ -18,7 +18,7 @@ namespace Performance
     /// It draws onto whatever canvas it is handed, so the same code runs under a
     /// <c>SkiaRenderTarget2D</c> and under a <c>SkiaDirectCanvas</c>, on any engine.
     /// </summary>
-    public sealed class SkiaSceneDrawer : IDisposable
+    public sealed partial class SkiaSceneDrawer : IDisposable
     {
         private const float ShadowBlur = 12f;
         private const float CornerRadius = 8f;
@@ -105,6 +105,7 @@ namespace Performance
                 _gpuImages = null;
                 _svgImage?.Dispose();
                 _svgImage = null;
+                ResetGuideImages();
                 _imageContext = context;
             }
 
@@ -124,6 +125,8 @@ namespace Performance
                 _svgSource = new SKRect[scene.Count];
                 Array.Fill(_svgSource, new SKRect(0, 0, SvgImageSize, SvgImageSize));
             }
+
+            PrepareGuide(context, scene);
 
             _gpuImages ??= Array.ConvertAll(_rasterImages, image =>
                 image.ToTextureImage(context) ?? throw new InvalidOperationException("SKImage.ToTextureImage failed."));
@@ -222,7 +225,7 @@ namespace Performance
                 case SceneKind.FillOpaque: DrawFill(canvas, scene, t, translucent: false); break;
                 case SceneKind.FillTranslucent: DrawFill(canvas, scene, t, translucent: true); break;
                 case SceneKind.Ui: DrawUi(canvas, scene, t); break;
-                default: throw new NotSupportedException(scene.Kind.ToString());
+                default: DrawGuide(canvas, scene, t); break;
             }
         }
 
@@ -501,6 +504,7 @@ namespace Performance
             _shadowBlur.Dispose();
             _uiShadowBlur.Dispose();
             _triangle.Dispose();
+            DisposeGuide();
             _paint.Dispose();
         }
     }

@@ -77,6 +77,8 @@ namespace Performance
 
         public static IEnumerable<string> Renderers(PerfScene scene)
         {
+            if (scene.SkiaOnly)
+                return Array.Empty<string>();
             switch (scene.Kind)
             {
                 case SceneKind.Sprites: return new[] { SpriteBatchLabel };

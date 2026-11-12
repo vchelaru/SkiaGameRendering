@@ -18,6 +18,48 @@ namespace Performance
         FillOpaque,
         FillTranslucent,
         Ui,
+
+        // Skia-only "guide" scenes. Each guide page holds sets whose rows share a workload and change one factor
+        // (the scene's Variant), so they compare directly. Engine renderers draw nothing for them.
+        GuideClip,
+        GuidePicture,
+        GuideItemAlpha,
+        GuideSceneLayer,
+        GuideTargetSize,
+        GuideDrawOrder,
+        GuidePaintReuse,
+        GuideFontReuse,
+        GuidePathReuse,
+        GuideShadow,
+        GuideStroke,
+        GuideSampling,
+    }
+
+    /// <summary>The one factor a guide scene varies; see <see cref="PerfScene.Variant"/>.</summary>
+    public enum GuideVariant
+    {
+        None,
+        ClipRect,
+        ClipRoundRect,
+        ClipPath,
+        Direct,
+        PictureReplay,
+        PaintAlpha,
+        SaveLayer,
+        Interleaved,
+        Grouped,
+        NewPerDraw,
+        Reused,
+        MaskBlur,
+        DropShadowFilter,
+        NineSlice,
+        Fill,
+        Stroke1,
+        Hairline,
+        Stroke4,
+        Nearest,
+        Linear,
+        LinearMipmaps,
     }
 
     /// <summary>
@@ -83,6 +125,19 @@ namespace Performance
         public int Width { get; }
         public int Height { get; }
 
+        /// <summary>What a guide scene varies; <see cref="GuideVariant.None"/> for the other scenes.</summary>
+        public GuideVariant Variant { get; private init; }
+
+        /// <summary>
+        /// For <see cref="SceneKind.GuideTargetSize"/>: the render target size the host draws into, with the scene
+        /// scaled to fill it. Zero everywhere else, meaning the window-sized target.
+        /// </summary>
+        public int TargetWidth { get; private init; }
+        public int TargetHeight { get; private init; }
+
+        /// <summary>True for the guide scenes, which only the Skia renderers draw.</summary>
+        public bool SkiaOnly => Page.StartsWith("guide-", StringComparison.Ordinal);
+
         private PerfScene(string page, string name, SceneKind kind, bool tinted, Item[] items, int width, int height)
         {
             Page = page;
@@ -145,7 +200,71 @@ namespace Performance
             foreach (var (name, count) in new[] { ("UI 50", 50), ("UI 1k", 1_000) })
                 scenes.Add(Formula("ui", name, SceneKind.Ui, count, width, height, 40f, 60f, 3f, 8f));
 
+            AddGuideScenes(scenes, width, height);
             return scenes.ToArray();
+        }
+
+        /// <summary>
+        /// The guide pages: Skia-only sets that each answer one "which way is faster" question. Within a set every
+        /// row draws the same items and changes only <see cref="Variant"/>.
+        /// </summary>
+        private static void AddGuideScenes(List<PerfScene> scenes, int width, int height)
+        {
+            PerfScene Guide(string page, string name, SceneKind kind, GuideVariant variant, int count,
+                float minSize, float maxSize, int targetWidth = 0, int targetHeight = 0, int sizeClasses = 0) =>
+                new(page, name, kind, false, Formula(page, name, kind, count, width, height, minSize, maxSize, 10f, 30f, sizeClasses).Items, width, height)
+                {
+                    Variant = variant,
+                    TargetWidth = targetWidth,
+                    TargetHeight = targetHeight,
+                };
+
+            // Each item saves, clips to a region smaller than its circle, draws the circle and restores. "None" still saves and restores.
+            foreach (var (name, v) in new[] { ("Clip none 2k", GuideVariant.None), ("ClipRect 2k", GuideVariant.ClipRect),
+                         ("ClipRoundRect 2k", GuideVariant.ClipRoundRect), ("ClipPath 2k", GuideVariant.ClipPath) })
+                scenes.Add(Guide("guide-clip", name, SceneKind.GuideClip, v, 2_000, 6f, 18f));
+
+            // Axis-aligned circles, rects and rounded rects frozen at t = 0: drawn call by call, or recorded once into an SKPicture and replayed.
+            scenes.Add(Guide("guide-picture", "Static shapes direct 2k", SceneKind.GuidePicture, GuideVariant.Direct, 2_000, 8f, 20f));
+            scenes.Add(Guide("guide-picture", "Static shapes SKPicture 2k", SceneKind.GuidePicture, GuideVariant.PictureReplay, 2_000, 8f, 20f));
+
+            // Half-transparent two-shape items: alpha on each paint, or opaque paints inside a SaveLayer with alpha per item.
+            scenes.Add(Guide("guide-savelayer", "Item alpha paint 250", SceneKind.GuideItemAlpha, GuideVariant.PaintAlpha, 250, 8f, 20f));
+            scenes.Add(Guide("guide-savelayer", "Item alpha SaveLayer 250", SceneKind.GuideItemAlpha, GuideVariant.SaveLayer, 250, 8f, 20f));
+            // Opaque circles drawn straight to the target, or inside one SaveLayer (alpha 200) around the whole scene.
+            scenes.Add(Guide("guide-savelayer", "Scene no layer 2k", SceneKind.GuideSceneLayer, GuideVariant.None, 2_000, 6f, 18f));
+            scenes.Add(Guide("guide-savelayer", "Scene one SaveLayer 2k", SceneKind.GuideSceneLayer, GuideVariant.SaveLayer, 2_000, 6f, 18f));
+
+            // The same axis-aligned shapes, animated and scaled to fill render targets of different sizes.
+            foreach (var (w, h) in new[] { (800, 800), (1600, 900), (3840, 2160) })
+                scenes.Add(Guide("guide-target-size", $"Target {w}x{h}", SceneKind.GuideTargetSize, GuideVariant.None, 2_000, 8f, 20f, w, h));
+
+            // Circle, rect, text, image per item: in item order (i % 4), or every circle first, then the rects, text and images.
+            scenes.Add(Guide("guide-draw-order", "Interleaved 2k", SceneKind.GuideDrawOrder, GuideVariant.Interleaved, 2_000, 6f, 16f));
+            scenes.Add(Guide("guide-draw-order", "Grouped by type 2k", SceneKind.GuideDrawOrder, GuideVariant.Grouped, 2_000, 6f, 16f));
+
+            scenes.Add(Guide("guide-reuse", "SKPaint new per draw 2k", SceneKind.GuidePaintReuse, GuideVariant.NewPerDraw, 2_000, 6f, 18f));
+            scenes.Add(Guide("guide-reuse", "SKPaint reused 2k", SceneKind.GuidePaintReuse, GuideVariant.Reused, 2_000, 6f, 18f));
+            scenes.Add(Guide("guide-reuse", "SKFont new per label 500", SceneKind.GuideFontReuse, GuideVariant.NewPerDraw, 500, 0f, 0f));
+            scenes.Add(Guide("guide-reuse", "SKFont cached 500", SceneKind.GuideFontReuse, GuideVariant.Reused, 500, 0f, 0f));
+            // A star per item at the item's size: built with SKPathBuilder every frame, or built once and kept.
+            scenes.Add(Guide("guide-reuse", "SKPath rebuilt per frame 1k", SceneKind.GuidePathReuse, GuideVariant.NewPerDraw, 1_000, 8f, 20f));
+            scenes.Add(Guide("guide-reuse", "SKPath cached 1k", SceneKind.GuidePathReuse, GuideVariant.Reused, 1_000, 8f, 20f));
+
+            // Panels in five sizes, as a UI reuses a few, with the same soft shadow made three ways.
+            foreach (var (name, v) in new[] { ("Shadow MaskFilter blur 100", GuideVariant.MaskBlur),
+                         ("Shadow DropShadow filter 100", GuideVariant.DropShadowFilter), ("Shadow nine-slice image 100", GuideVariant.NineSlice) })
+                scenes.Add(Guide("guide-shadows", name, SceneKind.GuideShadow, v, 100, 40f, 60f, sizeClasses: 5));
+
+            // Alternating circles and rounded rectangles.
+            foreach (var (name, v) in new[] { ("Fill 2k", GuideVariant.Fill), ("Stroke 1px 2k", GuideVariant.Stroke1),
+                         ("Hairline 2k", GuideVariant.Hairline), ("Stroke 4px 2k", GuideVariant.Stroke4) })
+                scenes.Add(Guide("guide-strokes", name, SceneKind.GuideStroke, v, 2_000, 6f, 18f));
+
+            // DrawAtlas of a 256 px image drawn at 16-48 px, so every sprite is downscaled 5x to 16x.
+            foreach (var (name, v) in new[] { ("Sampling nearest 10k", GuideVariant.Nearest), ("Sampling linear 10k", GuideVariant.Linear),
+                         ("Sampling linear mipmaps 10k", GuideVariant.LinearMipmaps) })
+                scenes.Add(Guide("guide-sampling", name, SceneKind.GuideSampling, v, 10_000, 8f, 24f));
         }
 
         // Sprite scenes keep their original seeded generation so results recorded before the other
