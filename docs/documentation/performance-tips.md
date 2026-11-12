@@ -255,7 +255,9 @@ These made no measurable difference, so pick whatever reads best:
 
 ## What to expect
 
-Skia is not faster than the engine at everything, and the scene pages show where.
+Skia gives every engine one drawing API with vector shapes, text at any size with no atlas to bake, and
+effects the engines lack. Some scenes cost more frame time than the engine's own drawing, and the scene pages
+show which. The tips above close most of that gap.
 
 - **Close to native, or ahead:** sprites through `DrawAtlas`, and full UI panels (shadow, border, icon and
   text in one pass), where Skia draws everything in one pass and the native side needs several libraries
@@ -267,8 +269,5 @@ Skia is not faster than the engine at everything, and the scene pages show where
   [Fill rate](../performance/fill-rate.md).
 - **Furthest behind:** strokes, round caps and paths (the mixed shapes scene), a replayed SVG, and blurred
   shadows from `SKMaskFilter.CreateBlur`. Skia tessellates these paths, where the native side uses a closed-form
-  shader; the shadow gap is the widest in the suite. For thousands of them per frame on the desktop, a
-  shader-based library is the faster choice. See [SVG](../performance/svg.md) and
-  [Drop shadows](../performance/shadows.md).
-- **What Skia is for:** vector content, text at any size with no atlas to bake, and one drawing API on
-  every engine.
+  shader. For thousands of them per frame, use the matching tips above: 4x MSAA, cached paths, round stroke
+  joins and nine-slice shadows. See [SVG](../performance/svg.md) and [Drop shadows](../performance/shadows.md).
