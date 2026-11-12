@@ -49,6 +49,8 @@ namespace Performance
         private readonly List<double> _frameMs = new();
         private readonly List<double> _drawMs = new();
         private readonly List<string> _resultRows = new();
+        private int _inactiveFrames;
+        private bool _anyInactive;
 
         private readonly Stopwatch _frameClock = new();
         private readonly Stopwatch _drawClock = new();
@@ -84,6 +86,8 @@ namespace Performance
                 GraphicsProfile = GraphicsProfile.HiDef,
             };
             IsFixedTimeStep = false;
+            // Otherwise MonoGame sleeps 20 ms per frame while the window is in the background.
+            InactiveSleepTime = TimeSpan.Zero;
             IsMouseVisible = true;
             Window.Title = label;
         }
@@ -195,10 +199,14 @@ namespace Performance
                 _phaseSeconds = 0;
                 _frameMs.Clear();
                 _drawMs.Clear();
+                _inactiveFrames = 0;
             }
             else if (_phase == Phase.Measure)
             {
                 _frameMs.Add(frameMs);
+                // The OS or driver can still throttle a background window, so record it.
+                if (!IsActive)
+                    _inactiveFrames++;
                 if (_phaseSeconds >= MeasureSeconds)
                 {
                     RecordResult(_entries[_entryIndex]);
@@ -236,11 +244,14 @@ namespace Performance
             double median = Percentile(_frameMs, 0.5);
             double p95 = Percentile(_frameMs, 0.95);
             double draw = Percentile(_drawMs, 0.5);
-            _resultRows.Add($"| {entry.Scene.Page} | {entry.Scene.Name} | {entry.Scene.Count} | {entry.Kind} | {entry.Renderer} | {fps:0} | {median:0.000} | {p95:0.000} | {draw:0.000} |  |");
+            double inactive = _frameMs.Count == 0 ? 0 : (double)_inactiveFrames / _frameMs.Count;
+            if (_inactiveFrames > 0)
+                _anyInactive = true;
+            _resultRows.Add($"| {entry.Scene.Page} | {entry.Scene.Name} | {entry.Scene.Count} | {entry.Kind} | {entry.Renderer} | {fps:0} | {median:0.000} | {p95:0.000} | {draw:0.000} | {inactive:0%} |  |");
         }
 
         private void RecordSkipped(PerfEntry entry, string reason) =>
-            _resultRows.Add($"| {entry.Scene.Page} | {entry.Scene.Name} | {entry.Scene.Count} | {entry.Kind} | {entry.Renderer} | n/a |  |  |  | {reason} |");
+            _resultRows.Add($"| {entry.Scene.Page} | {entry.Scene.Name} | {entry.Scene.Count} | {entry.Kind} | {entry.Renderer} | n/a |  |  |  |  | {reason} |");
 
         private static double Percentile(List<double> sorted, double p) =>
             sorted.Count == 0 ? 0 : sorted[(int)Math.Min(sorted.Count - 1, Math.Round(p * (sorted.Count - 1)))];
@@ -285,9 +296,11 @@ namespace Performance
             sb.AppendLine($"- GPU: {GpuDescription}");
             sb.AppendLine($"- Power: {machine.Power}");
             sb.AppendLine($"- Window: {Width}x{Height}, vsync off, {MeasureSeconds:0}s measured per entry after {WarmupSeconds:0}s warmup");
+            if (_anyInactive)
+                sb.AppendLine("- **Warning: the window was in the background for some measured frames (Inactive column). Those rows may be throttled; rerun with the window focused.**");
             sb.AppendLine();
-            sb.AppendLine("| Page | Scene | Count | Kind | Renderer | FPS | Median frame ms | p95 frame ms | Median draw CPU ms | Note |");
-            sb.AppendLine("|---|---|---:|---|---|---:|---:|---:|---:|---|");
+            sb.AppendLine("| Page | Scene | Count | Kind | Renderer | FPS | Median frame ms | p95 frame ms | Median draw CPU ms | Inactive | Note |");
+            sb.AppendLine("|---|---|---:|---|---|---:|---:|---:|---:|---:|---|");
             foreach (var row in _resultRows)
                 sb.AppendLine(row);
 
