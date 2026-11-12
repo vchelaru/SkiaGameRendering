@@ -285,19 +285,17 @@ namespace Performance
                 var pos = scene.Position(i, t);
                 float s = items[i].Size;
                 _paint.Color = Solid(i);
-                canvas.Save();
-                canvas.Translate(pos.X, pos.Y);
-                canvas.RotateRadians(scene.Rotation(i, t));
+                // Axis-aligned, one call per item and no canvas transform, like DrawCircles, so the
+                // circle and rectangle rows compare the shape alone.
                 if (rounded)
                 {
                     float r = PerfScene.CornerRadius(s);
-                    canvas.DrawRoundRect(-s, -s * 0.7f, s * 2f, s * 1.4f, r, r, _paint);
+                    canvas.DrawRoundRect(pos.X - s, pos.Y - s * 0.7f, s * 2f, s * 1.4f, r, r, _paint);
                 }
                 else
                 {
-                    canvas.DrawRect(-s, -s * 0.7f, s * 2f, s * 1.4f, _paint);
+                    canvas.DrawRect(pos.X - s, pos.Y - s * 0.7f, s * 2f, s * 1.4f, _paint);
                 }
-                canvas.Restore();
             }
         }
 

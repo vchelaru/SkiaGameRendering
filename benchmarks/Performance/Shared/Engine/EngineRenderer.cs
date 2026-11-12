@@ -161,7 +161,7 @@ namespace Performance
                 float s = items[i].Size;
                 var size = new Vector2(s * 2f, s * 1.4f);
                 _shapes.FillRectangle(Position(scene, i, t) - size / 2f, size, _solid[i % _solid.Length],
-                    PerfScene.CornerRadius(s), scene.Rotation(i, t));
+                    PerfScene.CornerRadius(s));
             }
             _shapes.End();
         }
@@ -176,7 +176,7 @@ namespace Performance
                 {
                     float s = items[i].Size;
                     var size = new Vector2(s * 2f, s * 1.4f);
-                    _shapes.FillRectangle(Position(scene, i, t) - size / 2f, size, _solid[i % _solid.Length], 0f, scene.Rotation(i, t));
+                    _shapes.FillRectangle(Position(scene, i, t) - size / 2f, size, _solid[i % _solid.Length]);
                 }
                 _shapes.End();
                 return;
@@ -187,7 +187,7 @@ namespace Performance
             for (int i = 0; i < items.Length; i++)
             {
                 float s = items[i].Size;
-                _spriteBatch.Draw(_pixel, Position(scene, i, t), null, _solid[i % _solid.Length], scene.Rotation(i, t), origin,
+                _spriteBatch.Draw(_pixel, Position(scene, i, t), null, _solid[i % _solid.Length], 0f, origin,
                     new Vector2(s * 2f, s * 1.4f), SpriteEffects.None, 0f);
             }
             _spriteBatch.End();
