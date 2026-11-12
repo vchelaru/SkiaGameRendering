@@ -26,6 +26,7 @@
     <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
     <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
     <Compile Include="..\Shared\MultiSampleChecks.cs" Link="MultiSampleChecks.cs" />
+    <Compile Include="..\Shared\VulkanTestParallelism.cs" Link="VulkanTestParallelism.cs" />
     <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
