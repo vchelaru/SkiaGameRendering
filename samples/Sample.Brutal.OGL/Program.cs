@@ -138,8 +138,8 @@ if (smokeTest && exitCode == 0)
     Console.WriteLine($"antialiased clip: inside {viaTexture[clipped]},{viaTexture[clipped + 1]},{viaTexture[clipped + 2]} " +
         $"outside {viaTexture[clippedOut]},{viaTexture[clippedOut + 1]},{viaTexture[clippedOut + 2]} -> {(clipPass ? "PASS" : "FAIL")}");
 
-    // The Scene's last draw leaves Skia's scissor test on; End must put the app's state back, or this blit (which
-    // honors the scissor) copies only the clip's rectangle.
+    // The Scene's last draw leaves Skia's scissor test on; the blit honors it, so GlBlit has to turn it off or it
+    // copies only the clip's rectangle.
     using (var blit = new GlBlit(GetProc, scene.GlTexture))
         blit.ToWindow(Scene.Width, Scene.Height, Scene.Width, Scene.Height);
     var viaBlit = GlReadback.ReadDefaultFramebuffer(GetProc, Scene.Width, Scene.Height);
@@ -150,11 +150,12 @@ if (smokeTest && exitCode == 0)
         exitCode = 1;
 
     using var direct = new SkiaDirectCanvas(context);
-    SetViewport(Scene.Width, Scene.Height);
     byte[] viaBackBuffer = [];
     // Twice: the second pass reuses the cached back buffer surface.
     for (var pass = 0; pass < 2; pass++)
     {
+        // Begin takes the size from the viewport, which is undefined after a pass.
+        SetViewport(Scene.Width, Scene.Height);
         direct.Begin();
         direct.Canvas.Clear(Scene.Background);
         Scene.Draw(direct.Canvas);

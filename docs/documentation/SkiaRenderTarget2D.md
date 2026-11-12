@@ -145,6 +145,9 @@ example `PreferMultiSampling` on MonoGame's `GraphicsDeviceManager`); Skia follo
   `SkiaRenderTarget2D` (and `Dispose()` the old one) for a different size.
 - Tear the shared backend down (e.g. on exit, or before switching backends) with
   `SkiaRenderer.Dispose()`. Dispose your own `SkiaRenderTarget2D` instances first.
+- On BRUTAL OpenGL Skia draws on the app's own GL context, and the GL state after `End()` is undefined apart from the
+  draw framebuffer binding. Skia can leave `GL_SCISSOR_TEST` on after a clip, so turn it off (and set anything else
+  you rely on) before your own `glBlitFramebuffer`, `glClear` or draws. See the [BRUTAL quickstart](../brutal/quickstart.md).
 - See the sample this pattern is drawn from: `samples/Sample.Gum.Kni.WebGL/Gum/SkiaGumRenderable.cs`
   and `samples/Sample.Gum.Kni.WebGL/Game1.cs`.
 

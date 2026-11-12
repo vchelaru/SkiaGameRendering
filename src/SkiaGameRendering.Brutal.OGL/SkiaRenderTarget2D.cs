@@ -15,10 +15,10 @@ namespace SkiaGameRendering
     /// <para>
     /// <b>Contract.</b> <see cref="GlTexture"/> is a <c>GL_TEXTURE_2D</c> in <c>GL_RGBA8</c> with linear filtering
     /// and clamped edges, premultiplied alpha. Canvas row 0 is texel row 0 (v = 0), as when loading an image.
-    /// Skia draws on the app's own GL context, so the constructor and <see cref="End"/> put back the GL state the
-    /// app had (framebuffer, viewport, scissor, enables, blend, depth, stencil, color mask, program, vertex array,
-    /// buffer, texture and sampler bindings, pixel-store modes) before handing control back. Vertex attributes of
-    /// the default vertex array object are not restored.
+    /// Skia draws on the app's own GL context, so the constructor, <see cref="Begin"/> and <see cref="End"/>
+    /// restore only the draw framebuffer binding (and the constructor the texture binding). Everything else
+    /// (program, vertex array, buffers, viewport, scissor, blend, depth and stencil state, pixel-store modes)
+    /// is whatever Skia left, so the app sets it again after <see cref="End"/>.
     /// </para>
     /// </summary>
     public sealed class SkiaRenderTarget2D : IDisposable
@@ -29,7 +29,7 @@ namespace SkiaGameRendering
         GlFramebufferState? _framebuffer;
         SKSurface? _surface;
         GRBackendRenderTarget? _renderTarget;
-        readonly GlStateSnapshot _appState;
+        int _appFramebuffer;
         bool _hasBegun;
 
         /// <param name="multiSampleCount">
@@ -53,8 +53,7 @@ namespace SkiaGameRendering
             _multiSampleCount = multiSampleCount;
             Width = width;
             Height = height;
-            _appState = context.CreateStateSnapshot();
-            _appState.Save();
+            var app = GlSkiaSurfaceFactory.QueryDrawTarget(context.Gl).FramebufferId;
             try
             {
                 _texture = context.Textures.CreateRgba8(width, height);
@@ -72,8 +71,8 @@ namespace SkiaGameRendering
             }
             finally
             {
-                // Creating the FBO and Skia's surface changes bindings; hand the app its own back.
-                _appState.Restore();
+                // Creating the FBO leaves the default framebuffer bound; hand the app its own back.
+                Rebind(app);
             }
         }
 
@@ -95,7 +94,7 @@ namespace SkiaGameRendering
             if (_hasBegun)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 
-            _appState.Save();
+            _appFramebuffer = GlSkiaSurfaceFactory.QueryDrawTarget(_context.Gl).FramebufferId;
             // The app changed GL state since Skia's last pass.
             _context.GrContext.ResetContext();
             // A multisampled surface has no FBO of ours; Skia binds its own.
@@ -106,7 +105,7 @@ namespace SkiaGameRendering
                 _surface!.Canvas.Clear();
         }
 
-        /// <summary>Flushes Skia's work and puts back the app's GL state from <see cref="Begin"/>. The texture is ready to sample.</summary>
+        /// <summary>Flushes Skia's work and gives the app its framebuffer back. The texture is ready to sample.</summary>
         public void End()
         {
             if (!_hasBegun)
@@ -121,9 +120,12 @@ namespace SkiaGameRendering
             finally
             {
                 _hasBegun = false;
-                _appState.Restore();
+                Rebind(_appFramebuffer);
             }
         }
+
+        void Rebind(int framebuffer) =>
+            GlSkiaSurfaceFactory.BindForDrawing(_context.Gl, new GlFramebufferState { FramebufferId = framebuffer });
 
         /// <summary>Call it with the app's GL context current and after <see cref="End"/>.</summary>
         public void Dispose()
@@ -131,31 +133,19 @@ namespace SkiaGameRendering
             if (_hasBegun)
                 throw new InvalidOperationException("Dispose cannot be called between Begin and End; call End first.");
 
-            if (_surface == null && _framebuffer == null && _texture == 0)
-                return;
-
-            // Deleting the FBO binds framebuffers; put the app's back afterward.
-            _appState.Save();
-            try
+            _surface?.Dispose();
+            _renderTarget?.Dispose();
+            _surface = null;
+            _renderTarget = null;
+            if (_framebuffer != null)
             {
-                _surface?.Dispose();
-                _renderTarget?.Dispose();
-                _surface = null;
-                _renderTarget = null;
-                if (_framebuffer != null)
-                {
-                    GlSkiaSurfaceFactory.DisposeRenderState(_context.Gl, _framebuffer);
-                    _framebuffer = null;
-                }
-                if (_texture != 0)
-                {
-                    _context.Textures.Delete(_texture);
-                    _texture = 0;
-                }
+                GlSkiaSurfaceFactory.DisposeRenderState(_context.Gl, _framebuffer);
+                _framebuffer = null;
             }
-            finally
+            if (_texture != 0)
             {
-                _appState.Restore();
+                _context.Textures.Delete(_texture);
+                _texture = 0;
             }
         }
     }

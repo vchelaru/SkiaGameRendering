@@ -47,8 +47,9 @@ Raylib.EndDrawing();
 
 BRUTAL on OpenGL (package `SkiaGameRendering.Brutal.OGL`) has a `SkiaDirectCanvas` too, constructed with the `SkiaGlContext`:
 `new SkiaDirectCanvas(context)`. `Begin`/`End` draw into the draw framebuffer the app has bound, the back buffer or an
-FBO of its own. The size is the current GL viewport, so set it to the whole target first. `End` puts back the GL state the
-app had at `Begin`. The back buffer is assumed to be RGBA8, and an FBO's
+FBO of its own. The size is the current GL viewport, so set it to the whole target first. `End` restores only the draw
+framebuffer binding; the rest of the GL state is undefined (Skia can leave `GL_SCISSOR_TEST` on after a clip), so the
+app sets what its own GL calls need. The back buffer is assumed to be RGBA8, and an FBO's
 color attachment must be a texture or renderbuffer, or `Begin` throws `NotSupportedException`. See the
 [BRUTAL quick start](../brutal/quickstart.md).
 
