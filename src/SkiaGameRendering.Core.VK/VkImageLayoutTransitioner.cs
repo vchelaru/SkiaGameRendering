@@ -61,6 +61,7 @@ namespace SkiaGameRendering.Core.VK
         readonly delegate* unmanaged<IntPtr, VkCommandBufferBeginInfo*, int> _vkBeginCommandBuffer;
         readonly delegate* unmanaged<IntPtr, int> _vkEndCommandBuffer;
         readonly delegate* unmanaged<IntPtr, uint, uint, uint, uint, void*, uint, void*, uint, VkImageMemoryBarrier*, void> _vkCmdPipelineBarrier;
+        readonly delegate* unmanaged<IntPtr, ulong, uint, ulong, uint, uint, VkImageResolve*, void> _vkCmdResolveImage;
         readonly delegate* unmanaged<IntPtr, uint, VkSubmitInfo*, ulong, int> _vkQueueSubmit;
         readonly delegate* unmanaged<IntPtr, ulong, IntPtr, void> _vkDestroyFence;
         readonly delegate* unmanaged<IntPtr, uint, ulong*, int> _vkResetFences;
@@ -115,6 +116,7 @@ namespace SkiaGameRendering.Core.VK
             _vkBeginCommandBuffer = (delegate* unmanaged<IntPtr, VkCommandBufferBeginInfo*, int>)VulkanNative.RequireDeviceProc(device, "vkBeginCommandBuffer");
             _vkEndCommandBuffer = (delegate* unmanaged<IntPtr, int>)VulkanNative.RequireDeviceProc(device, "vkEndCommandBuffer");
             _vkCmdPipelineBarrier = (delegate* unmanaged<IntPtr, uint, uint, uint, uint, void*, uint, void*, uint, VkImageMemoryBarrier*, void>)VulkanNative.RequireDeviceProc(device, "vkCmdPipelineBarrier");
+            _vkCmdResolveImage = (delegate* unmanaged<IntPtr, ulong, uint, ulong, uint, uint, VkImageResolve*, void>)VulkanNative.RequireDeviceProc(device, "vkCmdResolveImage");
             _vkQueueSubmit = (delegate* unmanaged<IntPtr, uint, VkSubmitInfo*, ulong, int>)VulkanNative.RequireDeviceProc(device, "vkQueueSubmit");
             _vkDestroyFence = (delegate* unmanaged<IntPtr, ulong, IntPtr, void>)VulkanNative.RequireDeviceProc(device, "vkDestroyFence");
             _vkResetFences = (delegate* unmanaged<IntPtr, uint, ulong*, int>)VulkanNative.RequireDeviceProc(device, "vkResetFences");
@@ -210,6 +212,88 @@ namespace SkiaGameRendering.Core.VK
             if (image == 0)
                 throw new ArgumentException("VkImage handle is null (0).", nameof(image));
 
+            var index = BeginRecording();
+            var barrier = Barrier(image, oldLayout, newLayout, srcAccessMask, dstAccessMask, aspectMask, levelCount, layerCount);
+            _vkCmdPipelineBarrier(_slots[index].CommandBuffer, srcStageMask, dstStageMask, 0, 0, null, 0, null, 1, &barrier);
+            Submit(index);
+        }
+
+        /// <summary>
+        /// Queues, as one submit, a <c>vkCmdResolveImage</c> of the whole of <paramref name="source"/> (a
+        /// multisampled color image in <c>COLOR_ATTACHMENT_OPTIMAL</c> holding finished color-attachment writes)
+        /// into the single-sample <paramref name="destination"/>, with the barriers around it. The source goes
+        /// back to <c>COLOR_ATTACHMENT_OPTIMAL</c>. The destination moves from <paramref name="destinationLayout"/>,
+        /// where its last use was at <paramref name="destinationSrcStageMask"/>, to <paramref name="destinationFinalLayout"/>,
+        /// with the resolved texels visible to <paramref name="destinationDstStageMask"/> /
+        /// <paramref name="destinationDstAccessMask"/>. Returns without waiting, like <see cref="Transition"/>.
+        /// </summary>
+        public void Resolve(
+            ulong source, ulong destination, uint width, uint height,
+            uint destinationLayout, uint destinationSrcStageMask,
+            uint destinationFinalLayout, uint destinationDstStageMask, uint destinationDstAccessMask)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (source == 0 || destination == 0)
+                throw new ArgumentException("VkImage handle is null (0).");
+
+            var index = BeginRecording();
+            var commandBuffer = _slots[index].CommandBuffer;
+            var before = stackalloc VkImageMemoryBarrier[2];
+            before[0] = Barrier(source, VkConstants.ImageLayoutColorAttachmentOptimal, VkConstants.ImageLayoutTransferSrcOptimal,
+                VkConstants.AccessColorAttachmentWrite, VkConstants.AccessTransferRead);
+            // Earlier reads of the destination only need to finish first (no srcAccess): nothing wrote it since.
+            before[1] = Barrier(destination, destinationLayout, VkConstants.ImageLayoutTransferDstOptimal,
+                0, VkConstants.AccessTransferWrite);
+            _vkCmdPipelineBarrier(commandBuffer,
+                VkConstants.PipelineStageColorAttachmentOutput | destinationSrcStageMask, VkConstants.PipelineStageTransfer,
+                0, 0, null, 0, null, 2, before);
+
+            var region = new VkImageResolve
+            {
+                srcSubresource = new VkImageSubresourceLayers { aspectMask = VkConstants.ImageAspectColor, layerCount = 1 },
+                dstSubresource = new VkImageSubresourceLayers { aspectMask = VkConstants.ImageAspectColor, layerCount = 1 },
+                extent = new VkExtent3D { width = width, height = height, depth = 1 },
+            };
+            _vkCmdResolveImage(commandBuffer, source, VkConstants.ImageLayoutTransferSrcOptimal,
+                destination, VkConstants.ImageLayoutTransferDstOptimal, 1, &region);
+
+            var after = stackalloc VkImageMemoryBarrier[2];
+            // Skia's next pass reads (load) and writes the source as a color attachment.
+            after[0] = Barrier(source, VkConstants.ImageLayoutTransferSrcOptimal, VkConstants.ImageLayoutColorAttachmentOptimal,
+                0, VkConstants.AccessColorAttachmentRead | VkConstants.AccessColorAttachmentWrite);
+            after[1] = Barrier(destination, VkConstants.ImageLayoutTransferDstOptimal, destinationFinalLayout,
+                VkConstants.AccessTransferWrite, destinationDstAccessMask);
+            _vkCmdPipelineBarrier(commandBuffer,
+                VkConstants.PipelineStageTransfer, VkConstants.PipelineStageColorAttachmentOutput | destinationDstStageMask,
+                0, 0, null, 0, null, 2, after);
+            Submit(index);
+        }
+
+        static VkImageMemoryBarrier Barrier(
+            ulong image, uint oldLayout, uint newLayout, uint srcAccessMask, uint dstAccessMask,
+            uint aspectMask = VkConstants.ImageAspectColor, uint levelCount = 1, uint layerCount = 1) => new()
+        {
+            sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            srcAccessMask = srcAccessMask,
+            dstAccessMask = dstAccessMask,
+            oldLayout = oldLayout,
+            newLayout = newLayout,
+            srcQueueFamilyIndex = VkConstants.QueueFamilyIgnored,
+            dstQueueFamilyIndex = VkConstants.QueueFamilyIgnored,
+            image = image,
+            subresourceRange = new VkImageSubresourceRange
+            {
+                aspectMask = aspectMask,
+                baseMipLevel = 0,
+                levelCount = levelCount,
+                baseArrayLayer = 0,
+                layerCount = layerCount,
+            },
+        };
+
+        /// <summary>Takes a free slot and begins its command buffer; returns the slot's index for <see cref="Submit"/>.</summary>
+        int BeginRecording()
+        {
             var index = AcquireSlotIndex();
             var slot = _slots[index];
             WaitForSlot(ref slot);
@@ -223,28 +307,12 @@ namespace SkiaGameRendering.Core.VK
                 flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
             };
             Check(_vkBeginCommandBuffer(slot.CommandBuffer, &beginInfo), "vkBeginCommandBuffer");
+            return index;
+        }
 
-            var barrier = new VkImageMemoryBarrier
-            {
-                sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                srcAccessMask = srcAccessMask,
-                dstAccessMask = dstAccessMask,
-                oldLayout = oldLayout,
-                newLayout = newLayout,
-                srcQueueFamilyIndex = VkConstants.QueueFamilyIgnored,
-                dstQueueFamilyIndex = VkConstants.QueueFamilyIgnored,
-                image = image,
-                subresourceRange = new VkImageSubresourceRange
-                {
-                    aspectMask = aspectMask,
-                    baseMipLevel = 0,
-                    levelCount = levelCount,
-                    baseArrayLayer = 0,
-                    layerCount = layerCount,
-                },
-            };
-            _vkCmdPipelineBarrier(slot.CommandBuffer, srcStageMask, dstStageMask, 0, 0, null, 0, null, 1, &barrier);
-
+        void Submit(int index)
+        {
+            var slot = _slots[index];
             Check(_vkEndCommandBuffer(slot.CommandBuffer), "vkEndCommandBuffer");
 
             var commandBuffer = slot.CommandBuffer;
@@ -378,6 +446,31 @@ namespace SkiaGameRendering.Core.VK
             public uint dstQueueFamilyIndex;
             public ulong image;
             public VkImageSubresourceRange subresourceRange;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct VkImageSubresourceLayers
+        {
+            public uint aspectMask;
+            public uint mipLevel;
+            public uint baseArrayLayer;
+            public uint layerCount;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct VkOffset3D { public int x, y, z; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct VkExtent3D { public uint width, height, depth; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct VkImageResolve
+        {
+            public VkImageSubresourceLayers srcSubresource;
+            public VkOffset3D srcOffset;
+            public VkImageSubresourceLayers dstSubresource;
+            public VkOffset3D dstOffset;
+            public VkExtent3D extent;
         }
 
         [StructLayout(LayoutKind.Sequential)]

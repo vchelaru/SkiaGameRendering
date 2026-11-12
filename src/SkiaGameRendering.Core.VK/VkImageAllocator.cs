@@ -42,11 +42,14 @@ namespace SkiaGameRendering.Core.VK
         /// <summary>
         /// Creates a <paramref name="width"/> x <paramref name="height"/> image of
         /// <paramref name="format"/> (a <c>VkFormat</c>) in device-local memory. <paramref name="mutableFormat"/> adds
-        /// <c>MUTABLE_FORMAT</c>, so a view in the format's UNORM/sRGB twin is valid.
+        /// <c>MUTABLE_FORMAT</c>, so a view in the format's UNORM/sRGB twin is valid. A <paramref name="samples"/>
+        /// above 1 makes a multisampled image to render into and resolve from, so it has no <c>SAMPLED</c> usage.
         /// </summary>
         public static VkImageAllocation Create(
-            IntPtr instance, IntPtr physicalDevice, IntPtr device, int width, int height, uint format, bool mutableFormat = false)
+            IntPtr instance, IntPtr physicalDevice, IntPtr device, int width, int height, uint format, bool mutableFormat = false,
+            uint samples = VK_SAMPLE_COUNT_1_BIT)
         {
+            var usage = samples > 1 ? ImageUsageFlags & ~VkConstants.ImageUsageSampled : ImageUsageFlags;
             if (instance == IntPtr.Zero)
                 throw new ArgumentException("Vulkan instance native pointer is null.", nameof(instance));
             if (physicalDevice == IntPtr.Zero)
@@ -76,9 +79,9 @@ namespace SkiaGameRendering.Core.VK
                 extent = new VkExtent3D { width = (uint)width, height = (uint)height, depth = 1 },
                 mipLevels = 1,
                 arrayLayers = 1,
-                samples = VK_SAMPLE_COUNT_1_BIT,
+                samples = samples,
                 tiling = VK_IMAGE_TILING_OPTIMAL,
-                usage = ImageUsageFlags,
+                usage = usage,
                 sharingMode = VK_SHARING_MODE_EXCLUSIVE,
                 initialLayout = VkConstants.ImageLayoutUndefined,
             };
@@ -127,7 +130,7 @@ namespace SkiaGameRendering.Core.VK
                     throw;
                 }
 
-                return new VkImageAllocation(image, memory, format, ImageUsageFlags);
+                return new VkImageAllocation(image, memory, format, usage);
             }
             catch
             {

@@ -23,6 +23,7 @@ namespace SkiaGameRendering.Core.VK
         public const uint PipelineStageBottomOfPipe = 0x2000;
 
         public const uint AccessShaderRead = 0x20;
+        public const uint AccessColorAttachmentRead = 0x80;
         public const uint AccessColorAttachmentWrite = 0x100;
         public const uint AccessTransferRead = 0x800;
         public const uint AccessTransferWrite = 0x1000;
