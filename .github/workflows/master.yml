@@ -900,9 +900,9 @@ jobs:
           export DEBUGINFOD_URLS=https://debuginfod.ubuntu.com
           find /tmp -maxdepth 1 -name 'core.*' -print0 | head -z -n 2 | while IFS= read -r -d '' c; do
             echo "==== $c"
-            gdb -batch -ex "set debuginfod enabled on" -ex "bt 40" -ex "thread apply all bt 15" "$(readlink -f $(command -v dotnet))" "$c" 2>&1 | grep -v "^\[New LWP\|Download" | grep -B2 -A16 "^#0 .*\(vulkan\|VkLayer\|lvp\|vk\)\|SIGSEGV" | head -200
+            gdb -batch -ex "bt 6" -ex "info symbol \$pc" -ex "frame 1" -ex "info symbol \$pc" -ex "x/12i \$pc-40" -ex "frame 0" -ex "x/16i \$pc-48" -ex "info registers" "$(readlink -f $(command -v dotnet))" "$c" 2>&1 | grep -v "^\[New LWP" | tail -80
             echo "---- managed"
-            ~/.dotnet/tools/dotnet-dump analyze "$c" -c "clrstack -all" -c exit 2>&1 | grep -v "^\s*$" | grep -B3 -A25 -i "vulkan\|brutal\|Skia" | head -200
+            ~/.dotnet/tools/dotnet-dump analyze "$c" -c "clrthreads" -c "clrstack -all" -c exit 2>&1 | grep -v "^\s*$" | head -400
           done
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
