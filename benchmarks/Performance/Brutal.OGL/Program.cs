@@ -8,12 +8,6 @@ using SkiaGameRendering;
 using SkiaSharp;
 
 var options = PerfOptions.Parse(args);
-if (options.MultiSampleCount > 0)
-{
-    // TODO: pass options.MultiSampleCount to SkiaRenderTarget2D once BRUTAL OpenGL's takes a sample count.
-    Console.Error.WriteLine("--msaa is not supported on BRUTAL OpenGL yet: its SkiaRenderTarget2D has no sample count.");
-    return 2;
-}
 
 if (!Glfw.Init())
 {
@@ -33,7 +27,7 @@ Glfw.SwapInterval(0);
 static IntPtr GetProc(string name) => Glfw.GetProcAddress(System.Text.Encoding.ASCII.GetBytes(name + "\0"));
 
 using var context = new SkiaGlContext(GetProc);
-var host = new BrutalGlHost(window, context, options.Antialias);
+var host = new BrutalGlHost(window, context, options.Antialias, options.MultiSampleCount);
 var runner = new PerfRunner("BRUTAL OpenGL Skia", options, host);
 runner.Start(scene => SkiaEntries.For(scene, direct: false));
 while (!runner.Finished && !window.ShouldClose)
@@ -57,11 +51,14 @@ sealed class BrutalGlHost : IPerfHost, IDisposable
     readonly SkiaSceneDrawer _drawer;
     readonly Func<string, IntPtr> _getProc;
 
-    public BrutalGlHost(GlfwWindow window, SkiaGlContext context, bool antialias)
+    readonly int _multiSampleCount;
+
+    public BrutalGlHost(GlfwWindow window, SkiaGlContext context, bool antialias, int multiSampleCount)
     {
         _window = window;
+        _multiSampleCount = multiSampleCount;
         _getProc = name => Glfw.GetProcAddress(System.Text.Encoding.ASCII.GetBytes(name + "\0"));
-        _target = new SkiaRenderTarget2D(context, PerfRunner.Width, PerfRunner.Height);
+        _target = new SkiaRenderTarget2D(context, PerfRunner.Width, PerfRunner.Height, multiSampleCount: multiSampleCount);
         _blit = new GlBlit(_getProc, _target.GlTexture);
         _drawer = new SkiaSceneDrawer(antialias);
     }
@@ -102,7 +99,7 @@ sealed class BrutalGlHost : IPerfHost, IDisposable
     public string GpuDescription =>
         Marshal.PtrToStringAnsi(Marshal.GetDelegateForFunctionPointer<GetString>(_getProc("glGetString"))(GL_RENDERER)) ?? "unknown";
 
-    public string MsaaDescription => "off";
+    public string MsaaDescription => _multiSampleCount > 0 ? $"{_multiSampleCount}x on the render target" : "off";
 
     public void Dispose()
     {
