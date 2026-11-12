@@ -306,8 +306,10 @@ namespace SkiaGameRendering.Core.VK
         /// <c>(width, height, sampleCount, GRVkImageInfo)</c> constructor obsolete in favor of the
         /// 3-argument one used here, deriving the sample count entirely from
         /// <see cref="VkTextureState"/>'s own <c>GRVkImageInfo.SampleCount</c> (the wrapped image's
-        /// actual sample count) instead. There is no way to ask Skia for an internal MSAA
-        /// buffer distinct from the wrapped image's own sample count on this backend.
+        /// actual sample count) instead. A multisampled image is drawn into as it is; resolving it is
+        /// the caller's job (<see cref="VkImageLayoutTransitioner.Resolve"/>). Wrapping a single-sample
+        /// image as a texture with a sample count instead leaves Skia resolving it lazily, in a layout
+        /// this library cannot read back.
         /// </para>
         /// </summary>
         /// <param name="colorSpace">
@@ -337,6 +339,9 @@ namespace SkiaGameRendering.Core.VK
 
             return (surface, backendRT);
         }
+
+        /// <summary>The most samples per pixel Skia can render <paramref name="colorType"/> with on this device.</summary>
+        public int GetMaxSurfaceSampleCount(SKColorType colorType) => _grContext.GetMaxSurfaceSampleCount(colorType);
 
         /// <summary>
         /// Acquires the host's queue lock (if one was wired through <c>acquireQueueLock</c> on

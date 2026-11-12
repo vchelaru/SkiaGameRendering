@@ -63,20 +63,10 @@ namespace SkiaGameRendering
         private (SKSurface surface, GRBackendRenderTarget renderTarget) CreateMultiSampledSurface(
             int glTextureId, int width, int height, SKColorType colorType, int sampleCount, out object renderState)
         {
-            var max = _grContext.GetMaxSurfaceSampleCount(colorType);
-            if (sampleCount > max)
-                throw new NotSupportedException(
-                    $"multiSampleCount {sampleCount} is not supported: this GPU offers at most {max} samples for {colorType}.");
-
-            var glFormat = colorType.ToGlSizedFormat();
-            var textureInfo = new GRGlTextureInfo(0x0DE1 /* GL_TEXTURE_2D */, (uint)glTextureId, glFormat);
-            using var backendTexture = new GRBackendTexture(width, height, false, textureInfo);
-            var surface = SKSurface.Create(_grContext, backendTexture, GRSurfaceOrigin.TopLeft, sampleCount, colorType)
-                ?? throw new NotSupportedException(
-                    $"Skia could not create a {sampleCount}x multisampled surface for {colorType} on this GPU.");
+            var surface = GlSkiaSurfaceFactory.CreateMultiSampledSurface(_grContext, glTextureId, width, height, colorType, sampleCount);
 
             // Only a descriptor (framebuffer 0, nothing allocated); the caller keeps a render target to dispose.
-            var descriptor = new GRBackendRenderTarget(width, height, sampleCount, 8, new GRGlFramebufferInfo(0, glFormat));
+            var descriptor = new GRBackendRenderTarget(width, height, sampleCount, 8, new GRGlFramebufferInfo(0, colorType.ToGlSizedFormat()));
             renderState = new GlFramebufferState();
             return (surface, descriptor);
         }

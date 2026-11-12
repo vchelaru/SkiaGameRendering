@@ -870,7 +870,7 @@ jobs:
         run: |
           dotnet samples/Sample.Brutal/bin/Release/net10.0/Sample.Brutal.dll --smoke-test 2>&1 | tee brutal-smoke.txt
           dotnet samples/Sample.Brutal.Quad/bin/Release/net10.0/Sample.Brutal.Quad.dll --smoke-test 2>&1 | tee brutal-quad.txt
-          dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalLayoutContractTests|FullyQualifiedName~BrutalGoldenImageTests" --logger "console;verbosity=detailed" 2>&1 | tee brutal-tests.txt
+          dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalLayoutContractTests|FullyQualifiedName~BrutalGoldenImageTests|FullyQualifiedName~BrutalMultiSampleTests" --logger "console;verbosity=detailed" 2>&1 | tee brutal-tests.txt
           if grep -E "VUID-|SYNC-HAZARD" brutal-smoke.txt brutal-quad.txt brutal-tests.txt; then echo "Validation errors above"; exit 1; fi
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation

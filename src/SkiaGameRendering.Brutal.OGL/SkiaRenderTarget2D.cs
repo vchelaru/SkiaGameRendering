@@ -24,6 +24,7 @@ namespace SkiaGameRendering
     public sealed class SkiaRenderTarget2D : IDisposable
     {
         readonly SkiaGlContext _context;
+        readonly int _multiSampleCount;
         int _texture;
         GlFramebufferState? _framebuffer;
         SKSurface? _surface;
@@ -31,23 +32,37 @@ namespace SkiaGameRendering
         int _appFramebuffer;
         bool _hasBegun;
 
-        public SkiaRenderTarget2D(SkiaGlContext context, int width, int height, SKColorType colorType = SKColorType.Rgba8888)
+        /// <param name="multiSampleCount">
+        /// Samples per pixel. 0 (the default) is a plain surface; 2, 4 and 8 are the GPU's built-in edge smoothing:
+        /// Skia draws into a multisampled buffer it owns and <see cref="End"/> resolves it into <see cref="GlTexture"/>
+        /// on the GPU, which stays single-sample. Any other value, or a count the GPU lacks, throws
+        /// <see cref="NotSupportedException"/>; it never falls back to 0.
+        /// </param>
+        public SkiaRenderTarget2D(SkiaGlContext context, int width, int height, SKColorType colorType = SKColorType.Rgba8888,
+            int multiSampleCount = 0)
         {
             ArgumentNullException.ThrowIfNull(context);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
             if (colorType != SKColorType.Rgba8888)
                 throw new NotSupportedException($"SkiaRenderTarget2D on BRUTAL OpenGL draws Rgba8888, not {colorType}.");
+            if (multiSampleCount is not (0 or 2 or 4 or 8))
+                throw new NotSupportedException($"multiSampleCount must be 0, 2, 4 or 8, not {multiSampleCount}.");
 
             _context = context;
+            _multiSampleCount = multiSampleCount;
             Width = width;
             Height = height;
             var app = GlSkiaSurfaceFactory.QueryDrawTarget(context.Gl).FramebufferId;
             try
             {
                 _texture = context.Textures.CreateRgba8(width, height);
-                (_surface, _renderTarget) = GlSkiaSurfaceFactory.CreateSurface(
-                    context.GrContext, context.Gl, _texture, width, height, colorType, out _framebuffer);
+                if (multiSampleCount > 0)
+                    _surface = GlSkiaSurfaceFactory.CreateMultiSampledSurface(
+                        context.GrContext, _texture, width, height, colorType, multiSampleCount);
+                else
+                    (_surface, _renderTarget) = GlSkiaSurfaceFactory.CreateSurface(
+                        context.GrContext, context.Gl, _texture, width, height, colorType, out _framebuffer);
             }
             catch
             {
@@ -82,7 +97,9 @@ namespace SkiaGameRendering
             _appFramebuffer = GlSkiaSurfaceFactory.QueryDrawTarget(_context.Gl).FramebufferId;
             // The app changed GL state since Skia's last pass.
             _context.GrContext.ResetContext();
-            GlSkiaSurfaceFactory.BindForDrawing(_context.Gl, _framebuffer!);
+            // A multisampled surface has no FBO of ours; Skia binds its own.
+            if (_multiSampleCount == 0)
+                GlSkiaSurfaceFactory.BindForDrawing(_context.Gl, _framebuffer!);
             _hasBegun = true;
             if (clear)
                 _surface!.Canvas.Clear();
@@ -96,6 +113,8 @@ namespace SkiaGameRendering
 
             try
             {
+                if (_multiSampleCount > 0)
+                    GlSkiaSurfaceFactory.ResolveMultiSampled(_surface!);
                 _surface!.Flush();
             }
             finally

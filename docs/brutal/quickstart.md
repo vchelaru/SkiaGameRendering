@@ -44,7 +44,12 @@ Vulkan and exits 0 if it is right.
   rendering needs nothing.
 - **Image.** Device-local, single sample, usage `TRANSFER_SRC | TRANSFER_DST | SAMPLED | COLOR_ATTACHMENT`,
   one dedicated allocation per target. Dispose only after the GPU is done with it.
-- **No MSAA.** Multisampled targets are not offered. Other `SKColorType`s throw `NotSupportedException`.
+- **Multisampling.** `new SkiaRenderTarget2D(context, w, h, multiSampleCount: 4)` (2, 4 or 8) has Skia draw into a
+  second, multisampled image the target owns. `End()` resolves it into `VkImage` with `vkCmdResolveImage`, in the
+  submit that would otherwise move the layout, so `VkImage` stays single-sample and both layout modes keep their
+  contracts. `Begin()` then submits nothing. Any other count, or one the GPU lacks, throws `NotSupportedException`.
+  See [Multisampling](../documentation/SkiaRenderTarget2D.md#multisampling).
+- **Color types.** `Rgba8888` or `Bgra8888`; others throw `NotSupportedException`.
 - **Color space.** The image is plain UNORM and holds the sRGB bytes you draw. If your pass writes to an sRGB
   target without decoding the sampled value first, colors are encoded twice. Stride has the same issue; see
   its Vulkan quickstart.
@@ -109,8 +114,11 @@ target.End();
 - **State.** The constructor, `Begin()` and `End()` restore only your draw framebuffer binding (and the constructor your
   texture binding). Program, vertex array, buffers, viewport, scissor, blend, depth/stencil and pixel-store state are left
   as Skia had them, so set yours again after `End()`.
-- **Texture.** `GL_RGBA8`, linear filtering, clamped, premultiplied alpha; canvas row 0 is texel row 0. No MSAA, and only
-  `Rgba8888`.
+- **Texture.** `GL_RGBA8`, linear filtering, clamped, premultiplied alpha; canvas row 0 is texel row 0. Only `Rgba8888`.
+- **Multisampling.** `new SkiaRenderTarget2D(context, w, h, multiSampleCount: 4)` (2, 4 or 8) has Skia draw into a
+  multisampled buffer it owns, and `End()` resolves it into `GlTexture` on the GPU, which stays single-sample. Any other
+  count, or one the GPU lacks, throws `NotSupportedException`. See
+  [Multisampling](../documentation/SkiaRenderTarget2D.md#multisampling).
 - **Package.** It has no dependency on any BRUTAL package.
 
 ### SkiaDirectCanvas

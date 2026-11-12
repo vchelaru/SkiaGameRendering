@@ -25,6 +25,7 @@
     <Compile Include="..\..\samples\Sample.Brutal\PixelReadback.cs" Link="PixelReadback.cs" />
     <Compile Include="..\Shared\GoldenScene.cs" Link="GoldenScene.cs" />
     <Compile Include="..\Shared\GoldenImage.cs" Link="GoldenImage.cs" />
+    <Compile Include="..\Shared\MultiSampleChecks.cs" Link="MultiSampleChecks.cs" />
     <Content Include="goldens\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
