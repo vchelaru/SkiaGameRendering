@@ -8,6 +8,7 @@ namespace Performance
         MultiTexture,
         Circles,
         Rectangles,
+        RoundedRectangles,
         Shapes,
         Gradients,
         Shadows,
@@ -113,6 +114,8 @@ namespace Performance
                 scenes.Add(Formula("shapes", name, SceneKind.Circles, count, width, height, 6f, 18f, 10f, 30f));
             foreach (var (name, count) in new[] { ("Rectangles 500", 500), ("Rectangles 10k", 10_000) })
                 scenes.Add(Formula("shapes", name, SceneKind.Rectangles, count, width, height, 6f, 18f, 10f, 30f));
+            foreach (var (name, count) in new[] { ("Rounded rectangles 500", 500), ("Rounded rectangles 10k", 10_000) })
+                scenes.Add(Formula("shapes", name, SceneKind.RoundedRectangles, count, width, height, 6f, 18f, 10f, 30f));
             scenes.Add(Formula("shapes", "Mixed shapes 2k", SceneKind.Shapes, 2_000, width, height, 8f, 20f, 10f, 30f));
             scenes.Add(Formula("shapes", "Mixed shapes 10k", SceneKind.Shapes, 10_000, width, height, 8f, 20f, 10f, 30f));
 
@@ -215,6 +218,9 @@ namespace Performance
 
         /// <summary>The text drawn for item <paramref name="index"/>: 24 or so characters that change with the index.</summary>
         public static string Label(int index) => $"Score {index * 37 % 100000:00000} Lives {index % 9}";
+
+        /// <summary>Corner radius of a <see cref="SceneKind.RoundedRectangles"/> item: 25% of its short side, s * 1.4.</summary>
+        public static float CornerRadius(float size) => size * 1.4f * 0.25f;
 
         public static int MixedFontSize(int index) => MixedFontSizes[index % MixedFontSizes.Length];
     }

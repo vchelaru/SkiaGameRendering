@@ -52,7 +52,7 @@ as WebAssembly while Skia is native code compiled to WebAssembly.
 
 ## Running
 
-Desktop (any scene subset with `--page slug[,slug]`; `--quick` shortens the windows for a smoke run;
+Desktop (any scene subset with `--page slug[,slug]`; `--scenes "name[,name]"` keeps only the scenes with those exact names, ignoring case, and combines with `--page`; `--quick` shortens the windows for a smoke run;
 `--no-screenshots` skips the PNGs; `--no-aa` turns antialiasing off on every Skia paint and font, Skia apps only;
 `--msaa 2|4|8` asks for a multisampled back buffer and Skia render target; the results header records both):
 

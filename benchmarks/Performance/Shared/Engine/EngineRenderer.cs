@@ -101,6 +101,7 @@ namespace Performance
                 case SceneKind.MultiTexture: DrawMultiTexture(scene, t, renderer == SortedLabel); break;
                 case SceneKind.Circles: DrawCircles(scene, t); break;
                 case SceneKind.Rectangles: DrawRectangles(scene, t, renderer); break;
+                case SceneKind.RoundedRectangles: DrawRoundedRectangles(scene, t); break;
                 case SceneKind.Shapes: DrawShapes(scene, t); break;
                 case SceneKind.Gradients: DrawGradients(scene, t); break;
                 case SceneKind.Shadows: DrawShadows(scene, t); break;
@@ -151,6 +152,20 @@ namespace Performance
         }
 
         // SpriteBatch stretches a white pixel (fast, aliased edges); Apos.Shapes draws anti-aliased edges.
+        private void DrawRoundedRectangles(PerfScene scene, float t)
+        {
+            var items = scene.Items;
+            _shapes.Begin();
+            for (int i = 0; i < items.Length; i++)
+            {
+                float s = items[i].Size;
+                var size = new Vector2(s * 2f, s * 1.4f);
+                _shapes.FillRectangle(Position(scene, i, t) - size / 2f, size, _solid[i % _solid.Length],
+                    PerfScene.CornerRadius(s), scene.Rotation(i, t));
+            }
+            _shapes.End();
+        }
+
         private void DrawRectangles(PerfScene scene, float t, string renderer)
         {
             var items = scene.Items;

@@ -211,7 +211,8 @@ namespace Performance
                 case SceneKind.Sprites: DrawSprites(canvas, scene, t); break;
                 case SceneKind.MultiTexture: DrawMultiTexture(canvas, scene, t); break;
                 case SceneKind.Circles: DrawCircles(canvas, scene, t); break;
-                case SceneKind.Rectangles: DrawRectangles(canvas, scene, t); break;
+                case SceneKind.Rectangles: DrawRectangles(canvas, scene, t, rounded: false); break;
+                case SceneKind.RoundedRectangles: DrawRectangles(canvas, scene, t, rounded: true); break;
                 case SceneKind.Shapes: DrawShapes(canvas, scene, t); break;
                 case SceneKind.Gradients: DrawGradients(canvas, scene, t); break;
                 case SceneKind.Shadows: DrawShadows(canvas, scene, t); break;
@@ -276,7 +277,7 @@ namespace Performance
             }
         }
 
-        private void DrawRectangles(SKCanvas canvas, PerfScene scene, float t)
+        private void DrawRectangles(SKCanvas canvas, PerfScene scene, float t, bool rounded)
         {
             var items = scene.Items;
             for (int i = 0; i < items.Length; i++)
@@ -287,7 +288,15 @@ namespace Performance
                 canvas.Save();
                 canvas.Translate(pos.X, pos.Y);
                 canvas.RotateRadians(scene.Rotation(i, t));
-                canvas.DrawRect(-s, -s * 0.7f, s * 2f, s * 1.4f, _paint);
+                if (rounded)
+                {
+                    float r = PerfScene.CornerRadius(s);
+                    canvas.DrawRoundRect(-s, -s * 0.7f, s * 2f, s * 1.4f, r, r, _paint);
+                }
+                else
+                {
+                    canvas.DrawRect(-s, -s * 0.7f, s * 2f, s * 1.4f, _paint);
+                }
                 canvas.Restore();
             }
         }

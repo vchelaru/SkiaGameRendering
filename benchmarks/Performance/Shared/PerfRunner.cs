@@ -92,9 +92,19 @@ namespace Performance
         /// <summary>Builds the scenes, keeps the requested pages and lists each one's entries. Call once the renderer exists.</summary>
         public void Start(Func<PerfScene, IEnumerable<PerfEntry>> entries)
         {
-            var scenes = PerfScene.BuildAll(Width, Height);
+            var all = PerfScene.BuildAll(Width, Height);
+            var scenes = all;
             if (_options.Pages != null)
                 scenes = scenes.Where(s => _options.Pages.Contains(s.Page)).ToArray();
+            if (_options.SceneNames != null)
+            {
+                var unknown = _options.SceneNames
+                    .Where(n => !all.Any(s => string.Equals(s.Name, n, StringComparison.OrdinalIgnoreCase))).ToArray();
+                if (unknown.Length > 0)
+                    throw new ArgumentException($"Unknown --scenes name(s): {string.Join(", ", unknown)}. Valid names: "
+                        + string.Join(", ", all.Select(s => s.Name)) + ".");
+                scenes = scenes.Where(s => _options.SceneNames.Contains(s.Name, StringComparer.OrdinalIgnoreCase)).ToArray();
+            }
             _entries = scenes.SelectMany(entries).ToArray();
             _entryIndex = _options.HeldEntry ?? 0;
             if (_entryIndex >= _entries.Length)
