@@ -129,13 +129,33 @@ if (smokeTest && exitCode == 0)
     Scene.Draw(scene.Canvas);
     scene.End();
     var viaTexture = GlReadback.ReadTexture(GetProc, scene.GlTexture, Scene.Width, Scene.Height);
+    int Offset(int x, int y) => (y * Scene.Width + x) * 4;
+    var clipped = Offset(Scene.ClipCenter, Scene.ClipCenter);
+    var clippedOut = Offset(Scene.ClippedOutX, Scene.ClippedOutY);
+    var clipPass = viaTexture[clipped] > 200 && viaTexture[clipped + 1] > 120 && viaTexture[clipped + 2] < 80
+        && viaTexture[clippedOut] == Scene.Background.Red && viaTexture[clippedOut + 1] == Scene.Background.Green
+        && viaTexture[clippedOut + 2] == Scene.Background.Blue;
+    Console.WriteLine($"antialiased clip: inside {viaTexture[clipped]},{viaTexture[clipped + 1]},{viaTexture[clipped + 2]} " +
+        $"outside {viaTexture[clippedOut]},{viaTexture[clippedOut + 1]},{viaTexture[clippedOut + 2]} -> {(clipPass ? "PASS" : "FAIL")}");
+
+    // The Scene's last draw leaves Skia's scissor test on; the blit honors it, so GlBlit has to turn it off or it
+    // copies only the clip's rectangle.
+    using (var blit = new GlBlit(GetProc, scene.GlTexture))
+        blit.ToWindow(Scene.Width, Scene.Height, Scene.Width, Scene.Height);
+    var viaBlit = GlReadback.ReadDefaultFramebuffer(GetProc, Scene.Width, Scene.Height);
+    var blitDiffering = CountDiffering(viaTexture, viaBlit);
+    var blitPass = blitDiffering == 0;
+    Console.WriteLine($"blit to back buffer vs texture: {blitDiffering} pixels differ -> {(blitPass ? "PASS" : "FAIL")}");
+    if (!clipPass || !blitPass)
+        exitCode = 1;
 
     using var direct = new SkiaDirectCanvas(context);
-    SetViewport(Scene.Width, Scene.Height);
     byte[] viaBackBuffer = [];
     // Twice: the second pass reuses the cached back buffer surface.
     for (var pass = 0; pass < 2; pass++)
     {
+        // Begin takes the size from the viewport, which is undefined after a pass.
+        SetViewport(Scene.Width, Scene.Height);
         direct.Begin();
         direct.Canvas.Clear(Scene.Background);
         Scene.Draw(direct.Canvas);
@@ -144,14 +164,7 @@ if (smokeTest && exitCode == 0)
     }
 
     // Both readbacks are top row first.
-    var differing = 0;
-    for (var p = 0; p < Scene.Width * Scene.Height; p++)
-        for (var c = 0; c < 3; c++)
-            if (Math.Abs(viaTexture[p * 4 + c] - viaBackBuffer[p * 4 + c]) > 4)
-            {
-                differing++;
-                break;
-            }
+    var differing = CountDiffering(viaTexture, viaBackBuffer);
     var fraction = differing / (double)(Scene.Width * Scene.Height);
     var directPass = fraction < 0.005;
     Console.WriteLine($"direct canvas vs texture: {differing} pixels differ ({fraction:P3}) -> {(directPass ? "PASS" : "FAIL")}");
@@ -159,6 +172,20 @@ if (smokeTest && exitCode == 0)
         exitCode = 1;
 }
 return exitCode;
+
+// Pixels whose RGB differs by more than 4 in any channel.
+static int CountDiffering(byte[] a, byte[] b)
+{
+    var differing = 0;
+    for (var p = 0; p < a.Length / 4; p++)
+        for (var c = 0; c < 3; c++)
+            if (Math.Abs(a[p * 4 + c] - b[p * 4 + c]) > 4)
+            {
+                differing++;
+                break;
+            }
+    return differing;
+}
 
 [UnmanagedFunctionPointer(CallingConvention.Winapi)]
 delegate void Viewport(int x, int y, int width, int height);

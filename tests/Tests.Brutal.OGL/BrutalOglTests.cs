@@ -88,12 +88,12 @@ public sealed class BrutalOglTests
         using var context = new SkiaGlContext(BrutalGlWindow.GetProc);
         using var direct = new SkiaDirectCanvas(context);
         T Load<T>(string name) where T : Delegate => Marshal.GetDelegateForFunctionPointer<T>(BrutalGlWindow.GetProc(name));
-        Load<Viewport>("glViewport")(0, 0, GoldenScene.Width, GoldenScene.Height);
-
         // Twice: the second pass reuses the cached back buffer surface.
         byte[] pixels = [];
         for (var i = 0; i < 2; i++)
         {
+            // Begin takes the size from the viewport, which is undefined after a pass.
+            Load<Viewport>("glViewport")(0, 0, GoldenScene.Width, GoldenScene.Height);
             direct.Begin();
             GoldenScene.Draw(direct.Canvas);
             direct.End();
@@ -121,13 +121,12 @@ public sealed class BrutalOglTests
         Load<GenFramebuffers>("glGenFramebuffers")(1, out var appFramebuffer);
         Load<BindFramebuffer>("glBindFramebuffer")(GL_FRAMEBUFFER, appFramebuffer);
         Load<FramebufferTexture2D>("glFramebufferTexture2D")(GL_FRAMEBUFFER, 0x8CE0 /* GL_COLOR_ATTACHMENT0 */, GL_TEXTURE_2D, texture, 0);
-        Load<Viewport>("glViewport")(0, 0, Size, Size);
-
         using var context = new SkiaGlContext(BrutalGlWindow.GetProc);
         using var direct = new SkiaDirectCanvas(context);
         // Twice, so the second pass checks the per-pass FBO is rebuilt and freed cleanly.
         for (var i = 0; i < 2; i++)
         {
+            Load<Viewport>("glViewport")(0, 0, Size, Size);
             direct.Begin();
             direct.Canvas.Clear(SKColors.Red);
             using (var paint = new SKPaint { Color = SKColors.Lime })

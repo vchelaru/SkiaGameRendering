@@ -30,12 +30,16 @@ foreach (var appManagesLayout in new[] { false, true })
     var gradient = At(final, SharedScene.CellCenter, SharedScene.Cell + SharedScene.CellCenter);
     var logo = At(final, SharedScene.LogoOpaqueX, SharedScene.LogoOpaqueY);
     var margin = At(final, SharedScene.LogoTransparentX, SharedScene.LogoTransparentY);
+    var clipped = At(final, SharedScene.ClipCenter, SharedScene.ClipCenter);
+    var clippedOut = At(final, SharedScene.ClippedOutX, SharedScene.ClippedOutY);
     var passed = circle[0] > 200 && circle[1] < 50 && circle[2] < 50
         && drop[0] < 100 && drop[2] > 150
         && gradient[0] > 100 && gradient[1] < 80 && gradient[2] > 100
         && logo[0] > 70 && logo[0] < 150 && logo[1] > 70 && logo[1] < 150 && logo[2] > 70 && logo[2] < 150 && logo[3] > 200
-        && margin[0] == SharedScene.Background.Red && margin[1] == SharedScene.Background.Green && margin[2] == SharedScene.Background.Blue && margin[3] == 255;
-    Console.WriteLine($"appManagesLayout={appManagesLayout}: circle={string.Join(",", circle)} drop={string.Join(",", drop)} gradient={string.Join(",", gradient)} logo={string.Join(",", logo)} margin={string.Join(",", margin)} {(passed ? "ok" : "MISMATCH")}");
+        && margin[0] == SharedScene.Background.Red && margin[1] == SharedScene.Background.Green && margin[2] == SharedScene.Background.Blue && margin[3] == 255
+        && clipped[0] > 200 && clipped[1] > 120 && clipped[2] < 80
+        && clippedOut[0] == SharedScene.Background.Red && clippedOut[1] == SharedScene.Background.Green && clippedOut[2] == SharedScene.Background.Blue;
+    Console.WriteLine($"appManagesLayout={appManagesLayout}: circle={string.Join(",", circle)} drop={string.Join(",", drop)} gradient={string.Join(",", gradient)} logo={string.Join(",", logo)} margin={string.Join(",", margin)} clipped={string.Join(",", clipped)} clippedOut={string.Join(",", clippedOut)} {(passed ? "ok" : "MISMATCH")}");
     if (!passed)
         failures++;
 }

@@ -82,6 +82,8 @@ Measure(count, "SkiaDirectCanvas into back buffer", () =>
     var direct = new SkiaDirectCanvas(context);
     return (() =>
     {
+        // Begin takes the target size from the viewport, which is undefined after the last pass.
+        viewport(0, 0, W, H);
         direct.Begin();
         Draw(direct.Canvas, count);
         direct.End();
@@ -132,9 +134,11 @@ sealed class FullscreenTriangle
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void DrawArrays(int mode, int first, int count);
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void BindFramebuffer(int target, int id);
     [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void Viewport(int x, int y, int w, int h);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)] delegate void ColorMask(byte r, byte g, byte b, byte a);
 
-    readonly Int1 _useProgram, _bindVertexArray, _activeTexture;
-    readonly Int2 _bindTexture;
+    readonly Int1 _useProgram, _bindVertexArray, _activeTexture, _disable;
+    readonly Int2 _bindTexture, _bindSampler;
+    readonly ColorMask _colorMask;
     readonly DrawArrays _drawArrays;
     readonly BindFramebuffer _bindFramebuffer;
     readonly Viewport _viewport;
@@ -166,13 +170,20 @@ sealed class FullscreenTriangle
         _drawArrays = load.Invoke<DrawArrays>("glDrawArrays");
         _bindFramebuffer = load.Invoke<BindFramebuffer>("glBindFramebuffer");
         _viewport = load.Invoke<Viewport>("glViewport");
+        _disable = load.Invoke<Int1>("glDisable");
+        _bindSampler = load.Invoke<Int2>("glBindSampler");
+        _colorMask = load.Invoke<ColorMask>("glColorMask");
     }
 
     public void Draw(int width, int height, int texture)
     {
-        // Skia leaves its own GL state behind, so the app sets everything it needs again.
+        // GL state is undefined after a Skia pass (a clip leaves the scissor test on), so set everything this draw needs.
         _bindFramebuffer(0x8D40, 0);
         _viewport(0, 0, width, height);
+        foreach (var cap in new[] { 0x0C11 /* SCISSOR_TEST */, 0x0BE2 /* BLEND */, 0x0B71 /* DEPTH_TEST */, 0x0B90 /* STENCIL_TEST */, 0x0B44 /* CULL_FACE */ })
+            _disable(cap);
+        _colorMask(1, 1, 1, 1);
+        _bindSampler(0, 0);
         _useProgram(_program);
         _bindVertexArray(_vao);
         _activeTexture(0x84C0);
