@@ -887,12 +887,12 @@ jobs:
           sudo sysctl -w kernel.core_pattern=/tmp/core.%e.%p
           fails=0
           for i in $(seq 1 25); do
-            dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalLayoutContractTests|FullyQualifiedName~BrutalGoldenImageTests|FullyQualifiedName~BrutalMultiSampleTests" --blame-crash --blame-crash-collect-always false --results-directory /tmp/blame$i > /tmp/run$i.txt 2>&1
+            dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalLayoutContractTests|FullyQualifiedName~BrutalGoldenImageTests|FullyQualifiedName~BrutalMultiSampleTests" --blame --logger "console;verbosity=normal" --results-directory /tmp/blame$i > /tmp/run$i.txt 2>&1
             rc=$?
             echo "iteration $i exit $rc"
             if [ $rc -ne 0 ]; then
               fails=$((fails+1))
-              grep -E "crash|exit code|signal|Sequence|test that|aborted" /tmp/run$i.txt | head -20
+              grep -Ev "Validation Warning|deprecated|Deprecated|^$" /tmp/run$i.txt | tail -30
               find /tmp/blame$i -name "*.xml" -exec cat {} \; | head -40
             fi
           done
