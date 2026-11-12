@@ -5,6 +5,7 @@ name: build
 #   gh workflow run master.yml --ref <branch> -f only=ios-simulator # chosen jobs, comma-separated job ids, no spaces
 # `only` takes job ids (desktop-and-core, raylib-linux, metal-macos, android, ...); `webgl` selects the WebGL shards and
 # their webgl-functional aggregate together. A failed nightly opens an issue (nightly-report).
+# On PRs, metal-macos skips when only benchmarks/, docs/ or top-level *.md change (the changes job).
 on:
   push:
     branches: [master]
@@ -450,10 +451,34 @@ jobs:
           path: tests/**/golden-failures/*.png
           if-no-files-found: ignore
 
+  # PR-only path filter for metal-macos. On push, schedule and dispatch this job skips and metal-macos runs as usual.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      metal: ${{ steps.filter.outputs.metal }}
+    steps:
+      - uses: dorny/paths-filter@v4.0.3
+        id: filter
+        with:
+          # 'every': a file counts only if it matches all patterns, i.e. it is outside the excluded paths.
+          predicate-quantifier: every
+          filters: |
+            metal:
+              - '**'
+              - '!benchmarks/**'
+              - '!docs/**'
+              - '!*.md'
+
   # macos-latest is an Apple silicon VM with a paravirtualized Metal device, so Core.Metal and the
   # Godot metal driver run on real Metal here with nothing to vendor. Both skip elsewhere.
   metal-macos:
-    if: github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',metal-macos,')))
+    needs: changes
+    if: >-
+      !cancelled() && needs.changes.outputs.metal != 'false' &&
+      (github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',metal-macos,'))))
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
