@@ -182,6 +182,10 @@ runs today.
   `vulkansdk.exe --root <dir> --accept-licenses --default-answer --confirm-command install copy_only=1`;
   then set `VK_ADD_LAYER_PATH=<dir>\Bin`. CI runs elevated, so `master.yml` registers the layer under
   `HKLM\SOFTWARE\Khronos\Vulkan\ExplicitLayers` instead, like lavapipe.
+- **A Vulkan test project that creates an instance per test must not run test classes in parallel.** The loader's
+  `vkGetDeviceProcAddr` walks every instance's device list (`loader_get_icd_and_device`), so a device being created
+  on one thread while another thread destroys its instance segfaults the test host inside `libvulkan`, with no
+  validation message and no test result. Link `tests/Shared/VulkanTestParallelism.cs` into the project.
 
 ## Metal - the real device
 
