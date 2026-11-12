@@ -112,7 +112,9 @@ needing that subjective read, keep to build-and-test and give the user numbered 
 Launched verification and benchmark apps run hidden or in a small window, never fullscreen and never
 taking focus. A MonoGame game driven by `RunOneFrame` in a loop never shows its window, yet its back
 buffer still renders at full size (`benchmarks/Benchmarks.DirectDraw.DesktopGL`); a hidden window is
-never active, so set `InactiveSleepTime` to zero or every frame sleeps 20 ms.
+never active, so set `InactiveSleepTime` to zero or every frame sleeps 20 ms. The user works on this
+machine while benchmarks run, so every run is in the background: never brief a rerun of rows whose
+Inactive column is above 0%. A harness that measures wrong when unfocused gets fixed instead.
 
 ## Releasing
 
