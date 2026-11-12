@@ -19,6 +19,7 @@
   <Import Project="..\..\Shared\Performance.Shared.props" />
   <ItemGroup>
     <Compile Include="..\..\Shared\Skia\*.cs" Link="Shared\Skia\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Shared\Xna\SkiaGame.cs" Link="Shared\Xna\SkiaGame.cs" />
     <Compile Include="..\GpuInfo.cs" Link="GpuInfo.cs" />
   </ItemGroup>
 </Project>

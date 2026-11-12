@@ -22,6 +22,13 @@ namespace Performance
         public const string SvgTextureLabel = "SpriteBatch (pre-rasterized SVG)";
         public const string UiLabel = "Apos.Shapes + SpriteBatch";
 
+        // The scene is engine-agnostic (System.Numerics); KNI has no implicit conversion to its own Vector2.
+        private static Vector2 Position(PerfScene scene, int index, float t)
+        {
+            var p = scene.Position(index, t);
+            return new Vector2(p.X, p.Y);
+        }
+
         private const float ShadowBlur = 12f;
         private const float CornerRadius = 8f;
 
@@ -114,7 +121,7 @@ namespace Performance
             {
                 float scale = items[i].Size * 2f / PerfAssets.Size;
                 var tint = scene.Tinted ? _tints[i % _tints.Length] : Color.White;
-                _spriteBatch.Draw(_sprite, scene.Position(i, t), null, tint, scene.Rotation(i, t), origin, scale, SpriteEffects.None, 0f);
+                _spriteBatch.Draw(_sprite, Position(scene, i, t), null, tint, scene.Rotation(i, t), origin, scale, SpriteEffects.None, 0f);
             }
             _spriteBatch.End();
         }
@@ -127,7 +134,7 @@ namespace Performance
             for (int i = 0; i < items.Length; i++)
             {
                 float scale = items[i].Size * 2f / PerfAssets.Size;
-                _spriteBatch.Draw(_textures[i % _textures.Length], scene.Position(i, t), null, Color.White, scene.Rotation(i, t), origin, scale, SpriteEffects.None, 0f);
+                _spriteBatch.Draw(_textures[i % _textures.Length], Position(scene, i, t), null, Color.White, scene.Rotation(i, t), origin, scale, SpriteEffects.None, 0f);
             }
             _spriteBatch.End();
         }
@@ -137,7 +144,7 @@ namespace Performance
             var items = scene.Items;
             _shapes.Begin();
             for (int i = 0; i < items.Length; i++)
-                _shapes.FillCircle(scene.Position(i, t), items[i].Size, _solid[i % _solid.Length]);
+                _shapes.FillCircle(Position(scene, i, t), items[i].Size, _solid[i % _solid.Length]);
             _shapes.End();
         }
 
@@ -147,7 +154,7 @@ namespace Performance
             _shapes.Begin();
             for (int i = 0; i < items.Length; i++)
             {
-                var pos = scene.Position(i, t);
+                var pos = Position(scene, i, t);
                 float s = items[i].Size;
                 var fill = _solid[i % _solid.Length];
                 var border = _solid[(i + 3) % _solid.Length];
@@ -189,7 +196,7 @@ namespace Performance
                     -size / 2f, _solid[i % _solid.Length],
                     size / 2f, _solid[(i + 4) % _solid.Length],
                     isLocal: true);
-                _shapes.FillRectangle(scene.Position(i, t) - size / 2f, size, gradient, s * 0.3f, scene.Rotation(i, t));
+                _shapes.FillRectangle(Position(scene, i, t) - size / 2f, size, gradient, s * 0.3f, scene.Rotation(i, t));
             }
             _shapes.End();
         }
@@ -203,7 +210,7 @@ namespace Performance
             {
                 float s = items[i].Size;
                 var size = new Vector2(s * 2f, s * 1.4f);
-                var xy = scene.Position(i, t) - size / 2f;
+                var xy = Position(scene, i, t) - size / 2f;
                 _shapes.FillRectangleBlurred(xy + new Vector2(4f, 6f), size, shadow, ShadowBlur, CornerRadius);
                 _shapes.FillRectangle(xy, size, _solid[i % _solid.Length], CornerRadius);
             }
@@ -258,7 +265,7 @@ namespace Performance
             {
                 int size = mixed ? PerfScene.MixedFontSize(i) : PerfScene.SingleFontSize;
                 var color = _solid[i % _solid.Length];
-                var pos = scene.Position(i, t);
+                var pos = Position(scene, i, t);
                 string text = PerfScene.Label(i);
                 if (renderer == FontStashLabel)
                     _fontSystem.GetFont(size).DrawText(_spriteBatch, text, pos, color);
@@ -276,7 +283,7 @@ namespace Performance
                 var origin = new Vector2(SvgTextureSize / 2f);
                 _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp);
                 for (int i = 0; i < items.Length; i++)
-                    _spriteBatch.Draw(_svgTexture, scene.Position(i, t), null, Color.White, 0f, origin, items[i].Size * 2f / SvgTextureSize, SpriteEffects.None, 0f);
+                    _spriteBatch.Draw(_svgTexture, Position(scene, i, t), null, Color.White, 0f, origin, items[i].Size * 2f / SvgTextureSize, SpriteEffects.None, 0f);
                 _spriteBatch.End();
                 return;
             }
@@ -286,7 +293,7 @@ namespace Performance
             {
                 // The size is the viewBox height in pixels; the position is the top left.
                 float side = items[i].Size * 2f;
-                _shapes.DrawSvg(_svg, scene.Position(i, t) - new Vector2(side / 2f), side);
+                _shapes.DrawSvg(_svg, Position(scene, i, t) - new Vector2(side / 2f), side);
             }
             _shapes.End();
         }
@@ -305,7 +312,7 @@ namespace Performance
                     var size = new Vector2(w, h) * items[i].Size;
                     var c = _solid[i % _solid.Length];
                     var color = translucent ? Color.FromNonPremultiplied(c.R, c.G, c.B, alpha) : c;
-                    var xy = center + (scene.Position(i, t) - items[i].BasePosition) - size / 2f;
+                    var xy = center + (Position(scene, i, t) - new Vector2(items[i].BasePosition.X, items[i].BasePosition.Y)) - size / 2f;
                     _shapes.FillRectangle(xy, size, color);
                 }
                 _shapes.End();
@@ -318,7 +325,7 @@ namespace Performance
                     var size = new Vector2(w, h) * items[i].Size;
                     var c = _solid[i % _solid.Length];
                     var color = translucent ? Color.FromNonPremultiplied(c.R, c.G, c.B, alpha) : c;
-                    var xy = center + (scene.Position(i, t) - items[i].BasePosition) - size / 2f;
+                    var xy = center + (Position(scene, i, t) - new Vector2(items[i].BasePosition.X, items[i].BasePosition.Y)) - size / 2f;
                     _spriteBatch.Draw(_pixel, new Rectangle((int)xy.X, (int)xy.Y, (int)size.X, (int)size.Y), color);
                 }
                 _spriteBatch.End();
@@ -337,7 +344,7 @@ namespace Performance
             {
                 float s = items[i].Size;
                 var size = new Vector2(s * 3f, s * 1.6f);
-                var xy = scene.Position(i, t) - size / 2f;
+                var xy = Position(scene, i, t) - size / 2f;
                 _shapes.FillRectangleBlurred(xy + new Vector2(0f, 4f), size, shadow, 10f, CornerRadius);
                 _shapes.DrawRectangle(xy, size, panel, border, 1.5f, CornerRadius);
             }
@@ -350,7 +357,7 @@ namespace Performance
             {
                 float s = items[i].Size;
                 var size = new Vector2(s * 3f, s * 1.6f);
-                var xy = scene.Position(i, t) - size / 2f;
+                var xy = Position(scene, i, t) - size / 2f;
                 var iconCenter = xy + new Vector2(s * 0.8f, size.Y / 2f);
                 _spriteBatch.Draw(_textures[i % _textures.Length], iconCenter, null, Color.White, 0f, origin, s * 0.9f / PerfAssets.Size, SpriteEffects.None, 0f);
                 _spriteBatch.DrawString(font, $"Item {i}", xy + new Vector2(s * 1.5f, size.Y / 2f - font.LineSpacing / 2f), Color.White);
