@@ -892,15 +892,17 @@ jobs:
             echo "iteration $i exit $rc"
             if [ $rc -ne 0 ]; then
               fails=$((fails+1))
-              grep -Ev "Validation Warning|deprecated|Deprecated|^$" /tmp/run$i.txt | tail -30
-              find /tmp/blame$i -name "*.xml" -exec cat {} \; | head -40
+              grep -A3 "running when the crash" /tmp/run$i.txt
             fi
           done
-          echo "failures: $fails / 25"
-          ls -la /tmp/core.* 2>/dev/null
-          find /tmp -maxdepth 1 -name 'core.*' -print0 | head -z -n 4 | while IFS= read -r -d '' c; do
+          echo "failures: $fails / 12"
+          dotnet tool install -g dotnet-dump > /dev/null
+          export DEBUGINFOD_URLS=https://debuginfod.ubuntu.com
+          find /tmp -maxdepth 1 -name 'core.*' -print0 | head -z -n 2 | while IFS= read -r -d '' c; do
             echo "==== $c"
-            gdb -batch -ex "bt 40" -ex "info threads" -ex "thread apply all bt 12" "$(readlink -f $(command -v dotnet))" "$c" 2>&1 | grep -v "^\[New LWP" | head -300
+            gdb -batch -ex "set debuginfod enabled on" -ex "bt 40" -ex "thread apply all bt 15" "$(readlink -f $(command -v dotnet))" "$c" 2>&1 | grep -v "^\[New LWP\|Download" | grep -B2 -A16 "^#0 .*\(vulkan\|VkLayer\|lvp\|vk\)\|SIGSEGV" | head -200
+            echo "---- managed"
+            ~/.dotnet/tools/dotnet-dump analyze "$c" -c "clrstack -all" -c exit 2>&1 | grep -v "^\s*$" | grep -B3 -A25 -i "vulkan\|brutal\|Skia" | head -200
           done
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
