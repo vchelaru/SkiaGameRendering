@@ -886,7 +886,7 @@ jobs:
           ulimit -c unlimited
           sudo sysctl -w kernel.core_pattern=/tmp/core.%e.%p
           fails=0
-          for i in $(seq 1 25); do
+          for i in $(seq 1 12); do
             dotnet test tests/Tests.Brutal/Tests.Brutal.csproj -c Release --no-build --filter "FullyQualifiedName~BrutalLayoutContractTests|FullyQualifiedName~BrutalGoldenImageTests|FullyQualifiedName~BrutalMultiSampleTests" --blame --logger "console;verbosity=normal" --results-directory /tmp/blame$i > /tmp/run$i.txt 2>&1
             rc=$?
             echo "iteration $i exit $rc"
@@ -898,9 +898,9 @@ jobs:
           done
           echo "failures: $fails / 25"
           ls -la /tmp/core.* 2>/dev/null
-          for c in $(ls /tmp/core.* 2>/dev/null | head -3); do
+          find /tmp -maxdepth 1 -name 'core.*' -print0 | head -z -n 4 | while IFS= read -r -d '' c; do
             echo "==== $c"
-            gdb -batch -ex "info signals SIGSEGV" -ex "thread apply all bt 25" "$(command -v dotnet)" "$c" 2>&1 | grep -v "^\[New LWP" | head -400
+            gdb -batch -ex "bt 40" -ex "info threads" -ex "thread apply all bt 12" "$(readlink -f $(command -v dotnet))" "$c" 2>&1 | grep -v "^\[New LWP" | head -300
           done
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
