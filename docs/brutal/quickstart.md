@@ -111,9 +111,9 @@ target.End();
 
 - **Same context.** Skia draws on your GL context, not a second one, so create, `Begin`, `End` and dispose all run on the
   thread that owns it with it current. Dispose targets before the `SkiaGlContext`.
-- **State.** The constructor, `Begin()` and `End()` restore only your draw framebuffer binding (and the constructor your
-  texture binding). Program, vertex array, buffers, viewport, scissor, blend, depth/stencil and pixel-store state are left
-  as Skia had them, so set yours again after `End()`.
+- **State.** The constructor, `End()` and `Dispose()` put back the GL state you had: framebuffer, viewport, scissor,
+  enables, blend, depth, stencil, color mask, program, vertex array, buffer, texture and sampler bindings, and
+  pixel-store modes. Vertex attributes of the default vertex array object are not restored.
 - **Texture.** `GL_RGBA8`, linear filtering, clamped, premultiplied alpha; canvas row 0 is texel row 0. Only `Rgba8888`.
 - **Multisampling.** `new SkiaRenderTarget2D(context, w, h, multiSampleCount: 4)` (2, 4 or 8) has Skia draw into a
   multisampled buffer it owns, and `End()` resolves it into `GlTexture` on the GPU, which stays single-sample. Any other
@@ -133,14 +133,14 @@ var direct = new SkiaDirectCanvas(context);
 direct.Begin();
 direct.Canvas.DrawCircle(256, 256, 200, paint);
 direct.End();
-// set your GL state again, draw more, swap buffers
+// draw more, swap buffers
 ```
 
 - **Size.** The current GL viewport. Set it to the whole target before `Begin()`; a partial viewport is treated as a smaller target.
 - **No clear.** `Begin()` draws on top of what is there. Canvas row 0 is the top as a window shows it (the last texel row of an FBO texture).
 - **Targets.** The back buffer is assumed to be RGBA8. An FBO's color attachment must be a texture or renderbuffer, else `NotSupportedException`.
   An FBO's Skia framebuffer is rebuilt every pass. Multisampled targets are passed to Skia with their sample count and are untested here.
-- **State.** `End()` restores only your draw framebuffer binding, like the texture target.
+- **State.** `End()` puts back your GL state from `Begin()`, like the texture target.
 
 `Sample.Brutal.OGL --direct` shows it in a window, and `--smoke-test` checks it against the texture render.
 

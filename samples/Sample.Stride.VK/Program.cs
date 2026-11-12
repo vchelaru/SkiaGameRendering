@@ -117,12 +117,14 @@ public sealed class SmokeCheckRenderer : SceneRendererBase
         var drop = At(SharedScene.Cell + SharedScene.CellCenter, SharedScene.CellCenter);
         var gradient = At(SharedScene.CellCenter, SharedScene.Cell + SharedScene.CellCenter);
         var logo = At(SharedScene.LogoOpaqueX, SharedScene.LogoOpaqueY);
+        var clipped = At(SharedScene.ClipCenter, SharedScene.ClipCenter);
         var passed = circle.R > 200 && circle.G < 50 && circle.B < 50
+            && clipped.R > 200 && clipped.G > 120 && clipped.B < 80
             && drop.R < 100 && drop.B > 150
             && gradient.R > 120 && gradient.G < 80 && gradient.B > 100
             && logo.R > 70 && logo.R < 150 && logo.G > 70 && logo.G < 150 && logo.B > 70 && logo.B < 150;
 
-        Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: format={backBuffer.ViewFormat}, circle={circle}, drop={drop}, gradient={gradient}, logo={logo}");
+        Console.WriteLine($"Smoke test {(passed ? "passed" : "FAILED")}: format={backBuffer.ViewFormat}, circle={circle}, drop={drop}, gradient={gradient}, logo={logo}, clipped={clipped}");
         SetExitCode!(passed ? 0 : 1);
         Game.Exit();
     }

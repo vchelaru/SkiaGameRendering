@@ -27,7 +27,13 @@ namespace SkiaGameRendering
             _gl = GlFunctions.Load(loader);
             _textures = GlTextureFunctions.Load(loader);
             _grContext = GlGrContextFactory.Create(_gl);
+            _getProcAddress = getProcAddress;
         }
+
+        readonly Func<string, IntPtr> _getProcAddress;
+
+        /// <summary>A holder for the app's GL state, which a pass saves when it begins and restores when it ends.</summary>
+        internal GlStateSnapshot CreateStateSnapshot() => new(_getProcAddress);
 
         internal GRContext GrContext => _grContext ?? throw new ObjectDisposedException(nameof(SkiaGlContext));
         internal GlFunctions Gl => _gl;

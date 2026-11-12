@@ -14,7 +14,10 @@ namespace SampleShared;
 /// size, so the layout is identical everywhere, and a window of any size shows it 1:1 or scaled to fit.
 /// Shapes sit in a 2x2 grid of <see cref="Cell"/>-sized cells, filled left to right then top to bottom: a red circle
 /// (cell 0), an embedded SVG water drop (1), a rounded rectangle with a linear gradient (2), then the
-/// Gum logo, an embedded PNG with transparency (3). Add new shapes in the next free cell. The smoke tests of every
+/// Gum logo, an embedded PNG with transparency (3). Last, in the gap where the four cells meet, a gold circle cut
+/// to a rounded rectangle by an antialiased clip (see <see cref="ClipCenter"/>): Skia ends the frame with the
+/// scissor test on for that clip, so an engine that inherits Skia's GL state composites only that rectangle and fails
+/// the cell checks. Add new shapes before it, in the next free cell. The smoke tests of every
 /// sample and <c>tests/Tests.Godot</c> check the centers of these cells (and two logo pixels, see
 /// <see cref="LogoOpaqueX"/>), so moving a shape means updating those checks.
 /// </summary>
@@ -32,6 +35,15 @@ public static class Scene
     public const int LogoOpaqueY = 600;
     public const int LogoTransparentX = Cell + CellCenter;
     public const int LogoTransparentY = Cell + 60;
+
+    /// <summary>
+    /// The clipped circle's center, which is gold, and a pixel inside the circle but outside the clip, which shows the
+    /// background.
+    /// </summary>
+    public const int ClipCenter = Cell;
+    public const int ClippedOutX = Cell;
+    public const int ClippedOutY = Cell - 30;
+    public static readonly SKColor ClipColor = new(255, 200, 0);
 
     /// <summary>
     /// The solid color every sample's window or back buffer is cleared to behind the Scene (cornflower blue), so
@@ -78,6 +90,14 @@ public static class Scene
         var logoRect = SKRect.Create(
             logoCell.MidX - logo.Width * fit / 2f, logoCell.MidY - logo.Height * fit / 2f, logo.Width * fit, logo.Height * fit);
         canvas.DrawImage(logo, logoRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
+
+        // Keep this the last draw: it leaves Skia's scissor test on (see the class summary).
+        canvas.Save();
+        using (var clip = new SKRoundRect(SKRect.Create(ClipCenter - 24f, ClipCenter - 14f, 48f, 28f), 8f, 8f))
+            canvas.ClipRoundRect(clip, antialias: true);
+        using var clipPaint = new SKPaint { Color = ClipColor, IsAntialias = true };
+        canvas.DrawCircle(ClipCenter, ClipCenter, 36f, clipPaint);
+        canvas.Restore();
     }
 
     // Embedded rather than loaded from disk so desktop, WASM, and NativeAOT all read it the same way.

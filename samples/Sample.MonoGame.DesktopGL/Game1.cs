@@ -155,7 +155,8 @@ namespace Sample
         /// <summary>
         /// The 800x800 canvas fills the 800x800 back buffer. Scene's four 400x400 cells hold the red circle,
         /// the blue SVG water drop (which proves the SVG parser survived trimming), the gradient and the logo
-        /// PNG (opaque gray text, transparent margin); the transparent part shows the clear color.
+        /// PNG (opaque gray text, transparent margin); the transparent part shows the clear color. The gold circle
+        /// where the cells meet is cut by an antialiased clip, so a pixel above its center shows the clear color.
         /// </summary>
         private void CheckSmokeTestFrame()
         {
@@ -166,7 +167,7 @@ namespace Sample
             ExitGame();
         }
 
-        /// <summary>The shared check of the Scene's four cell centers and a transparent pixel, against <paramref name="background"/>.</summary>
+        /// <summary>The shared check of the Scene's four cell centers, the clipped circle and two transparent pixels, against <paramref name="background"/>.</summary>
         private static bool CheckScene(System.Func<int, int, Color> read, Color background, out string text)
         {
             var circle = read(Scene.CellCenter, Scene.CellCenter);
@@ -174,12 +175,16 @@ namespace Sample
             var gradient = read(Scene.CellCenter, Scene.Cell + Scene.CellCenter);
             var logo = read(Scene.LogoOpaqueX, Scene.LogoOpaqueY);
             var margin = read(Scene.LogoTransparentX, Scene.LogoTransparentY);
-            text = $"circle={circle}, drop={drop}, gradient={gradient}, logo={logo}, margin={margin}";
+            var clipped = read(Scene.ClipCenter, Scene.ClipCenter);
+            var clippedOut = read(Scene.ClippedOutX, Scene.ClippedOutY);
+            text = $"circle={circle}, drop={drop}, gradient={gradient}, logo={logo}, margin={margin}, clipped={clipped}, clippedOut={clippedOut}";
             return circle.R > 200 && circle.G < 50 && circle.B < 50
                 && drop.R < 100 && drop.B > 150
                 && gradient.R > 120 && gradient.G < 80 && gradient.B > 100
                 && logo.R > 70 && logo.R < 150 && logo.G > 70 && logo.G < 150 && logo.B > 70 && logo.B < 150 && logo.A > 200
-                && margin == background;
+                && margin == background
+                && clipped.R > 200 && clipped.G > 120 && clipped.B < 80
+                && clippedOut == background;
         }
 
         /// <summary>

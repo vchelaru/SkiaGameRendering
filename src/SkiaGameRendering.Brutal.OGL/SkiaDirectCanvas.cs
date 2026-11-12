@@ -14,7 +14,7 @@ namespace SkiaGameRendering
     /// skia.Begin();
     /// skia.Canvas.DrawCircle(100, 100, 50, paint);
     /// skia.End();
-    /// // the app sets its GL state again, draws more, and swaps buffers
+    /// // the app draws more and swaps buffers
     /// </code>
     /// <para>
     /// <b>Contract.</b> <see cref="Begin"/> does not clear; Skia draws on top of what is there. The target's
@@ -22,14 +22,16 @@ namespace SkiaGameRendering
     /// treated as a smaller target). Canvas coordinates are pixels from the top left as a window shows them; in
     /// an FBO texture that is the last texel row. The target must be RGBA8: the default framebuffer is assumed
     /// to be, and an FBO's color attachment must be a <c>GL_TEXTURE_2D</c> or a renderbuffer. A multisampled
-    /// target is drawn with Skia's multisampling. <see cref="End"/> restores only the draw framebuffer binding;
-    /// program, vertex array, buffers, viewport, scissor, blend, depth/stencil and pixel-store state are left
-    /// as Skia had them, so the app sets them again.
+    /// target is drawn with Skia's multisampling. <see cref="End"/> puts back the GL state the app had at
+    /// <see cref="Begin"/> (framebuffer, viewport, scissor, enables, blend, depth, stencil, color mask, program,
+    /// vertex array, buffer, texture and sampler bindings, pixel-store modes); vertex attributes of the default
+    /// vertex array object are not restored.
     /// </para>
     /// </summary>
     public sealed class SkiaDirectCanvas : IDisposable
     {
         readonly SkiaGlContext _context;
+        readonly GlStateSnapshot _appState;
 
         // The back buffer's surface, reused until the window's size changes. An FBO's is built for each pass:
         // the app can delete an FBO and the next one can get the same GL name.
@@ -45,7 +47,6 @@ namespace SkiaGameRendering
         {
             internal SKSurface Surface = null!;
             internal int SaveCount;
-            internal int AppFramebuffer;
             // Only for an FBO: the per-pass objects End frees.
             internal GRBackendRenderTarget? RenderTarget;
             internal GlFramebufferState? Framebuffer;
@@ -55,6 +56,7 @@ namespace SkiaGameRendering
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
+            _appState = context.CreateStateSnapshot();
         }
 
         /// <summary>The canvas to draw on. Only valid between <see cref="Begin"/> and <see cref="End"/>.</summary>
@@ -78,9 +80,10 @@ namespace SkiaGameRendering
                 throw new InvalidOperationException($"The GL viewport is {width}x{height}; set it to the draw target's size before Begin.");
 
             var grContext = _context.GrContext;
+            _appState.Save();
             // The app changed GL state since Skia's last pass.
             grContext.ResetContext();
-            var pass = new Pass { AppFramebuffer = target.FramebufferId };
+            var pass = new Pass();
             try
             {
                 if (target.IsDefaultFramebuffer)
@@ -101,14 +104,14 @@ namespace SkiaGameRendering
             catch
             {
                 DisposePassObjects(pass);
-                Rebind(pass.AppFramebuffer);
+                _appState.Restore();
                 throw;
             }
 
             _pass = pass;
         }
 
-        /// <summary>Flushes Skia's work and gives the app its framebuffer back.</summary>
+        /// <summary>Flushes Skia's work and puts back the app's GL state from <see cref="Begin"/>.</summary>
         public void End()
         {
             var pass = _pass ?? throw new InvalidOperationException("Begin must be called before calling End.");
@@ -122,7 +125,7 @@ namespace SkiaGameRendering
             finally
             {
                 DisposePassObjects(pass);
-                Rebind(pass.AppFramebuffer);
+                _appState.Restore();
             }
         }
 
@@ -158,9 +161,6 @@ namespace SkiaGameRendering
             _backBufferRenderTarget?.Dispose();
             _backBufferRenderTarget = null;
         }
-
-        void Rebind(int framebuffer) =>
-            GlSkiaSurfaceFactory.BindForDrawing(_context.Gl, new GlFramebufferState { FramebufferId = framebuffer });
 
         /// <summary>Call it with the app's GL context current, after <see cref="End"/> and before <see cref="SkiaGlContext.Dispose"/>.</summary>
         public void Dispose()
