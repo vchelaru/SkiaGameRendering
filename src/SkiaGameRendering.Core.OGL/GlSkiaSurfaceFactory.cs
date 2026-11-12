@@ -35,6 +35,33 @@ namespace SkiaGameRendering.Core.OGL
         }
 
         /// <summary>
+        /// A <paramref name="sampleCount"/>x multisampled surface over the texture: Skia allocates the multisampled
+        /// buffer and its framebuffers itself. It resolves into the texture on the GPU, with no readback, only when
+        /// asked to (<see cref="ResolveMultiSampled"/>). Throws <see cref="NotSupportedException"/> when the GPU
+        /// offers fewer samples than asked for.
+        /// </summary>
+        public static SKSurface CreateMultiSampledSurface(
+            GRContext grContext, int glTextureId, int width, int height, SKColorType colorType, int sampleCount)
+        {
+            var max = grContext.GetMaxSurfaceSampleCount(colorType);
+            if (sampleCount > max)
+                throw new NotSupportedException(
+                    $"multiSampleCount {sampleCount} is not supported: this GPU offers at most {max} samples for {colorType}.");
+
+            var textureInfo = new GRGlTextureInfo(0x0DE1 /* GL_TEXTURE_2D */, (uint)glTextureId, colorType.ToGlSizedFormat());
+            using var backendTexture = new GRBackendTexture(width, height, false, textureInfo);
+            return SKSurface.Create(grContext, backendTexture, GRSurfaceOrigin.TopLeft, sampleCount, colorType)
+                ?? throw new NotSupportedException(
+                    $"Skia could not create a {sampleCount}x multisampled surface for {colorType} on this GPU.");
+        }
+
+        /// <summary>
+        /// Skia leaves a multisampled surface over a texture unresolved at flush; taking a snapshot resolves it into
+        /// the texture on the GPU (no readback). Call it before the flush that ends the pass.
+        /// </summary>
+        public static void ResolveMultiSampled(SKSurface surface) => surface.Snapshot().Dispose();
+
+        /// <summary>
         /// The pure-GL half of <see cref="CreateSurface"/>: everything up to and including a complete
         /// FBO, with no Skia object involved. Split out so the GL call sequence can be driven by a
         /// fake <see cref="IGlFunctionLoader"/> with no GL context and no GPU.

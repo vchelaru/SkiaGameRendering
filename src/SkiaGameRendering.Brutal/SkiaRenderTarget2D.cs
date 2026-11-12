@@ -29,6 +29,13 @@ namespace SkiaGameRendering
     /// after it (src COLOR_ATTACHMENT_OUTPUT / COLOR_ATTACHMENT_WRITE to dst FRAGMENT_SHADER / SHADER_READ, and the
     /// reverse). That removes the library's two small submits per frame. Disposing needs the GPU to be finished with the image.
     /// </para>
+    /// <para>
+    /// <b>multiSampleCount.</b> With 2, 4 or 8, Skia draws into a second, multisampled image this object owns, and
+    /// <see cref="End"/> resolves it into <see cref="VkImage"/> with <c>vkCmdResolveImage</c>, in the submit that
+    /// otherwise moved the layout. <see cref="VkImage"/> stays single-sample and the layout contract above is unchanged;
+    /// the app never sees the multisampled image. <see cref="Begin"/> no longer touches <see cref="VkImage"/>, so it
+    /// submits nothing.
+    /// </para>
     /// </summary>
     public sealed class SkiaRenderTarget2D : IDisposable
     {
@@ -37,13 +44,21 @@ namespace SkiaGameRendering
 
         readonly SkiaVulkanContext _context;
         VkImageAllocation _allocation;
+        // The multisampled image Skia draws into when multiSampleCount is above 0; default otherwise.
+        VkImageAllocation _multiSampled;
         SKSurface? _surface;
         GRBackendRenderTarget? _renderTarget;
         readonly bool _appManagesLayout;
         bool _hasBegun;
         bool _disposed;
 
-        public SkiaRenderTarget2D(SkiaVulkanContext context, int width, int height, SKColorType colorType = SKColorType.Rgba8888, bool appManagesLayout = false)
+        /// <param name="multiSampleCount">
+        /// Samples per pixel. 0 (the default) is a plain surface; 2, 4 and 8 are the GPU's built-in edge smoothing. Any
+        /// other value, or a count the GPU lacks for <paramref name="colorType"/>, throws <see cref="NotSupportedException"/>;
+        /// it never falls back to 0.
+        /// </param>
+        public SkiaRenderTarget2D(SkiaVulkanContext context, int width, int height, SKColorType colorType = SKColorType.Rgba8888,
+            bool appManagesLayout = false, int multiSampleCount = 0)
         {
             ArgumentNullException.ThrowIfNull(context);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
@@ -54,6 +69,13 @@ namespace SkiaGameRendering
                 SKColorType.Bgra8888 => FormatB8G8R8A8Unorm,
                 _ => throw new NotSupportedException($"SkiaRenderTarget2D on BRUTAL draws Rgba8888 or Bgra8888, not {colorType}."),
             };
+            if (multiSampleCount is not (0 or 2 or 4 or 8))
+                throw new NotSupportedException($"multiSampleCount must be 0, 2, 4 or 8, not {multiSampleCount}.");
+
+            if (multiSampleCount > 0 && multiSampleCount > context.Factory.GetMaxSurfaceSampleCount(colorType))
+                throw new NotSupportedException(
+                    $"multiSampleCount {multiSampleCount} is not supported: this GPU offers at most " +
+                    $"{context.Factory.GetMaxSurfaceSampleCount(colorType)} samples for {colorType}.");
 
             _context = context;
             _appManagesLayout = appManagesLayout;
@@ -63,13 +85,23 @@ namespace SkiaGameRendering
             try
             {
                 // Hand the image to the app's layout contract first: UNDEFINED -> SHADER_READ_ONLY.
-                Transition(VkConstants.ImageLayoutUndefined,
+                Transition(_allocation.Image, VkConstants.ImageLayoutUndefined,
                     _appManagesLayout ? VkConstants.ImageLayoutColorAttachmentOptimal : VkConstants.ImageLayoutShaderReadOnlyOptimal);
+
+                // Skia draws into the multisampled image when there is one; End resolves it into the app's.
+                var skiaImage = _allocation;
+                if (multiSampleCount > 0)
+                {
+                    _multiSampled = VkImageAllocator.Create(context.Instance, context.PhysicalDevice, context.Device,
+                        width, height, format, samples: (uint)multiSampleCount);
+                    skiaImage = _multiSampled;
+                    Transition(_multiSampled.Image, VkConstants.ImageLayoutUndefined, VkConstants.ImageLayoutColorAttachmentOptimal);
+                }
 
                 // Skia is told COLOR_ATTACHMENT_OPTIMAL, which is where Begin() puts the image before it draws.
                 var state = context.Factory.CreateTextureState(
-                    _allocation.Image, format, VkConstants.ImageLayoutColorAttachmentOptimal,
-                    _allocation.UsageFlags, imageTiling: 0);
+                    skiaImage.Image, format, VkConstants.ImageLayoutColorAttachmentOptimal,
+                    skiaImage.UsageFlags, imageTiling: 0, sampleCount: multiSampleCount > 0 ? (uint)multiSampleCount : 1);
                 context.Factory.BeginDraw();
                 try
                 {
@@ -112,8 +144,8 @@ namespace SkiaGameRendering
             if (_hasBegun)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 
-            if (!_appManagesLayout)
-                Transition(VkConstants.ImageLayoutShaderReadOnlyOptimal, VkConstants.ImageLayoutColorAttachmentOptimal);
+            if (!_appManagesLayout && _multiSampled.Image == 0)
+                Transition(_allocation.Image, VkConstants.ImageLayoutShaderReadOnlyOptimal, VkConstants.ImageLayoutColorAttachmentOptimal);
             _context.Factory.BeginDraw();
             _hasBegun = true;
             if (clear)
@@ -138,19 +170,37 @@ namespace SkiaGameRendering
                 _context.Factory.EndDraw(synchronous);
                 _hasBegun = false;
             }
-            if (!_appManagesLayout)
-                Transition(VkConstants.ImageLayoutColorAttachmentOptimal, VkConstants.ImageLayoutShaderReadOnlyOptimal);
+            if (_multiSampled.Image != 0)
+                Resolve();
+            else if (!_appManagesLayout)
+                Transition(_allocation.Image, VkConstants.ImageLayoutColorAttachmentOptimal, VkConstants.ImageLayoutShaderReadOnlyOptimal);
             if (synchronous)
                 _context.Transitioner.WaitForCompletion();
         }
 
-        void Transition(uint oldLayout, uint newLayout)
+        // The app's image sits in its contract layout (SHADER_READ_ONLY, or COLOR_ATTACHMENT when the app manages
+        // layout) and comes back to it, its last and next use being a fragment-shader read or the app's barrier.
+        void Resolve()
+        {
+            var layout = _appManagesLayout ? VkConstants.ImageLayoutColorAttachmentOptimal : VkConstants.ImageLayoutShaderReadOnlyOptimal;
+            _context.Transitioner.Resolve(
+                _multiSampled.Image, _allocation.Image, (uint)Width, (uint)Height,
+                destinationLayout: layout,
+                destinationSrcStageMask: _appManagesLayout ? VkConstants.PipelineStageColorAttachmentOutput : VkConstants.PipelineStageFragmentShader,
+                destinationFinalLayout: layout,
+                destinationDstStageMask: _appManagesLayout ? VkConstants.PipelineStageColorAttachmentOutput : VkConstants.PipelineStageFragmentShader,
+                destinationDstAccessMask: _appManagesLayout
+                    ? VkConstants.AccessColorAttachmentRead | VkConstants.AccessColorAttachmentWrite
+                    : VkConstants.AccessShaderRead);
+        }
+
+        void Transition(ulong image, uint oldLayout, uint newLayout)
         {
             // Skia's last writes are color-attachment writes; the app's first read is a fragment-shader read.
             var toShaderRead = newLayout == VkConstants.ImageLayoutShaderReadOnlyOptimal;
             var fromUndefined = oldLayout == VkConstants.ImageLayoutUndefined;
             _context.Transitioner.Transition(
-                _allocation.Image, oldLayout, newLayout,
+                image, oldLayout, newLayout,
                 srcStageMask: fromUndefined ? VkConstants.PipelineStageTopOfPipe
                     : VkConstants.PipelineStageFragmentShader | VkConstants.PipelineStageColorAttachmentOutput,
                 srcAccessMask: toShaderRead && !fromUndefined ? VkConstants.AccessColorAttachmentWrite : 0u,
@@ -170,11 +220,13 @@ namespace SkiaGameRendering
             _renderTarget?.Dispose();
             _surface = null;
             _renderTarget = null;
-            if (_allocation.Image != 0)
+            if (_allocation.Image != 0 || _multiSampled.Image != 0)
             {
                 _context.Transitioner.WaitForCompletion();
                 VkImageAllocator.Destroy(_context.Device, _allocation);
+                VkImageAllocator.Destroy(_context.Device, _multiSampled);
                 _allocation = default;
+                _multiSampled = default;
             }
         }
     }
