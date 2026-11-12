@@ -37,6 +37,8 @@ and every platform draws the same thing. Both apps run at 1600x900 with vsync an
 Each scene gets a 2 s warmup and a 4 s measured window. **FPS** is the measured frames over the window's
 wall-clock time, so it covers the whole frame: update, draw submission, the Skia context switch and flush,
 the composite and `Present`.
+The apps turn off MonoGame's 20 ms sleep for an inactive window, and the result files' **Inactive** column
+gives the share of measured frames the window was in the background, since the OS or driver can still throttle it.
 
 Each table row gives three numbers: **Native FPS**, the fastest engine-side renderer for that scene (named in
 brackets); **SkiaGameRendering FPS**; and **SkiaGameRendering / Native**, where 100% is the same speed, 200% twice as fast and 50% half as fast.

@@ -35,7 +35,7 @@ function Read-Run([string] $path) {
         if ($cells.Count -lt 10 -or $cells[0] -eq 'Page' -or $cells[0] -like '---*') { continue }
         [pscustomobject]@{
             Page = $cells[0]; Scene = $cells[1]; Count = $cells[2]; Kind = $cells[3]; Renderer = $cells[4]
-            Fps = $cells[5]; MedianMs = $cells[6]; P95Ms = $cells[7]; DrawMs = $cells[8]; Note = $cells[9]
+            Fps = $cells[5]; MedianMs = $cells[6]; P95Ms = $cells[7]; DrawMs = $cells[8]; Note = $cells[-1]
         }
     }
     $hardware = (Split-Path -Leaf $path).Split('__')[0]
