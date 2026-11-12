@@ -486,13 +486,21 @@ public sealed class SkiaSample : MonoBehaviour
         int center = Cell / 2;
         var circle = SkiaPixel(center, center);
         var drop = SkiaPixel(Cell + center, center);
-        var mirrored = SkiaPixel(center, Height - 1 - center);
+        // Scene pixels scaled to this layout: the logo cell's transparent margin, the antialiased-clipped circle,
+        // and a pixel of that circle the clip cuts away.
+        const float scale = Height / (float)Scene.Height;
+        Color32 ScenePixel(int x, int y) => SkiaPixel((int)(x * scale), (int)(y * scale));
+        var margin = ScenePixel(Scene.LogoTransparentX, Scene.LogoTransparentY);
+        var clipped = ScenePixel(Scene.ClipCenter, Scene.ClipCenter);
+        var clippedOut = ScenePixel(Scene.ClippedOutX, Scene.ClippedOutY);
         bool pass = circle.r > 200 && circle.g < 50 && circle.b < 50
             && drop.r < 100 && drop.b > 150
-            && mirrored.a < 10
+            && margin.a < 10
+            && clipped.r > 200 && clipped.g > 120 && clipped.b < 80
+            && clippedOut.a < 10
             // GetPixel clamps, so a window too small for every copy would read the wrong pixels.
             && screen.width >= QuadX + Width && screen.height >= UiY + Height;
-        string report = $"screen={screen.width}x{screen.height} circle={circle} drop={drop} mirrored={mirrored}";
+        string report = $"screen={screen.width}x{screen.height} circle={circle} drop={drop} margin={margin} clipped={clipped} clippedOut={clippedOut}";
 
         foreach (var (name, x, y) in new[] { ("gui", 0, 0), ("quad", QuadX, 0), ("rawimage", 0, UiY) })
         {
