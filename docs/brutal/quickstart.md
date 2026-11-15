@@ -127,11 +127,20 @@ var device = physicalDevice.CreateDevice(new Device.CreateInfo
   shared `MTLCommandQueue`. That holds because MoltenVK commits each `vkQueueSubmit` on the calling thread, its default
   (`MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=1`). `SkiaVulkanContext` throws if that variable is `0`. Don't turn it off
   through `VK_EXT_layer_settings` either; the library can't see that.
-- **Layout.** The image moves to `SHADER_READ_ONLY_OPTIMAL` once at creation and never again, since Skia's writes go
+- **Layout.** A `SkiaRenderTarget2D` image moves to `SHADER_READ_ONLY_OPTIMAL` once at creation and never again, since Skia's writes go
   through Metal, which has no layouts. The contract you see is unchanged. With `appManagesLayout: true` it is moved to
   `COLOR_ATTACHMENT_OPTIMAL` once instead, so your barriers stay valid; they are bookkeeping for MoltenVK.
-- **Not yet.** `multiSampleCount` above 0 and `SkiaDirectCanvas` throw on macOS: a swapchain image can't be created for
-  Metal export.
+- **`SkiaDirectCanvas`** exports the image's `MTLTexture` at every `Begin`. For a swapchain image that is the current
+  drawable's texture, so call `Begin` after `vkAcquireNextImageKHR`, and `End` before `vkQueuePresentKHR`, as on
+  Windows and Linux. Two rules apply on macOS only:
+  - Create the swapchain with `VK_IMAGE_USAGE_TRANSFER_SRC_BIT` (or `SAMPLED` or `STORAGE`) in `imageUsage`. Without
+    one, MoltenVK makes its textures `framebufferOnly`. Skia's Metal backend has no framebuffer fetch, so a blend mode
+    that reads the destination copies from the texture, which Metal forbids there. `Begin` throws on such a texture.
+  - Exporting a swapchain image's texture breaks the Vulkan spec. A texture may only be exported from an image created
+    with `VkExportMetalObjectCreateInfoEXT`, and a swapchain image can't be. The validation layer reports
+    `VUID-VkExportMetalObjectsInfoEXT-pNext-06795`; MoltenVK 1.4 exports the texture anyway. An image you create
+    yourself with that struct chained (as `samples/Sample.Brutal` does) breaks nothing.
+- **Not yet.** `multiSampleCount` above 0 throws on macOS, and `SkiaDirectCanvas` takes single-sample images only.
 
 ## OpenGL
 

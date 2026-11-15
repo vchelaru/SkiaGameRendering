@@ -1,3 +1,4 @@
+using SkiaGameRendering.Core.Metal;
 using SkiaGameRendering.Core.VK;
 using SkiaSharp;
 
@@ -42,6 +43,17 @@ namespace SkiaGameRendering
     /// per pass, because a swapchain hands out a different image each frame. Use it once per frame, not once
     /// per widget.
     /// </para>
+    /// <para>
+    /// <b>macOS (MoltenVK).</b> Skia draws with Metal into the <c>MTLTexture</c> behind the image, exported with
+    /// <c>VK_EXT_metal_objects</c> at every <see cref="Begin"/> (a swapchain image's texture is the current
+    /// <c>CAMetalDrawable</c>'s, so call <see cref="Begin"/> after <c>vkAcquireNextImageKHR</c>). The layout moves and
+    /// submit order above still hold. Two extra rules. The swapchain needs <c>TRANSFER_SRC</c>, <c>SAMPLED</c> or
+    /// <c>STORAGE</c> in its <c>imageUsage</c>, or MoltenVK makes its textures <c>framebufferOnly</c>, which Skia's
+    /// Metal backend cannot draw every blend mode into, and <see cref="Begin"/> throws. And exporting a swapchain image's
+    /// texture breaks the Vulkan spec: the image wasn't created with <c>VkExportMetalObjectCreateInfoEXT</c>, which a
+    /// swapchain image can't be, so the validation layer reports VUID-VkExportMetalObjectsInfoEXT-pNext-06795. MoltenVK
+    /// exports it anyway. An image you create yourself with that struct chained breaks nothing.
+    /// </para>
     /// </summary>
     public sealed class SkiaDirectCanvas : IDisposable
     {
@@ -63,6 +75,7 @@ namespace SkiaGameRendering
         readonly SkiaVulkanContext _context;
         SKSurface? _surface;
         GRBackendRenderTarget? _renderTarget;
+        MetalDirectSurface? _metalSurface;
         ulong _image;
         uint _cameInLayout;
         bool _hasBegun;
@@ -71,9 +84,6 @@ namespace SkiaGameRendering
         public SkiaDirectCanvas(SkiaVulkanContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
-            // Exporting an MTLTexture needs the image created for export, which a swapchain image is not.
-            if (context.MetalFactory != null)
-                throw new PlatformNotSupportedException("SkiaDirectCanvas is not supported on macOS (MoltenVK) yet; draw into a SkiaRenderTarget2D.");
             _context = context;
         }
 
@@ -133,28 +143,58 @@ namespace SkiaGameRendering
                 dstStageMask: VkConstants.PipelineStageColorAttachmentOutput,
                 dstAccessMask: AccessColorAttachmentRead | VkConstants.AccessColorAttachmentWrite);
 
-            _context.Factory.BeginDraw();
-            try
+            if (_context.MetalFactory is { } metal)
+                BeginMetal(metal, vkImage, width, height, currentLayout);
+            else
             {
-                var state = _context.Factory.CreateTextureState(
+                _context.Factory.BeginDraw();
+                try
+                {
+                    var state = _context.Factory.CreateTextureState(
                     vkImage, unormFormat, VkConstants.ImageLayoutColorAttachmentOptimal,
-                    imageUsage | VkConstants.ImageUsageTransferSrc | VkConstants.ImageUsageTransferDst, imageTiling: 0);
-                (_surface, _renderTarget) = _context.Factory.CreateSurface(state, width, height, colorType);
-            }
-            catch
-            {
-                _context.Factory.EndDraw(synchronous: false);
-                // Hand the image back where it came from.
-                MoveTo(vkImage, currentLayout == VkConstants.ImageLayoutUndefined ? VkConstants.ImageLayoutColorAttachmentOptimal : currentLayout);
-                throw;
+                        imageUsage | VkConstants.ImageUsageTransferSrc | VkConstants.ImageUsageTransferDst, imageTiling: 0);
+                    (_surface, _renderTarget) = _context.Factory.CreateSurface(state, width, height, colorType);
+                }
+                catch
+                {
+                    _context.Factory.EndDraw(synchronous: false);
+                    HandBack(vkImage, currentLayout);
+                    throw;
+                }
             }
 
             _image = vkImage;
             _cameInLayout = currentLayout;
             _hasBegun = true;
             if (clear)
-                _surface.Canvas.Clear();
+                _surface!.Canvas.Clear();
         }
+
+        // macOS: the texture is exported every pass, since a swapchain image's texture changes with each acquired drawable.
+        void BeginMetal(MetalSkiaSurfaceFactory metal, ulong vkImage, int width, int height, uint currentLayout)
+        {
+            try
+            {
+                var texture = VkMetalObjectExport.ExportTexture(_context.Device, vkImage);
+                if (MetalSkiaSurfaceFactory.IsFramebufferOnly(texture))
+                    throw new NotSupportedException(
+                        "The image's MTLTexture is framebufferOnly, which MoltenVK makes a swapchain's textures unless its imageUsage " +
+                        "includes TRANSFER_SRC, SAMPLED or STORAGE. Skia's Metal backend copies the destination for some blend modes, " +
+                        "which Metal forbids on such a texture. Add VK_IMAGE_USAGE_TRANSFER_SRC_BIT to the swapchain's imageUsage.");
+                metal.BeginDraw();
+                _metalSurface = metal.CreateDirectSurface(texture, width, height);
+                _surface = _metalSurface.Surface;
+            }
+            catch
+            {
+                HandBack(vkImage, currentLayout);
+                throw;
+            }
+        }
+
+        // A refused Begin hands the image back where it came from.
+        void HandBack(ulong image, uint currentLayout) =>
+            MoveTo(image, currentLayout == VkConstants.ImageLayoutUndefined ? VkConstants.ImageLayoutColorAttachmentOptimal : currentLayout);
 
         /// <summary>
         /// Flushes Skia's work to the context's queue, then queues the move to <paramref name="finalLayout"/> (default:
@@ -177,12 +217,21 @@ namespace SkiaGameRendering
             {
                 try
                 {
-                    _context.Factory.EndDraw(synchronous);
+                    if (_context.MetalFactory is { } metal)
+                        metal.EndDraw(synchronous);
+                    else
+                        _context.Factory.EndDraw(synchronous);
                 }
                 finally
                 {
-                    _surface!.Dispose();
-                    _renderTarget!.Dispose();
+                    if (_metalSurface != null)
+                        _metalSurface.Dispose();
+                    else
+                    {
+                        _surface!.Dispose();
+                        _renderTarget!.Dispose();
+                    }
+                    _metalSurface = null;
                     _surface = null;
                     _renderTarget = null;
                     _hasBegun = false;
