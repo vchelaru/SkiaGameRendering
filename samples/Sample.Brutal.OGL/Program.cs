@@ -37,6 +37,8 @@ static void SetViewport(int width, int height) =>
 
 using var context = new SkiaGlContext(GetProc);
 var exitCode = 0;
+if (!interactive)
+    Console.WriteLine($"GL_VERSION: {Marshal.PtrToStringAnsi(Marshal.GetDelegateForFunctionPointer<GetString>(GetProc("glGetString"))(0x1F02))}");
 
 if (interactive && args.Contains("--direct"))
 {
@@ -189,3 +191,6 @@ static int CountDiffering(byte[] a, byte[] b)
 
 [UnmanagedFunctionPointer(CallingConvention.Winapi)]
 delegate void Viewport(int x, int y, int width, int height);
+
+[UnmanagedFunctionPointer(CallingConvention.Winapi)]
+delegate IntPtr GetString(int name);
