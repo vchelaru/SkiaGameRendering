@@ -1,6 +1,6 @@
 ---
 name: support-matrix
-description: Printing the supported platforms table (engine x graphics API, with direct-canvas support). Triggers: "supported platforms", "support table", "platform matrix", "what's supported", "direct to backbuffer".
+description: "Printing the supported platforms table (engine x graphics API, with direct-canvas support). Triggers: "supported platforms", "support table", "platform matrix", "what's supported", "direct to backbuffer"."
 ---
 
 # Support Matrix
