@@ -10,7 +10,7 @@
     <Version>$(LibraryVersion)</Version>
     <!-- Takes raw Vulkan handles (IntPtr), so it has no dependency on any BRUTAL package: BRUTAL's wrappers expose
          them as VkHandle, and a BRUTAL version bump cannot break this package. -->
-    <Description>GPU SkiaSharp rendering into a Vulkan image for BRUTAL apps (Vulkan 1.3, Windows and Linux), with no CPU readback.</Description>
+    <Description>GPU SkiaSharp rendering into a Vulkan image for BRUTAL apps (Vulkan 1.3; Windows, Linux, and macOS through MoltenVK), with no CPU readback.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <RepositoryUrl>https://github.com/vchelaru/SkiaGameRendering</RepositoryUrl>
@@ -21,6 +21,9 @@
     <!-- The main SkiaSharp package only carries Windows/macOS native assets implicitly; BRUTAL runs on Linux. -->
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="[$(SkiaSharpVersion)]" />
     <ProjectReference Include="..\SkiaGameRendering.Core.VK\SkiaGameRendering.Core.VK.csproj" />
+    <!-- macOS: SkiaSharp's native there has no Vulkan, so Skia draws with Metal into the MTLTexture MoltenVK exports.
+         The main SkiaSharp package already carries the macOS native assets. -->
+    <ProjectReference Include="..\SkiaGameRendering.Core.Metal\SkiaGameRendering.Core.Metal.csproj" />
   </ItemGroup>
 
   <ItemGroup>

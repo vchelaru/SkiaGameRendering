@@ -52,6 +52,10 @@ which also draw straight into the current target (`SkiaDirectCanvas`).
 | Unity 6 | ✅ Windows, Android | ✅ | ✅ | ✅ | ✅ | ⛔ |
 | BRUTAL | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 
+BRUTAL's Vulkan is ✅ on Windows and Linux and 🟦 on macOS. SkiaSharp's macOS native has no Vulkan, so there Skia draws
+through Metal into the `MTLTexture` MoltenVK exports for each image (`VK_EXT_metal_objects`). A swapchain image can't be
+created for export, so `SkiaDirectCanvas` throws on macOS.
+
 Unity WebGL is ⛔ because Unity's Emscripten must match the one SkiaSharp's wasm build uses (3.1.56) and nothing has been shown to work.
 
 FNA's D3D12, Vulkan and Metal are ❌ because FNA3D reaches them through its SDL_GPU driver, which

@@ -47,8 +47,10 @@ namespace SkiaGameRendering.Core.VK
                     NativeLibrary.TryGetExport(NativeLibrary.GetMainProgramHandle(), "vkGetInstanceProcAddr", out _))
                     return NativeLibrary.GetMainProgramHandle();
 
-                if (NativeLibrary.TryLoad("libvulkan.dylib", out var macHandle))
-                    return macHandle;
+                // Homebrew's prefixes are not on dyld's default search path; BRUTAL looks there too.
+                foreach (var macLoader in new[] { "libvulkan.1.dylib", "libvulkan.dylib", "/opt/homebrew/lib/libvulkan.1.dylib", "/usr/local/lib/libvulkan.1.dylib" })
+                    if (OperatingSystem.IsMacOS() && NativeLibrary.TryLoad(macLoader, out var macHandle))
+                        return macHandle;
                 if (NativeLibrary.TryLoad("libMoltenVK.dylib", out var moltenHandle))
                     return moltenHandle;
 

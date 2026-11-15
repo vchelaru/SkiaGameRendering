@@ -48,7 +48,9 @@ canvas.End();
 - Needs `MonoGame.Framework.Native` 3.8.6 or later, which added `GetNativeHandles()` and
   `RenderTarget2D.FromNativeHandle()`. The game also references the native runtime for its OS,
   `MonoGame.Runtime.Windows.Vulkan` or `MonoGame.Runtime.Linux.Vulkan`.
-- Windows and Linux. SkiaSharp's macOS native build has no Vulkan backend, so MoltenVK is out.
+- Windows and Linux. SkiaSharp's macOS native build has no Vulkan backend. `SkiaGameRendering.Brutal` reaches
+  MoltenVK by having Skia draw through Metal into the `MTLTexture` each image exports (`VK_EXT_metal_objects`);
+  this backend does not do that.
 - `SKColorType.Rgba8888` (the default) and `SKColorType.Bgra8888` only.
 - Each target is a `VkImage` this backend allocates (`VkImageAllocator` in `Core.VK`) and wraps with
   `RenderTarget2D.FromNativeHandle`. MonoGame expects the image in `SHADER_READ_ONLY_OPTIMAL`, so it

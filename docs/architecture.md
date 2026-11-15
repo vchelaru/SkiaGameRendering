@@ -20,7 +20,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 - `src/SkiaGameRendering.Core.VK/` — engine-agnostic Vulkan/Skia interop shared by Vulkan-based backends
 - `src/SkiaGameRendering.Core.Metal/`: engine-agnostic Metal/Skia interop shared by Metal-based backends (Godot on macOS today)
 - `src/SkiaGameRendering.Stride.VK/` — Stride library (shared `Core.VK` + `SkiaRenderTarget2D`, Windows/Linux)
-- `src/SkiaGameRendering.Brutal/` — BRUTAL library (shared `Core.VK`; raw Vulkan handles in, a `VkImage` out; Windows/Linux)
+- `src/SkiaGameRendering.Brutal/` — BRUTAL library (shared `Core.VK`; raw Vulkan handles in, a `VkImage` out; Windows/Linux, and macOS through `Core.Metal` on MoltenVK)
 - `src/SkiaGameRendering.Brutal.OGL/` — BRUTAL's OpenGL path (shared `Core.OGL`; a GL proc-address function in, a `GL_TEXTURE_2D` out; Skia draws on the app's own context, no second context)
 - `src/SkiaGameRendering.Core.D3D12/`: engine-agnostic D3D12/Skia interop shared by D3D12-based backends
 - `src/SkiaGameRendering.Stride.D3D12/`: Stride library (shared `Core.D3D12` + `SkiaRenderTarget2D`, Windows/D3D12 only)

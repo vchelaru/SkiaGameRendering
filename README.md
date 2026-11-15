@@ -27,7 +27,7 @@ Unity textures on the GPU, with no CPU readback.
 | Stride | [D3D11](docs/stride/quickstart.md) | [`SkiaGameRendering.Stride.D3D11`](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D11) | Windows |
 |  | [Vulkan](docs/stride/vulkan-quickstart.md) | [`SkiaGameRendering.Stride.VK`](https://www.nuget.org/packages/SkiaGameRendering.Stride.VK) | Windows, Linux, macOS |
 |  | [D3D12](docs/stride/d3d12-quickstart.md) | [`SkiaGameRendering.Stride.D3D12`](https://www.nuget.org/packages/SkiaGameRendering.Stride.D3D12) | Windows |
-| BRUTAL | [Vulkan](docs/brutal/quickstart.md) | [`SkiaGameRendering.Brutal`](https://www.nuget.org/packages/SkiaGameRendering.Brutal) | Windows, Linux |
+| BRUTAL | [Vulkan](docs/brutal/quickstart.md) | [`SkiaGameRendering.Brutal`](https://www.nuget.org/packages/SkiaGameRendering.Brutal) | Windows, Linux, macOS (MoltenVK) |
 |  | [OpenGL](docs/brutal/quickstart.md#opengl) | [`SkiaGameRendering.Brutal.OGL`](https://www.nuget.org/packages/SkiaGameRendering.Brutal.OGL) | Windows, Linux |
 | Godot 4.7+ | [Vulkan, D3D12, Metal, OpenGL 3.3](docs/godot/quickstart.md) | Source only | Windows, Linux, macOS |
 | Unity 6 | [D3D11, D3D12, Vulkan, OpenGL, Metal, OpenGL ES](docs/unity/quickstart.md) | [UPM](docs/unity/quickstart.md) | Windows x64, macOS, Android |

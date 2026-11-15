@@ -2,7 +2,7 @@
 
 [BRUTAL](https://github.com/ahwootech/BRUTAL) ships Vulkan bindings and no renderer or texture type, so
 `SkiaGameRendering.Brutal` gives you a Vulkan image that Skia draws into on the GPU. You sample it in your
-own renderer. Windows and Linux, Vulkan 1.3, no CPU readback.
+own renderer. Windows, Linux and macOS ([below](#macos)), Vulkan 1.3, no CPU readback.
 
 ```
 dotnet add package SkiaGameRendering.Brutal
@@ -86,6 +86,52 @@ direct.End(finalLayout: presentSrcLayout);   // omit to hand it back in the layo
 
 `Sample.Brutal --smoke-test` and `Sample.Brutal.Quad --smoke-test` draw the shared scene through it into an app-owned image and compare it
 with the texture path. The `Tests.Brutal` layout tests check the layouts under the validation layer in CI.
+
+## macOS
+
+BRUTAL's Vulkan runs on Apple silicon through MoltenVK. SkiaSharp's macOS native has no Vulkan, so there Skia draws with
+Metal into the `MTLTexture` behind each target's `VkImage`, on the `MTLCommandQueue` behind your queue. Everything still
+stays on the GPU, and the API is the same.
+
+Install the Vulkan loader and MoltenVK (BRUTAL ships neither for macOS; see the
+[BRUTAL macOS notes](https://brutally-honest.junk-tools.com/)):
+
+```
+brew install molten-vk vulkan-loader
+brew install vulkan-validationlayers vulkan-tools   # optional: validation, and vulkaninfo
+```
+
+Your app adds two things: `VK_EXT_metal_objects` on the device, and a `VkExportMetalObjectCreateInfoEXT` for the
+MTLDevice and one for the MTLCommandQueue on the instance. Without them the export fails validation or
+`SkiaVulkanContext` throws, naming the extension.
+
+```csharp
+var exportQueue = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalCommandQueue);
+var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice, (IntPtr)(&exportQueue));
+var instance = Vulkan.CreateInstance(new Instance.CreateInfo
+{
+    // ... as before, plus portability enumeration
+    Flags = VkInstanceCreateFlags.EnumeratePortabilityBitKHR,
+    Next = &exportDevice,
+});
+var device = physicalDevice.CreateDevice(new Device.CreateInfo
+{
+    Extensions = ["VK_KHR_portability_subset", VkMetalObjectExport.ExtensionName],
+    // ...
+});
+```
+
+`VkMetalObjectExport` is in `SkiaGameRendering.Core.VK`, which the package brings in. `samples/Sample.Brutal` does this.
+
+- **Synchronous submits.** Skia's Metal command buffers and your Vulkan submits are ordered by the order they reach the
+  shared `MTLCommandQueue`. That holds because MoltenVK commits each `vkQueueSubmit` on the calling thread, its default
+  (`MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=1`). `SkiaVulkanContext` throws if that variable is `0`. Don't turn it off
+  through `VK_EXT_layer_settings` either; the library can't see that.
+- **Layout.** The image moves to `SHADER_READ_ONLY_OPTIMAL` once at creation and never again, since Skia's writes go
+  through Metal, which has no layouts. The contract you see is unchanged. With `appManagesLayout: true` it is moved to
+  `COLOR_ATTACHMENT_OPTIMAL` once instead, so your barriers stay valid; they are bookkeeping for MoltenVK.
+- **Not yet.** `multiSampleCount` above 0 and `SkiaDirectCanvas` throw on macOS: a swapchain image can't be created for
+  Metal export.
 
 ## OpenGL
 
