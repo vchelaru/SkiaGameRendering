@@ -17,31 +17,31 @@ Screenshots: 500 drops, KNI DesktopGL. The scenes are 1600x900 and animate every
 
 ### MonoGame DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| SVG 100 | 655 (Apos.Shapes SVG) | 74 | 11% |
-| SVG 500 | 144 (Apos.Shapes SVG) | 18 | 13% |
-| SVG 2k | 38 (Apos.Shapes SVG) | 4 | 11% |
+| SVG 100 | 1.53 (Apos.Shapes SVG) | 13.5 | 8.85x |
+| SVG 500 | 6.94 (Apos.Shapes SVG) | 55.6 | 8.00x |
+| SVG 2k | 26.3 (Apos.Shapes SVG) | 250.0 | 9.50x |
 
 ### KNI DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| SVG 100 | 655 (Apos.Shapes SVG) | 73 | 11% |
-| SVG 500 | 161 (Apos.Shapes SVG) | 18 | 11% |
-| SVG 2k | 32 (Apos.Shapes SVG) | 4 | 13% |
+| SVG 100 | 1.53 (Apos.Shapes SVG) | 13.7 | 8.97x |
+| SVG 500 | 6.21 (Apos.Shapes SVG) | 55.6 | 8.94x |
+| SVG 2k | 31.3 (Apos.Shapes SVG) | 250.0 | 8.00x |
 
 ### KNI WebGL (Chrome), H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| SVG 100 | 214 (Apos.Shapes SVG) | 354 | 165% |
-| SVG 500 | 49 (Apos.Shapes SVG) | 73 | 149% |
-| SVG 2k | 13 (Apos.Shapes SVG) | 25 | 192% |
+| SVG 100 | 4.67 (Apos.Shapes SVG) | 2.83 | 0.60x |
+| SVG 500 | 20.4 (Apos.Shapes SVG) | 13.7 | 0.67x |
+| SVG 2k | 76.9 (Apos.Shapes SVG) | 40.0 | 0.52x |
 
 <!-- results:end -->
 
 ## Reading the numbers
 
-- Desktop: Skia runs at about 11%. Its path and stroke tessellation is what costs.
-- Browser: Skia runs at 149-192%, for the same reason as the shapes page.
+- Desktop: Skia takes 8.0-9.5x as long. Its path and stroke tessellation is what costs.
+- Browser: Skia takes 0.52-0.67x as long, for the same reason as the shapes page.

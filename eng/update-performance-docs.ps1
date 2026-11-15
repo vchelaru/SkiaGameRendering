@@ -35,7 +35,7 @@ function Read-Run([string] $path) {
         if ($cells.Count -lt 10 -or $cells[0] -eq 'Page' -or $cells[0] -like '---*') { continue }
         [pscustomobject]@{
             Page = $cells[0]; Scene = $cells[1]; Count = $cells[2]; Kind = $cells[3]; Renderer = $cells[4]
-            Fps = $cells[5]; MedianMs = $cells[6]; P95Ms = $cells[7]; DrawMs = $cells[8]; Note = $cells[-1]
+            MeanMs = $cells[5]; MedianMs = $cells[6]; P95Ms = $cells[7]; DrawMs = $cells[8]; Note = $cells[-1]
         }
     }
     $hardware = (Split-Path -Leaf $path).Split('__')[0]
@@ -47,12 +47,16 @@ function Read-Run([string] $path) {
     }
 }
 
-# Average FPS over the measured window, so frequent stalls count against the side that has them.
-function Row-Fps($row) {
-    $fps = 0.0
-    if ($row -and [double]::TryParse($row.Fps, [ref] $fps) -and $fps -gt 0) { return $fps }
+# Mean frame time over the measured window, in ms. The mean, not the median, so frequent stalls count against
+# the side that has them.
+function Row-Ms($row) {
+    $ms = 0.0
+    if ($row -and [double]::TryParse($row.MeanMs, [ref] $ms) -and $ms -gt 0) { return $ms }
     return $null
 }
+
+# Two decimals below 10 ms, one above, so small frame times keep their precision.
+function Format-Ms([double] $ms) { if ($ms -lt 10) { '{0:0.00}' -f $ms } else { '{0:0.0}' -f $ms } }
 
 # Each scene compares the fastest native renderer with Skia's direct canvas. Pre-rasterized SVG is left out
 # on both sides: it measures a bitmap, not vector rendering.
@@ -67,18 +71,18 @@ function Build-PageTables([object[]] $runs, [string] $page) {
             $rows = @($platformRuns | Where-Object Hardware -eq $hardware | ForEach-Object { $_.Rows } |
                 Where-Object { $_.Page -eq $page -and $_.Renderer -notmatch 'pre-rasterized' })
             $lines = foreach ($scene in @($rows | Select-Object -ExpandProperty Scene -Unique)) {
-                $skia = Row-Fps ($rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq 'Skia direct' } | Select-Object -First 1)
-                $native = $rows | Where-Object { $_.Scene -eq $scene -and $_.Kind -eq 'engine' -and (Row-Fps $_) } |
-                    Sort-Object { Row-Fps $_ } -Descending | Select-Object -First 1
+                $skia = Row-Ms ($rows | Where-Object { $_.Scene -eq $scene -and $_.Renderer -eq 'Skia direct' } | Select-Object -First 1)
+                $native = $rows | Where-Object { $_.Scene -eq $scene -and $_.Kind -eq 'engine' -and (Row-Ms $_) } |
+                    Sort-Object { Row-Ms $_ } | Select-Object -First 1
                 if (-not $skia -or -not $native) { continue }
-                $nativeFps = Row-Fps $native
-                '| {0} | {1:0} ({2}) | {3:0} | {4:0}% |' -f $scene, $nativeFps, $native.Renderer, $skia, (100.0 * $skia / $nativeFps)
+                $nativeMs = Row-Ms $native
+                '| {0} | {1} ({2}) | {3} | {4:0.00}x |' -f $scene, (Format-Ms $nativeMs), $native.Renderer, (Format-Ms $skia), ($skia / $nativeMs)
             }
             if (-not $lines) { continue }
             $any = $true
             [void] $out.AppendLine("### $platform, $hardware")
             [void] $out.AppendLine()
-            [void] $out.AppendLine('| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |')
+            [void] $out.AppendLine('| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |')
             [void] $out.AppendLine('|---|---:|---:|---:|')
             foreach ($line in $lines) { [void] $out.AppendLine($line) }
             [void] $out.AppendLine()

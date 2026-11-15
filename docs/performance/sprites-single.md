@@ -17,50 +17,50 @@ Screenshots: 2k sprites, KNI DesktopGL. The scenes are 1600x900 and animate ever
 
 ### MonoGame DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| Sprites 0 | 1680 (SpriteBatch) | 1634 | 97% |
-| Sprites 500 | 1433 (SpriteBatch) | 941 | 66% |
-| Sprites 2k | 1021 (SpriteBatch) | 600 | 59% |
-| Sprites 10k | 270 (SpriteBatch) | 270 | 100% |
-| Sprites 50k | 62 (SpriteBatch) | 52 | 84% |
-| Tinted sprites 10k | 325 (SpriteBatch) | 267 | 82% |
+| Sprites 0 | 0.60 (SpriteBatch) | 0.61 | 1.03x |
+| Sprites 500 | 0.70 (SpriteBatch) | 1.06 | 1.52x |
+| Sprites 2k | 0.98 (SpriteBatch) | 1.67 | 1.70x |
+| Sprites 10k | 3.70 (SpriteBatch) | 3.70 | 1.00x |
+| Sprites 50k | 16.1 (SpriteBatch) | 19.2 | 1.19x |
+| Tinted sprites 10k | 3.08 (SpriteBatch) | 3.75 | 1.22x |
 
 ### KNI DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| Sprites 0 | 2132 (SpriteBatch) | 1741 | 82% |
-| Sprites 500 | 1945 (SpriteBatch) | 949 | 49% |
-| Sprites 2k | 1335 (SpriteBatch) | 633 | 47% |
-| Sprites 10k | 364 (SpriteBatch) | 244 | 67% |
-| Sprites 50k | 76 (SpriteBatch) | 52 | 68% |
-| Tinted sprites 10k | 399 (SpriteBatch) | 272 | 68% |
+| Sprites 0 | 0.47 (SpriteBatch) | 0.57 | 1.22x |
+| Sprites 500 | 0.51 (SpriteBatch) | 1.05 | 2.05x |
+| Sprites 2k | 0.75 (SpriteBatch) | 1.58 | 2.11x |
+| Sprites 10k | 2.75 (SpriteBatch) | 4.10 | 1.49x |
+| Sprites 50k | 13.2 (SpriteBatch) | 19.2 | 1.46x |
+| Tinted sprites 10k | 2.51 (SpriteBatch) | 3.68 | 1.47x |
 
 ### KNI WebGL (Chrome), H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| Sprites 0 | 2759 (SpriteBatch) | 1689 | 61% |
-| Sprites 500 | 1522 (SpriteBatch) | 1393 | 92% |
-| Sprites 2k | 1025 (SpriteBatch) | 1064 | 104% |
-| Sprites 10k | 241 (SpriteBatch) | 322 | 134% |
-| Sprites 50k | 66 (SpriteBatch) | 72 | 109% |
-| Tinted sprites 10k | 379 (SpriteBatch) | 348 | 92% |
+| Sprites 0 | 0.36 (SpriteBatch) | 0.59 | 1.64x |
+| Sprites 500 | 0.66 (SpriteBatch) | 0.72 | 1.09x |
+| Sprites 2k | 0.98 (SpriteBatch) | 0.94 | 0.96x |
+| Sprites 10k | 4.15 (SpriteBatch) | 3.11 | 0.75x |
+| Sprites 50k | 15.2 (SpriteBatch) | 13.9 | 0.92x |
+| Tinted sprites 10k | 2.64 (SpriteBatch) | 2.87 | 1.09x |
 
 <!-- results:end -->
 
 ## Reading the numbers
 
-- Desktop: Skia runs at 47-100% of `SpriteBatch`, lowest at 500-2k sprites, where Skia's fixed cost per frame (context switch and flush, about 0.1 ms) is a large share of a short frame.
-- Browser: roughly even from 500 sprites up (92-134%).
+- Desktop: Skia takes 1.0-2.1x as long as `SpriteBatch`, worst at 500-2k sprites, where Skia's fixed cost per frame (context switch and flush, about 0.1 ms) is a large share of a short frame.
+- Browser: roughly even from 500 sprites up (0.75-1.09x).
 - Tinting through `DrawAtlas`'s `colors` costs almost nothing.
 
 ## Faster: one `DrawAtlas`, not one call per sprite
 
-MonoGame DesktopGL, `SkiaDirectCanvas`, 1600x900, H1 (Ryzen 7 260, RTX 5060 Laptop, driver 32.0.16.1047). Draw CPU time per frame in ms, median [min-max] of 6 runs (`--quick` windows), same scene and sprites in every row.
+MonoGame DesktopGL, `SkiaDirectCanvas`, 1600x900, H1 (Ryzen 7 260, RTX 5060 Laptop, driver 32.0.16.1047). Draw CPU ms per frame, median [min-max] of 6 runs (`--quick` windows), same scene and sprites in every row.
 
-| Scene | `DrawAtlas` (one call) | `DrawImageRect` per sprite | `DrawImage` per sprite | per-sprite / `DrawAtlas` |
+| Scene | `DrawAtlas` (one call), draw CPU ms | `DrawImageRect` per sprite, draw CPU ms | `DrawImage` per sprite, draw CPU ms | Per-sprite / `DrawAtlas` time |
 |---|---:|---:|---:|---:|
 | Sprites 500 | 0.22 [0.19-0.36] | 0.61 [0.57-0.66] | 0.59 [0.56-0.67] | 2.7x |
 | Sprites 2k | 0.29 [0.26-0.40] | 2.16 [1.79-3.24] | 1.92 [1.76-2.25] | 6.5x-7.4x |

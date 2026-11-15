@@ -7,7 +7,8 @@ into engine textures, with no CPU readback. `README.md` is a short landing page 
 table. Per-engine setup is in `docs/<engine>/quickstart.md`, the API in `docs/documentation/`, and the
 backend-per-graphics-API architecture in `docs/architecture.md`. Keep the README short and put new
 detail in those pages. Performance results differ by platform, so docs report what was measured
-where and never turn it into one blanket rule ("draw sprites with `SpriteBatch`"). Docs encourage using
+where and never turn it into one blanket rule ("draw sprites with `SpriteBatch`"). They report
+milliseconds per frame, never FPS, and compare as Skia time / native time. Docs encourage using
 Skia even at some performance cost: where Skia is slower, they say how to close the gap and never steer
 readers to another library. `SkiaGameRendering-Notes.md` has the deeper interop detail (ANGLE, D3D11 state management).
 

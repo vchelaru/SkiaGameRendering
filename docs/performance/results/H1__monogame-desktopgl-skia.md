@@ -8,11 +8,11 @@
 - Power: Plugged in
 - Window: 1600x900, vsync off
 
-| Page | Scene | Count | Kind | Renderer | FPS | Median frame ms | p95 frame ms | Median draw CPU ms | Note |
+| Page | Scene | Count | Kind | Renderer | Mean frame ms | Median frame ms | p95 frame ms | Median draw CPU ms | Note |
 |---|---|---:|---|---|---:|---:|---:|---:|---|
-| sprites-single | Sprites 0 | 0 | skia | Skia render target | 1830 |  |  |  |  |
-| sprites-single | Sprites 500 | 500 | skia | Skia render target | 1440 |  |  |  |  |
-| sprites-single | Sprites 2k | 2000 | skia | Skia render target | 1327 |  |  |  |  |
-| sprites-single | Sprites 10k | 10000 | skia | Skia render target | 573 |  |  |  |  |
-| sprites-single | Sprites 50k | 50000 | skia | Skia render target | 159 |  |  |  |  |
-| sprites-single | Tinted sprites 10k | 10000 | skia | Skia render target | 569 |  |  |  |  |
+| sprites-single | Sprites 0 | 0 | skia | Skia render target | 0.546 |  |  |  |  |
+| sprites-single | Sprites 500 | 500 | skia | Skia render target | 0.694 |  |  |  |  |
+| sprites-single | Sprites 2k | 2000 | skia | Skia render target | 0.754 |  |  |  |  |
+| sprites-single | Sprites 10k | 10000 | skia | Skia render target | 1.745 |  |  |  |  |
+| sprites-single | Sprites 50k | 50000 | skia | Skia render target | 6.289 |  |  |  |  |
+| sprites-single | Tinted sprites 10k | 10000 | skia | Skia render target | 1.757 |  |  |  |  |
