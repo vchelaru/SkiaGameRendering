@@ -146,8 +146,8 @@ var device = physicalDevice.CreateDevice(new Device.CreateInfo
 
 BRUTAL also ships OpenGL bindings (`Ahwoo.BRUTAL.OpenGl`) next to its GLFW and SDL windowing packages. For an app on
 an OpenGL 3.3+ context use `SkiaGameRendering.Brutal.OGL`, which draws into a `GL_TEXTURE_2D`. Windows, Linux and
-macOS. On macOS, Apple's OpenGL stops at 4.1 and is deprecated; ask GLFW for a 3.3 core profile and macOS gives
-you its 4.1 core context.
+macOS. macOS caps OpenGL at 4.1 core, and Apple has deprecated OpenGL. macOS is verified on a real Mac, not in CI:
+GitHub's macOS runners have no hardware OpenGL renderer, so GLFW can't create a context there.
 
 ```
 dotnet add package SkiaGameRendering.Brutal.OGL
@@ -204,9 +204,7 @@ direct.End();
 `Sample.Brutal.OGL --direct` shows it in a window, and `--smoke-test` checks it against the texture render.
 
 `samples/Sample.Brutal.OGL` is a complete example on a hidden GLFW window; `--smoke-test` reads one pixel back with
-`glReadPixels` and exits 0 if it is right. `Tests.Brutal.OGL` runs the shared scene against a golden image in CI
-on Linux. On macOS CI runs the smoke test only (`brutal-ogl-macos`), since GLFW needs the main thread and the test host
-doesn't give it one.
+`glReadPixels` and exits 0 if it is right. `Tests.Brutal.OGL` runs the shared scene against a golden image in CI.
 
 ## BRUTAL license
 

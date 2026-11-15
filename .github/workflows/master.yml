@@ -5,7 +5,7 @@ name: build
 #   gh workflow run master.yml --ref <branch> -f only=ios-simulator # chosen jobs, comma-separated job ids, no spaces
 # `only` takes job ids (desktop-and-core, raylib-linux, metal-macos, android, ...); `webgl` selects the WebGL shards and
 # their webgl-functional aggregate together. A failed nightly opens an issue (nightly-report).
-# On PRs, metal-macos, brutal-macos and brutal-ogl-macos skip when only benchmarks/, docs/ or top-level *.md change (the changes job).
+# On PRs, metal-macos and brutal-macos skip when only benchmarks/, docs/ or top-level *.md change (the changes job).
 on:
   push:
     branches: [master]
@@ -457,7 +457,7 @@ jobs:
           path: tests/**/golden-failures/*.png
           if-no-files-found: ignore
 
-  # PR-only path filter for metal-macos, brutal-macos and brutal-ogl-macos. On push, schedule and dispatch this job skips and they run as usual.
+  # PR-only path filter for metal-macos and brutal-macos. On push, schedule and dispatch this job skips and they run as usual.
   changes:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -979,26 +979,10 @@ jobs:
             tests/**/golden-failures/*.png
           if-no-files-found: ignore
 
-  # BRUTAL's OpenGL on macOS: a hidden GLFW window with a 3.3 core context, which macOS serves as 4.1 core on the
-  # VM's paravirtual GPU. No Tests.Brutal.OGL here: GLFW test hosts hang on macOS because GLFW needs the main thread.
-  brutal-ogl-macos:
-    needs: changes
-    if: >-
-      !cancelled() && needs.changes.outputs.metal != 'false' &&
-      (github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && (inputs.only == '' || contains(format(',{0},', inputs.only), ',brutal-ogl-macos,'))))
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-      - run: dotnet build samples/Sample.Brutal.OGL/Sample.Brutal.OGL.csproj -c Release
-      - run: dotnet samples/Sample.Brutal.OGL/bin/Release/net10.0/Sample.Brutal.OGL.dll --smoke-test
-
   # Opens an issue when a nightly run fails, so a failure is never lost in the Actions tab.
   nightly-report:
     if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
-    needs: [desktop-and-core, desktop-builds, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, windowsdx12-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux, brutal-linux, brutal-ogl-linux, brutal-ogl-macos, brutal-macos]
+    needs: [desktop-and-core, desktop-builds, webgl-functional-shard, webgl-functional, webgl-aot, raylib-webgl, fna-webgl, raylib-linux, metal-macos, desktopgl-nativeaot, windowsdx-nativeaot, windowsdx12-nativeaot, monogame-native-windows, android, ios-simulator, godot-linux, brutal-linux, brutal-ogl-linux, brutal-macos]
     runs-on: ubuntu-latest
     permissions:
       issues: write
