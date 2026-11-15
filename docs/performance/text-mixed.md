@@ -17,30 +17,30 @@ Screenshots: 200 labels, KNI DesktopGL. The scenes are 1600x900 and animate ever
 
 ### MonoGame DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| Mixed text 50 | 1606 (FontStashSharp) | 1019 | 63% |
-| Mixed text 200 | 1381 (FontStashSharp) | 690 | 50% |
-| Mixed text 1k | 810 (FontStashSharp) | 164 | 20% |
+| Mixed text 50 | 0.62 (FontStashSharp) | 0.98 | 1.57x |
+| Mixed text 200 | 0.72 (FontStashSharp) | 1.45 | 2.00x |
+| Mixed text 1k | 1.24 (FontStashSharp) | 6.10 | 4.94x |
 
 ### KNI DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| Mixed text 50 | 2535 (FontStashSharp) | 1001 | 39% |
-| Mixed text 200 | 2037 (FontStashSharp) | 674 | 33% |
-| Mixed text 1k | 945 (FontStashSharp) | 167 | 18% |
+| Mixed text 50 | 0.39 (FontStashSharp) | 1.00 | 2.54x |
+| Mixed text 200 | 0.49 (FontStashSharp) | 1.48 | 3.02x |
+| Mixed text 1k | 1.06 (FontStashSharp) | 5.99 | 5.66x |
 
 ### KNI WebGL (Chrome), H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| Mixed text 50 | 1874 (FontStashSharp) | 1128 | 60% |
-| Mixed text 200 | 886 (FontStashSharp) | 615 | 69% |
-| Mixed text 1k | 257 (FontStashSharp) | 157 | 61% |
+| Mixed text 50 | 0.53 (FontStashSharp) | 0.89 | 1.66x |
+| Mixed text 200 | 1.13 (FontStashSharp) | 1.63 | 1.44x |
+| Mixed text 1k | 3.89 (FontStashSharp) | 6.37 | 1.64x |
 
 <!-- results:end -->
 
 ## Reading the numbers
 
-- Native is FontStashSharp, which packs every size into shared atlases. Skia runs at 18-63% of it on the desktop and 60-69% in the browser, dropping with the label count.
+- Native is FontStashSharp, which packs every size into shared atlases. Skia takes 1.6-5.7x as long on the desktop, rising with the label count, and 1.4-1.7x in the browser.

@@ -18,7 +18,8 @@ The measurements of SkiaGameRendering against each engine's own drawing are in
   shows their average.
 - Run-to-run noise on that machine is about ±20%: scenes that did not change moved that much between runs. A
   difference smaller than that is reported as "no clear difference", never as a finding.
-- FPS covers the whole frame. Speedup is fast FPS divided by slow FPS.
+- Times are milliseconds per frame and cover the whole frame. The BRUTAL OpenGL app recorded frame rates, so its
+  times here are 1000 divided by the frame rate, the mean frame time. Speedup is the slow time divided by the fast time.
 - To reproduce a BRUTAL OpenGL row, run `Performance.Brutal.OGL.Skia` with `--page <page>` (for example
   `--page guide-shadows`) or `--scenes "<name>"`. See [Running](../performance.md#running).
 
@@ -79,36 +80,36 @@ the target, BRUTAL OpenGL ran at about the same speed at 1600x900 and at 3840x21
 draw calls was the limit. Screen-sized translucent layers are where size shows; see
 [Fill rate](../performance/fill-rate.md).
 
-| Target (2k shapes, BRUTAL OpenGL) | FPS |
+| Target (2k shapes, BRUTAL OpenGL) | Frame ms |
 |---|---:|
-| 800x800 | 280 |
-| 1600x900 | 212 |
-| 3840x2160 | 217 |
+| 800x800 | 3.57 |
+| 1600x900 | 4.72 |
+| 3840x2160 | 4.61 |
 
 ## Antialiasing and MSAA
 
 `SKPaint.IsAntialias` costs very different amounts depending on the shape. Each scene below draws one call per
-item with no canvas transform, so the rows compare the shape alone (BRUTAL OpenGL, one run per column).
+item with no canvas transform, so the rows compare the shape alone (BRUTAL OpenGL, frame ms, one run per column).
 
-| Scene | AA on | AA off | 4x MSAA, AA on |
+| Scene | AA on, frame ms | AA off, frame ms | 4x MSAA, AA on, frame ms |
 |---|---:|---:|---:|
-| Circles 500 | 834 | 1201 | 1200 |
-| Circles 10k | 62 | 107 | 122 |
-| Rectangles 500 | 944 | 666 | 942 |
-| Rectangles 10k | 76 | 65 | 90 |
-| Rounded rectangles 500 | 1203 | 1114 | 1057 |
-| Rounded rectangles 10k | 114 | 114 | 99 |
+| Circles 500 | 1.20 | 0.83 | 0.83 |
+| Circles 10k | 16.1 | 9.35 | 8.20 |
+| Rectangles 500 | 1.06 | 1.50 | 1.06 |
+| Rectangles 10k | 13.2 | 15.4 | 11.1 |
+| Rounded rectangles 500 | 0.83 | 0.90 | 0.95 |
+| Rounded rectangles 10k | 8.77 | 8.77 | 10.1 |
 
 - **Circles:** antialiasing is most of their cost. 4x MSAA keeps smooth edges and runs as fast as AA off
   (1.4x at 500, 2x at 10k).
 - **Rectangles and rounded rectangles:** no clear difference between AA on, AA off and MSAA. Skia's
   antialiasing for these shapes appears to be cheap; the reason is not measured.
 - **Mixed shapes** (circles, stroked rounded rectangles, round-cap lines, triangle paths): turning AA off made
-  them about 3x faster (2k: 41 to 126 FPS; 10k: 8 to 25 FPS).
+  them about 3x faster (2k: 24.4 to 7.94 ms; 10k: 125 to 40 ms).
 - **Sprites, images and text:** no clear difference with AA off. Antialiasing a textured quad seems to be a few
   shader instructions on an already batched draw; that explanation is not measured.
-- **UI panels** (shadow, panel, border, icon, label) ran 24-32% slower with AA off on BRUTAL OpenGL and
-  10-14% slower on BRUTAL Vulkan, one run each. The cause is not known.
+- **UI panels** (shadow, panel, border, icon, label) took 1.3-1.5x as long with AA off on BRUTAL OpenGL and
+  1.1-1.2x as long on BRUTAL Vulkan, one run each. The cause is not known.
 
 To turn on MSAA, pass `multiSampleCount` to `SkiaRenderTarget2D`
 (`SkiaRenderer.SupportsMultiSampledTargets ? 4 : 0` is portable on the MonoGame-family backends; it is false
@@ -122,50 +123,50 @@ shadows or already-rasterized images got slower with MSAA, so measure your own s
 Skia batches consecutive draws that it can combine. Switching between kinds of draw (shape, text, image)
 breaks the batch.
 
-| Draw order (2k items: circle, rect, text, image; BRUTAL OpenGL) | Slow FPS | Fast FPS | Speedup |
+| Draw order (2k items: circle, rect, text, image; BRUTAL OpenGL) | Slow, frame ms | Fast, frame ms | Speedup |
 |---|---:|---:|---:|
-| Interleaved by item vs grouped by type | 122 | 191 | 1.6x |
+| Interleaved by item vs grouped by type | 8.20 | 5.24 | 1.6x |
 
 Real UI usually draws each card completely (shadow, panel, border, icon, label) before the next, which
-interleaves types. Drawing the UI scene card by card instead of all panels, then all icons, then all labels cost
-27% at 50 cards and 45% at 1,000 cards on BRUTAL OpenGL (608 to 445 FPS and 53 to 29 FPS, one run each).
+interleaves types. Drawing the UI scene card by card instead of all panels, then all icons, then all labels took
+1.4x as long at 50 cards and 1.8x at 1,000 cards on BRUTAL OpenGL (1.64 to 2.25 ms and 18.9 to 34.5 ms, one run each).
 When cards do not overlap, drawing all panels first, then all icons, then all labels gives the same picture
 faster.
 
 ## Transparency and layers
 
-| Per-item transparency (250 items, BRUTAL OpenGL) | Slow FPS | Fast FPS | Speedup |
+| Per-item transparency (250 items, BRUTAL OpenGL) | Slow, frame ms | Fast, frame ms | Speedup |
 |---|---:|---:|---:|
-| `SaveLayer` per item vs alpha in the paint's color | 108 | 717 | 6.6x |
+| `SaveLayer` per item vs alpha in the paint's color | 9.26 | 1.39 | 6.6x |
 
 A `SaveLayer` allocates an offscreen layer and composites it back, so one per item is expensive. Put the alpha in
-`SKPaint.Color` when the item is one draw. One `SaveLayer` around the whole scene showed no clear cost (296 FPS
-without, 292 with, 2,000 shapes), so a layer for a whole group is fine.
+`SKPaint.Color` when the item is one draw. One `SaveLayer` around the whole scene showed no clear cost (3.38 ms
+without, 3.42 ms with, 2,000 shapes), so a layer for a whole group is fine.
 
 ## Shadows
 
-| Shadows (100 UI-sized panels, BRUTAL OpenGL) | Slow FPS | Fast FPS | Speedup |
+| Shadows (100 UI-sized panels, BRUTAL OpenGL) | Slow, frame ms | Fast, frame ms | Speedup |
 |---|---:|---:|---:|
-| `SKImageFilter.CreateDropShadow` vs `SKMaskFilter.CreateBlur` | 65 | 652 | 10x |
-| `SKMaskFilter.CreateBlur` vs nine-slice shadow image | 652 | 899 | 1.4x |
+| `SKImageFilter.CreateDropShadow` vs `SKMaskFilter.CreateBlur` | 15.4 | 1.53 | 10x |
+| `SKMaskFilter.CreateBlur` vs nine-slice shadow image | 1.53 | 1.11 | 1.4x |
 
 - Never give each item its own `CreateDropShadow` image filter. Draw the shadow as a blurred shape with
   `SKMaskFilter.CreateBlur`, then draw the item over it.
 - Fastest is a pre-rendered shadow image stretched with `DrawImageLattice` (nine-slice), so each shadow is a
   textured draw.
-- Blur cost depends on the panel size. In an early quick run, 500 small panels (25-50 px tall) fell to about
-  7 FPS while UI-sized panels ran at about 180 FPS; this was not repeated, so treat it as a warning, not a
+- Blur cost depends on the panel size. In an early quick run, 500 small panels (25-50 px tall) took about
+  140 ms per frame while UI-sized panels took about 5.6 ms; this was not repeated, so treat it as a warning, not a
   number.
 - Blurred shadows are the widest gap between Skia and the engines' own drawing; see
   [Drop shadows](../performance/shadows.md).
 
 ## Paths, paints and fonts: reuse objects
 
-| Reuse (BRUTAL OpenGL) | Slow FPS | Fast FPS | Speedup |
+| Reuse (BRUTAL OpenGL) | Slow, frame ms | Fast, frame ms | Speedup |
 |---|---:|---:|---:|
-| `SKPath` rebuilt every frame vs cached (1k paths) | 224 | 365 | 1.6x |
-| New `SKPaint` per draw vs one reused paint (2k draws) | 252 | 314 | 1.25x |
-| New `SKFont` per label vs a cached font (500 labels) | 247 | 259 | no clear difference |
+| `SKPath` rebuilt every frame vs cached (1k paths) | 4.46 | 2.74 | 1.6x |
+| New `SKPaint` per draw vs one reused paint (2k draws) | 3.97 | 3.18 | 1.25x |
+| New `SKFont` per label vs a cached font (500 labels) | 4.05 | 3.86 | no clear difference |
 
 - Build an `SKPath` once and keep it. Skia caches GPU work per path, so a path rebuilt every frame pays that
   work again (cause from Skia's design, not measured here).
@@ -191,8 +192,8 @@ without, 292 with, 2,000 shapes), so a layer for a whole group is fine.
   matching `SpriteBatch` color is `Color.FromNonPremultiplied(r, g, b, a)`. One call per sprite (`DrawImage`,
   `DrawImageRect`) is many times slower; see
   [Sprites, one texture](../performance/sprites-single.md#faster-one-drawatlas-not-one-call-per-sprite).
-- Sampling mode is a choice of look. With 10,000 downscaled sprites on BRUTAL OpenGL, linear ran at 831 FPS,
-  nearest at 796 and linear with mipmaps at 759, all within the noise band.
+- Sampling mode is a choice of look. With 10,000 downscaled sprites on BRUTAL OpenGL, linear took 1.20 ms per frame,
+  nearest 1.26 ms and linear with mipmaps 1.32 ms, all within the noise band.
 
 ## Strokes
 
@@ -200,15 +201,15 @@ without, 292 with, 2,000 shapes), so a layer for a whole group is fine.
   slow part of a stroked `DrawRoundRect`. The edges are not pixel-identical to the default. See
   [Shapes](../performance/shapes.md#stroked-rounded-rectangles).
 - Stroke width made no clear difference for 2,000 circles and rounded rectangles on BRUTAL OpenGL: fill
-  277 FPS, 1 px stroke 289, hairline (width 0) 283, 4 px stroke 264.
+  3.61 ms per frame, 1 px stroke 3.46, hairline (width 0) 3.53, 4 px stroke 3.79.
 
 ## Clipping
 
-| Clipping (2k circles, BRUTAL OpenGL) | Slow FPS | Fast FPS | Speedup |
+| Clipping (2k circles, BRUTAL OpenGL) | Slow, frame ms | Fast, frame ms | Speedup |
 |---|---:|---:|---:|
-| `Save`, `ClipRect`, draw, `Restore` per item vs no clip | 86 | 357 | about 4x |
-| Same with `ClipRoundRect` | 95 | 357 | about 4x |
-| Same with `ClipPath` | 86 | 357 | about 4x |
+| `Save`, `ClipRect`, draw, `Restore` per item vs no clip | 11.6 | 2.80 | about 4x |
+| Same with `ClipRoundRect` | 10.5 | 2.80 | about 4x |
+| Same with `ClipPath` | 11.6 | 2.80 | about 4x |
 
 A clip per item costs about 4x, and the clip's shape barely matters. The two runs disagreed by about 20%, so
 the exact factor is rough. Clip once around a group, or draw shapes that need no clip, such as a rounded
@@ -216,9 +217,9 @@ rectangle instead of a rectangle clipped to a rounded rectangle.
 
 ## Static content
 
-| Static content (2k shapes, BRUTAL OpenGL) | Slow FPS | Fast FPS | Speedup |
+| Static content (2k shapes, BRUTAL OpenGL) | Slow, frame ms | Fast, frame ms | Speedup |
 |---|---:|---:|---:|
-| Drawing every frame vs replaying a recorded `SKPicture` | 197 | 225 | no clear difference |
+| Drawing every frame vs replaying a recorded `SKPicture` | 5.08 | 4.44 | no clear difference |
 
 Replaying an `SKPicture` still sends every draw to the GPU each frame, so it saves only the managed calls. It
 was faster in both runs, by less than the noise band. Content that does not change is better drawn once into
@@ -231,7 +232,7 @@ When Skia's drawing of something is slow, these replace it with something cheape
 | Instead of | Use | Where measured |
 |---|---|---|
 | A blurred shadow per item | A nine-slice shadow image (`DrawImageLattice`) | 1.4x faster, BRUTAL OpenGL |
-| Replaying an SVG every frame | The SVG rasterized once to an image | 5x at 100 icons (307 to 1596 FPS) and 67x at 2,000 (19 to 1282 FPS), BRUTAL OpenGL; see [SVG](../performance/svg.md) |
+| Replaying an SVG every frame | The SVG rasterized once to an image | 5x at 100 icons (3.26 to 0.63 ms) and 67x at 2,000 (52.6 to 0.78 ms), BRUTAL OpenGL; see [SVG](../performance/svg.md) |
 | One `DrawImage` per sprite | `DrawAtlas` per texture | [Sprites, one texture](../performance/sprites-single.md) |
 | One `DrawText` per label | One text blob per color | [Text, one font](../performance/text.md) |
 | Antialiased circles | 4x MSAA | 1.4x to 2x, BRUTAL OpenGL |

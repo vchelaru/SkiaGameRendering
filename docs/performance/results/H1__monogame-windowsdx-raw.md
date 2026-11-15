@@ -8,11 +8,11 @@
 - Power: Plugged in
 - Window: 1600x900, vsync off
 
-| Page | Scene | Count | Kind | Renderer | FPS | Median frame ms | p95 frame ms | Median draw CPU ms | Note |
+| Page | Scene | Count | Kind | Renderer | Mean frame ms | Median frame ms | p95 frame ms | Median draw CPU ms | Note |
 |---|---|---:|---|---|---:|---:|---:|---:|---|
-| sprites-single | Sprites 0 | 0 | engine | SpriteBatch | 4003 |  |  |  |  |
-| sprites-single | Sprites 500 | 500 | engine | SpriteBatch | 4224 |  |  |  |  |
-| sprites-single | Sprites 2k | 2000 | engine | SpriteBatch | 2749 |  |  |  |  |
-| sprites-single | Sprites 10k | 10000 | engine | SpriteBatch | 946 |  |  |  |  |
-| sprites-single | Sprites 50k | 50000 | engine | SpriteBatch | 181 |  |  |  |  |
-| sprites-single | Tinted sprites 10k | 10000 | engine | SpriteBatch | 877 |  |  |  |  |
+| sprites-single | Sprites 0 | 0 | engine | SpriteBatch | 0.250 |  |  |  |  |
+| sprites-single | Sprites 500 | 500 | engine | SpriteBatch | 0.237 |  |  |  |  |
+| sprites-single | Sprites 2k | 2000 | engine | SpriteBatch | 0.364 |  |  |  |  |
+| sprites-single | Sprites 10k | 10000 | engine | SpriteBatch | 1.057 |  |  |  |  |
+| sprites-single | Sprites 50k | 50000 | engine | SpriteBatch | 5.525 |  |  |  |  |
+| sprites-single | Tinted sprites 10k | 10000 | engine | SpriteBatch | 1.140 |  |  |  |  |

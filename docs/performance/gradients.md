@@ -17,31 +17,31 @@ Screenshots: 2k gradients, KNI DesktopGL. The scenes are 1600x900 and animate ev
 
 ### MonoGame DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| Gradients 500 | 886 (Apos.Shapes) | 444 | 50% |
-| Gradients 2k | 552 (Apos.Shapes) | 123 | 22% |
-| Gradients 10k | 167 (Apos.Shapes) | 28 | 17% |
+| Gradients 500 | 1.13 (Apos.Shapes) | 2.25 | 1.99x |
+| Gradients 2k | 1.81 (Apos.Shapes) | 8.13 | 4.49x |
+| Gradients 10k | 5.99 (Apos.Shapes) | 35.7 | 5.96x |
 
 ### KNI DesktopGL, H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| Gradients 500 | 1451 (Apos.Shapes) | 410 | 28% |
-| Gradients 2k | 711 (Apos.Shapes) | 126 | 18% |
-| Gradients 10k | 191 (Apos.Shapes) | 27 | 14% |
+| Gradients 500 | 0.69 (Apos.Shapes) | 2.44 | 3.54x |
+| Gradients 2k | 1.41 (Apos.Shapes) | 7.94 | 5.65x |
+| Gradients 10k | 5.24 (Apos.Shapes) | 37.0 | 7.07x |
 
 ### KNI WebGL (Chrome), H2
 
-| Scene | Native FPS | SkiaGameRendering FPS | SkiaGameRendering / Native |
+| Scene | Native frame ms | SkiaGameRendering frame ms | Skia time / Native time |
 |---|---:|---:|---:|
-| Gradients 500 | 351 (Apos.Shapes) | 316 | 90% |
-| Gradients 2k | 95 (Apos.Shapes) | 99 | 104% |
-| Gradients 10k | 21 (Apos.Shapes) | 22 | 105% |
+| Gradients 500 | 2.85 (Apos.Shapes) | 3.17 | 1.11x |
+| Gradients 2k | 10.5 (Apos.Shapes) | 10.1 | 0.96x |
+| Gradients 10k | 47.6 (Apos.Shapes) | 45.5 | 0.95x |
 
 <!-- results:end -->
 
 ## Reading the numbers
 
-- Desktop: Skia runs at 14-50% of `Apos.Shapes`. Skia fills each gradient rectangle with its own shader and draw.
-- Browser: about even (90-105%), because `Apos.Shapes` is CPU-bound in WebAssembly there.
+- Desktop: Skia takes 2.0-7.1x as long as `Apos.Shapes`. Skia fills each gradient rectangle with its own shader and draw.
+- Browser: about even (0.95-1.11x), because `Apos.Shapes` is CPU-bound in WebAssembly there.

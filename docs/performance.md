@@ -35,14 +35,15 @@ Each platform has two apps under `benchmarks/Performance/`, built from the same 
 
 Every scene is deterministic: positions, sizes, textures and colors come from the item index, so every run
 and every platform draws the same thing. Both apps run at 1600x900 with vsync and the fixed timestep off.
-Each scene gets a 2 s warmup and a 4 s measured window. **FPS** is the measured frames over the window's
-wall-clock time, so it covers the whole frame: update, draw submission, the Skia context switch and flush,
-the composite and `Present`.
+Each scene gets a 2 s warmup and a 4 s measured window. **Frame ms** is the window's wall-clock time divided by
+the frames it measured, so it covers the whole frame: update, draw submission, the Skia context switch and flush,
+the composite and `Present`. It is the mean frame time, so stalls count against the side that has them.
 The apps turn off MonoGame's 20 ms sleep for an inactive window, and the result files' **Inactive** column
 gives the share of measured frames the window was in the background, since the OS or driver can still throttle it.
 
-Each table row gives three numbers: **Native FPS**, the fastest engine-side renderer for that scene (named in
-brackets); **SkiaGameRendering FPS**; and **SkiaGameRendering / Native**, where 100% is the same speed, 200% twice as fast and 50% half as fast.
+Each table row gives three numbers: **Native frame ms**, the fastest engine-side renderer for that scene (named in
+brackets); **SkiaGameRendering frame ms**; and **Skia time / Native time**, where 1x is the same speed, 2x means Skia
+takes twice as long and 0.5x means it takes half as long.
 Pre-rasterized SVG is measured on both sides but left out of the tables. Median and 95th-percentile frame
 times and draw CPU time are in the result files under `performance/results/`.
 

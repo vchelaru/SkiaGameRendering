@@ -233,14 +233,14 @@ namespace Performance
             double total = 0;
             foreach (var ms in _frameMs)
                 total += ms;
-            double fps = _frameMs.Count / (total / 1000.0);
+            double mean = _frameMs.Count == 0 ? 0 : total / _frameMs.Count;
             double median = Percentile(_frameMs, 0.5);
             double p95 = Percentile(_frameMs, 0.95);
             double draw = Percentile(_drawMs, 0.5);
             double inactive = _frameMs.Count == 0 ? 0 : (double)_inactiveFrames / _frameMs.Count;
             if (_inactiveFrames > 0)
                 _anyInactive = true;
-            _resultRows.Add($"| {entry.Scene.Page} | {entry.Scene.Name} | {entry.Scene.Count} | {entry.Kind} | {entry.Renderer} | {fps:0} | {median:0.000} | {p95:0.000} | {draw:0.000} | {inactive:0%} |  |");
+            _resultRows.Add($"| {entry.Scene.Page} | {entry.Scene.Name} | {entry.Scene.Count} | {entry.Kind} | {entry.Renderer} | {mean:0.000} | {median:0.000} | {p95:0.000} | {draw:0.000} | {inactive:0%} |  |");
         }
 
         private void RecordSkipped(PerfEntry entry, string reason) =>
@@ -268,7 +268,7 @@ namespace Performance
             if (_anyInactive)
                 sb.AppendLine("- **Warning: the window was in the background for some measured frames (Inactive column). Those rows may be throttled; rerun with the window focused.**");
             sb.AppendLine();
-            sb.AppendLine("| Page | Scene | Count | Kind | Renderer | FPS | Median frame ms | p95 frame ms | Median draw CPU ms | Inactive | Note |");
+            sb.AppendLine("| Page | Scene | Count | Kind | Renderer | Mean frame ms | Median frame ms | p95 frame ms | Median draw CPU ms | Inactive | Note |");
             sb.AppendLine("|---|---|---:|---|---|---:|---:|---:|---:|---:|---|");
             foreach (var row in _resultRows)
                 sb.AppendLine(row);
