@@ -992,10 +992,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - name: TEMP probe CGL pixel formats
-        run: |
-          system_profiler SPDisplaysDataType || true
-          swift eng/tmp/glprobe.swift
       - run: dotnet build samples/Sample.Brutal.OGL/Sample.Brutal.OGL.csproj -c Release
       - run: dotnet samples/Sample.Brutal.OGL/bin/Release/net10.0/Sample.Brutal.OGL.dll --smoke-test
 
