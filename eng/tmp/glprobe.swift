@@ -1,4 +1,5 @@
 import OpenGL
+import OpenGL.GL3
 func tryFmt(_ name: String, _ attrs: [CGLPixelFormatAttribute]) {
     var pix: CGLPixelFormatObj? = nil
     var n: GLint = 0
