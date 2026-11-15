@@ -44,10 +44,12 @@ namespace SkiaGameRendering.Core.VK
         /// <paramref name="format"/> (a <c>VkFormat</c>) in device-local memory. <paramref name="mutableFormat"/> adds
         /// <c>MUTABLE_FORMAT</c>, so a view in the format's UNORM/sRGB twin is valid. A <paramref name="samples"/>
         /// above 1 makes a multisampled image to render into and resolve from, so it has no <c>SAMPLED</c> usage.
+        /// <paramref name="pNext"/> is chained into <c>VkImageCreateInfo</c> as given, such as a
+        /// <see cref="VkMetalObjectExport.ExportMetalObjectCreateInfo"/> on macOS; it must stay valid for the call.
         /// </summary>
         public static VkImageAllocation Create(
             IntPtr instance, IntPtr physicalDevice, IntPtr device, int width, int height, uint format, bool mutableFormat = false,
-            uint samples = VK_SAMPLE_COUNT_1_BIT)
+            uint samples = VK_SAMPLE_COUNT_1_BIT, IntPtr pNext = default)
         {
             var usage = samples > 1 ? ImageUsageFlags & ~VkConstants.ImageUsageSampled : ImageUsageFlags;
             if (instance == IntPtr.Zero)
@@ -73,6 +75,7 @@ namespace SkiaGameRendering.Core.VK
             var createInfo = new VkImageCreateInfo
             {
                 sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+                pNext = pNext,
                 flags = mutableFormat ? VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT : 0,
                 imageType = VK_IMAGE_TYPE_2D,
                 format = format,

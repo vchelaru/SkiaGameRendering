@@ -3,10 +3,13 @@
 // The readback is test-only verification; the library has no CPU readback path.
 // --screenshot <path> instead draws the shared Scene on its background at 800x800 and saves the Skia target to a PNG.
 // BRUTAL has no engine frame, so the Skia target is the whole output.
+// On macOS (MoltenVK) Skia draws through Metal, which needs VK_EXT_metal_objects on the device and the Metal export
+// structs on the instance (see docs/brutal/quickstart.md); SkiaDirectCanvas is not supported there yet.
 using System.Runtime.InteropServices;
 using Brutal.VulkanApi;
 using SampleShared;
 using SkiaGameRendering;
+using SkiaGameRendering.Core.VK;
 using SkiaSharp;
 
 const int Size = 64;
@@ -16,13 +19,23 @@ var shotPath = shotAt >= 0 && shotAt + 1 < args.Length ? args[shotAt + 1] : null
 var extensions = new HashSet<string>();
 VulkanHelpers_AddPlatformExtensions(extensions);
 
-using var instance = Vulkan.CreateInstance(new Instance.CreateInfo
+var isMac = OperatingSystem.IsMacOS();
+Instance instance;
+unsafe
 {
-    AppInfo = new VkApplicationInfo { ApiVersion = 1 << 22 | 3 << 12 },
-    Flags = VkInstanceCreateFlags.None,
-    EnabledExtensions = extensions,
-    EnabledLayers = [],
-});
+    // macOS: Skia exports the MTLDevice and the MTLCommandQueue, which the instance must be created for.
+    var exportQueue = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalCommandQueue);
+    var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice, (IntPtr)(&exportQueue));
+    instance = Vulkan.CreateInstance(new Instance.CreateInfo
+    {
+        AppInfo = new VkApplicationInfo { ApiVersion = 1 << 22 | 3 << 12 },
+        Flags = isMac ? VkInstanceCreateFlags.EnumeratePortabilityBitKHR : VkInstanceCreateFlags.None,
+        EnabledExtensions = extensions,
+        EnabledLayers = [],
+        Next = isMac ? &exportDevice : null,
+    });
+}
+using var instanceScope = instance;
 
 var physicalDevice = instance.PhysicalDevices[0];
 var queueFamily = physicalDevice.GetFirstQueueFamilyWithFlag(VkQueueFlags.GraphicsBit);
@@ -36,7 +49,8 @@ unsafe
     var priority = 1.0f;
     using var device = physicalDevice.CreateDevice(new Device.CreateInfo
     {
-        Extensions = [],
+        // MoltenVK is a portability driver, and Skia's Metal path exports objects through VK_EXT_metal_objects.
+        Extensions = isMac ? ["VK_KHR_portability_subset", VkMetalObjectExport.ExtensionName] : [],
         QueueCreateInfos =
         [
             new VkDeviceQueueCreateInfo { QueueFamilyIndex = queueFamily, QueueCount = 1, QueuePriorities = &priority },
@@ -87,7 +101,7 @@ unsafe
         Console.WriteLine(exitCode == 0 ? "PASS" : "FAIL");
     }
 
-    if (smokeTest && exitCode == 0)
+    if (smokeTest && exitCode == 0 && !isMac)
     {
         // The same Scene through the texture and straight into an app-owned image (what a swapchain image is) must agree.
         using var scene = new SkiaRenderTarget2D(context, Scene.Width, Scene.Height);

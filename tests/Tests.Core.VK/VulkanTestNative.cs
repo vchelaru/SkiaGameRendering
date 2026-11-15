@@ -31,8 +31,10 @@ internal static unsafe class VulkanTestNative
                 return winHandle;
             if (NativeLibrary.TryLoad("libvulkan.so.1", out var linuxHandle))
                 return linuxHandle;
-            if (NativeLibrary.TryLoad("libvulkan.dylib", out var macHandle))
-                return macHandle;
+            // Homebrew's prefixes are not on dyld's default search path.
+            foreach (var macLoader in new[] { "libvulkan.1.dylib", "libvulkan.dylib", "/opt/homebrew/lib/libvulkan.1.dylib", "/usr/local/lib/libvulkan.1.dylib" })
+                if (OperatingSystem.IsMacOS() && NativeLibrary.TryLoad(macLoader, out var macHandle))
+                    return macHandle;
             if (NativeLibrary.TryLoad("libMoltenVK.dylib", out var moltenHandle))
                 return moltenHandle;
 

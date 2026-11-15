@@ -71,6 +71,9 @@ namespace SkiaGameRendering
         public SkiaDirectCanvas(SkiaVulkanContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
+            // Exporting an MTLTexture needs the image created for export, which a swapchain image is not.
+            if (context.MetalFactory != null)
+                throw new PlatformNotSupportedException("SkiaDirectCanvas is not supported on macOS (MoltenVK) yet; draw into a SkiaRenderTarget2D.");
             _context = context;
         }
 

@@ -41,6 +41,8 @@ jobs:
         run: dotnet pack src/SkiaGameRendering.Core.ANGLE/SkiaGameRendering.Core.ANGLE.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Core.VK
         run: dotnet pack src/SkiaGameRendering.Core.VK/SkiaGameRendering.Core.VK.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
+      - name: Pack SkiaGameRendering.Core.Metal
+        run: dotnet pack src/SkiaGameRendering.Core.Metal/SkiaGameRendering.Core.Metal.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering.Core.D3D12
         run: dotnet pack src/SkiaGameRendering.Core.D3D12/SkiaGameRendering.Core.D3D12.csproj -c Release -p:LibraryVersion=${{ inputs.version }} -o .artifacts/packages
       - name: Pack SkiaGameRendering

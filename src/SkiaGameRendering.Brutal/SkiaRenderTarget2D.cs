@@ -28,6 +28,14 @@ namespace SkiaGameRendering
     /// buffer around its sampling, COLOR_ATTACHMENT_OPTIMAL to SHADER_READ_ONLY_OPTIMAL before the read and back
     /// after it (src COLOR_ATTACHMENT_OUTPUT / COLOR_ATTACHMENT_WRITE to dst FRAGMENT_SHADER / SHADER_READ, and the
     /// reverse). That removes the library's two small submits per frame. Disposing needs the GPU to be finished with the image.
+    /// On macOS the library records no per-frame transitions either way, so the flag only picks the layout the image is
+    /// moved to once at creation (COLOR_ATTACHMENT_OPTIMAL instead of SHADER_READ_ONLY_OPTIMAL), to match the app's barriers.
+    /// </para>
+    /// <para>
+    /// <b>macOS.</b> Skia draws with Metal into the image's exported <c>MTLTexture</c> on the queue's <c>MTLCommandQueue</c>
+    /// (see <see cref="SkiaVulkanContext"/>). The image moves from UNDEFINED to its contract layout once at creation and
+    /// never again: MoltenVK keeps layouts as bookkeeping only, and Metal's hazard tracking plus submit order on the shared
+    /// queue order Skia's writes against the app's reads. <c>multiSampleCount</c> above 0 throws <see cref="NotSupportedException"/> there.
     /// </para>
     /// <para>
     /// <b>multiSampleCount.</b> With 2, 4 or 8, Skia draws into a second, multisampled image this object owns, and
@@ -49,6 +57,8 @@ namespace SkiaGameRendering
         SKSurface? _surface;
         GRBackendRenderTarget? _renderTarget;
         readonly bool _appManagesLayout;
+        // Skia draws through Metal (macOS); there are no per-frame layout transitions.
+        readonly bool _metal;
         bool _hasBegun;
         bool _disposed;
 
@@ -57,7 +67,7 @@ namespace SkiaGameRendering
         /// other value, or a count the GPU lacks for <paramref name="colorType"/>, throws <see cref="NotSupportedException"/>;
         /// it never falls back to 0.
         /// </param>
-        public SkiaRenderTarget2D(SkiaVulkanContext context, int width, int height, SKColorType colorType = SKColorType.Rgba8888,
+        public unsafe SkiaRenderTarget2D(SkiaVulkanContext context, int width, int height, SKColorType colorType = SKColorType.Rgba8888,
             bool appManagesLayout = false, int multiSampleCount = 0)
         {
             ArgumentNullException.ThrowIfNull(context);
@@ -72,6 +82,9 @@ namespace SkiaGameRendering
             if (multiSampleCount is not (0 or 2 or 4 or 8))
                 throw new NotSupportedException($"multiSampleCount must be 0, 2, 4 or 8, not {multiSampleCount}.");
 
+            var metal = context.MetalFactory != null;
+            if (metal && multiSampleCount > 0)
+                throw new NotSupportedException("multiSampleCount above 0 is not supported on macOS (Metal through MoltenVK) yet.");
             if (multiSampleCount > 0 && multiSampleCount > context.Factory.GetMaxSurfaceSampleCount(colorType))
                 throw new NotSupportedException(
                     $"multiSampleCount {multiSampleCount} is not supported: this GPU offers at most " +
@@ -79,14 +92,25 @@ namespace SkiaGameRendering
 
             _context = context;
             _appManagesLayout = appManagesLayout;
+            _metal = metal;
             Width = width;
             Height = height;
-            _allocation = VkImageAllocator.Create(context.Instance, context.PhysicalDevice, context.Device, width, height, format);
+            var exportInfo = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalTexture);
+            _allocation = VkImageAllocator.Create(context.Instance, context.PhysicalDevice, context.Device, width, height, format,
+                pNext: metal ? (IntPtr)(&exportInfo) : IntPtr.Zero);
             try
             {
                 // Hand the image to the app's layout contract first: UNDEFINED -> SHADER_READ_ONLY.
                 Transition(_allocation.Image, VkConstants.ImageLayoutUndefined,
                     _appManagesLayout ? VkConstants.ImageLayoutColorAttachmentOptimal : VkConstants.ImageLayoutShaderReadOnlyOptimal);
+
+                if (metal)
+                {
+                    var metalFactory = context.MetalFactory!;
+                    var textureState = metalFactory.CreateTextureState(VkMetalObjectExport.ExportTexture(context.Device, _allocation.Image));
+                    (_surface, _renderTarget) = metalFactory.CreateSurface(textureState, width, height, colorType);
+                    return;
+                }
 
                 // Skia draws into the multisampled image when there is one; End resolves it into the app's.
                 var skiaImage = _allocation;
@@ -144,9 +168,14 @@ namespace SkiaGameRendering
             if (_hasBegun)
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 
-            if (!_appManagesLayout && _multiSampled.Image == 0)
-                Transition(_allocation.Image, VkConstants.ImageLayoutShaderReadOnlyOptimal, VkConstants.ImageLayoutColorAttachmentOptimal);
-            _context.Factory.BeginDraw();
+            if (_metal)
+                _context.MetalFactory!.BeginDraw();
+            else
+            {
+                if (!_appManagesLayout && _multiSampled.Image == 0)
+                    Transition(_allocation.Image, VkConstants.ImageLayoutShaderReadOnlyOptimal, VkConstants.ImageLayoutColorAttachmentOptimal);
+                _context.Factory.BeginDraw();
+            }
             _hasBegun = true;
             if (clear)
                 _surface!.Canvas.Clear();
@@ -160,6 +189,20 @@ namespace SkiaGameRendering
         {
             if (!_hasBegun)
                 throw new InvalidOperationException("Begin must be called before calling End.");
+
+            if (_metal)
+            {
+                try
+                {
+                    _surface!.Flush();
+                }
+                finally
+                {
+                    _context.MetalFactory!.EndDraw(synchronous);
+                    _hasBegun = false;
+                }
+                return;
+            }
 
             try
             {
@@ -220,6 +263,9 @@ namespace SkiaGameRendering
             _renderTarget?.Dispose();
             _surface = null;
             _renderTarget = null;
+            // Skia's Metal command buffers are not covered by the transitioner's fence; wait for them too.
+            if (_metal)
+                _context.MetalFactory!.GRContext.Flush(submit: true, synchronous: true);
             if (_allocation.Image != 0 || _multiSampled.Image != 0)
             {
                 _context.Transitioner.WaitForCompletion();
