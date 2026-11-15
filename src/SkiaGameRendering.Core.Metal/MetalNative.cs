@@ -47,6 +47,7 @@ namespace SkiaGameRendering.Core.Metal
         public static readonly IntPtr SelTextureType = Selector("textureType");
         public static readonly IntPtr SelWidth = Selector("width");
         public static readonly IntPtr SelHeight = Selector("height");
+        public static readonly IntPtr SelFramebufferOnly = Selector("isFramebufferOnly");
         public static readonly IntPtr SelNewTextureView = Selector("newTextureViewWithPixelFormat:");
         public static readonly IntPtr SelRelease = Selector("release");
         public static readonly IntPtr SelConformsToProtocol = Selector("conformsToProtocol:");

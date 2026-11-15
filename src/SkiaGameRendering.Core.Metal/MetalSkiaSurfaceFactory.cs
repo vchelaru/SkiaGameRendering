@@ -225,6 +225,19 @@ namespace SkiaGameRendering.Core.Metal
         }
 
         /// <summary>
+        /// Whether <paramref name="texture"/> is <c>framebufferOnly</c>, as a <c>CAMetalLayer</c> drawable is by default.
+        /// Skia's Metal backend has no framebuffer fetch and doesn't check this flag, so a draw that reads the
+        /// destination (a non-coefficient blend mode) blits from the texture, which Metal forbids on such a texture.
+        /// </summary>
+        public static bool IsFramebufferOnly(IntPtr texture)
+        {
+            if (texture == IntPtr.Zero)
+                throw new ArgumentException("MTLTexture handle is null.", nameof(texture));
+            // BOOL comes back in the low byte; the rest of the register is not defined.
+            return ((ulong)MetalNative.SendNUInt(texture, MetalNative.SelFramebufferOnly) & 0xFF) != 0;
+        }
+
+        /// <summary>
         /// Paired with <see cref="EndDraw(bool)"/>. A no-op today (no queue lock to take, see the class
         /// doc comment), kept so hosts drive every Core factory the same way.
         /// </summary>

@@ -79,7 +79,8 @@ BRUTAL has no renderer type, so `Begin` takes the target explicitly: the `VkImag
 `TRANSFER_SRC | TRANSFER_DST`, and is told they are there), must be single-sample (else `NotSupportedException`) and be 8-bit RGBA
 or BGRA; an sRGB-format image is wrapped as its UNORM twin, with the same validation-layer caveat as Stride. Skia submits
 inside `End`, so submit your earlier work on the context's queue before `Begin` and your later work after `End`; each
-pass costs three small queue submits (two layout moves and Skia's). See the [BRUTAL quick start](../brutal/quickstart.md).
+pass costs three small queue submits (two layout moves and Skia's). On macOS (MoltenVK) Skia draws through Metal into the
+image's exported `MTLTexture`, with two extra rules for a swapchain image. See the [BRUTAL quick start](../brutal/quickstart.md#macos).
 
 MonoGame's native WindowsDX12 has `SkiaDirectCanvas` too, with the Stride D3D12 limits (single-sample targets, no
 multisampled back buffer) and the same per-pass submission cost, and no drawing with MonoGame between `Begin`

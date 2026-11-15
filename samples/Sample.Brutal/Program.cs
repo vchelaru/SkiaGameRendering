@@ -4,7 +4,7 @@
 // --screenshot <path> instead draws the shared Scene on its background at 800x800 and saves the Skia target to a PNG.
 // BRUTAL has no engine frame, so the Skia target is the whole output.
 // On macOS (MoltenVK) Skia draws through Metal, which needs VK_EXT_metal_objects on the device and the Metal export
-// structs on the instance (see docs/brutal/quickstart.md); SkiaDirectCanvas is not supported there yet.
+// structs on the instance (see docs/brutal/quickstart.md).
 using System.Runtime.InteropServices;
 using Brutal.VulkanApi;
 using SampleShared;
@@ -101,7 +101,7 @@ unsafe
         Console.WriteLine(exitCode == 0 ? "PASS" : "FAIL");
     }
 
-    if (smokeTest && exitCode == 0 && !isMac)
+    if (smokeTest && exitCode == 0)
     {
         // The same Scene through the texture and straight into an app-owned image (what a swapchain image is) must agree.
         using var scene = new SkiaRenderTarget2D(context, Scene.Width, Scene.Height);
@@ -112,8 +112,11 @@ unsafe
         var viaTexture = PixelReadback.ReadRegion(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily,
             scene.VkImage, 0, 0, Scene.Width, Scene.Height);
 
+        // macOS: created for Metal texture export, which SkiaDirectCanvas does every Begin (a swapchain image can't carry this).
+        var exportTexture = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalTexture);
         var appImage = SkiaGameRendering.Core.VK.VkImageAllocator.Create(
-            instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, Scene.Width, Scene.Height, 37 /* R8G8B8A8_UNORM */);
+            instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, Scene.Width, Scene.Height, 37 /* R8G8B8A8_UNORM */,
+            pNext: isMac ? (IntPtr)(&exportTexture) : IntPtr.Zero);
         using var direct = new SkiaDirectCanvas(context);
         // Twice: the second pass starts from the layout the first one handed back.
         for (var pass = 0; pass < 2; pass++)

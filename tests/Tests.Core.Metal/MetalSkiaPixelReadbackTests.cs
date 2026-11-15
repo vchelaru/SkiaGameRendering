@@ -49,6 +49,23 @@ public sealed class MetalSkiaPixelReadbackTests
         GoldenImage.AssertMatchesGolden(pixels, "core-metal-scene.png");
     }
 
+    // Only a CAMetalLayer drawable is framebufferOnly; a texture made from a descriptor never is.
+    [MacOnlyFact]
+    public void IsFramebufferOnly_IsFalseForDescriptorTexture()
+    {
+        using var metal = new MetalTestDevice();
+        var texture = metal.CreateTexture(4, 4, MTLPixelFormatRGBA8Unorm, (nuint)MetalSkiaSurfaceFactory.TextureUsageRenderTarget);
+        try
+        {
+            Assert.False(MetalSkiaSurfaceFactory.IsFramebufferOnly(texture));
+        }
+        finally
+        {
+            objc_release(texture);
+        }
+        Assert.Throws<ArgumentException>(() => MetalSkiaSurfaceFactory.IsFramebufferOnly(IntPtr.Zero));
+    }
+
     [MacOnlyFact]
     public void CreateTextureState_RejectsTextureWithoutRenderTargetUsage()
     {

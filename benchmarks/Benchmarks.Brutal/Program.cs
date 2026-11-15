@@ -1,6 +1,7 @@
 // Headless (no window) per-frame cost of SkiaRenderTarget2D Begin/draw/End on a BRUTAL Vulkan device.
 // Usage: Benchmarks.Brutal [--warmup 30] [--frames 200] [--out results.md] [--direct]
-// --direct instead compares SkiaRenderTarget2D plus its sampling pass with SkiaDirectCanvas at 1920x1080 (1 rect and 1000 rects).
+// --direct instead compares SkiaRenderTarget2D plus its sampling pass with SkiaDirectCanvas at 1920x1080 (empty Begin/End,
+// 1 rect, 100 circles, 1000 rects). Headless: no swapchain and no present, so vsync cannot mask cost. Runs on macOS (MoltenVK) too.
 // Per config it reports: CPU ms/frame (Stopwatch around Begin..End, i.e. what the render thread pays) and
 // throughput ms/frame (the whole loop plus a device WaitIdle, i.e. what the GPU can sustain).
 using System.Diagnostics;
@@ -8,6 +9,7 @@ using Brutal.ShaderCApi;
 using Brutal.VulkanApi;
 using Brutal.VulkanApi.Abstractions;
 using SkiaGameRendering;
+using SkiaGameRendering.Core.VK;
 using SkiaSharp;
 
 string Get(string name, string fallback)
@@ -19,12 +21,23 @@ var warmup = int.Parse(Get("warmup", "30"));
 var frames = int.Parse(Get("frames", "200"));
 var output = Get("out", "results.md");
 
-using var instance = Vulkan.CreateInstance(new Instance.CreateInfo
+var isMac = OperatingSystem.IsMacOS();
+Instance instance;
+unsafe
 {
-    AppInfo = new VkApplicationInfo { ApiVersion = 1 << 22 | 3 << 12 },
-    EnabledExtensions = [],
-    EnabledLayers = [],
-});
+    // macOS: Skia draws through Metal, so the instance is created for MTLDevice and MTLCommandQueue export.
+    var exportQueue = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalCommandQueue);
+    var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice, (IntPtr)(&exportQueue));
+    instance = Vulkan.CreateInstance(new Instance.CreateInfo
+    {
+        AppInfo = new VkApplicationInfo { ApiVersion = 1 << 22 | 3 << 12 },
+        Flags = isMac ? VkInstanceCreateFlags.EnumeratePortabilityBitKHR : VkInstanceCreateFlags.None,
+        EnabledExtensions = isMac ? [VK.KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME] : [],
+        EnabledLayers = [],
+        Next = isMac ? &exportDevice : null,
+    });
+}
+using var instanceScope = instance;
 var physicalDevice = instance.PhysicalDevices[0];
 var family = physicalDevice.GetFirstQueueFamilyWithFlag(VkQueueFlags.GraphicsBit);
 var properties = physicalDevice.GetProperties();
@@ -38,7 +51,7 @@ unsafe
     var features13 = new VkPhysicalDeviceVulkan13Features { DynamicRendering = true }; // for --direct's sampling pass
     device = physicalDevice.CreateDevice(new Device.CreateInfo
     {
-        Extensions = [],
+        Extensions = isMac ? ["VK_KHR_portability_subset", VkMetalObjectExport.ExtensionName] : [],
         Next = &features13,
         QueueCreateInfos = [new VkDeviceQueueCreateInfo { QueueFamilyIndex = family, QueueCount = 1, QueuePriorities = &priority }],
     });
@@ -89,19 +102,30 @@ unsafe
     const int W = 1920, H = 1080;
     var directLoads = new (string name, Action<SKCanvas> draw)[]
     {
+        ("empty", c => { }),
         ("1 rect", c => { c.Clear(SKColors.Black); paint.Color = rects[0].c; c.DrawRect(rects[0].x % (W - 130), rects[0].y % (H - 130), rects[0].w, rects[0].h, paint); }),
+        ("100 circles", c =>
+        {
+            c.Clear(SKColors.Black);
+            for (var i = 0; i < 100; i++) { paint.Color = rects[i].c; c.DrawCircle(rects[i].x % (W - 130) + 60, rects[i].y % (H - 130) + 60, rects[i].w / 2f + 5, paint); }
+        }),
         ("1000 rects", c => loads[1].draw(c, W, H)),
     };
     var directLines = new List<string>
     {
         $"GPU: {gpu} ({driver}). OS: {System.Runtime.InteropServices.RuntimeInformation.OSDescription}. {W}x{H}, warmup {warmup}, frames {frames}.",
         "",
-        "| Load | Path | CPU ms/frame | Throughput ms/frame | Halves (CPU ms) |",
-        "|---|---|---|---|---|",
+        "Texture = SkiaRenderTarget2D plus the app's pass sampling it onto the app image; Direct = SkiaDirectCanvas into the app image.",
+        "",
+        "| Load | Path | CPU mean ms | CPU median ms | Throughput ms/frame | Halves (CPU mean ms) |",
+        "|---|---|---|---|---|---|",
     };
     using var textureTarget = new SkiaRenderTarget2D(context, W, H);
     using var directCanvas = new SkiaDirectCanvas(context);
-    var appImage = SkiaGameRendering.Core.VK.VkImageAllocator.Create(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, W, H, 37);
+    // macOS: created for Metal texture export, which SkiaDirectCanvas does every Begin.
+    var exportTexture = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalTexture);
+    var appImage = SkiaGameRendering.Core.VK.VkImageAllocator.Create(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, W, H, 37,
+        pNext: isMac ? (IntPtr)(&exportTexture) : IntPtr.Zero);
     // Hand the image to the app's layout (SHADER_READ_ONLY_OPTIMAL), as a presented-then-reacquired image would be.
     directCanvas.Begin(appImage.Image, 37, W, H, 0);
     directCanvas.End(finalLayout: 5, synchronous: true);
@@ -215,7 +239,8 @@ unsafe
             var i = frameIndex++ & 1;
             device.WaitForFence(fences[i], -1);
             device.ResetFences([fences[i]]);
-            textureTarget.Begin();
+            // Every load but "empty" clears itself; "empty" is a bare Begin/End on both paths.
+            textureTarget.Begin(clear: false);
             draw(textureTarget.Canvas);
             textureTarget.End();
 
@@ -245,17 +270,21 @@ unsafe
             Frame();
         device.WaitIdle();
         var halfMs = new double[2];
+        var frameMs = new double[frames];
         var total = Stopwatch.GetTimestamp();
         for (var i = 0; i < frames; i++)
         {
             var t0 = Stopwatch.GetTimestamp();
             Frame();
-            halfMs[i * 2 / frames] += Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
+            frameMs[i] = Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
+            halfMs[i * 2 / frames] += frameMs[i];
         }
+        Array.Sort(frameMs);
+        var median = frames % 2 == 1 ? frameMs[frames / 2] : (frameMs[frames / 2 - 1] + frameMs[frames / 2]) / 2;
         device.WaitIdle();
         var throughput = Stopwatch.GetElapsedTime(total).TotalMilliseconds / frames;
         var perHalf = frames / 2;
-        var line = $"| {name} | {(isDirect ? "Direct" : "Texture")} | {(halfMs[0] + halfMs[1]) / frames:F3} | {throughput:F3} | {halfMs[0] / perHalf:F3} / {halfMs[1] / (frames - perHalf):F3} |";
+        var line = $"| {name} | {(isDirect ? "Direct" : "Texture")} | {(halfMs[0] + halfMs[1]) / frames:F3} | {median:F3} | {throughput:F3} | {halfMs[0] / perHalf:F3} / {halfMs[1] / (frames - perHalf):F3} |";
         directLines.Add(line);
         Console.WriteLine(line);
     }
