@@ -2,8 +2,8 @@ const { test, expect } = require("@playwright/test");
 
 // Sample.Raylib.WebGL draws samples/Shared/Scene.cs on an 800x800 canvas, through a SkiaRenderTarget2D
 // (?mode=target, the default) or SkiaDirectCanvas (?mode=direct). Pixels are read back from raylib's own
-// WebGL context, so what is checked is what is on screen. Scene's cells are 400 px: a red circle, the blue SVG water
-// drop, the pink gradient and the Gum logo. Direct mode also layers raylib and Skia draws on the canvas and
+// WebGL context, so what is checked is what is on screen. Scene's cells are 266 px, three across: a red circle, the blue
+// SVG water drop and the pink gradient, then the Gum logo below the circle. Direct mode also layers raylib and Skia draws on the canvas and
 // on a RenderTexture2D; the rectangles and colors below repeat Game.DrawDirect in samples/Sample.Raylib.WebGL.
 
 const WIDTH = 800, HEIGHT = 800;
@@ -65,7 +65,7 @@ async function expectColors(page, probes) {
 }
 
 async function expectScene(page) {
-  const { pixels: [circle, drop, outside, gradient, logo] } = await readPixels(page, [[200, 200], [600, 200], [WIDTH - 4, HEIGHT - 4], [200, 600], [595, 600]]);
+  const { pixels: [circle, drop, outside, gradient, logo] } = await readPixels(page, [[133, 133], [399, 133], [WIDTH - 4, HEIGHT - 4], [665, 133], [130, 399]]);
   expect(circle[0], `circle ${circle}`).toBeGreaterThan(200);
   expect(circle[1], `circle ${circle}`).toBeLessThan(50);
   expect(circle[2], `circle ${circle}`).toBeLessThan(50);
@@ -86,21 +86,21 @@ async function expectText(page) {
 
 // Green raylib rectangle, Skia's pink strip over its right half, a yellow raylib rectangle over the strip.
 const layering = [
-  ["raylib green", 640, 80, [30, 180, 40]],
-  ["raylib green left of the strip", 690, 50, [30, 180, 40]],
-  ["Skia strip over raylib", 720, 110, [210, 50, 90]],
-  ["Skia strip below the yellow", 760, 110, [210, 50, 90]],
-  ["Skia strip beside the yellow", 720, 50, [210, 50, 90]],
-  ["raylib yellow over Skia", 760, 50, [240, 220, 10]],
+  ["raylib green", 640, 380, [30, 180, 40]],
+  ["raylib green left of the strip", 690, 350, [30, 180, 40]],
+  ["Skia strip over raylib", 720, 410, [210, 50, 90]],
+  ["Skia strip below the yellow", 760, 410, [210, 50, 90]],
+  ["Skia strip beside the yellow", 720, 350, [210, 50, 90]],
+  ["raylib yellow over Skia", 760, 350, [240, 220, 10]],
 ];
 
-// The RenderTexture2D, drawn at (620, 160): raylib clears it, Skia draws a square, raylib draws one over it.
+// The RenderTexture2D, drawn at (620, 460): raylib clears it, Skia draws a square, raylib draws one over it.
 const renderTexture = [
-  ["raylib clear", 630, 270, [40, 90, 160]],
-  ["Skia square", 645, 185, [220, 40, 40]],
-  ["Skia square beside raylib's", 680, 190, [220, 40, 40]],
-  ["raylib square over Skia's", 685, 225, [40, 200, 80]],
-  ["raylib square", 705, 245, [40, 200, 80]],
+  ["raylib clear", 630, 570, [40, 90, 160]],
+  ["Skia square", 645, 485, [220, 40, 40]],
+  ["Skia square beside raylib's", 680, 490, [220, 40, 40]],
+  ["raylib square over Skia's", 685, 525, [40, 200, 80]],
+  ["raylib square", 705, 545, [40, 200, 80]],
 ];
 
 test("draws the shared Scene through SkiaRenderTarget2D", async ({ page }) => {

@@ -111,11 +111,11 @@ public sealed class SmokeCheckRenderer : SceneRendererBase
             return bgra ? new Color(c.B, c.G, c.R, c.A) : c;
         }
 
-        // The 800x800 canvas fills the 800x800 back buffer: circle, drop, gradient and logo cells (cell 400),
+        // The 800x800 canvas fills the 800x800 back buffer: circle, drop, gradient and logo cells (cells 0 to 3),
         // plus an opaque gray pixel of the logo's text. The 3D scene shows through the margin, so it is not checked.
-        var circle = At(SharedScene.CellCenter, SharedScene.CellCenter);
-        var drop = At(SharedScene.Cell + SharedScene.CellCenter, SharedScene.CellCenter);
-        var gradient = At(SharedScene.CellCenter, SharedScene.Cell + SharedScene.CellCenter);
+        var circle = At(SharedScene.CellCenterX(SharedScene.CircleCell), SharedScene.CellCenterY(SharedScene.CircleCell));
+        var drop = At(SharedScene.CellCenterX(SharedScene.DropCell), SharedScene.CellCenterY(SharedScene.DropCell));
+        var gradient = At(SharedScene.CellCenterX(SharedScene.GradientCell), SharedScene.CellCenterY(SharedScene.GradientCell));
         var logo = At(SharedScene.LogoOpaqueX, SharedScene.LogoOpaqueY);
         var clipped = At(SharedScene.ClipCenter, SharedScene.ClipCenter);
         var passed = circle.R > 200 && circle.G < 50 && circle.B < 50

@@ -42,7 +42,7 @@ using UnityEngine.UI;
 public sealed class SkiaSample : MonoBehaviour
 {
     // Wider than tall, so the circle's cell and its vertical mirror image land on different content.
-    // Five cells across: Scene's three shapes, then the translucent and grey squares.
+    // Five cells across: the Scene (two cells wide), an empty cell, then the translucent and grey squares.
     const int Width = 640;
     const int Height = 256;
     const int Cell = Height / 2;
@@ -325,7 +325,7 @@ public sealed class SkiaSample : MonoBehaviour
         }
 
         _target.Begin();
-        // The Scene is a fixed 800x800 canvas; this layout is 256 tall, so it is drawn at 0.32 scale (cells of 128).
+        // The Scene is a fixed 800x800 canvas; this layout is 256 tall, so it is drawn at 0.32 scale (Scene cells of about 85).
         _target.Canvas.Save();
         _target.Canvas.Scale(Height / (float)Scene.Height);
         Scene.Draw(_target.Canvas);
@@ -484,12 +484,12 @@ public sealed class SkiaSample : MonoBehaviour
         Color32 SkiaPixel(int x, int y) => readback.GetPixel(x, Height - 1 - y);
         Color32 ScreenPixel(int x, int y) => screen.GetPixel(x, screen.height - 1 - y);
         int center = Cell / 2;
-        var circle = SkiaPixel(center, center);
-        var drop = SkiaPixel(Cell + center, center);
-        // Scene pixels scaled to this layout: the logo cell's transparent margin, the antialiased-clipped circle,
-        // and a pixel of that circle the clip cuts away.
+        // Scene pixels scaled to this layout: the circle and drop centers, the logo cell's transparent margin, the
+        // antialiased-clipped circle, and a pixel of that circle the clip cuts away.
         const float scale = Height / (float)Scene.Height;
         Color32 ScenePixel(int x, int y) => SkiaPixel((int)(x * scale), (int)(y * scale));
+        var circle = ScenePixel(Scene.CellCenterX(Scene.CircleCell), Scene.CellCenterY(Scene.CircleCell));
+        var drop = ScenePixel(Scene.CellCenterX(Scene.DropCell), Scene.CellCenterY(Scene.DropCell));
         var margin = ScenePixel(Scene.LogoTransparentX, Scene.LogoTransparentY);
         var clipped = ScenePixel(Scene.ClipCenter, Scene.ClipCenter);
         var clippedOut = ScenePixel(Scene.ClippedOutX, Scene.ClippedOutY);

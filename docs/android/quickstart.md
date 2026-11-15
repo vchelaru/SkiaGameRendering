@@ -64,8 +64,8 @@ runs the whole smoke test, 4x MSAA included, on the SwiftShader emulator on ever
 To run on an emulator, build with `-p:EmulatorRuntime=true`, which adds `android-x64`. Passing
 `RuntimeIdentifiers` itself with `-p:` also reaches the `net8.0` library references and fails the
 build. `eng/run-android-smoke-test.sh <apk> com.vchelaru.skiagamerendering.sample` installs and runs the smoke test on the connected device
-and exits non-zero on a failed check, a crash, or a timeout. The smoke test reads the back buffer at
-(400, 400), so the screen must be wider than that; the emulator's default AVD is not.
+and exits non-zero on a failed check, a crash, or a timeout. The smoke test reads the back buffer up to
+x = 665, so the screen must be wider than that; the emulator's default AVD is not.
 
 Not verified: GLES 3.0-only drivers, devices that reject a surfaceless context (the fallback path
 is untested), 32-bit ARM, rotation, `SkiaDirectCanvas` after a HOME-and-resume, and the sample's

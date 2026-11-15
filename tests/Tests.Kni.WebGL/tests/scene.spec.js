@@ -1,14 +1,16 @@
 const { test, expect } = require("@playwright/test");
 
 // Sample.Kni.WebGL draws samples/Shared/Scene.cs, a fixed 800x800 canvas, at the canvas's top left. Scene's
-// cells are 400 px: a red circle, the blue SVG water drop, the pink gradient and the Gum logo. Same cells the
-// desktop samples' --smoke-test checks; the lower row is read only when the canvas is tall enough to show it.
-// The gradient and logo cells, when the canvas is tall enough to show them.
+// cells are 266 px, three across: a red circle, the blue SVG water drop and the pink gradient, then the Gum logo
+// below the circle. Same pixels as Scene's constants and the desktop samples' --smoke-test; the gradient and logo
+// are read only when the canvas is wide or tall enough to show them.
 function expectGradientAndLogo(gradient, logo) {
-  expect(gradient[0], `gradient ${gradient}`).toBeGreaterThan(120);
-  expect(gradient[1], `gradient ${gradient}`).toBeLessThan(80);
-  expect(gradient[2], `gradient ${gradient}`).toBeGreaterThan(100);
-  for (const c of logo.slice(0, 3)) {
+  if (gradient) {
+    expect(gradient[0], `gradient ${gradient}`).toBeGreaterThan(120);
+    expect(gradient[1], `gradient ${gradient}`).toBeLessThan(80);
+    expect(gradient[2], `gradient ${gradient}`).toBeGreaterThan(100);
+  }
+  for (const c of logo?.slice(0, 3) ?? []) {
     expect(c, `logo ${logo}`).toBeGreaterThan(70);
     expect(c, `logo ${logo}`).toBeLessThan(150);
   }
@@ -18,7 +20,7 @@ async function readScenePixels(canvas) {
   return canvas.evaluate(element => new Promise(resolve => {
     requestAnimationFrame(() => {
       const gl = element.getContext("webgl2");
-      const cell = 400;
+      const cell = 266;
       const read = (x, y) => {
         const pixel = new Uint8Array(4);
         // readPixels counts rows from the bottom.
@@ -29,8 +31,8 @@ async function readScenePixels(canvas) {
         circle: read(cell / 2, cell / 2),
         drop: read(cell * 1.5, cell / 2),
         outside: read(element.width - 4, element.height - 4),
-        gradient: element.height > 620 ? read(cell / 2, cell * 1.5) : null,
-        logo: element.height > 620 ? read(595, 600) : null,
+        gradient: element.width > 700 ? read(cell * 2.5, cell / 2) : null,
+        logo: element.height > 420 ? read(130, cell * 1.5) : null,
       });
     });
   }));
@@ -46,8 +48,7 @@ test("draws the shared Scene through KNI", async ({ page }) => {
   const canvas = page.locator("#theCanvas");
   await test.info().attach("scene", { body: await canvas.screenshot(), contentType: "image/png" });
   const { circle, drop, outside, gradient, logo } = await readScenePixels(canvas);
-  if (gradient)
-    expectGradientAndLogo(gradient, logo);
+  expectGradientAndLogo(gradient, logo);
   expect(circle[0], `circle ${circle}`).toBeGreaterThan(200);
   expect(circle[1], `circle ${circle}`).toBeLessThan(50);
   expect(circle[2], `circle ${circle}`).toBeLessThan(50);

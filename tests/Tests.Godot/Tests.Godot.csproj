@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\eng\Versions.props" />
+  <Import Project="..\..\samples\Shared\Scene.props" />
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -14,7 +15,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <!-- Decodes the PNG the sample writes; nothing here draws with Skia. -->
+    <!-- Decodes the PNG the sample writes. Scene.props (imported above) is only for Scene's pixel constants; nothing here draws with Skia. -->
     <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
   </ItemGroup>
 

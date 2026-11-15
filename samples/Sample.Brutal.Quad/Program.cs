@@ -25,9 +25,9 @@ foreach (var appManagesLayout in new[] { false, true })
 {
     var final = Run(appManagesLayout, frames, screenshotDir);
     viaTexture ??= final;
-    var circle = At(final, SharedScene.CellCenter, SharedScene.CellCenter);
-    var drop = At(final, SharedScene.Cell + SharedScene.CellCenter, SharedScene.CellCenter);
-    var gradient = At(final, SharedScene.CellCenter, SharedScene.Cell + SharedScene.CellCenter);
+    var circle = At(final, SharedScene.CellCenterX(SharedScene.CircleCell), SharedScene.CellCenterY(SharedScene.CircleCell));
+    var drop = At(final, SharedScene.CellCenterX(SharedScene.DropCell), SharedScene.CellCenterY(SharedScene.DropCell));
+    var gradient = At(final, SharedScene.CellCenterX(SharedScene.GradientCell), SharedScene.CellCenterY(SharedScene.GradientCell));
     var logo = At(final, SharedScene.LogoOpaqueX, SharedScene.LogoOpaqueY);
     var margin = At(final, SharedScene.LogoTransparentX, SharedScene.LogoTransparentY);
     var clipped = At(final, SharedScene.ClipCenter, SharedScene.ClipCenter);
