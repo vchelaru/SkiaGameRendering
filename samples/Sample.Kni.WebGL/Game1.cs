@@ -19,9 +19,9 @@ namespace Sample.Kni.WebGL;
 [SupportedOSPlatform("browser")]
 internal sealed class Game1 : Game
 {
-    // Direct mode draws small test squares below the Scene's cells; tests/Tests.Kni.WebGL/tests/direct.spec.js
+    // Direct mode draws small test squares below the Scene's first row of cells; tests/Tests.Kni.WebGL/tests/direct-layout.js
     // repeats this layout (and the colors) to probe them. Squares are SquareSize physical pixels, in a row
-    // starting at x = Gap, SquareSize + Gap apart, at y = cell + Gap where cell is half the canvas's shorter side.
+    // starting at x = Gap, SquareSize + Gap apart, at y = Scene.Cell + Gap.
     internal const int SquareSize = 128;
     internal const int Gap = 16;
 

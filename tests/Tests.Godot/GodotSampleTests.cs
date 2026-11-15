@@ -2,6 +2,7 @@ using System.Diagnostics;
 using SkiaSharp;
 using Xunit;
 using Xunit.Abstractions;
+using Scene = SampleShared.Scene;
 
 namespace Tests.Godot;
 
@@ -9,8 +10,8 @@ namespace Tests.Godot;
 /// Launches the real Godot binary (<see cref="GodotBinaryFactAttribute"/>) against
 /// <c>samples/Sample.Godot</c> on each supported rendering driver, with the sample's <c>--screenshot</c>
 /// user argument, then checks the PNG it writes against the shared scene's layout (see
-/// <c>samples/Shared/Scene.cs</c>): the red circle, the SVG drop, and the CornflowerBlue clear
-/// everywhere else. Solid fills are driver-independent, unlike anti-aliased edges, which is why
+/// <c>samples/Shared/Scene.cs</c>): the pixels its constants name, and the CornflowerBlue clear
+/// elsewhere. Solid fills are driver-independent, unlike anti-aliased edges, which is why
 /// this probes pixels instead of comparing a golden image (the window size also varies with the
 /// host's display scaling).
 /// </summary>
@@ -123,13 +124,15 @@ public class GodotSampleTests(ITestOutputHelper output)
             int w = bitmap.Width, h = bitmap.Height;
             Assert.True(w > 100 && h > 100, $"Unexpectedly small screenshot: {w}x{h}");
 
-            // Scene is a fixed 800x800 canvas in four 400x400 cells (circle, SVG drop, gradient, logo), each inset by
-            // a tenth of a cell; the project's viewport is 800x800, so the screenshot is the canvas 1:1.
-            Assert.True(w == 800 && h == 800, $"Expected an 800x800 screenshot, got {w}x{h}");
-            int cell = 400;
-            int radius = cell / 2 - cell / 10;
-            AssertPixel(bitmap, cell / 2, cell / 2, Red, "circle center");
-            AssertPixel(bitmap, cell / 2 - radius + 6, cell / 2, Red, "just inside the circle's left edge");
+            // Scene is a fixed 800x800 canvas in a 3x3 grid of cells, each shape inset by a tenth of a cell; the
+            // project's viewport is 800x800, so the screenshot is the canvas 1:1.
+            Assert.True(w == Scene.Width && h == Scene.Height, $"Expected an 800x800 screenshot, got {w}x{h}");
+            int circleX = Scene.CellCenterX(Scene.CircleCell), circleY = Scene.CellCenterY(Scene.CircleCell);
+            int radius = Scene.CellCenter - Scene.Cell / 10;
+            AssertPixel(bitmap, circleX, circleY, Red, "circle center");
+            AssertPixel(bitmap, circleX - radius + 6, circleY, Red, "just inside the circle's left edge");
+            // Where a vertically flipped copy would put the circle.
+            AssertPixel(bitmap, circleX, h - 1 - circleY, CornflowerBlue, "below the logo (clear color)");
             AssertPixel(bitmap, 2, 2, CornflowerBlue, "top-left corner (clear color)");
             AssertPixel(bitmap, w - 3, 2, CornflowerBlue, "top-right corner (clear color)");
             AssertPixel(bitmap, 2, h - 3, CornflowerBlue, "bottom-left corner (clear color)");
@@ -137,17 +140,21 @@ public class GodotSampleTests(ITestOutputHelper output)
 
             // The drop is a blue gradient, close to the clear color, so check the red channel
             // rather than an exact value: about 50 at the drop's middle against the clear's 100.
-            var drop = bitmap.GetPixel(cell + cell / 2, cell / 2);
-            Assert.True(drop.Red < 80 && drop.Blue > 150, $"SVG drop center at ({cell + cell / 2},{cell / 2}): expected the drop's blue gradient, got {drop}.");
+            var drop = bitmap.GetPixel(Scene.CellCenterX(Scene.DropCell), Scene.CellCenterY(Scene.DropCell));
+            Assert.True(drop.Red < 80 && drop.Blue > 150, $"SVG drop center: expected the drop's blue gradient, got {drop}.");
 
-            // The gradient cell sits below the circle (a vertically flipped copy would put the circle there).
-            var gradient = bitmap.GetPixel(cell / 2, cell + cell / 2);
+            var gradient = bitmap.GetPixel(Scene.CellCenterX(Scene.GradientCell), Scene.CellCenterY(Scene.GradientCell));
             Assert.True(gradient.Red > 120 && gradient.Green < 80 && gradient.Blue > 100, $"Gradient center: expected pink-purple, got {gradient}.");
 
             // The logo's opaque gray text, and its transparent margin showing the clear color.
-            var logo = bitmap.GetPixel(595, 600);
-            Assert.True(logo.Red is > 70 and < 150 && logo.Green is > 70 and < 150 && logo.Blue is > 70 and < 150, $"Logo pixel (595,600): expected opaque gray, got {logo}.");
-            AssertPixel(bitmap, 600, 460, CornflowerBlue, "logo cell's transparent margin (clear color)");
+            var logo = bitmap.GetPixel(Scene.LogoOpaqueX, Scene.LogoOpaqueY);
+            Assert.True(logo.Red is > 70 and < 150 && logo.Green is > 70 and < 150 && logo.Blue is > 70 and < 150, $"Logo pixel: expected opaque gray, got {logo}.");
+            AssertPixel(bitmap, Scene.LogoTransparentX, Scene.LogoTransparentY, CornflowerBlue, "logo cell's transparent margin (clear color)");
+
+            // The gold circle under an antialiased clip, which leaves Skia's scissor test on, and a pixel the clip cuts away.
+            var clipped = bitmap.GetPixel(Scene.ClipCenter, Scene.ClipCenter);
+            Assert.True(clipped.Red > 200 && clipped.Green > 120 && clipped.Blue < 80, $"Clipped circle center: expected gold, got {clipped}.");
+            AssertPixel(bitmap, Scene.ClippedOutX, Scene.ClippedOutY, CornflowerBlue, "circle pixel outside the clip (clear color)");
         }
         finally
         {

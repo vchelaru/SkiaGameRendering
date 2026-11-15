@@ -2,6 +2,7 @@ const { test, expect } = require("@playwright/test");
 
 // Sample.Fna.WebGL, FNA on WebGL2. Frames are driven by the test (?manual=1) so the canvas is read in the same
 // task as the draw, before the browser presents it and clears the drawing buffer. Points are top-left origin.
+// Scene points repeat samples/Shared/Scene.cs (266 px cells, three across); the sample's FNA overlays sit in its empty right-hand cells.
 
 async function open(page, mode, query = "") {
   const errors = [];
@@ -28,7 +29,7 @@ const glErrorLog = page => page.evaluate(() => globalThis.skiaFnaWebGl.errorLog(
 
 test("SkiaRenderTarget2D draws the Scene into an FNA texture", async ({ page }) => {
   const errors = await open(page, "texture");
-  const [circle, drop, outside, gradient, logo] = await draw(page, [[200, 200], [600, 200], [790, 790], [200, 600], [595, 600]], 5);
+  const [circle, drop, outside, gradient, logo] = await draw(page, [[133, 133], [399, 133], [790, 790], [665, 133], [130, 399]], 5);
   near(circle, [255, 0, 0]);
   for (const c of logo.slice(0, 3))
     expect(c, `logo ${logo}`).toBeGreaterThan(70), expect(c, `logo ${logo}`).toBeLessThan(150);
@@ -44,8 +45,8 @@ test("SkiaRenderTarget2D draws the Scene into an FNA texture", async ({ page }) 
 test("SkiaDirectCanvas layers Skia between FNA's draws on the back buffer and a render target", async ({ page }) => {
   const errors = await open(page, "direct");
   const points = {
-    circle: [200, 200], drop: [600, 200], lime: [450, 100], blueSquare: [410, 310], redCircle: [460, 360],
-    yellowBottomLeft: [405, 395], yellowTopRight: [495, 305], magenta: [620, 620], black: [790, 790],
+    circle: [133, 133], drop: [399, 133], lime: [650, 350], blueSquare: [610, 460], redCircle: [660, 510],
+    yellowBottomLeft: [605, 545], yellowTopRight: [695, 455], magenta: [620, 620], black: [790, 790],
   };
   const read = await draw(page, Object.values(points), 30);
   const pixel = Object.fromEntries(Object.keys(points).map((name, i) => [name, read[i]]));
@@ -67,7 +68,7 @@ test("switches between the render-target path and SkiaDirectCanvas", async ({ pa
   const errors = await open(page, "texture");
   for (const mode of ["direct", "texture", "direct"]) {
     await page.evaluate(m => globalThis.fnaSample.setMode(m), mode);
-    const [circle, outside] = await draw(page, [[200, 200], [790, 790]], 3);
+    const [circle, outside] = await draw(page, [[133, 133], [790, 790]], 3);
     near(circle, [255, 0, 0]);
     near(outside, [100, 149, 237]);
   }
@@ -131,7 +132,7 @@ test("SkiaDirectCanvas draws correctly into FNA's multisampled back buffer", asy
     };
   });
   const errors = await open(page, "direct", "&msaa=1");
-  const points = { circle: [200, 200], drop: [600, 200], lime: [450, 100], blueSquare: [410, 310], redCircle: [460, 360], magenta: [620, 620], black: [790, 790] };
+  const points = { circle: [133, 133], drop: [399, 133], lime: [650, 350], blueSquare: [610, 460], redCircle: [660, 510], magenta: [620, 620], black: [790, 790] };
   const read = await draw(page, Object.values(points), 30);
   const pixel = Object.fromEntries(Object.keys(points).map((name, i) => [name, read[i]]));
   near(pixel.circle, [255, 0, 0]);
@@ -181,7 +182,7 @@ for (const samples of [2, 8]) {
       };
     });
     const drawErrors = await open(page, "texture", `&targetsamples=${samples}`);
-    const [circle, drop, outside] = await draw(page, [[200, 200], [600, 200], [790, 790]], 5);
+    const [circle, drop, outside] = await draw(page, [[133, 133], [399, 133], [790, 790]], 5);
     near(circle, [255, 0, 0]);
     expect(drop[0]).toBeLessThan(100);
     expect(drop[2]).toBeGreaterThan(150);

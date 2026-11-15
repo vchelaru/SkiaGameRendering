@@ -153,10 +153,10 @@ namespace Sample
         }
 
         /// <summary>
-        /// The 800x800 canvas fills the 800x800 back buffer. Scene's four 400x400 cells hold the red circle,
+        /// The 800x800 canvas fills the 800x800 back buffer. Scene's 3x3 grid holds the red circle,
         /// the blue SVG water drop (which proves the SVG parser survived trimming), the gradient and the logo
         /// PNG (opaque gray text, transparent margin); the transparent part shows the clear color. The gold circle
-        /// where the cells meet is cut by an antialiased clip, so a pixel above its center shows the clear color.
+        /// in the middle cell is cut by an antialiased clip, so a pixel above the clip shows the clear color.
         /// </summary>
         private void CheckSmokeTestFrame()
         {
@@ -167,12 +167,12 @@ namespace Sample
             ExitGame();
         }
 
-        /// <summary>The shared check of the Scene's four cell centers, the clipped circle and two transparent pixels, against <paramref name="background"/>.</summary>
+        /// <summary>The shared check of the Scene's first three cell centers, the logo, the clipped circle and two transparent pixels, against <paramref name="background"/>.</summary>
         private static bool CheckScene(System.Func<int, int, Color> read, Color background, out string text)
         {
-            var circle = read(Scene.CellCenter, Scene.CellCenter);
-            var drop = read(Scene.Cell + Scene.CellCenter, Scene.CellCenter);
-            var gradient = read(Scene.CellCenter, Scene.Cell + Scene.CellCenter);
+            var circle = read(Scene.CellCenterX(Scene.CircleCell), Scene.CellCenterY(Scene.CircleCell));
+            var drop = read(Scene.CellCenterX(Scene.DropCell), Scene.CellCenterY(Scene.DropCell));
+            var gradient = read(Scene.CellCenterX(Scene.GradientCell), Scene.CellCenterY(Scene.GradientCell));
             var logo = read(Scene.LogoOpaqueX, Scene.LogoOpaqueY);
             var margin = read(Scene.LogoTransparentX, Scene.LogoTransparentY);
             var clipped = read(Scene.ClipCenter, Scene.ClipCenter);

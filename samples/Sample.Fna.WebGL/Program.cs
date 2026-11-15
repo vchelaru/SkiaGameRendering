@@ -91,10 +91,10 @@ public class SampleGame : Game
         Scene.Draw(_direct.Canvas);
         _direct.End();
 
-        // FNA draws after Skia: the cached GL state must still be FNA's.
+        // FNA draws after Skia: the cached GL state must still be FNA's. These sit in the Scene's empty right-hand cells.
         _spriteBatch.Begin();
-        _spriteBatch.Draw(_pixel, new Rectangle(400, 50, 100, 100), Color.Lime);
-        _spriteBatch.Draw(_renderTarget, new Vector2(400, 300), Color.White);
+        _spriteBatch.Draw(_pixel, new Rectangle(600, 300, 100, 100), Color.Lime);
+        _spriteBatch.Draw(_renderTarget, new Vector2(600, 450), Color.White);
         _spriteBatch.End();
 
         // And FNA once more over the Skia draws on the back buffer.

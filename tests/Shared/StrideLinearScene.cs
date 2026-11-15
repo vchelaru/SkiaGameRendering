@@ -46,9 +46,9 @@ static partial class StrideSkiaGolden
                 failures.Add($"{name}: expected {r},{g},{b},255 got {c.R},{c.G},{c.B},{c.A}");
         }
 
-        Check("circle", SharedScene.CellCenter, SharedScene.CellCenter, 255, 0, 0);
-        Check("drop", SharedScene.Cell + SharedScene.CellCenter, SharedScene.CellCenter, 51, 140, 232);
-        Check("gradient", SharedScene.CellCenter, SharedScene.Cell + SharedScene.CellCenter, 180, 23, 158);
+        Check("circle", SharedScene.CellCenterX(SharedScene.CircleCell), SharedScene.CellCenterY(SharedScene.CircleCell), 255, 0, 0);
+        Check("drop", SharedScene.CellCenterX(SharedScene.DropCell), SharedScene.CellCenterY(SharedScene.DropCell), 51, 140, 232);
+        Check("gradient", SharedScene.CellCenterX(SharedScene.GradientCell), SharedScene.CellCenterY(SharedScene.GradientCell), 180, 23, 158);
         Xunit.Assert.True(failures.Count == 0, string.Join("; ", failures));
     }
 }

@@ -814,7 +814,7 @@ jobs:
           api-level: 35
           target: google_apis
           arch: x86_64
-          # The default AVD's screen is narrower than the smoke test's (400, 400) background pixel.
+          # The default AVD's screen is narrower than the smoke test's pixels reach (up to x = 665).
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           # The default 600 s was not enough on a slow runner (the boot-completed poll timed out).

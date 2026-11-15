@@ -134,17 +134,18 @@ public static class Game
         Raylib.DrawRectangle(50, 50, 40, 40, RtAfter);
         Raylib.EndTextureMode();
 
-        Raylib.DrawRectangle(620, 20, 160, 120, Green);
+        // These layering draws sit in the Scene's empty right-hand cells (5 and 8), clear of its check pixels.
+        Raylib.DrawRectangle(620, 320, 160, 120, Green);
 
         _direct.Begin();
         Scene.Draw(_direct.Canvas);
         using (var paint = new SKPaint { Color = Pink })
-            _direct.Canvas.DrawRect(700, 20, 80, 120, paint);
+            _direct.Canvas.DrawRect(700, 320, 80, 120, paint);
         _direct.End();
 
-        Raylib.DrawRectangle(740, 20, 40, 60, Yellow);
+        Raylib.DrawRectangle(740, 320, 40, 60, Yellow);
 
         // A render texture is upside down in raylib; the negative height flips it back.
-        Raylib.DrawTextureRec(_renderTexture.Texture, new Rectangle(0, 0, 160, -120), new System.Numerics.Vector2(620, 160), Color.White);
+        Raylib.DrawTextureRec(_renderTexture.Texture, new Rectangle(0, 0, 160, -120), new System.Numerics.Vector2(620, 460), Color.White);
     }
 }
