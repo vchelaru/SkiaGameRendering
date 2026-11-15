@@ -526,10 +526,13 @@ jobs:
         run: |
           dotnet samples/Sample.Brutal/bin/Release/net10.0/Sample.Brutal.dll --smoke-test 2>&1 | tee brutal-smoke.txt
           if grep -E "VUID-|SYNC-HAZARD" brutal-smoke.txt; then echo "Validation errors above"; exit 1; fi
+          # The loader skips a layer it can't find, so prove it loaded.
+          grep -q 'Insert instance layer "VK_LAYER_KHRONOS_validation"' brutal-smoke.txt || { echo "Validation layer did not load"; exit 1; }
         env:
           DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
           VK_LAYER_PATH: /opt/homebrew/share/vulkan/explicit_layer.d
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+          VK_LOADER_DEBUG: layer
 
   # NativeAOT publish of the MonoGame DesktopGL sample, then a run of the native exe that checks the
   # back buffer for the scene. The build half is the trim/AOT analyzer (IsAotCompatible on the
