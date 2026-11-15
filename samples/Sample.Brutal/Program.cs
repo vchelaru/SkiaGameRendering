@@ -3,6 +3,7 @@
 // The readback is test-only verification; the library has no CPU readback path.
 // --screenshot <path> instead draws the shared Scene on its background at 800x800 and saves the Skia target to a PNG.
 // BRUTAL has no engine frame, so the Skia target is the whole output.
+// --smoke-test --direct-screenshot <path> also saves the Scene SkiaDirectCanvas drew into an app-owned image.
 // On macOS (MoltenVK) Skia draws through Metal, which needs VK_EXT_metal_objects on the device and the Metal export
 // structs on the instance (see docs/brutal/quickstart.md).
 using System.Runtime.InteropServices;
@@ -130,6 +131,14 @@ unsafe
             appImage.Image, 0, 0, Scene.Width, Scene.Height);
         device.WaitIdle();
         SkiaGameRendering.Core.VK.VkImageAllocator.Destroy(device.VkHandle, appImage);
+        var directShotAt = Array.IndexOf(args, "--direct-screenshot");
+        if (directShotAt >= 0 && directShotAt + 1 < args.Length)
+        {
+            using var directBitmap = new SKBitmap(new SKImageInfo(Scene.Width, Scene.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul));
+            Marshal.Copy(viaDirect, 0, directBitmap.GetPixels(), viaDirect.Length);
+            using var directPng = SKImage.FromBitmap(directBitmap).Encode(SKEncodedImageFormat.Png, 100);
+            File.WriteAllBytes(args[directShotAt + 1], directPng.ToArray());
+        }
 
         var differing = 0;
         for (var p = 0; p < Scene.Width * Scene.Height; p++)
