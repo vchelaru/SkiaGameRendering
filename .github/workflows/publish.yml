@@ -27,6 +27,11 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
+      # windows-latest images are starting to ship SDK 11; without a global.json the workload installs
+      # below would resolve to it (the iOS rollback file is for the SDK 10 band). Pin the newest 10.0 SDK.
+      - name: Pin the .NET 10 SDK
+        shell: bash
+        run: dotnet new globaljson --sdk-version "$(dotnet --list-sdks | grep -o '^10\.[0-9.]*' | sort -V | tail -n 1)" --roll-forward latestFeature
       - name: Install WASM toolchain
         run: dotnet workload install wasm-tools-net8
       - name: Install the Android workload
