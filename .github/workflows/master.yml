@@ -343,6 +343,9 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: tests/Tests.Raylib.WebGL/package-lock.json
+      # ubuntu-latest can preinstall a newer SDK (11), which `dotnet workload install` would pick; pin the SDK 10 setup-dotnet installed.
+      - name: Pin the .NET 10 SDK
+        run: dotnet new globaljson --sdk-version "$(dotnet --list-sdks | grep -o '^10\.[0-9.]*' | sort -V | tail -n 1)" --roll-forward latestFeature
       - name: Install WASM toolchain
         run: dotnet workload install wasm-tools
       - name: Build sample (links Raylib-cs's raylib.a into the wasm app)
@@ -393,6 +396,9 @@ jobs:
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: 3.1.56
+      # ubuntu-latest can preinstall a newer SDK (11), which `dotnet workload install` would pick; pin the SDK 10 setup-dotnet installed.
+      - name: Pin the .NET 10 SDK
+        run: dotnet new globaljson --sdk-version "$(dotnet --list-sdks | grep -o '^10\.[0-9.]*' | sort -V | tail -n 1)" --roll-forward latestFeature
       - name: Install WASM toolchain
         run: |
           dotnet workload install wasm-tools
