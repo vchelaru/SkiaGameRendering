@@ -48,6 +48,7 @@ which also draw straight into the current target (`SkiaDirectCanvas`).
 | FNA | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
 | raylib | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Stride | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| BRUTAL | 🟦 | ❌ | ❌ | 🟦 | ❌ | ❌ |
 | Godot 4.7+ | 🟦 (Compat) | ❌ | 🟦 | 🟦 | 🟦 | ❌ |
 | Unity 6 | ✅ Windows, Android | ✅ | ✅ | ✅ | ✅ | ⛔ |
 | BRUTAL | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
@@ -55,6 +56,8 @@ which also draw straight into the current target (`SkiaDirectCanvas`).
 BRUTAL's Vulkan is ✅ on Windows and Linux and 🟦 on macOS. SkiaSharp's macOS native has no Vulkan, so there Skia draws
 through Metal into the `MTLTexture` MoltenVK exports for each image (`VK_EXT_metal_objects`). A swapchain image can't be
 created for export, so `SkiaDirectCanvas` throws on macOS.
+
+BRUTAL's row is checked against its source and issues: it ships only Vulkan and OpenGL bindings (Windows, Linux), so every other column is ❌. Its Vulkan and OpenGL are 🟦 because BRUTAL has no engine frame to draw direct into. It has no Metal API (the Vulkan package only has generated `VK_EXT_metal_objects` structs). BRUTAL's Vulkan does run on macOS Apple silicon through MoltenVK, per the unofficial notes at brutally-honest.junk-tools.com (its SDL, ShaderC and ImGui packages bundle macOS arm64 natives; the Vulkan loader and MoltenVK are installed by the user), but `SkiaGameRendering.Brutal` can't use that because SkiaSharp's macOS build has no Vulkan (verified in `native/macos/build.cake`, which sets `skia_use_metal=true` only, and Skia's `gn/skia.gni` defaulting `skia_use_vulkan` to false; Linux and Windows set it true). Its maintainers also say unreleased WebAssembly (WebGPU), Xbox and Android work exists (ahwootech/BRUTAL issue 7). Revisit when SkiaSharp gets Vulkan on macOS or web ships.
 
 Unity WebGL is ⛔ because Unity's Emscripten must match the one SkiaSharp's wasm build uses (3.1.56) and nothing has been shown to work.
 
