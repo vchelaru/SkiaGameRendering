@@ -145,7 +145,9 @@ var device = physicalDevice.CreateDevice(new Device.CreateInfo
 ## OpenGL
 
 BRUTAL also ships OpenGL bindings (`Ahwoo.BRUTAL.OpenGl`) next to its GLFW and SDL windowing packages. For an app on
-an OpenGL 3.3+ context use `SkiaGameRendering.Brutal.OGL`, which draws into a `GL_TEXTURE_2D`. Windows and Linux.
+an OpenGL 3.3+ context use `SkiaGameRendering.Brutal.OGL`, which draws into a `GL_TEXTURE_2D`. Windows, Linux and
+macOS. macOS caps OpenGL at 4.1 core, and Apple has deprecated OpenGL. macOS is verified on a real Mac, not in CI:
+GitHub's macOS runners have no hardware OpenGL renderer, so GLFW can't create a context there.
 
 ```
 dotnet add package SkiaGameRendering.Brutal.OGL
