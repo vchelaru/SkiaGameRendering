@@ -83,6 +83,10 @@ direct.End(finalLayout: presentSrcLayout);   // omit to hand it back in the layo
   given. If the image lacks `MUTABLE_FORMAT`, the validation layer reports it; drivers accept it for same-size formats. See
   [SkiaDirectCanvas](../documentation/SkiaDirectCanvas.md).
 - **Cost.** Three queue submits per pass and a Skia surface wrapped per pass. Use it once per frame. The queue-lock contract above applies.
+- **Surface cache.** `new SkiaDirectCanvas(context, cacheSurfaces: true)` wraps each image once (keyed on handle, format and size)
+  instead of every pass, which makes direct cheaper than the texture path on CPU ([numbers](#direct-canvas-vs-render-target-vulkan)).
+  When you recreate the swapchain, call `direct.ReleaseCachedSurfaces()` where you destroy your own views of its images: a new image
+  can get a destroyed one's handle, and the cache cannot tell them apart. Nothing is cached on macOS.
 
 `Sample.Brutal --smoke-test` and `Sample.Brutal.Quad --smoke-test` draw the shared scene through it into an app-owned image and compare it
 with the texture path. The `Tests.Brutal` layout tests check the layouts under the validation layer in CI.
@@ -316,3 +320,15 @@ rows move by up to 40% between runs, so read these as equal within noise at 1000
   direct End time stayed flat (0.121 to 0.131 ms at 1 rect), so the split is machine noise, not something that builds up.
 - Direct's GPU time at small loads is at or above the texture path's despite skipping the sampling pass. Not explained; unmeasured guess:
   the layout moves' `ALL_COMMANDS` scopes cost more on the GPU than the texture path's narrower ones.
+
+**With `cacheSurfaces: true`** ("Direct cached" rows of the same benchmark, a later pair of runs on the same machine), the wrap
+happens once and direct is faster than the texture path on CPU at every load:
+
+| Load | Texture CPU ms | Direct CPU ms | Direct cached CPU ms | Direct cached / texture |
+|---|---|---|---|---|
+| 1 rect | 0.215 / 0.178 | 0.281 / 0.224 | 0.144 / 0.121 | 0.67 / 0.68 |
+| 100 circles | 0.305 / 0.299 | 0.402 / 0.333 | 0.230 / 0.208 | 0.75 / 0.70 |
+| 1000 rects | 1.735 / 1.391 | 1.694 / 1.454 | 1.492 / 1.106 | 0.86 / 0.80 |
+
+Cached Begin is 0.02 to 0.03 ms (uncached 0.04 to 0.11) and cached End 0.08 to 0.24 ms (uncached 0.14 to 0.32). GPU time drops
+too, 0.024 to 0.030 ms at 1 rect and 100 circles against the texture path's 0.045 to 0.052.
