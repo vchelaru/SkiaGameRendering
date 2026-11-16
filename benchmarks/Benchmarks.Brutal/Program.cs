@@ -1,7 +1,8 @@
 // Headless (no window) per-frame cost of SkiaRenderTarget2D Begin/draw/End on a BRUTAL Vulkan device.
 // Usage: Benchmarks.Brutal [--warmup 30] [--frames 200] [--out results.md] [--direct]
 // --direct instead compares SkiaRenderTarget2D plus its sampling pass with SkiaDirectCanvas at 1920x1080 (empty Begin/End,
-// 1 rect, 100 circles, 1000 rects). Headless: no swapchain and no present, so vsync cannot mask cost. Runs on macOS (MoltenVK) too.
+// 1 rect, 100 circles, 1000 rects), adding per-phase CPU time, GPU time from timestamp queries, and the texture image's memory.
+// Headless: no swapchain and no present, so vsync cannot mask cost. Runs on macOS (MoltenVK) too.
 // Per config it reports: CPU ms/frame (Stopwatch around Begin..End, i.e. what the render thread pays) and
 // throughput ms/frame (the whole loop plus a device WaitIdle, i.e. what the GPU can sustain).
 using System.Diagnostics;
@@ -117,8 +118,11 @@ unsafe
         "",
         "Texture = SkiaRenderTarget2D plus the app's pass sampling it onto the app image; Direct = SkiaDirectCanvas into the app image.",
         "",
-        "| Load | Path | CPU mean ms | CPU median ms | Throughput ms/frame | Halves (CPU mean ms) |",
-        "|---|---|---|---|---|---|",
+        "Phases are CPU mean ms per half: Begin / draw calls / End, and for Texture the fence wait plus recording and submitting the sampling pass.",
+        "GPU ms is the median gated frame (all of a frame's submits run back to back); Pass GPU ms is the sampling pass alone.",
+        "",
+        "| Load | Path | CPU mean ms | CPU median ms | Throughput ms/frame | Halves (CPU mean ms) | Phases, 1st half | Phases, 2nd half | GPU ms | Pass GPU ms |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     };
     using var textureTarget = new SkiaRenderTarget2D(context, W, H);
     using var directCanvas = new SkiaDirectCanvas(context);
@@ -224,29 +228,59 @@ unsafe
             },
         ]);
 
+    // GPU time: a separate pass of gated frames. Each frame's first submit waits on a host-set event, so the GPU sees the
+    // whole frame's submits back to back with no CPU gaps between them; a timestamp after the gate and one after the
+    // frame's last submit bracket that work. The texture path also brackets its sampling pass on its own.
+    var timestampPeriodNs = properties.Limits.TimestampPeriod;
+    var queryPool = device.CreateQueryPool(new VkQueryPoolCreateInfo { QueryType = VkQueryType.Timestamp, QueryCount = 4 }, null);
+    var gate = device.CreateEvent(new VkEventCreateInfo(), null);
+    var gateCb = device.AllocateCommandBuffer(new VkCommandBufferAllocateInfo { CommandPool = commandPool, Level = VkCommandBufferLevel.Primary });
+    var endCb = device.AllocateCommandBuffer(new VkCommandBufferAllocateInfo { CommandPool = commandPool, Level = VkCommandBufferLevel.Primary });
+    var allToAll = new VkMemoryBarrier { SrcAccessMask = VkAccessFlags.MemoryWriteBit, DstAccessMask = VkAccessFlags.MemoryReadBit | VkAccessFlags.MemoryWriteBit };
+    var queryBytes = new byte[4 * sizeof(ulong)];
+    double QueryMs(int from, int to) =>
+        (BitConverter.ToUInt64(queryBytes, to * 8) - BitConverter.ToUInt64(queryBytes, from * 8)) * timestampPeriodNs / 1e6;
+
+    // Image memory: the texture path's own image (the app image is the same on both paths).
+    var textureBytes = (long)device.GetImageMemoryRequirements(new VkImage((nint)textureTarget.VkImage)).Size;
+    directLines.Insert(1, $"Texture path's SkiaRenderTarget2D image: {textureBytes / (1024.0 * 1024.0):F2} MiB device memory (vkGetImageMemoryRequirements); direct allocates none.");
+
     foreach (var (name, draw) in directLoads)
     foreach (var isDirect in new[] { false, true })
     {
-        void Frame()
+        // CPU phases of the last frame: Begin, draw calls, End, then (texture only) fence wait plus the sampling pass.
+        var phase = new double[4];
+        void Frame(bool gpuTimed)
         {
+            var t = Stopwatch.GetTimestamp();
+            void Mark(int i) { var now = Stopwatch.GetTimestamp(); phase[i] = Stopwatch.GetElapsedTime(t, now).TotalMilliseconds; t = now; }
             if (isDirect)
             {
                 directCanvas.Begin(appImage.Image, 37, W, H, 5);
+                Mark(0);
                 draw(directCanvas.Canvas);
+                Mark(1);
                 directCanvas.End(finalLayout: 5);
+                Mark(2);
+                phase[3] = 0;
                 return;
             }
+            // Every load but "empty" clears itself; "empty" is a bare Begin/End on both paths.
+            textureTarget.Begin(clear: false);
+            Mark(0);
+            draw(textureTarget.Canvas);
+            Mark(1);
+            textureTarget.End();
+            Mark(2);
+
             var i = frameIndex++ & 1;
             device.WaitForFence(fences[i], -1);
             device.ResetFences([fences[i]]);
-            // Every load but "empty" clears itself; "empty" is a bare Begin/End on both paths.
-            textureTarget.Begin(clear: false);
-            draw(textureTarget.Canvas);
-            textureTarget.End();
-
             var cb = cbs[i];
             cb.Reset();
             cb.Begin(VkCommandBufferUsageFlags.OneTimeSubmitBit);
+            if (gpuTimed)
+                cb.WriteTimestamp(VkPipelineStageFlags.AllCommandsBit, queryPool, 2);
             Barrier(cb, VkImageLayout.ShaderReadOnlyOptimal, VkImageLayout.ColorAttachmentOptimal,
                 VkPipelineStageFlags.TopOfPipeBit | VkPipelineStageFlags.FragmentShaderBit, VkPipelineStageFlags.ColorAttachmentOutputBit,
                 VkAccessFlags.None, VkAccessFlags.ColorAttachmentWriteBit);
@@ -263,28 +297,67 @@ unsafe
             Barrier(cb, VkImageLayout.ColorAttachmentOptimal, VkImageLayout.ShaderReadOnlyOptimal,
                 VkPipelineStageFlags.ColorAttachmentOutputBit, VkPipelineStageFlags.FragmentShaderBit,
                 VkAccessFlags.ColorAttachmentWriteBit, VkAccessFlags.ShaderReadBit);
+            if (gpuTimed)
+                cb.WriteTimestamp(VkPipelineStageFlags.AllCommandsBit, queryPool, 3);
             cb.End();
             queue.Submit([], [], [cb], [], fences[i]);
+            Mark(3);
         }
         for (var i = 0; i < warmup; i++)
-            Frame();
+            Frame(false);
         device.WaitIdle();
         var halfMs = new double[2];
+        var phaseHalf = new double[2, 4];
         var frameMs = new double[frames];
         var total = Stopwatch.GetTimestamp();
         for (var i = 0; i < frames; i++)
         {
             var t0 = Stopwatch.GetTimestamp();
-            Frame();
+            Frame(false);
             frameMs[i] = Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
             halfMs[i * 2 / frames] += frameMs[i];
+            for (var p = 0; p < 4; p++)
+                phaseHalf[i * 2 / frames, p] += phase[p];
         }
         Array.Sort(frameMs);
         var median = frames % 2 == 1 ? frameMs[frames / 2] : (frameMs[frames / 2 - 1] + frameMs[frames / 2]) / 2;
         device.WaitIdle();
         var throughput = Stopwatch.GetElapsedTime(total).TotalMilliseconds / frames;
         var perHalf = frames / 2;
-        var line = $"| {name} | {(isDirect ? "Direct" : "Texture")} | {(halfMs[0] + halfMs[1]) / frames:F3} | {median:F3} | {throughput:F3} | {halfMs[0] / perHalf:F3} / {halfMs[1] / (frames - perHalf):F3} |";
+
+        // Gated GPU frames, one at a time (WaitIdle after each), median of `frames`.
+        var gpuMs = new double[frames];
+        var passMs = new double[frames];
+        for (var f = 0; f < frames; f++)
+        {
+            gateCb.Reset();
+            gateCb.Begin(VkCommandBufferUsageFlags.OneTimeSubmitBit);
+            gateCb.ResetQueryPool(queryPool, 0, 4);
+            gateCb.WaitEvents([gate], VkPipelineStageFlags.HostBit, VkPipelineStageFlags.AllCommandsBit, [], [], []);
+            // Everything later on the queue waits for the gate: a barrier's second scope covers later submits too.
+            gateCb.PipelineBarrier(VkPipelineStageFlags.AllCommandsBit, VkPipelineStageFlags.AllCommandsBit, VkDependencyFlags.None, [allToAll], [], []);
+            gateCb.WriteTimestamp(VkPipelineStageFlags.AllCommandsBit, queryPool, 0);
+            gateCb.End();
+            queue.Submit([], [], [gateCb], [], VkFence.NullHandle);
+            Frame(true);
+            endCb.Reset();
+            endCb.Begin(VkCommandBufferUsageFlags.OneTimeSubmitBit);
+            endCb.WriteTimestamp(VkPipelineStageFlags.AllCommandsBit, queryPool, 1);
+            endCb.End();
+            queue.Submit([], [], [endCb], [], VkFence.NullHandle);
+            device.SetEvent(gate);
+            device.WaitIdle();
+            device.ResetEvent(gate);
+            device.GetQueryPoolResults(queryPool, 0, isDirect ? 2 : 4, queryBytes, new Brutal.ByteSize64(sizeof(ulong)), VkQueryResultFlags._64Bit | VkQueryResultFlags.WaitBit);
+            gpuMs[f] = QueryMs(0, 1);
+            passMs[f] = isDirect ? 0 : QueryMs(2, 3);
+        }
+        Array.Sort(gpuMs);
+        Array.Sort(passMs);
+
+        string Phases(int h) => string.Join(" / ", Enumerable.Range(0, isDirect ? 3 : 4).Select(p => (phaseHalf[h, p] / (h == 0 ? perHalf : frames - perHalf)).ToString("F3")));
+        var line = $"| {name} | {(isDirect ? "Direct" : "Texture")} | {(halfMs[0] + halfMs[1]) / frames:F3} | {median:F3} | {throughput:F3} | " +
+            $"{halfMs[0] / perHalf:F3} / {halfMs[1] / (frames - perHalf):F3} | {Phases(0)} | {Phases(1)} | {gpuMs[frames / 2]:F3} | {(isDirect ? "-" : passMs[frames / 2].ToString("F3"))} |";
         directLines.Add(line);
         Console.WriteLine(line);
     }
