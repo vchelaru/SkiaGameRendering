@@ -36,7 +36,11 @@ namespace SkiaGameRendering
         private int _backBufferWidth;
         private int _backBufferHeight;
 
+        // The pass in progress, or null. It is always _passState, reused for every pass so that a game's
+        // Begin/End each frame allocates nothing; _backBufferFramebuffer (FBO 0) is reused the same way.
         private Pass? _pass;
+        private readonly Pass _passState = new();
+        private readonly GlFramebufferState _backBufferFramebuffer = new();
         private bool _isDisposed;
 
         private sealed class Pass
@@ -47,6 +51,15 @@ namespace SkiaGameRendering
             // Only for a render texture: the per-pass objects End frees.
             internal GRBackendRenderTarget? RenderTarget;
             internal GlFramebufferState? Framebuffer;
+
+            internal void Reset(GlDrawTarget gl)
+            {
+                Surface = null!;
+                SaveCount = 0;
+                Gl = gl;
+                RenderTarget = null;
+                Framebuffer = null;
+            }
         }
 
         /// <summary>
@@ -104,10 +117,11 @@ namespace SkiaGameRendering
             _context.Flush();
 
             _context.BeginDraw();
-            var pass = new Pass { Gl = glTarget };
+            var pass = _passState;
+            pass.Reset(glTarget);
             try
             {
-                var framebuffer = new GlFramebufferState();
+                var framebuffer = _backBufferFramebuffer;
                 if (glTarget.IsDefaultFramebuffer)
                 {
                     pass.Surface = GetBackBufferSurface(width, height);

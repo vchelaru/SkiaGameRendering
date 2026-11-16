@@ -94,6 +94,35 @@ public sealed class RaylibDirectDrawTests
         });
     }
 
+    // A game calls Begin/End every frame, so a pass into the back buffer must not allocate managed memory.
+    [NotMacOsFact]
+    public void BackBuffer_BeginEnd_AllocatesNothing()
+    {
+        RunInWindow(() =>
+        {
+            using var direct = new SkiaDirectCanvas();
+            RaylibApi.BeginDrawing();
+            // Warm up: the first pass builds the cached back buffer surface, and the JIT tiers the code up.
+            for (var i = 0; i < 50; i++)
+            {
+                direct.Begin();
+                direct.End();
+            }
+
+            const int Passes = 200;
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < Passes; i++)
+            {
+                direct.Begin();
+                direct.End();
+            }
+            var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+            RaylibApi.EndDrawing();
+
+            Assert.True(bytes == 0, $"{bytes / (double)Passes:F1} bytes per pass");
+        });
+    }
+
     /// <summary>Draws the layers into whatever raylib has bound and reports every probe that is wrong, or "".</summary>
     static string DrawAndCheck(SkiaDirectCanvas direct, Func<Color[]> readBack)
     {
