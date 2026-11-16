@@ -158,6 +158,35 @@ public sealed class BrutalOglTests
         Assert.Throws<InvalidOperationException>(() => direct.Canvas);
     }
 
+    // A game calls Begin/End every frame, so a pass into the back buffer must not allocate managed memory.
+    [GlWindowFact]
+    public void DirectCanvas_BeginEndIntoBackBuffer_AllocatesNothing()
+    {
+        const int Size = 64;
+        using var window = new BrutalGlWindow(Size, Size);
+        using var context = new SkiaGlContext(BrutalGlWindow.GetProc);
+        using var direct = new SkiaDirectCanvas(context);
+        var viewport = Marshal.GetDelegateForFunctionPointer<Viewport>(BrutalGlWindow.GetProc("glViewport"));
+        void Pass()
+        {
+            viewport(0, 0, Size, Size);
+            direct.Begin();
+            direct.End();
+        }
+        // Warm up: the first pass builds the cached back buffer surface, and the JIT tiers the code up.
+        for (var i = 0; i < 50; i++)
+            Pass();
+
+        const int Passes = 200;
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < Passes; i++)
+            Pass();
+        var bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        _output.WriteLine($"{bytes / (double)Passes:F1} bytes per pass");
+        Assert.Equal(0, bytes);
+    }
+
     static void SaveScreenshot(byte[] rgba)
     {
         var dir = Environment.GetEnvironmentVariable("SKIAGAMERENDERING_BRUTAL_SCREENSHOTS");

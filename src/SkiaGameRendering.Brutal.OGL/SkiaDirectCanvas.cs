@@ -38,7 +38,11 @@ namespace SkiaGameRendering
         int _backBufferWidth;
         int _backBufferHeight;
 
+        // The pass in progress, or null. It is always _passState, reused for every pass so that a game's
+        // Begin/End each frame allocates nothing; _rebindState is reused the same way.
         Pass? _pass;
+        readonly Pass _passState = new();
+        readonly GlFramebufferState _rebindState = new();
         bool _isDisposed;
 
         sealed class Pass
@@ -49,6 +53,15 @@ namespace SkiaGameRendering
             // Only for an FBO: the per-pass objects End frees.
             internal GRBackendRenderTarget? RenderTarget;
             internal GlFramebufferState? Framebuffer;
+
+            internal void Reset(int appFramebuffer)
+            {
+                Surface = null!;
+                SaveCount = 0;
+                AppFramebuffer = appFramebuffer;
+                RenderTarget = null;
+                Framebuffer = null;
+            }
         }
 
         public SkiaDirectCanvas(SkiaGlContext context)
@@ -80,7 +93,8 @@ namespace SkiaGameRendering
             var grContext = _context.GrContext;
             // The app changed GL state since Skia's last pass.
             grContext.ResetContext();
-            var pass = new Pass { AppFramebuffer = target.FramebufferId };
+            var pass = _passState;
+            pass.Reset(target.FramebufferId);
             try
             {
                 if (target.IsDefaultFramebuffer)
@@ -159,8 +173,11 @@ namespace SkiaGameRendering
             _backBufferRenderTarget = null;
         }
 
-        void Rebind(int framebuffer) =>
-            GlSkiaSurfaceFactory.BindForDrawing(_context.Gl, new GlFramebufferState { FramebufferId = framebuffer });
+        void Rebind(int framebuffer)
+        {
+            _rebindState.FramebufferId = framebuffer;
+            GlSkiaSurfaceFactory.BindForDrawing(_context.Gl, _rebindState);
+        }
 
         /// <summary>Call it with the app's GL context current, after <see cref="End"/> and before <see cref="SkiaGlContext.Dispose"/>.</summary>
         public void Dispose()
