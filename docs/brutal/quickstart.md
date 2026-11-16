@@ -311,7 +311,7 @@ rows move by up to 40% between runs, so read these as equal within noise at 1000
   more is a guess: Skia creating its framebuffer and image view for the new wrap. That per-pass wrap is what cancels the saving.
 - **Submits are not the difference.** Direct makes three queue submits per pass (two layout moves and Skia's), the texture path four
   (the same three plus the app's pass). Each layout-move submit costs about 0.025 to 0.035 ms of CPU here. None can be dropped: Skia
-  submits its own command buffer, and SkiaSharp 3.119.4 cannot ask Skia for a final layout, so the moves stay separate submits.
+  submits its own command buffer, and SkiaSharp (4.153.1, and its main branch as of 2026-11) cannot ask Skia for a final layout, so the moves stay separate submits.
 - **Run halves.** Either half of a direct row can be the slower one, the texture rows split the same way, and over 1000 frames the
   direct End time stayed flat (0.121 to 0.131 ms at 1 rect), so the split is machine noise, not something that builds up.
 - Direct's GPU time at small loads is at or above the texture path's despite skipping the sampling pass. Not explained; unmeasured guess:
