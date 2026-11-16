@@ -285,19 +285,34 @@ the larger gaps coming from `sync`. Numbers vary run to run by a few percent; on
 
 `Benchmarks.Brutal --direct` (headless, 1920x1080, random solid rects on black). Both paths end each frame with the same
 app-owned image in `SHADER_READ_ONLY_OPTIMAL`. "Texture" is `SkiaRenderTarget2D` Begin/draw/End (library-managed layout, async End) plus
-the app's own pass that samples its image onto the app image (a fullscreen triangle with a fragment shader, recorded and submitted every
-frame, two frames in flight). "Direct" is `SkiaDirectCanvas` into the app image, with no such pass. CPU is a stopwatch around the whole
-frame including the fence wait; throughput is the whole loop plus a device wait, divided by frames.
+the app's own pass that samples its image onto the app image (a fullscreen triangle, recorded and submitted every frame, two frames in
+flight). "Direct" is `SkiaDirectCanvas` into the app image, with no such pass. CPU is a stopwatch around the whole frame including the
+fence wait. GPU is a timestamp query pair around one frame whose submits are held behind a host-set event, so the GPU runs them back to
+back with no CPU gaps; median of 200 such frames.
 GPU: NVIDIA GeForce RTX 5060 Laptop GPU (driverVersion 0x988BC000, API 1.4), Windows 11. Warmup 30, frames 200, two runs, both shown.
-In run 2 the two halves of the 1 rect Direct row (0.263 / 0.194) and the 1000 rects Direct row (1.496 / 1.147) differed by more than 10%.
 
-| Load | Path | CPU ms/frame (run 1 / run 2) | Throughput ms/frame (run 1 / run 2) |
+| Load | Path | CPU ms/frame (run 1 / run 2) | GPU ms/frame (run 1 / run 2) |
 |---|---|---|---|
-| 1 rect | Texture + sampling pass | 0.197 / 0.215 | 0.198 / 0.216 |
-| 1 rect | Direct | 0.269 / 0.229 | 0.270 / 0.230 |
-| 1000 rects | Texture + sampling pass | 1.521 / 1.357 | 1.522 / 1.358 |
-| 1000 rects | Direct | 1.480 / 1.322 | 1.482 / 1.323 |
+| 1 rect | Texture + sampling pass | 0.121 / 0.165 | 0.046 / 0.049 |
+| 1 rect | Direct | 0.165 / 0.232 | 0.027 / 0.058 |
+| 100 circles | Texture + sampling pass | 0.203 / 0.287 | 0.051 / 0.052 |
+| 100 circles | Direct | 0.438 / 0.353 | 0.061 / 0.074 |
+| 1000 rects | Texture + sampling pass | 1.232 / 1.214 | 0.097 / 0.097 |
+| 1000 rects | Direct | 1.040 / 1.208 | 0.107 / 0.129 |
 
-On this machine only: at 1 rect the direct canvas is not faster (0.27 and 0.23 ms against 0.20 and 0.22); at 1000 rects it is about
-0.04 ms faster in both runs, inside the run-to-run noise. This benchmark shows no frame-time saving from direct, and it does not
-measure the saved full-size image.
+On this machine only, direct is no faster on CPU or GPU. Direct over texture is 1.4x / 1.4x CPU at 1 rect and 0.84x / 1.0x at 1000 rects;
+rows move by up to 40% between runs, so read these as equal within noise at 1000 rects and direct slower at small loads.
+
+- **What direct saves.** The sampling pass takes 0.020 ms of GPU time and 0.03 to 0.10 ms of CPU (fence wait, recording, submit) per
+  frame, and the texture path's image is 8.44 MiB of device memory at 1920x1080 (`vkGetImageMemoryRequirements`). Direct saves all three.
+- **What direct pays.** Its Begin costs 0.01 to 0.06 ms more CPU than the texture path's, and its End 0.03 to 0.10 ms more. Timing
+  `SkiaDirectCanvas` piece by piece (not committed) put the Begin extra in wrapping the image as a new Skia surface (0.011 to 0.022 ms) and the
+  End extra in Skia's flush, which costs more on a freshly wrapped surface than on the texture path's long-lived one. Why that flush costs
+  more is a guess: Skia creating its framebuffer and image view for the new wrap. That per-pass wrap is what cancels the saving.
+- **Submits are not the difference.** Direct makes three queue submits per pass (two layout moves and Skia's), the texture path four
+  (the same three plus the app's pass). Each layout-move submit costs about 0.025 to 0.035 ms of CPU here. None can be dropped: Skia
+  submits its own command buffer, and SkiaSharp (4.153.1, and its main branch as of 2026-11) cannot ask Skia for a final layout, so the moves stay separate submits.
+- **Run halves.** Either half of a direct row can be the slower one, the texture rows split the same way, and over 1000 frames the
+  direct End time stayed flat (0.121 to 0.131 ms at 1 rect), so the split is machine noise, not something that builds up.
+- Direct's GPU time at small loads is at or above the texture path's despite skipping the sampling pass. Not explained; unmeasured guess:
+  the layout moves' `ALL_COMMANDS` scopes cost more on the GPU than the texture path's narrower ones.
