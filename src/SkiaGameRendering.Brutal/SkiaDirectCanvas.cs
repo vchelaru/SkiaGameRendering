@@ -241,7 +241,9 @@ namespace SkiaGameRendering
             try
             {
                 _surface!.Canvas.RestoreToCount(_saveCount);
-                _surface.Flush();
+                // On Vulkan, Factory.EndDraw makes this same flush under the queue lock.
+                if (_context.MetalFactory != null)
+                    _surface.Flush();
             }
             finally
             {

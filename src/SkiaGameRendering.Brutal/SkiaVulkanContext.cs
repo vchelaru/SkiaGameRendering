@@ -13,7 +13,8 @@ namespace SkiaGameRendering
     /// </code>
     /// The device must be Vulkan 1.3 (BRUTAL's main path) and the queue must support graphics. Skia calls
     /// <c>vkQueueSubmit</c> on <c>queue</c> itself, so submits on that queue from other threads must be
-    /// serialized with Skia's: pass the lock the app uses as <c>acquireQueueLock</c>. BRUTAL's own
+    /// serialized with Skia's: pass the lock the app uses as <c>acquireQueueLock</c>. It is held only while Skia and
+    /// the layout transitions submit (in <c>End</c>), not while the app draws on the canvas. BRUTAL's own
     /// <c>Queue.Submit</c> lock is private, so an app that submits from several threads needs its own.
     /// <para>
     /// <b>macOS.</b> SkiaSharp's macOS native has no Vulkan, so on MoltenVK Skia draws with Metal instead, into the

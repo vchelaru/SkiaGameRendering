@@ -65,9 +65,7 @@ namespace SkiaGameRendering
             : throw new InvalidOperationException("Begin must be called before accessing Canvas.");
 
         /// <summary>
-        /// Begins a render pass: acquires Stride's Vulkan queue lock (see
-        /// <see cref="SkiaStrideVulkanContext"/>) so Skia's and Stride's <c>vkQueueSubmit</c> calls
-        /// stay externally synchronized, and moves the texture back to <c>COLOR_ATTACHMENT_OPTIMAL</c>,
+        /// Begins a render pass: moves the texture back to <c>COLOR_ATTACHMENT_OPTIMAL</c>,
         /// the layout Skia assumes it is in, from wherever Stride left it. Throws if a previous
         /// <see cref="Begin"/> hasn't been closed with <see cref="End"/> yet.
         /// </summary>
@@ -96,8 +94,8 @@ namespace SkiaGameRendering
 
         /// <summary>
         /// Ends the render pass started by <see cref="Begin"/>: flushes Skia's queued GPU work and
-        /// submits it to the shared <c>VkQueue</c> (releasing the queue lock <see cref="Begin"/>
-        /// acquired), then composites the whole surface at native size and the origin via a
+        /// submits it to the shared <c>VkQueue</c> under Stride's queue lock (see
+        /// <see cref="SkiaStrideVulkanContext"/>), held for the submit only, then composites the whole surface at native size and the origin via a
         /// <see cref="SpriteBatch"/> - the same mechanism MonoGame's <c>SkiaRenderTarget2D.End</c>
         /// and the D3D11 Stride adapter's <c>SkiaRenderTarget2D.End</c> use.
         /// <paramref name="graphicsContext"/> is normally <c>RenderDrawContext.GraphicsContext</c>,
@@ -133,11 +131,11 @@ namespace SkiaGameRendering
 
             try
             {
-                _target!.Surface.Flush();
+                // Flushes and submits this surface's work under Stride's queue lock (SKSurface.Flush is the same call).
+                _context.EndDraw();
             }
             finally
             {
-                _context.EndDraw();
                 _hasBegun = false;
             }
 

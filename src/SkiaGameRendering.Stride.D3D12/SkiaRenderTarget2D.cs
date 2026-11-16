@@ -66,7 +66,7 @@ namespace SkiaGameRendering
             : throw new InvalidOperationException("Begin must be called before accessing Canvas.");
 
         /// <summary>
-        /// Begins a render pass: takes Stride's D3D12 queue lock and moves the texture into the
+        /// Begins a render pass: moves the texture into the
         /// <c>RENDER_TARGET</c> state Skia draws in, from whatever layout Stride left it in. Throws if a previous <see cref="Begin"/> hasn't
         /// been closed with <see cref="End"/> yet.
         /// </summary>
@@ -86,7 +86,7 @@ namespace SkiaGameRendering
 
         /// <summary>
         /// Ends the render pass started by <see cref="Begin"/>: submits Skia's work to Stride's queue
-        /// (releasing the queue lock), then composites the whole surface at native size and the
+        /// (under Stride's queue lock, held for the submit only), then composites the whole surface at native size and the
         /// origin via a <see cref="SpriteBatch"/>. <paramref name="graphicsContext"/> is normally
         /// <c>RenderDrawContext.GraphicsContext</c>, available inside a <c>SceneRendererBase</c>'s
         /// <c>DrawCore</c> (see <see cref="SkiaSceneRenderer"/>).

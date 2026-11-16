@@ -16,7 +16,7 @@ sealed unsafe class BrutalDevice : IDisposable
     public readonly Queue Queue;
     public readonly SkiaVulkanContext Context;
 
-    public BrutalDevice()
+    public BrutalDevice(Func<IDisposable>? acquireQueueLock = null)
     {
         _instance = Vulkan.CreateInstance(new Instance.CreateInfo
         {
@@ -33,7 +33,7 @@ sealed unsafe class BrutalDevice : IDisposable
             QueueCreateInfos = [new VkDeviceQueueCreateInfo { QueueFamilyIndex = family, QueueCount = 1, QueuePriorities = &priority }],
         });
         Queue = _device.GetQueue(family, 0);
-        Context = new SkiaVulkanContext(_instance.VkHandle, PhysicalDevice.VkHandle, _device.VkHandle, Queue.VkHandle, (uint)family);
+        Context = new SkiaVulkanContext(_instance.VkHandle, PhysicalDevice.VkHandle, _device.VkHandle, Queue.VkHandle, (uint)family, acquireQueueLock);
     }
 
     public byte[] ReadPixel(SkiaRenderTarget2D target, int x, int y) =>

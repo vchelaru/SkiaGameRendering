@@ -55,16 +55,24 @@ namespace SkiaGameRendering.Core.VK
     /// lock out of nothing - the host already owns whatever lock object serializes its own submissions
     /// (e.g. Stride's internal <c>GraphicsDevice.QueueLock</c>). <see cref="InitializeFromNative"/>
     /// therefore takes an optional <c>acquireQueueLock</c> hook: a <see cref="Func{IDisposable}"/> that
-    /// <see cref="BeginDraw"/>/<see cref="EndDraw(bool)"/> invoke/dispose around the one call that actually
-    /// submits to the queue (<c>GRContext.Flush(submit: true, ...)</c>). Passing <c>null</c> means "no
-    /// external synchronization" - fine for a single-threaded test harness or a host that guarantees
-    /// no concurrent submission on its own, but the caller's responsibility either way; this library
-    /// has no way to verify it.
+    /// <see cref="EndDraw(bool)"/> and <see cref="Dispose"/> hold around the Skia calls that reach the
+    /// queue, and that <see cref="AcquireQueueLock"/> hands to callers for any other such call. Drawing is
+    /// not covered: in Skia's Ganesh source (the <c>externals/skia</c> commit SkiaSharp 4.153.1 pins),
+    /// <c>GrVkGpu</c> reaches the queue only from <c>submitCommandBuffer</c> and
+    /// <c>finishOutstandingGpuWork</c>, which run from a flush or submit (<c>GrDirectContext::flush</c>,
+    /// <c>submit</c>, <c>freeGpuResources</c>, teardown), a read-back (<c>GrVkGpu::onReadPixels</c>),
+    /// <c>SKSurface.WritePixels</c> and the other paths that call <c>GrDirectContextPriv::flushSurface</c>,
+    /// or a write into a linear-tiled image. Canvas draw calls, wrapping a surface and
+    /// <c>SKSurface.Snapshot</c> only record. A caller that makes one of those other calls between
+    /// <see cref="BeginDraw"/> and <see cref="EndDraw(bool)"/> holds <see cref="AcquireQueueLock"/> around it.
+    /// Passing <c>null</c> means "no external synchronization" - fine for a single-threaded host or one that
+    /// guarantees no concurrent submission on its own, but the caller's responsibility either way; this
+    /// library has no way to verify it.
     /// </item>
     /// <item>
     /// <b>The post-draw <c>VkImageLayout</c> cannot be read back through this SkiaSharp version.</b>
-    /// See the doc comment on <see cref="EndDraw(bool)"/> - this was verified by reflecting SkiaSharp
-    /// 3.119.4's actual native P/Invoke surface, not assumed from its public API docs.
+    /// See the doc comment on <see cref="EndDraw(bool)"/> - this was verified by reflecting SkiaSharp's
+    /// actual native P/Invoke surface, not assumed from its public API docs.
     /// </item>
     /// </list>
     /// </summary>
@@ -72,7 +80,6 @@ namespace SkiaGameRendering.Core.VK
     {
         GRContext _grContext = null!;
         Func<IDisposable>? _acquireQueueLock;
-        IDisposable? _queueLockHandle;
 
         public GRContext GRContext => _grContext;
 
@@ -193,7 +200,7 @@ namespace SkiaGameRendering.Core.VK
                 GetProcedureAddress = getProc,
             };
 
-            // SkiaSharp 3.119.4's macOS native library is built without Skia's Vulkan backend (its
+            // SkiaSharp 4.153.1's macOS native library is built without Skia's Vulkan backend (its
             // libSkiaSharp.dylib carries none of the vk* entry-point names the Windows and Linux
             // builds do), so CreateVulkan always returns null there, whatever the host.
             _grContext = GRContext.CreateVulkan(backendContext)
@@ -302,7 +309,7 @@ namespace SkiaGameRendering.Core.VK
         /// <c>_grContext.ResetContext()</c> call plays for ANGLE's GL-backed context.
         /// <para>
         /// Unlike the GL overload of <c>GRBackendRenderTarget</c>, the Vulkan overload has no separate
-        /// "requested MSAA sample count" parameter - SkiaSharp 3.119.4 marks the 4-argument
+        /// "requested MSAA sample count" parameter - SkiaSharp 4.153.1 marks the 4-argument
         /// <c>(width, height, sampleCount, GRVkImageInfo)</c> constructor obsolete in favor of the
         /// 3-argument one used here, deriving the sample count entirely from
         /// <see cref="VkTextureState"/>'s own <c>GRVkImageInfo.SampleCount</c> (the wrapped image's
@@ -343,11 +350,6 @@ namespace SkiaGameRendering.Core.VK
         /// <summary>The most samples per pixel Skia can render <paramref name="colorType"/> with on this device.</summary>
         public int GetMaxSurfaceSampleCount(SKColorType colorType) => _grContext.GetMaxSurfaceSampleCount(colorType);
 
-        /// <summary>
-        /// Acquires the host's queue lock (if one was wired through <c>acquireQueueLock</c> on
-        /// <see cref="InitializeFromNative"/>) before any drawing happens. Paired with
-        /// <see cref="EndDraw(bool)"/>.
-        /// </summary>
         static bool IsMacOS() =>
 #if NET5_0_OR_GREATER
             OperatingSystem.IsMacOS();
@@ -355,10 +357,21 @@ namespace SkiaGameRendering.Core.VK
             System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX);
 #endif
 
+        /// <summary>
+        /// Starts a draw. Takes no lock: Skia only records until <see cref="EndDraw(bool)"/>, so a host thread
+        /// sharing the queue is not blocked while the frame is built. Paired with <see cref="EndDraw(bool)"/>.
+        /// </summary>
         public void BeginDraw()
         {
-            _queueLockHandle = _acquireQueueLock?.Invoke();
         }
+
+        /// <summary>
+        /// Takes the host's queue lock (the <c>acquireQueueLock</c> hook passed to <see cref="InitializeFromNative"/>),
+        /// or returns <c>null</c> when there is none. Hold it with <c>using</c> around a Skia call other than
+        /// <see cref="EndDraw(bool)"/> that submits to the queue: <c>SKSurface.Flush</c>, <c>ReadPixels</c>,
+        /// <c>WritePixels</c>, <c>GRContext.PurgeResources</c>.
+        /// </summary>
+        public IDisposable? AcquireQueueLock() => _acquireQueueLock?.Invoke();
 
         /// <summary>Same as <see cref="EndDraw(bool)"/> with <c>synchronous: true</c>.</summary>
         public void EndDraw() => EndDraw(synchronous: true);
@@ -366,8 +379,8 @@ namespace SkiaGameRendering.Core.VK
         /// <summary>
         /// Flushes Skia's recorded Vulkan commands and submits them to the shared <c>VkQueue</c>
         /// (<c>GRContext.Flush(submit: true, synchronous)</c>) - the one call in this whole
-        /// class that actually calls <c>vkQueueSubmit</c>, which is why it (and not, say,
-        /// <see cref="CreateSurface"/>) is what <see cref="BeginDraw"/>'s queue lock brackets.
+        /// class that actually calls <c>vkQueueSubmit</c>, so the host's queue lock is held around it and
+        /// nothing else.
         /// <paramref name="synchronous"/> <c>true</c> (what <see cref="EndDraw()"/> passes) blocks until the GPU finishes,
         /// matching <c>AngleSkiaSurfaceFactory.UnbindAfterDrawing</c>'s <c>glFinish()</c> call and for
         /// the same reason: a host about to read the image from the CPU, or to consume it on a
@@ -377,7 +390,7 @@ namespace SkiaGameRendering.Core.VK
         /// skip the stall; Skia still recycles its command buffers safely through its own fences.
         /// <para>
         /// <b>This cannot tell the caller what <c>VkImageLayout</c> the image ends up in.</b> Verified
-        /// directly against SkiaSharp 3.119.4's native P/Invoke surface (<c>SkiaApi</c>), not assumed:
+        /// directly against SkiaSharp 4.153.1's native P/Invoke surface (<c>SkiaApi</c>), not assumed:
         /// unlike the GL path (<c>gr_backendrendertarget_get_gl_framebufferinfo</c>), there is no
         /// <c>gr_backendrendertarget_get_vk_imageinfo</c> native entry point, and no
         /// <c>GrBackendSurfaceMutableState</c> binding either (the mechanism upstream Skia actually
@@ -402,22 +415,18 @@ namespace SkiaGameRendering.Core.VK
         /// </summary>
         public void EndDraw(bool synchronous)
         {
-            try
-            {
+            using (AcquireQueueLock())
                 _grContext.Flush(submit: true, synchronous: synchronous);
-            }
-            finally
-            {
-                _queueLockHandle?.Dispose();
-                _queueLockHandle = null;
-            }
         }
 
+        /// <summary>Destroys the <c>GRContext</c> under the queue lock, since Skia flushes, submits and waits for the queue as it tears down.</summary>
         public void Dispose()
         {
-            _queueLockHandle?.Dispose();
-            _queueLockHandle = null;
-            _grContext?.Dispose();
+            if (_grContext == null)
+                return;
+            using (AcquireQueueLock())
+                _grContext.Dispose();
+            _grContext = null!;
         }
     }
 }

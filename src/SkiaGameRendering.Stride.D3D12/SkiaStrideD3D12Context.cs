@@ -129,11 +129,14 @@ namespace SkiaGameRendering
             public void Dispose() => Monitor.Exit(queueLock);
         }
 
-        /// <summary>Takes Stride's queue lock, held until <see cref="EndDraw"/>.</summary>
+        /// <summary>Starts a Skia pass. Takes no lock; <see cref="EndDraw"/> takes Stride's queue lock for the submit.</summary>
         internal void BeginDraw() => _factory.BeginDraw();
 
+        /// <summary>Takes Stride's queue lock, for a Skia call other than <see cref="EndDraw"/> that submits.</summary>
+        internal IDisposable? AcquireQueueLock() => _factory.AcquireQueueLock();
+
         /// <summary>
-        /// Submits Skia's work without a CPU wait and releases the queue lock. Stride's own use of the
+        /// Submits Skia's work under Stride's queue lock without a CPU wait. Stride's own use of the
         /// texture afterwards is queued behind it on the same queue.
         /// </summary>
         internal void EndDraw() => _factory.EndDraw(synchronous: false);

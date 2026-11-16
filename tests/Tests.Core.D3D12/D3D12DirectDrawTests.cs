@@ -76,33 +76,39 @@ public sealed class D3D12DirectDrawTests
         Assert.Throws<ArgumentException>(() => D3D12SkiaSurfaceFactory.DescribeDirectTarget(IntPtr.Zero, 8, 4));
 
     /// <summary>
-    /// A pass takes the queue lock in Begin and releases it in End, and a Begin that throws releases it too:
-    /// the lock is a hook the host's own monitor hangs off, and a leaked hold would deadlock its next submit.
+    /// A pass holds the queue lock only for its submit in End, so a host thread sharing the queue is not
+    /// blocked while the canvas is drawn; disposing the factory takes it too, since Skia submits as it tears down.
     /// </summary>
     [Fact]
-    public void Pass_AcquiresAndReleasesTheQueueLock_AndDrawsTwice()
+    public void Pass_HoldsTheQueueLockOnlyForTheSubmit_AndDrawsTwice()
     {
         using var d3d12 = new D3D12TestDevice();
         var resource = D3D12SkiaSurfaceFactory.CreateRenderTargetResource(d3d12.Device, 8, 4, Rgba8Unorm);
-        var held = 0;
+        var events = new List<string>();
         try
         {
-            using var factory = new D3D12SkiaSurfaceFactory();
+            var factory = new D3D12SkiaSurfaceFactory();
             factory.InitializeFromNative(d3d12.Adapter, d3d12.Device, d3d12.Queue, () =>
             {
-                held++;
-                return new Release(() => held--);
+                events.Add("acquire");
+                return new Release(() => events.Add("release"));
             });
             var target = D3D12SkiaSurfaceFactory.DescribeDirectTarget(resource, 8, 4);
 
             for (var i = 0; i < 2; i++)
             {
                 var canvas = factory.BeginDirectDraw(target, out var pass);
-                Assert.Equal(1, held);
                 canvas.Clear(SKColors.Red);
+                events.Add("drawn");
                 factory.EndDirectDraw(pass, synchronous: true);
-                Assert.Equal(0, held);
+                events.Add("ended");
             }
+            factory.Dispose();
+            events.Add("disposed");
+
+            Assert.Equal(
+                ["drawn", "acquire", "release", "ended", "drawn", "acquire", "release", "ended", "acquire", "release", "disposed"],
+                events);
         }
         finally
         {

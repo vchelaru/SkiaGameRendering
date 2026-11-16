@@ -206,11 +206,11 @@ namespace SkiaGameRendering
 
             try
             {
-                _surface!.Flush();
+                // Flushes and submits this surface's work under the queue lock (SKSurface.Flush is the same call).
+                _context.Factory.EndDraw(synchronous);
             }
             finally
             {
-                _context.Factory.EndDraw(synchronous);
                 _hasBegun = false;
             }
             if (_multiSampled.Image != 0)

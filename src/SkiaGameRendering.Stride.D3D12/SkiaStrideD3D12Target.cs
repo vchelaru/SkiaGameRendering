@@ -83,7 +83,7 @@ namespace SkiaGameRendering
         internal SKSurface Surface => _surface ?? throw new ObjectDisposedException(nameof(SkiaStrideD3D12Target));
 
         /// <summary>
-        /// Takes Stride's queue lock and hands the texture to Skia in <c>RENDER_TARGET</c>. Paired with
+        /// Hands the texture to Skia in <c>RENDER_TARGET</c>. Paired with
         /// <see cref="EndDraw"/>; see <see cref="SkiaStrideD3D12Context"/> for the handoff.
         /// </summary>
         internal void BeginDraw()
@@ -101,19 +101,12 @@ namespace SkiaGameRendering
         }
 
         /// <summary>
-        /// Submits whatever Skia recorded, releases the queue lock, and hands the texture back to
+        /// Submits whatever Skia recorded under Stride's queue lock, and hands the texture back to
         /// Stride in <c>COMMON</c>.
         /// </summary>
         internal void EndDraw()
         {
-            try
-            {
-                _surface?.Flush();
-            }
-            finally
-            {
-                _context.EndDraw();
-            }
+            _context.EndDraw();
             _context.ReleaseToStride(Texture);
         }
 
@@ -141,8 +134,10 @@ namespace SkiaGameRendering
                 _surface = null;
                 _renderTarget?.Dispose();
                 _renderTarget = null;
-                // Skia drops its reference to the wrapped resource once its own work is done.
-                _context.GRContext.PurgeResources();
+                // Skia drops its reference to the wrapped resource once its own work is done. Purging
+                // flushes and submits, so it takes the queue lock.
+                using (_context.AcquireQueueLock())
+                    _context.GRContext.PurgeResources();
             }
             finally
             {
