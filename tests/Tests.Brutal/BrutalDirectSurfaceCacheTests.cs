@@ -81,7 +81,7 @@ public sealed class BrutalDirectSurfaceCacheTests
     public void FormatOrSizeChange_MissesTheCache()
     {
         using var vk = new BrutalDevice();
-        var image = vk.CreateAppImage(16, 16, Rgba8);
+        var image = vk.CreateAppImage(16, 16, Rgba8, mutableFormat: true); // the BGRA wrap is a view in another format
         try
         {
             using var direct = new SkiaDirectCanvas(vk.Context, cacheSurfaces: true);
