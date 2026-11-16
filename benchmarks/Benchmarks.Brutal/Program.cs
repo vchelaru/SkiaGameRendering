@@ -116,7 +116,7 @@ unsafe
     {
         $"GPU: {gpu} ({driver}). OS: {System.Runtime.InteropServices.RuntimeInformation.OSDescription}. {W}x{H}, warmup {warmup}, frames {frames}.",
         "",
-        "Texture = SkiaRenderTarget2D plus the app's pass sampling it onto the app image; Direct = SkiaDirectCanvas into the app image.",
+        "Texture = SkiaRenderTarget2D plus the app's pass sampling it onto the app image; Direct = SkiaDirectCanvas into the app image; Direct cached = the same with cacheSurfaces: true.",
         "",
         "Phases are CPU mean ms per half: Begin / draw calls / End, and for Texture the fence wait plus recording and submitting the sampling pass.",
         "GPU ms is the median gated frame (all of a frame's submits run back to back); Pass GPU ms is the sampling pass alone.",
@@ -126,6 +126,7 @@ unsafe
     };
     using var textureTarget = new SkiaRenderTarget2D(context, W, H);
     using var directCanvas = new SkiaDirectCanvas(context);
+    using var cachedCanvas = new SkiaDirectCanvas(context, cacheSurfaces: true);
     // macOS: created for Metal texture export, which SkiaDirectCanvas does every Begin.
     var exportTexture = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalTexture);
     var appImage = SkiaGameRendering.Core.VK.VkImageAllocator.Create(instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, W, H, 37,
@@ -246,8 +247,10 @@ unsafe
     directLines.Insert(1, $"Texture path's SkiaRenderTarget2D image: {textureBytes / (1024.0 * 1024.0):F2} MiB device memory (vkGetImageMemoryRequirements); direct allocates none.");
 
     foreach (var (name, draw) in directLoads)
-    foreach (var isDirect in new[] { false, true })
+    foreach (var mode in new[] { 0, 1, 2 })
     {
+        var isDirect = mode > 0;
+        var dc = mode == 2 ? cachedCanvas : directCanvas;
         // CPU phases of the last frame: Begin, draw calls, End, then (texture only) fence wait plus the sampling pass.
         var phase = new double[4];
         void Frame(bool gpuTimed)
@@ -256,11 +259,11 @@ unsafe
             void Mark(int i) { var now = Stopwatch.GetTimestamp(); phase[i] = Stopwatch.GetElapsedTime(t, now).TotalMilliseconds; t = now; }
             if (isDirect)
             {
-                directCanvas.Begin(appImage.Image, 37, W, H, 5);
+                dc.Begin(appImage.Image, 37, W, H, 5);
                 Mark(0);
-                draw(directCanvas.Canvas);
+                draw(dc.Canvas);
                 Mark(1);
-                directCanvas.End(finalLayout: 5);
+                dc.End(finalLayout: 5);
                 Mark(2);
                 phase[3] = 0;
                 return;
@@ -356,7 +359,7 @@ unsafe
         Array.Sort(passMs);
 
         string Phases(int h) => string.Join(" / ", Enumerable.Range(0, isDirect ? 3 : 4).Select(p => (phaseHalf[h, p] / (h == 0 ? perHalf : frames - perHalf)).ToString("F3")));
-        var line = $"| {name} | {(isDirect ? "Direct" : "Texture")} | {(halfMs[0] + halfMs[1]) / frames:F3} | {median:F3} | {throughput:F3} | " +
+        var line = $"| {name} | {(mode == 2 ? "Direct cached" : isDirect ? "Direct" : "Texture")} | {(halfMs[0] + halfMs[1]) / frames:F3} | {median:F3} | {throughput:F3} | " +
             $"{halfMs[0] / perHalf:F3} / {halfMs[1] / (frames - perHalf):F3} | {Phases(0)} | {Phases(1)} | {gpuMs[frames / 2]:F3} | {(isDirect ? "-" : passMs[frames / 2].ToString("F3"))} |";
         directLines.Add(line);
         Console.WriteLine(line);

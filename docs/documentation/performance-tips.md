@@ -73,6 +73,14 @@ It draws into the back buffer with no intermediate texture, so it skips the full
 backends), and a scene that fills the screen gains the most. See [SkiaDirectCanvas](SkiaDirectCanvas.md) for
 the platforms.
 
+On BRUTAL Vulkan, `SkiaDirectCanvas` wraps the swapchain image in a new Skia surface every pass, and that
+cancels its saving: without the cache below it took 0.98-1.32x the CPU time of a `SkiaRenderTarget2D` (RTX 5060
+Laptop, 1920x1080, two runs). Pass `cacheSurfaces: true` to keep one surface per swapchain image. Direct then
+took 0.67-0.68x the CPU time of the render target at 1 rect, 0.70-0.75x at 100 circles and 0.80-0.86x at 1,000
+rects, with the same or lower GPU time. The cache is off by default because it adds a rule: call
+`ReleaseCachedSurfaces()` whenever you recreate the swapchain, before the old images are destroyed. Vulkan can
+give a new image the same handle as a destroyed one, so a missed call draws into freed memory.
+
 ### Render target size
 
 A bigger target costs more only when the scene is limited by filling pixels. With 2,000 shapes scaled to fill

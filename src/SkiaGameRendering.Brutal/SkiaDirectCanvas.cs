@@ -40,8 +40,14 @@ namespace SkiaGameRendering
     /// </para>
     /// <para>
     /// <b>Cost.</b> Three queue submits per pass (the two layout moves and Skia's), and a Skia surface wrapped
-    /// per pass, because a swapchain hands out a different image each frame. Use it once per frame, not once
-    /// per widget.
+    /// per pass unless <c>cacheSurfaces</c> is on. Use it once per frame, not once per widget.
+    /// </para>
+    /// <para>
+    /// <b>Surface cache.</b> <c>new SkiaDirectCanvas(context, cacheSurfaces: true)</c> keeps the Skia surface it wraps
+    /// around each image (keyed on image handle, format and size) instead of making a new one every pass, so a swapchain's
+    /// two or three images are wrapped once each. When you recreate the swapchain, call <see cref="ReleaseCachedSurfaces"/>
+    /// where you destroy your own views of its images: Vulkan can give a new image the handle of a destroyed one, and
+    /// the cache cannot tell them apart. On macOS nothing is cached, since the texture changes with each drawable.
     /// </para>
     /// <para>
     /// <b>macOS (MoltenVK).</b> Skia draws with Metal into the <c>MTLTexture</c> behind the image, exported with
@@ -72,7 +78,11 @@ namespace SkiaGameRendering
         public const uint DefaultImageUsage =
             VkConstants.ImageUsageTransferSrc | VkConstants.ImageUsageTransferDst | VkConstants.ImageUsageColorAttachment;
 
+        const int MaxCachedSurfaces = 8;
+
         readonly SkiaVulkanContext _context;
+        readonly Dictionary<(ulong image, uint format, int width, int height), (SKSurface surface, GRBackendRenderTarget renderTarget)>? _cache;
+        int _saveCount;
         SKSurface? _surface;
         GRBackendRenderTarget? _renderTarget;
         MetalDirectSurface? _metalSurface;
@@ -81,10 +91,14 @@ namespace SkiaGameRendering
         bool _hasBegun;
         bool _disposed;
 
-        public SkiaDirectCanvas(SkiaVulkanContext context)
+        /// <param name="context">The Vulkan context Skia draws with.</param>
+        /// <param name="cacheSurfaces">Keep one Skia surface per image across passes; see the class remarks for the rule it adds.</param>
+        public SkiaDirectCanvas(SkiaVulkanContext context, bool cacheSurfaces = false)
         {
             ArgumentNullException.ThrowIfNull(context);
             _context = context;
+            if (cacheSurfaces)
+                _cache = [];
         }
 
         /// <summary>
@@ -150,10 +164,23 @@ namespace SkiaGameRendering
                 _context.Factory.BeginDraw();
                 try
                 {
-                    var state = _context.Factory.CreateTextureState(
-                    vkImage, unormFormat, VkConstants.ImageLayoutColorAttachmentOptimal,
-                        imageUsage | VkConstants.ImageUsageTransferSrc | VkConstants.ImageUsageTransferDst, imageTiling: 0);
-                    (_surface, _renderTarget) = _context.Factory.CreateSurface(state, width, height, colorType);
+                    var key = (vkImage, unormFormat, width, height);
+                    if (_cache != null && _cache.TryGetValue(key, out var cached))
+                        (_surface, _renderTarget) = cached;
+                    else
+                    {
+                        var state = _context.Factory.CreateTextureState(
+                            vkImage, unormFormat, VkConstants.ImageLayoutColorAttachmentOptimal,
+                            imageUsage | VkConstants.ImageUsageTransferSrc | VkConstants.ImageUsageTransferDst, imageTiling: 0);
+                        (_surface, _renderTarget) = _context.Factory.CreateSurface(state, width, height, colorType);
+                        if (_cache != null)
+                        {
+                            // A swapchain has two or three images; more entries means it was recreated without a release.
+                            if (_cache.Count >= MaxCachedSurfaces)
+                                ReleaseCache();
+                            _cache[key] = (_surface, _renderTarget);
+                        }
+                    }
                 }
                 catch
                 {
@@ -166,6 +193,8 @@ namespace SkiaGameRendering
             _image = vkImage;
             _cameInLayout = currentLayout;
             _hasBegun = true;
+            // A cached surface keeps its canvas; End restores to here so each pass starts with no matrix or clip, like a new one.
+            _saveCount = _surface!.Canvas.Save();
             if (clear)
                 _surface!.Canvas.Clear();
         }
@@ -211,7 +240,8 @@ namespace SkiaGameRendering
 
             try
             {
-                _surface!.Flush();
+                _surface!.Canvas.RestoreToCount(_saveCount);
+                _surface.Flush();
             }
             finally
             {
@@ -226,7 +256,7 @@ namespace SkiaGameRendering
                 {
                     if (_metalSurface != null)
                         _metalSurface.Dispose();
-                    else
+                    else if (_cache == null)
                     {
                         _surface!.Dispose();
                         _renderTarget!.Dispose();
@@ -254,12 +284,37 @@ namespace SkiaGameRendering
                 dstAccessMask: present ? 0u : AccessMemoryRead | AccessMemoryWrite);
         }
 
+        /// <summary>
+        /// Disposes every cached surface. Call it when the swapchain is recreated, before the next <see cref="Begin"/>; a
+        /// later pass into any image wraps it again. Does nothing when <c>cacheSurfaces</c> is off.
+        /// </summary>
+        public void ReleaseCachedSurfaces()
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_hasBegun)
+                throw new InvalidOperationException("ReleaseCachedSurfaces cannot be called between Begin and End; call End first.");
+            ReleaseCache();
+        }
+
+        void ReleaseCache()
+        {
+            if (_cache == null)
+                return;
+            foreach (var (surface, renderTarget) in _cache.Values)
+            {
+                surface.Dispose();
+                renderTarget.Dispose();
+            }
+            _cache.Clear();
+        }
+
         public void Dispose()
         {
             if (_disposed)
                 return;
             if (_hasBegun)
                 throw new InvalidOperationException("Dispose cannot be called between Begin and End; call End first.");
+            ReleaseCache();
             _disposed = true;
         }
     }
