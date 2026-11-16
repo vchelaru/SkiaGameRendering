@@ -107,15 +107,19 @@ namespace SkiaGameRendering.Core.D3D12
     /// <c>GrD3DGpu</c> submits to the exact same <c>ID3D12CommandQueue</c> the host engine submits its
     /// own work to. Same reasoning <c>VkSkiaSurfaceFactory</c> gives for <c>vkQueueSubmit</c>:
     /// <c>Core.D3D12</c> cannot invent a shared lock out of nothing, so <see cref="InitializeFromNative"/>
-    /// takes the same optional <c>acquireQueueLock</c> hook, invoked/disposed by
-    /// <see cref="BeginDraw"/>/<see cref="EndDraw(bool)"/> around the one call that actually submits to the
-    /// queue (<c>GRContext.Flush(submit: true, ...)</c>). Passing <c>null</c> means "no external
-    /// synchronization" - the caller's responsibility either way; this library has no way to verify it.
+    /// takes the same optional <c>acquireQueueLock</c> hook, held by <see cref="EndDraw(bool)"/>,
+    /// <see cref="EndDirectDraw"/> and <see cref="Dispose"/> around the Skia calls that reach the queue and
+    /// handed to callers by <see cref="AcquireQueueLock"/>. Drawing is not covered, for the reason
+    /// <c>VkSkiaSurfaceFactory</c> gives: <c>GrD3DGpu</c> reaches the queue only from
+    /// <c>submitDirectCommandList</c> (a flush or submit, or <c>onReadPixels</c>) and the semaphore
+    /// <c>Signal</c>/<c>Wait</c> calls a flush makes, so canvas draw calls only record. Passing <c>null</c>
+    /// means "no external synchronization" - the caller's responsibility either way; this library has no way
+    /// to verify it.
     /// </item>
     /// <item>
     /// <b>The post-draw <c>D3D12_RESOURCE_STATES</c> cannot be read back through this SkiaSharp
     /// version.</b> See the doc comment on <see cref="EndDraw(bool)"/> - verified by listing SkiaSharp
-    /// 3.119.4's actual native P/Invoke surface (<c>SkiaApi</c>), not assumed: there is no
+    /// 4.153.1's actual native P/Invoke surface (<c>SkiaApi</c>), not assumed: there is no
     /// <c>gr_backendrendertarget_get_d3d_*</c> entry point and no <c>GrBackendSurfaceMutableState</c>
     /// binding, the same absence <c>VkSkiaSurfaceFactory.EndDraw</c> documents for Vulkan's
     /// <c>VkImageLayout</c>.
@@ -126,7 +130,6 @@ namespace SkiaGameRendering.Core.D3D12
     {
         GRContext _grContext = null!;
         Func<IDisposable>? _acquireQueueLock;
-        IDisposable? _queueLockHandle;
 
         public GRContext GRContext => _grContext;
 
@@ -288,14 +291,20 @@ namespace SkiaGameRendering.Core.D3D12
         }
 
         /// <summary>
-        /// Acquires the host's queue lock (if one was wired through <c>acquireQueueLock</c> on
-        /// <see cref="InitializeFromNative"/>) before any drawing happens. Paired with
-        /// <see cref="EndDraw(bool)"/>.
+        /// Starts a draw. Takes no lock: Skia only records until <see cref="EndDraw(bool)"/>, so a host thread
+        /// sharing the queue is not blocked while the frame is built. Paired with <see cref="EndDraw(bool)"/>.
         /// </summary>
         public void BeginDraw()
         {
-            _queueLockHandle = _acquireQueueLock?.Invoke();
         }
+
+        /// <summary>
+        /// Takes the host's queue lock (the <c>acquireQueueLock</c> hook passed to <see cref="InitializeFromNative"/>),
+        /// or returns <c>null</c> when there is none. Hold it with <c>using</c> around a Skia call other than
+        /// <see cref="EndDraw(bool)"/> that submits to the queue: <c>SKSurface.Flush</c>, <c>ReadPixels</c>,
+        /// <c>WritePixels</c>, <c>GRContext.PurgeResources</c>.
+        /// </summary>
+        public IDisposable? AcquireQueueLock() => _acquireQueueLock?.Invoke();
 
         /// <summary>Same as <see cref="EndDraw(bool)"/> with <c>synchronous: true</c>.</summary>
         public void EndDraw() => EndDraw(synchronous: true);
@@ -303,16 +312,15 @@ namespace SkiaGameRendering.Core.D3D12
         /// <summary>
         /// Flushes Skia's recorded D3D12 commands and submits them to the shared
         /// <c>ID3D12CommandQueue</c> (<c>GRContext.Flush(submit: true, synchronous)</c>) - the
-        /// one call in this whole class that actually calls <c>ExecuteCommandLists</c>, which is why
-        /// it (and not, say, <see cref="CreateSurface"/>) is what <see cref="BeginDraw"/>'s queue lock
-        /// brackets. <paramref name="synchronous"/> <c>true</c> (what <see cref="EndDraw()"/> passes) blocks until the GPU
+        /// one call in this whole class that actually calls <c>ExecuteCommandLists</c>, so the host's
+        /// queue lock is held around it and nothing else. <paramref name="synchronous"/> <c>true</c> (what <see cref="EndDraw()"/> passes) blocks until the GPU
         /// finishes, matching <c>VkSkiaSurfaceFactory.EndDraw</c> and for the same reason: a host about
         /// to read the resource from the CPU needs the GPU work to have actually landed first. A host
         /// whose own consumption is queued behind this on the SAME queue can pass <c>false</c> and skip
         /// the stall, as the Godot backend does.
         /// <para>
         /// <b>This cannot tell the caller what <c>D3D12_RESOURCE_STATES</c> the resource ends up in.</b>
-        /// Verified directly against SkiaSharp 3.119.4's native P/Invoke surface (<c>SkiaApi</c>), not
+        /// Verified directly against SkiaSharp 4.153.1's native P/Invoke surface (<c>SkiaApi</c>), not
         /// assumed: there is no <c>gr_backendrendertarget_get_d3d_textureresourceinfo</c> native entry
         /// point and no <c>GrBackendSurfaceMutableState</c> binding either - the same absence
         /// <c>VkSkiaSurfaceFactory.EndDraw</c> documents for Vulkan's <c>VkImageLayout</c>.
@@ -331,15 +339,8 @@ namespace SkiaGameRendering.Core.D3D12
         /// </summary>
         public void EndDraw(bool synchronous)
         {
-            try
-            {
+            using (AcquireQueueLock())
                 _grContext.Flush(submit: true, synchronous: synchronous);
-            }
-            finally
-            {
-                _queueLockHandle?.Dispose();
-                _queueLockHandle = null;
-            }
         }
 
         // --- Drawing straight into the engine's current target (direct draw) ---
@@ -424,52 +425,46 @@ namespace SkiaGameRendering.Core.D3D12
 
         /// <summary>
         /// Starts a pass that draws into the resource <paramref name="target"/> describes, which the host has
-        /// already put in <c>RENDER_TARGET</c>, and returns its canvas. Takes the host's queue lock until
-        /// <see cref="EndDirectDraw"/>. Does not clear.
+        /// already put in <c>RENDER_TARGET</c>, and returns its canvas. Does not clear.
         /// </summary>
         public SKCanvas BeginDirectDraw(in D3D12DirectTarget target, out D3D12DirectPass pass)
         {
             BeginDraw();
-            try
-            {
-                var state = CreateTextureState(target.Resource, target.Format, D3D12Constants.ResourceStateRenderTarget);
-                var (surface, renderTarget) = CreateSurface(state, target.Width, target.Height, target.ColorType);
-                pass = new D3D12DirectPass(surface, renderTarget, surface.Canvas.Save());
-                return surface.Canvas;
-            }
-            catch
-            {
-                _queueLockHandle?.Dispose();
-                _queueLockHandle = null;
-                throw;
-            }
+            var state = CreateTextureState(target.Resource, target.Format, D3D12Constants.ResourceStateRenderTarget);
+            var (surface, renderTarget) = CreateSurface(state, target.Width, target.Height, target.ColorType);
+            pass = new D3D12DirectPass(surface, renderTarget, surface.Canvas.Save());
+            return surface.Canvas;
         }
 
         /// <summary>
-        /// Ends a pass started by <see cref="BeginDirectDraw"/>: submits Skia's draws to the shared queue and
-        /// releases the queue lock, even if it throws. The resource is left in <c>RENDER_TARGET</c>.
+        /// Ends a pass started by <see cref="BeginDirectDraw"/>: submits Skia's draws to the shared queue under
+        /// the queue lock and releases the pass's surface, even if the submit throws. The resource is left in <c>RENDER_TARGET</c>.
         /// <paramref name="synchronous"/> blocks until the GPU has finished, as for <see cref="EndDraw(bool)"/>.
         /// </summary>
         public void EndDirectDraw(D3D12DirectPass pass, bool synchronous = false)
         {
+            pass.Surface.Canvas.RestoreToCount(pass.SaveCount);
+            // Flushed and submitted while the surface is alive; the surface's own Flush is the same
+            // GRContext.Flush(submit: true) EndDraw makes, so one call under the lock covers both.
             try
-            {
-                pass.Surface.Canvas.RestoreToCount(pass.SaveCount);
-                pass.Surface.Flush();
-                pass.Surface.Dispose();
-                pass.RenderTarget.Dispose();
-            }
-            finally
             {
                 EndDraw(synchronous);
             }
+            finally
+            {
+                pass.Surface.Dispose();
+                pass.RenderTarget.Dispose();
+            }
         }
 
+        /// <summary>Destroys the <c>GRContext</c> under the queue lock, since Skia flushes and submits as it tears down.</summary>
         public void Dispose()
         {
-            _queueLockHandle?.Dispose();
-            _queueLockHandle = null;
-            _grContext?.Dispose();
+            if (_grContext == null)
+                return;
+            using (AcquireQueueLock())
+                _grContext.Dispose();
+            _grContext = null!;
         }
     }
 }

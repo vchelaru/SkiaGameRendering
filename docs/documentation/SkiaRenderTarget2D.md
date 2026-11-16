@@ -393,8 +393,8 @@ public sealed class SkiaRenderTarget2D : IDisposable
 | --- | --- |
 | `Texture` | The Stride `Texture`. Mainly useful alongside `EndWithoutDrawing`. |
 | `Canvas` | The `SKCanvas` to draw on. Only valid between `Begin` and `End`/`EndWithoutDrawing`. |
-| `Begin(bool clear = true)` | Acquires Stride's Vulkan queue lock so Skia's and Stride's `vkQueueSubmit` calls stay externally synchronized. |
-| `End(GraphicsContext graphicsContext)` | Flushes Skia's queued GPU work and submits it to the shared `VkQueue` (releasing the queue lock), then composites the whole surface at native size and the origin via a `SpriteBatch`. Needs a `GraphicsContext` (unlike the other backends' parameterless `End()`) because Stride's `SpriteBatch` requires one - normally `RenderDrawContext.GraphicsContext` from inside a `SceneRendererBase.DrawCore` (see `SkiaSceneRenderer` below). |
+| `Begin(bool clear = true)` | Moves the texture to `COLOR_ATTACHMENT_OPTIMAL` for Skia. Takes no lock, so Stride's other threads can submit while you draw. |
+| `End(GraphicsContext graphicsContext)` | Flushes Skia's queued GPU work and submits it to the shared `VkQueue` under Stride's queue lock, then composites the whole surface at native size and the origin via a `SpriteBatch`. Needs a `GraphicsContext` (unlike the other backends' parameterless `End()`) because Stride's `SpriteBatch` requires one - normally `RenderDrawContext.GraphicsContext` from inside a `SceneRendererBase.DrawCore` (see `SkiaSceneRenderer` below). |
 | `EndWithoutDrawing()` | Same as `End`, but skips the composite. |
 | `Dispose()` | Releases the texture and Skia surface. Must not be called between `Begin`/`End`. |
 
@@ -429,8 +429,8 @@ game.AddSceneRenderer(renderer);
   [its page](SkiaDirectCanvas.md)) also reaches `Texture.ParentTexture`, `CommandList.activePipeline` and
   `CommandList.FlushInternal(bool)`, pinned by the same tests.
 - Unlike the D3D11 adapter, there is no separate GL-style context to bind/unbind: Skia's Vulkan
-  backend draws directly against Stride's shared `VkDevice`/`VkQueue`, so `Begin`/`End` only need to
-  bracket the queue lock (`SkiaStrideVulkanContext.BeginDraw`/`EndDraw`), not a context switch.
+  backend draws directly against Stride's shared `VkDevice`/`VkQueue`, so `End` only takes Stride's queue lock
+  around Skia's submit (`SkiaStrideVulkanContext.EndDraw`), not a context switch.
 - Skia's Vulkan backend requires `VK_IMAGE_USAGE_TRANSFER_SRC_BIT`/`_DST_BIT` on any wrapped image.
   Stride's own `Texture.Vulkan.cs` sets both unconditionally on every image it creates, so this
   adapter needs no extra texture-creation flags at the Stride API level to satisfy that requirement -

@@ -40,8 +40,8 @@ Vulkan and exits 0 if it is right.
   rendering pass that samples `VkImage` on a textured quad every frame.
 - **Queue lock.** Skia calls `vkQueueSubmit` on the queue you pass. BRUTAL's `Queue.Submit` holds a private
   lock that this package cannot share, so if several threads submit to that queue, take your own lock around
-  your submits and pass it as `acquireQueueLock` (it returns an `IDisposable` that releases it). Single-threaded
-  rendering needs nothing.
+  your submits and pass it as `acquireQueueLock` (it returns an `IDisposable` that releases it). The library holds
+  it only while `End()` submits, not while you draw. Single-threaded rendering needs nothing.
 - **Image.** Device-local, single sample, usage `TRANSFER_SRC | TRANSFER_DST | SAMPLED | COLOR_ATTACHMENT`,
   one dedicated allocation per target. Dispose only after the GPU is done with it.
 - **Multisampling.** `new SkiaRenderTarget2D(context, w, h, multiSampleCount: 4)` (2, 4 or 8) has Skia draw into a

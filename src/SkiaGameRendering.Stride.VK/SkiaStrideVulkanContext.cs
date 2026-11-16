@@ -199,7 +199,6 @@ namespace SkiaGameRendering
         {
             try
             {
-                pass.Surface.Flush();
                 _factory.EndDraw(synchronous: false);
             }
             finally

@@ -9,8 +9,8 @@ namespace SkiaGameRendering
     /// <see cref="Texture"/>, the wrapped-image state, and the <see cref="SKSurface"/>/
     /// <see cref="GRBackendRenderTarget"/> wrapping it. Mirrors <c>SkiaGameRendering.Stride.D3D11</c>'s
     /// D3D11 <c>SkiaStrideTarget</c>, minus the ANGLE-specific bind/unbind step - Vulkan has no
-    /// separate GL-style context to make current, so there is nothing to bind beyond the queue lock
-    /// <see cref="SkiaStrideVulkanContext.BeginDraw"/>/<c>EndDraw</c> already handle.
+    /// separate GL-style context to make current, so there is nothing to bind: <see cref="SkiaStrideVulkanContext.EndDraw"/>
+    /// takes the queue lock for its submit.
     /// <b>Linear color space.</b> Stride's <c>GraphicsDeviceManager</c> defaults to <c>ColorSpace.Linear</c>, where
     /// the back buffer is sRGB-format and the GPU gamma-encodes whatever is written to it. Skia's bytes are already
     /// sRGB-encoded, so compositing the texture as is encodes them twice and every mid-tone comes out light.
