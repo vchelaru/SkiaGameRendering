@@ -7,7 +7,8 @@ namespace SkiaGameRendering
     /// <summary>
     /// SkiaBackend for MonoGame's Android (GLES) platform. Same design as the KNI Android backend: a
     /// second EGL context (<see cref="EglSharedContext"/>) shares MonoGame's, and the texture objects are
-    /// visible from both. MonoGame caches GL state, which is why Skia must not draw on MonoGame's context.
+    /// visible from both. MonoGame caches GL state, so Skia draws on MonoGame's context only for a back
+    /// buffer <see cref="SkiaDirectCanvas"/> pass, after which MonoGame's state cache is invalidated.
     /// <para>
     /// No reflection: MonoGame creates its context through Java's EGL10 but makes it current on the
     /// thread's native EGL state, which <see cref="EglSharedContext"/> reads with the native
@@ -61,9 +62,20 @@ namespace SkiaGameRendering
 
         private protected override RenderTarget2D? GetBoundRenderTarget() => _boundRenderTarget.Get(GraphicsDevice);
 
-        // Skia's context normally runs surfaceless, which has no default framebuffer, so drawing to the
-        // back buffer needs it current on MonoGame's window surface.
-        private protected override void MakeSkiaContextCurrentOnEngineWindow() => _egl.MakeSkiaContextCurrentOnHostSurface();
+        // Skia's context runs surfaceless and has no default framebuffer, and making it current on MonoGame's
+        // window surface too loses finished writes on the Android emulator (two contexts current on one
+        // window surface). So a back buffer pass draws on MonoGame's own context, which is then told to
+        // apply all of its cached GL state again. Render target passes stay on Skia's context, surfaceless.
+        private protected override bool DrawsBackBufferOnEngineContext => true;
+
+        readonly GlesEngineStateReset _glesReset = new();
+        readonly MonoGameStateInvalidation _invalidation = new();
+
+        private protected override void RestoreEngineStateAfterSkia()
+        {
+            _glesReset.Reset();
+            _invalidation.Invalidate(GraphicsDevice);
+        }
 
         private protected override void DestroySkiaContext() => _egl.Dispose();
     }

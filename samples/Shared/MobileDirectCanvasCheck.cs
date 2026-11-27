@@ -7,6 +7,8 @@ namespace SampleShared
     /// <summary>The extra smoke-test check of the Android (KNI and MonoGame) and iOS samples.</summary>
     static class MobileDirectCanvasCheck
     {
+        const int BackBufferRepeats = 500;
+
         /// <summary>
         /// <see cref="SkiaDirectCanvas"/> layered between SpriteBatch draws, on the back buffer, a plain
         /// render target and a multisampled one. The multisampled case is skipped on a device without
@@ -22,7 +24,16 @@ namespace SampleShared
                 passed &= errors == "";
             }
 
-            Check("back buffer", DirectDrawLayering.BackBuffer(graphicsDevice));
+            // Repeated: on the Android emulator a pass that let two GL contexts share the window surface lost
+            // a layer about once in 130 checks (#414). 500 passes catch that rate 98% of the time in about 10 s.
+            var backBuffer = "";
+            for (var i = 0; i < BackBufferRepeats && backBuffer == ""; i++)
+            {
+                var errors = DirectDrawLayering.BackBuffer(graphicsDevice);
+                if (errors != "")
+                    backBuffer = $"pass {i + 1} of {BackBufferRepeats}: {errors}";
+            }
+            Check($"back buffer x{BackBufferRepeats}", backBuffer);
             Check("render target", DirectDrawLayering.RenderTarget(graphicsDevice, 0));
 
             if (msaaSkipReason != null)
