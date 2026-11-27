@@ -57,9 +57,11 @@ authoritative list of what CI builds, runs and in what order.
   Never run a whole project, a namespace, `tests/Tests.proj` (CI's full run) or the solution, and
   never run the suite on `master` and the branch to compare results.
 - The same rule covers every other runner: sample `--smoke-test` exes, the Playwright specs
-  (`npx playwright`), `Tests.Godot`, and the Android emulator. CI runs all of them on every push
-  (`master.yml`), so don't run them locally, and don't install their toolchains (Playwright
-  browsers, Godot, the wasm workload) to verify a change. Read CI's result with `gh pr checks`
+  (`npx playwright`), `Tests.Godot`, and the Android emulator. CI runs them, so don't run them locally, and don't
+  install their toolchains (Playwright browsers, Godot, the wasm workload) to verify a change.
+  PRs run only the jobs listed at the top of `master.yml`; for a change another job covers
+  (WebGL, Android, iOS, NativeAOT), dispatch `master.yml` on the branch with its `only` input
+  and wait for that run before merging. Read CI's result with `gh pr checks`
   and `gh run view --log-failed`; a golden mismatch uploads a `golden-image-diffs-*` artifact.
 - Run locally only what no CI job runs: Unity (below), and anything else the change touches that
   no `master.yml` job exercises. Say in the PR which of those you ran.
