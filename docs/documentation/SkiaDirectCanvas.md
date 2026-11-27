@@ -29,8 +29,9 @@ contexts, and each pass resets KNI's cached GL state afterward; see the [WebGL q
 raylib on Windows and Linux (package `SkiaGameRendering.Raylib.OGL`) has a `SkiaDirectCanvas` of the same name, constructed with no arguments after
 `Raylib.InitWindow`. Call `Begin`/`End` between `BeginDrawing` and `EndDrawing`, where it draws into the back
 buffer, or inside `BeginTextureMode`, where it draws into that `RenderTexture2D` the right way up for raylib's
-own drawing. `Begin` submits raylib's batched draws first. A render texture's Skia framebuffer is built for each
-pass, since raylib gives no notice when one is unloaded; the back buffer's is reused. Not on macOS
+own drawing. `Begin` submits raylib's batched draws first. Skia's framebuffers for the back buffer and for up to
+eight render textures are reused across passes; a render texture's color is attached again each pass, so a new one
+that gets an unloaded one's GL names is drawn into correctly. Not on macOS
 (`SkiaRenderer.SupportsDirectCanvas` is false there). Dispose it before `SkiaRenderer.Dispose`.
 
 ```cs

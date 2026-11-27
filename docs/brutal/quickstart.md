@@ -201,7 +201,7 @@ direct.End();
 - **Size.** The current GL viewport. Set it to the whole target before `Begin()`; a partial viewport is treated as a smaller target.
 - **No clear.** `Begin()` draws on top of what is there. Canvas row 0 is the top as a window shows it (the last texel row of an FBO texture).
 - **Targets.** The back buffer is assumed to be RGBA8. An FBO's color attachment must be a texture or renderbuffer, else `NotSupportedException`.
-  An FBO's Skia framebuffer is rebuilt every pass. Multisampled targets are passed to Skia with their sample count and are untested here.
+  Skia's framebuffers for up to eight FBOs are reused across passes, keyed on the FBO, its color attachment and the size. The color is attached again each pass, so a deleted texture whose GL name comes back for a new one needs no call from you. Multisampled targets are passed to Skia with their sample count and are untested here.
 - **State.** `End()` restores only your draw framebuffer binding; the rest of the GL state is undefined, scissor test
   included, like the texture target.
 

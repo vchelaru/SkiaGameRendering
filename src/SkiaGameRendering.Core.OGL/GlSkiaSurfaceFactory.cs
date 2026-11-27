@@ -172,26 +172,33 @@ namespace SkiaGameRendering.Core.OGL
             return (surface, backendRenderTarget);
         }
 
-        internal static GlFramebufferState CreateAttachmentFramebuffer(GlFunctions gl, GlDrawTarget target,
-            int width, int height, out int samples)
+        /// <summary>
+        /// The sample count of <paramref name="target"/>'s color attachment: the draw framebuffer's for a multisampled
+        /// texture, the renderbuffer's own for a renderbuffer, 0 for a plain texture. Throws
+        /// <see cref="NotSupportedException"/> for any other attachment type.
+        /// </summary>
+        public static int QueryAttachmentSamples(GlFunctions gl, GlDrawTarget target)
         {
-            samples = 0;
             if (target.IsMultisampledTexture)
-            {
-                samples = target.TextureSamples;
-            }
-            else if (target.AttachmentType == GL_RENDERBUFFER)
+                return target.TextureSamples;
+            if (target.AttachmentType == GL_RENDERBUFFER)
             {
                 gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, target.AttachmentName);
-                samples = gl.GetRenderbufferParameter(GL_RENDERBUFFER_SAMPLES);
+                var samples = gl.GetRenderbufferParameter(GL_RENDERBUFFER_SAMPLES);
                 gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
+                return samples;
             }
-            else if (target.AttachmentType != GL_TEXTURE)
-            {
+            if (target.AttachmentType != GL_TEXTURE)
                 throw new NotSupportedException(
                     $"The bound framebuffer's color attachment is GL object type 0x{target.AttachmentType:X4}, " +
                     "not a texture or renderbuffer.");
-            }
+            return 0;
+        }
+
+        internal static GlFramebufferState CreateAttachmentFramebuffer(GlFunctions gl, GlDrawTarget target,
+            int width, int height, out int samples)
+        {
+            samples = QueryAttachmentSamples(gl, target);
 
             gl.GenRenderbuffers(1, out var renderbufferId);
             gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, renderbufferId);

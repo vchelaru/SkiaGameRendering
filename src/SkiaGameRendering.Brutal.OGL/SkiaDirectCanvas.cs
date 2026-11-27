@@ -31,12 +31,14 @@ namespace SkiaGameRendering
     {
         readonly SkiaGlContext _context;
 
-        // The back buffer's surface, reused until the window's size changes. An FBO's is built for each pass:
-        // the app can delete an FBO and the next one can get the same GL name.
+        // The back buffer's surface, reused until the window's size changes. An FBO's is reused through
+        // _framebufferSurfaces, which attaches the app's color again on every pass, so a deleted texture whose GL
+        // name comes back for a new one is still drawn into correctly.
         SKSurface? _backBufferSurface;
         GRBackendRenderTarget? _backBufferRenderTarget;
         int _backBufferWidth;
         int _backBufferHeight;
+        readonly GlAttachmentSurfaceCache _framebufferSurfaces = new();
 
         // The pass in progress, or null. It is always _passState, reused for every pass so that a game's
         // Begin/End each frame allocates nothing; _rebindState is reused the same way.
@@ -50,17 +52,12 @@ namespace SkiaGameRendering
             internal SKSurface Surface = null!;
             internal int SaveCount;
             internal int AppFramebuffer;
-            // Only for an FBO: the per-pass objects End frees.
-            internal GRBackendRenderTarget? RenderTarget;
-            internal GlFramebufferState? Framebuffer;
 
             internal void Reset(int appFramebuffer)
             {
                 Surface = null!;
                 SaveCount = 0;
                 AppFramebuffer = appFramebuffer;
-                RenderTarget = null;
-                Framebuffer = null;
             }
         }
 
@@ -103,18 +100,14 @@ namespace SkiaGameRendering
                 }
                 else
                 {
-                    var (surface, renderTarget) = GlSkiaSurfaceFactory.CreateAttachmentSurface(
-                        grContext, gl, target, width, height, SKColorType.Rgba8888, out var framebuffer, GRSurfaceOrigin.BottomLeft);
-                    pass.Surface = surface;
-                    pass.RenderTarget = renderTarget;
-                    pass.Framebuffer = framebuffer;
+                    pass.Surface = _framebufferSurfaces.Get(
+                        grContext, gl, target, width, height, GRSurfaceOrigin.BottomLeft, out var framebuffer);
                     GlSkiaSurfaceFactory.BindForDrawing(gl, framebuffer);
                 }
                 pass.SaveCount = pass.Surface.Canvas.Save();
             }
             catch
             {
-                DisposePassObjects(pass);
                 Rebind(pass.AppFramebuffer);
                 throw;
             }
@@ -135,7 +128,6 @@ namespace SkiaGameRendering
             }
             finally
             {
-                DisposePassObjects(pass);
                 Rebind(pass.AppFramebuffer);
             }
         }
@@ -151,18 +143,6 @@ namespace SkiaGameRendering
             _backBufferWidth = width;
             _backBufferHeight = height;
             return _backBufferSurface;
-        }
-
-        void DisposePassObjects(Pass pass)
-        {
-            if (pass.RenderTarget == null)
-                return;
-
-            pass.Surface?.Dispose();
-            pass.RenderTarget.Dispose();
-            if (pass.Framebuffer != null)
-                GlSkiaSurfaceFactory.DisposeRenderState(_context.Gl, pass.Framebuffer, keepColor: true);
-            pass.RenderTarget = null;
         }
 
         void DisposeBackBufferSurface()
@@ -189,6 +169,10 @@ namespace SkiaGameRendering
 
             _isDisposed = true;
             DisposeBackBufferSurface();
+            _framebufferSurfaces.Clear(_context.Gl);
         }
+
+        /// <summary>The FBO surface cache, for tests.</summary>
+        internal GlAttachmentSurfaceCache FramebufferSurfaces => _framebufferSurfaces;
     }
 }
