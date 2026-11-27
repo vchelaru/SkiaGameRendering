@@ -18,7 +18,7 @@
   <!-- Unity's netstandard2.1 build only wraps the host's image, so it leaves out the helpers that create and
        transition images through function pointers. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <Compile Remove="VkImageAllocator.cs;VkImageLayoutTransitioner.cs;VkMetalObjectExport.cs" />
+    <Compile Remove="VkImageAllocator.cs;VkImageLayoutTransitioner.cs;VkMetalObjectExport.cs;VkMetalSharedEventSemaphore.cs" />
   </ItemGroup>
 
   <ItemGroup>
