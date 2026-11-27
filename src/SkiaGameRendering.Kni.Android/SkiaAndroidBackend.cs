@@ -61,11 +61,8 @@ namespace SkiaGameRendering
 
         private protected override RenderTarget2D? GetBoundRenderTarget() => _boundRenderTarget.Get(GraphicsDevice);
 
-        // The composite needs GLES 3. On GLES 2 the back buffer pass still makes Skia's context current on
-        // KNI's window surface, since a surfaceless context has no default framebuffer.
-        private protected override bool BackBufferThroughTexture => _egl.ClientVersion >= 3;
-
-        private protected override void MakeSkiaContextCurrentOnEngineWindow() => _egl.MakeSkiaContextCurrentOnHostSurface();
+        // Skia's context never goes current on the engine's window: see BackBufferThroughTexture.
+        private protected override bool BackBufferThroughTexture => true;
 
         private protected override void DestroySkiaContext() => _egl.Dispose();
     }

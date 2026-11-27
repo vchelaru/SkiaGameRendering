@@ -26,7 +26,7 @@ is false on every other platform, where the constructor throws `NotSupportedExce
 On KNI WebGL, Skia and KNI drive the one WebGL context, since WebGL cannot share objects between
 contexts, and each pass resets KNI's cached GL state afterward; see the [WebGL quick start](../webgl/quickstart.md).
 
-On MonoGame and KNI Android with GLES 3, a back buffer pass is the exception to "no intermediate texture": Skia
+On MonoGame and KNI Android, a back buffer pass is the exception to "no intermediate texture": Skia
 draws into a back-buffer-sized GL texture and `End()` blends it over the back buffer in one draw, leaving the
 engine's GL state as it found it. Render target passes there are still direct. See the
 [Android quick start](../android/quickstart.md).

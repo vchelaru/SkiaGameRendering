@@ -188,13 +188,6 @@ namespace SkiaGameRendering
         /// </summary>
         private protected virtual bool BackBufferRenderbufferCanBeReplaced => false;
 
-        /// <summary>
-        /// Makes Skia's context current with the engine's window as its default framebuffer. The desktop
-        /// backends always make it current on the window, so this is <see cref="MakeSkiaContextCurrent"/>
-        /// unless that can leave the context without one.
-        /// </summary>
-        private protected virtual void MakeSkiaContextCurrentOnEngineWindow() => MakeSkiaContextCurrent();
-
         internal override bool SupportsDirectCanvas => CanDrawDirect;
 
         private sealed class DirectPass
@@ -227,7 +220,7 @@ namespace SkiaGameRendering
             // Submit the engine's draws so far, so Skia's land on top of them.
             GlSkiaSurfaceFactory.Flush(_gl);
 
-            MakeSkiaContextCurrentOnEngineWindow();
+            MakeSkiaContextCurrent();
             _grContext.ResetContext();
             try
             {

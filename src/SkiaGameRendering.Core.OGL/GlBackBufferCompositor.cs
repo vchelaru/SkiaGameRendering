@@ -6,8 +6,9 @@ namespace SkiaGameRendering.Core.OGL
     /// A back-buffer-sized GL texture that Skia draws into on its own context, and the full-screen draw that
     /// blends it (premultiplied) over the engine's back buffer on the engine's context. The texture is plain
     /// GL, so the engine's own texture size limits (XNA's Reach profile) do not apply. The draw puts back
-    /// every piece of GL state it changes, so an engine that caches GL state never sees a change. Needs
-    /// GLES 3 on both contexts.
+    /// every piece of GL state it changes, so an engine that caches GL state never sees a change. Works on
+    /// GLES 2 and 3: on GLES 3 a vertex array of its own holds the quad's attribute, on GLES 2 the
+    /// attribute it borrows is put back.
     /// </summary>
     public sealed class GlBackBufferCompositor
     {
@@ -31,6 +32,12 @@ namespace SkiaGameRendering.Core.OGL
         [UnmanagedFunctionPointer(Convention)] private delegate void ColorMaskDelegate(byte r, byte g, byte b, byte a);
         [UnmanagedFunctionPointer(Convention)] private unsafe delegate void GetBooleanvDelegate(int pname, byte* data);
         [UnmanagedFunctionPointer(Convention)] private unsafe delegate void GetIntegervDelegate(int pname, int* data);
+        [UnmanagedFunctionPointer(Convention)] private delegate void BufferDataDelegate(int target, IntPtr size, float[] data, int usage);
+        [UnmanagedFunctionPointer(Convention)] private delegate void VertexAttribPointerDelegate(int index, int size, int type,
+            byte normalized, int stride, IntPtr pointer);
+        [UnmanagedFunctionPointer(Convention)] private delegate void GetVertexAttribivDelegate(int index, int pname, out int value);
+        [UnmanagedFunctionPointer(Convention)] private delegate void GetVertexAttribPointervDelegate(int index, int pname, out IntPtr pointer);
+        [UnmanagedFunctionPointer(Convention)] private delegate void BindAttribLocationDelegate(int program, int index, string name);
 
         private const int Texture2D = 0x0DE1, Rgba8 = 0x8058, Rgba = 0x1908, UnsignedByte = 0x1401;
         private const int TextureMinFilter = 0x2801, TextureMagFilter = 0x2800, Nearest = 0x2600;
@@ -42,27 +49,42 @@ namespace SkiaGameRendering.Core.OGL
         private const int TextureBinding2D = 0x8069, SamplerBinding = 0x8919, ViewportParam = 0x0BA2, ColorWritemask = 0x0C23;
         private const int BlendSrcRgb = 0x80C9, BlendDstRgb = 0x80C8, BlendSrcAlpha = 0x80CB, BlendDstAlpha = 0x80CA;
         private const int BlendEquationRgb = 0x8009, BlendEquationAlpha = 0x883D;
+        private const int ArrayBuffer = 0x8892, ArrayBufferBinding = 0x8894, StaticDraw = 0x88E4, Float = 0x1406;
+        private const int AttribEnabled = 0x8622, AttribSize = 0x8623, AttribStride = 0x8624, AttribType = 0x8625,
+            AttribNormalized = 0x886A, AttribBufferBinding = 0x889F, AttribPointer = 0x8645, Version = 0x1F02;
 
-        // A triangle covering the viewport, made from gl_VertexID alone, so no vertex buffer or attribute is touched.
-        private const string VertexSource = "#version 300 es\n" +
-            "out vec2 uv;\n" +
-            "void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)); uv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }\n";
-        private const string FragmentSource = "#version 300 es\n" +
+        // A triangle covering the viewport: (0,0), (2,0), (0,2) in texture space. GLSL ES 1.00, so GLES 2 and 3 both take it.
+        private const string VertexSource =
+            "attribute vec2 position;\n" +
+            "varying vec2 uv;\n" +
+            "void main() { uv = position; gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0); }\n";
+        private const string FragmentSource =
             "precision mediump float;\n" +
-            "in vec2 uv; uniform sampler2D image; out vec4 color;\n" +
-            "void main() { color = texture(image, uv); }\n";
+            "varying vec2 uv; uniform sampler2D image;\n" +
+            "void main() { gl_FragColor = texture2D(image, uv); }\n";
+        private static readonly float[] Triangle = { 0, 0, 2, 0, 0, 2 };
 
         private readonly GlFunctions _gl;
-        private readonly GenDelegate _genTextures, _genVertexArrays;
-        private readonly DeleteDelegate _deleteTextures, _deleteVertexArrays;
+        private readonly bool _gles3;
+        private readonly GenDelegate _genTextures, _genBuffers;
+        private readonly GenDelegate? _genVertexArrays;
+        private readonly DeleteDelegate _deleteTextures, _deleteBuffers;
+        private readonly DeleteDelegate? _deleteVertexArrays;
         private readonly TexImage2DDelegate _texImage2D;
         private readonly TexParameteriDelegate _texParameteri;
         private readonly CreateShaderDelegate _createShader;
         private readonly ShaderSourceDelegate _shaderSource;
         private readonly IntDelegate _compileShader, _linkProgram, _useProgram, _deleteShader, _deleteProgram,
-            _bindVertexArray, _activeTexture, _enable, _disable;
+            _activeTexture, _enable, _disable, _enableVertexAttribArray, _disableVertexAttribArray;
+        private readonly IntDelegate? _bindVertexArray;
         private readonly CreateProgramDelegate _createProgram;
-        private readonly IntIntDelegate _attachShader, _bindSampler, _uniform1i, _blendEquationSeparate;
+        private readonly IntIntDelegate _attachShader, _uniform1i, _blendEquationSeparate, _bindBuffer;
+        private readonly IntIntDelegate? _bindSampler;
+        private readonly BufferDataDelegate _bufferData;
+        private readonly VertexAttribPointerDelegate _vertexAttribPointer;
+        private readonly GetVertexAttribivDelegate _getVertexAttribiv;
+        private readonly GetVertexAttribPointervDelegate _getVertexAttribPointerv;
+        private readonly BindAttribLocationDelegate _bindAttribLocation;
         private readonly GetivDelegate _getShaderiv, _getProgramiv;
         private readonly GetUniformLocationDelegate _getUniformLocation;
         private readonly DrawArraysDelegate _drawArrays;
@@ -72,16 +94,34 @@ namespace SkiaGameRendering.Core.OGL
         private readonly GetBooleanvDelegate _getBooleanv;
         private readonly GetIntegervDelegate _getIntegerv;
 
-        private int _program, _vertexArray;
+        private int _program, _vertexArray, _buffer;
 
         public GlBackBufferCompositor(GlFunctions gl)
         {
             _gl = gl;
             var l = gl.Loader;
+            // Both contexts share one client version, and eglGetProcAddress can hand out GLES 3 entry points
+            // on a GLES 2 context, so the version string decides.
+            _gles3 = !(gl.GetString(Version) ?? "").StartsWith("OpenGL ES 2", StringComparison.Ordinal);
             _genTextures = l.Load<GenDelegate>("glGenTextures");
-            _genVertexArrays = l.Load<GenDelegate>("glGenVertexArrays");
+            _genBuffers = l.Load<GenDelegate>("glGenBuffers");
             _deleteTextures = l.Load<DeleteDelegate>("glDeleteTextures");
-            _deleteVertexArrays = l.Load<DeleteDelegate>("glDeleteVertexArrays");
+            _deleteBuffers = l.Load<DeleteDelegate>("glDeleteBuffers");
+            _bindBuffer = l.Load<IntIntDelegate>("glBindBuffer");
+            _bufferData = l.Load<BufferDataDelegate>("glBufferData");
+            _vertexAttribPointer = l.Load<VertexAttribPointerDelegate>("glVertexAttribPointer");
+            _enableVertexAttribArray = l.Load<IntDelegate>("glEnableVertexAttribArray");
+            _disableVertexAttribArray = l.Load<IntDelegate>("glDisableVertexAttribArray");
+            _getVertexAttribiv = l.Load<GetVertexAttribivDelegate>("glGetVertexAttribiv");
+            _getVertexAttribPointerv = l.Load<GetVertexAttribPointervDelegate>("glGetVertexAttribPointerv");
+            _bindAttribLocation = l.Load<BindAttribLocationDelegate>("glBindAttribLocation");
+            if (_gles3)
+            {
+                _genVertexArrays = l.Load<GenDelegate>("glGenVertexArrays");
+                _deleteVertexArrays = l.Load<DeleteDelegate>("glDeleteVertexArrays");
+                _bindVertexArray = l.Load<IntDelegate>("glBindVertexArray");
+                _bindSampler = l.Load<IntIntDelegate>("glBindSampler");
+            }
             _texImage2D = l.Load<TexImage2DDelegate>("glTexImage2D");
             _texParameteri = l.Load<TexParameteriDelegate>("glTexParameteri");
             _createShader = l.Load<CreateShaderDelegate>("glCreateShader");
@@ -91,13 +131,11 @@ namespace SkiaGameRendering.Core.OGL
             _useProgram = l.Load<IntDelegate>("glUseProgram");
             _deleteShader = l.Load<IntDelegate>("glDeleteShader");
             _deleteProgram = l.Load<IntDelegate>("glDeleteProgram");
-            _bindVertexArray = l.Load<IntDelegate>("glBindVertexArray");
             _activeTexture = l.Load<IntDelegate>("glActiveTexture");
             _enable = l.Load<IntDelegate>("glEnable");
             _disable = l.Load<IntDelegate>("glDisable");
             _createProgram = l.Load<CreateProgramDelegate>("glCreateProgram");
             _attachShader = l.Load<IntIntDelegate>("glAttachShader");
-            _bindSampler = l.Load<IntIntDelegate>("glBindSampler");
             _uniform1i = l.Load<IntIntDelegate>("glUniform1i");
             _blendEquationSeparate = l.Load<IntIntDelegate>("glBlendEquationSeparate");
             _getShaderiv = l.Load<GetivDelegate>("glGetShaderiv");
@@ -118,7 +156,7 @@ namespace SkiaGameRendering.Core.OGL
             var previous = GetInteger(TextureBinding2D);
             _genTextures(1, out var texture);
             _gl.BindTexture(Texture2D, texture);
-            _texImage2D(Texture2D, 0, Rgba8, width, height, 0, Rgba, UnsignedByte, IntPtr.Zero);
+            _texImage2D(Texture2D, 0, _gles3 ? Rgba8 : Rgba, width, height, 0, Rgba, UnsignedByte, IntPtr.Zero);
             _texParameteri(Texture2D, TextureMinFilter, Nearest);
             _texParameteri(Texture2D, TextureMagFilter, Nearest);
             _texParameteri(Texture2D, TextureWrapS, ClampToEdge);
@@ -140,11 +178,12 @@ namespace SkiaGameRendering.Core.OGL
                 CreateProgram();
 
             var program = GetInteger(CurrentProgram);
-            var vertexArray = GetInteger(VertexArrayBinding);
+            var vertexArray = _gles3 ? GetInteger(VertexArrayBinding) : 0;
             var activeTexture = GetInteger(ActiveTexture);
             _activeTexture(Texture0);
             var textureBinding = GetInteger(TextureBinding2D);
-            var sampler = GetInteger(SamplerBinding);
+            var sampler = _gles3 ? GetInteger(SamplerBinding) : 0;
+            var attribute = _gles3 ? default : SaveAttribute();
             var srcRgb = GetInteger(BlendSrcRgb);
             var dstRgb = GetInteger(BlendDstRgb);
             var srcAlpha = GetInteger(BlendSrcAlpha);
@@ -162,9 +201,12 @@ namespace SkiaGameRendering.Core.OGL
             var cull = _isEnabled(CullFace);
 
             _useProgram(_program);
-            _bindVertexArray(_vertexArray);
+            if (_gles3)
+                _bindVertexArray!(_vertexArray);
+            else
+                PointAttributeAtTriangle();
             _gl.BindTexture(Texture2D, texture);
-            _bindSampler(0, 0);
+            _bindSampler?.Invoke(0, 0);
             _viewport(0, 0, width, height);
             _colorMask(1, 1, 1, 1);
             _enable(Blend);
@@ -186,10 +228,13 @@ namespace SkiaGameRendering.Core.OGL
             _blendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha);
             _colorMask(colorMask[0], colorMask[1], colorMask[2], colorMask[3]);
             _viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-            _bindSampler(0, sampler);
+            _bindSampler?.Invoke(0, sampler);
             _gl.BindTexture(Texture2D, textureBinding);
             _activeTexture(activeTexture);
-            _bindVertexArray(vertexArray);
+            if (_gles3)
+                _bindVertexArray!(vertexArray);
+            else
+                RestoreAttribute(attribute);
             _useProgram(program);
         }
 
@@ -199,8 +244,11 @@ namespace SkiaGameRendering.Core.OGL
             if (_program == 0)
                 return;
             _deleteProgram(_program);
-            _deleteVertexArrays(1, ref _vertexArray);
+            _deleteBuffers(1, ref _buffer);
+            if (_gles3)
+                _deleteVertexArrays!(1, ref _vertexArray);
             _program = 0;
+            _buffer = 0;
             _vertexArray = 0;
         }
 
@@ -226,6 +274,7 @@ namespace SkiaGameRendering.Core.OGL
             var program = _createProgram();
             _attachShader(program, vertex);
             _attachShader(program, fragment);
+            _bindAttribLocation(program, 0, "position");
             _linkProgram(program);
             _deleteShader(vertex);
             _deleteShader(fragment);
@@ -241,8 +290,64 @@ namespace SkiaGameRendering.Core.OGL
             _uniform1i(_getUniformLocation(program, "image"), 0);
             _useProgram(previous);
 
-            _genVertexArrays(1, out _vertexArray);
+            var arrayBuffer = GetInteger(ArrayBufferBinding);
+            _genBuffers(1, out _buffer);
+            _bindBuffer(ArrayBuffer, _buffer);
+            _bufferData(ArrayBuffer, (IntPtr)(Triangle.Length * sizeof(float)), Triangle, StaticDraw);
+            if (_gles3)
+            {
+                var vertexArray = GetInteger(VertexArrayBinding);
+                _genVertexArrays!(1, out _vertexArray);
+                _bindVertexArray!(_vertexArray);
+                PointAttributeAtTriangle();
+                _bindVertexArray(vertexArray);
+            }
+            _bindBuffer(ArrayBuffer, arrayBuffer);
             _program = program;
+        }
+
+        // GLES 2 has no vertex arrays, so the composite borrows attribute 0 from whatever the engine left there.
+        private readonly struct Attribute
+        {
+            internal readonly int ArrayBuffer, Enabled, Size, Stride, Type, Normalized, Buffer;
+            internal readonly IntPtr Pointer;
+
+            internal Attribute(int arrayBuffer, int enabled, int size, int stride, int type, int normalized, int buffer, IntPtr pointer)
+            {
+                ArrayBuffer = arrayBuffer; Enabled = enabled; Size = size; Stride = stride; Type = type;
+                Normalized = normalized; Buffer = buffer; Pointer = pointer;
+            }
+        }
+
+        private Attribute SaveAttribute()
+        {
+            _getVertexAttribiv(0, AttribEnabled, out var enabled);
+            _getVertexAttribiv(0, AttribSize, out var size);
+            _getVertexAttribiv(0, AttribStride, out var stride);
+            _getVertexAttribiv(0, AttribType, out var type);
+            _getVertexAttribiv(0, AttribNormalized, out var normalized);
+            _getVertexAttribiv(0, AttribBufferBinding, out var buffer);
+            _getVertexAttribPointerv(0, AttribPointer, out var pointer);
+            return new Attribute(GetInteger(ArrayBufferBinding), enabled, size, stride, type, normalized, buffer, pointer);
+        }
+
+        private void RestoreAttribute(Attribute attribute)
+        {
+            _bindBuffer(ArrayBuffer, attribute.Buffer);
+            _vertexAttribPointer(0, attribute.Size, attribute.Type, (byte)attribute.Normalized, attribute.Stride, attribute.Pointer);
+            if (attribute.Enabled != 0)
+                _enableVertexAttribArray(0);
+            else
+                _disableVertexAttribArray(0);
+            _bindBuffer(ArrayBuffer, attribute.ArrayBuffer);
+        }
+
+        /// <summary>Leaves the array buffer binding on the triangle's buffer.</summary>
+        private void PointAttributeAtTriangle()
+        {
+            _bindBuffer(ArrayBuffer, _buffer);
+            _vertexAttribPointer(0, 2, Float, 0, 0, IntPtr.Zero);
+            _enableVertexAttribArray(0);
         }
 
         private int Compile(int type, string source)
