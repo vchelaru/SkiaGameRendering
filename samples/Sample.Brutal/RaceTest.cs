@@ -14,7 +14,7 @@ using static Tests.CoreVK.VulkanTestNative;
 static class RaceTest
 {
     const int Warmup = 30;
-    const int Frames = 300;
+    const int Frames = 1000;
     const int StampX = 4, StampY = 4;
 
     static SKColor Stamp(int frame) => new((byte)(frame & 0xFF), (byte)((frame >> 8) & 0xFF), 77);

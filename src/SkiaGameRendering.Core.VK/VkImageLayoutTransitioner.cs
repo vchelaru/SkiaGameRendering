@@ -38,6 +38,8 @@ namespace SkiaGameRendering.Core.VK
         const uint VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO = 40;
         const uint VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO = 42;
         const uint VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER = 45;
+        const uint VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO = 1000207003;
+        const uint VK_PIPELINE_STAGE_ALL_COMMANDS_BIT = 0x10000;
         const uint VK_COMMAND_BUFFER_LEVEL_PRIMARY = 0;
         const uint VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT = 0x1;
         const uint VK_COMMAND_POOL_CREATE_TRANSIENT_BIT = 0x1;
@@ -201,12 +203,15 @@ namespace SkiaGameRendering.Core.VK
         /// <paramref name="oldLayout"/> to <paramref name="newLayout"/> on the host's queue and
         /// returns without waiting for it, unless every slot is still in flight - then it waits for
         /// the oldest first. Call <see cref="WaitForCompletion"/> if the caller needs the GPU to have
-        /// finished before continuing.
+        /// finished before continuing. With <paramref name="timelineSemaphore"/>, the submit also waits for
+        /// <paramref name="waitValue"/> before anything in it or after it on the queue runs, and signals
+        /// <paramref name="signalValue"/> once everything before it on the queue has run (0 skips either).
         /// </summary>
         public void Transition(
             ulong image, uint oldLayout, uint newLayout,
             uint srcStageMask, uint srcAccessMask, uint dstStageMask, uint dstAccessMask,
-            uint aspectMask = VkConstants.ImageAspectColor, uint levelCount = 1, uint layerCount = 1)
+            uint aspectMask = VkConstants.ImageAspectColor, uint levelCount = 1, uint layerCount = 1,
+            ulong timelineSemaphore = 0, ulong waitValue = 0, ulong signalValue = 0)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (image == 0)
@@ -215,7 +220,25 @@ namespace SkiaGameRendering.Core.VK
             var index = BeginRecording();
             var barrier = Barrier(image, oldLayout, newLayout, srcAccessMask, dstAccessMask, aspectMask, levelCount, layerCount);
             _vkCmdPipelineBarrier(_slots[index].CommandBuffer, srcStageMask, dstStageMask, 0, 0, null, 0, null, 1, &barrier);
-            Submit(index);
+            Submit(index, recorded: true, timelineSemaphore, waitValue, signalValue);
+        }
+
+        /// <summary>
+        /// Queues a submit with no command buffers that waits for <paramref name="waitValue"/> of the timeline
+        /// <paramref name="timelineSemaphore"/> (holding everything after it on the queue) and/or signals
+        /// <paramref name="signalValue"/> once everything before it has run; 0 skips either. Fenced like
+        /// <see cref="Transition"/>, so <see cref="WaitForCompletion"/> covers it.
+        /// </summary>
+        public void SubmitTimeline(ulong timelineSemaphore, ulong waitValue, ulong signalValue)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (timelineSemaphore == 0)
+                throw new ArgumentException("VkSemaphore handle is null (0).", nameof(timelineSemaphore));
+            var index = AcquireSlotIndex();
+            var slot = _slots[index];
+            WaitForSlot(ref slot);
+            _slots[index] = slot;
+            Submit(index, recorded: false, timelineSemaphore, waitValue, signalValue);
         }
 
         /// <summary>
@@ -266,7 +289,7 @@ namespace SkiaGameRendering.Core.VK
             _vkCmdPipelineBarrier(commandBuffer,
                 VkConstants.PipelineStageTransfer, VkConstants.PipelineStageColorAttachmentOutput | destinationDstStageMask,
                 0, 0, null, 0, null, 2, after);
-            Submit(index);
+            Submit(index, recorded: true, 0, 0, 0);
         }
 
         static VkImageMemoryBarrier Barrier(
@@ -310,17 +333,36 @@ namespace SkiaGameRendering.Core.VK
             return index;
         }
 
-        void Submit(int index)
+        void Submit(int index, bool recorded, ulong timelineSemaphore, ulong waitValue, ulong signalValue)
         {
             var slot = _slots[index];
-            Check(_vkEndCommandBuffer(slot.CommandBuffer), "vkEndCommandBuffer");
+            if (recorded)
+                Check(_vkEndCommandBuffer(slot.CommandBuffer), "vkEndCommandBuffer");
 
             var commandBuffer = slot.CommandBuffer;
+            var semaphore = timelineSemaphore;
+            var waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+            var wait = timelineSemaphore != 0 && waitValue != 0;
+            var signal = timelineSemaphore != 0 && signalValue != 0;
+            var timeline = new VkTimelineSemaphoreSubmitInfo
+            {
+                sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+                waitSemaphoreValueCount = wait ? 1u : 0u,
+                pWaitSemaphoreValues = &waitValue,
+                signalSemaphoreValueCount = signal ? 1u : 0u,
+                pSignalSemaphoreValues = &signalValue,
+            };
             var submitInfo = new VkSubmitInfo
             {
                 sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                commandBufferCount = 1,
+                pNext = wait || signal ? (IntPtr)(&timeline) : IntPtr.Zero,
+                waitSemaphoreCount = wait ? 1u : 0u,
+                pWaitSemaphores = (IntPtr)(&semaphore),
+                pWaitDstStageMask = (IntPtr)(&waitStage),
+                commandBufferCount = recorded ? 1u : 0u,
                 pCommandBuffers = &commandBuffer,
+                signalSemaphoreCount = signal ? 1u : 0u,
+                pSignalSemaphores = (IntPtr)(&semaphore),
             };
 
             using (_acquireQueueLock?.Invoke())
@@ -485,6 +527,17 @@ namespace SkiaGameRendering.Core.VK
             public IntPtr* pCommandBuffers;
             public uint signalSemaphoreCount;
             public IntPtr pSignalSemaphores;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct VkTimelineSemaphoreSubmitInfo
+        {
+            public uint sType;
+            public IntPtr pNext;
+            public uint waitSemaphoreValueCount;
+            public ulong* pWaitSemaphoreValues;
+            public uint signalSemaphoreValueCount;
+            public ulong* pSignalSemaphoreValues;
         }
 
         [StructLayout(LayoutKind.Sequential)]

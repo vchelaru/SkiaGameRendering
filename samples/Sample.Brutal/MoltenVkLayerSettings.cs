@@ -34,9 +34,8 @@ static unsafe class MoltenVkLayerSettings
     /// <summary>A leaked (process-lifetime) create info chained onto <paramref name="next"/>.</summary>
     public static LayerSettingsCreateInfo* SynchronousQueueSubmitsOff(void* next)
     {
-        // MoltenVK's documented setting name drops the MVK_CONFIG_ prefix; the prefixed one is passed too in case a
-        // version matches on it. An unknown name is ignored.
-        string[] names = ["SYNCHRONOUS_QUEUE_SUBMITS", "MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS"];
+        // MoltenVK matches the layer name "MoltenVK" and the setting name as the env var spells it (MVKInstance.mm).
+        string[] names = ["MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS"];
         var settings = (LayerSetting*)NativeMemory.AllocZeroed((nuint)(names.Length * sizeof(LayerSetting)));
         for (var i = 0; i < names.Length; i++)
             settings[i] = new LayerSetting

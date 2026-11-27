@@ -18,11 +18,12 @@ namespace SkiaGameRendering
     /// <c>Queue.Submit</c> lock is private, so an app that submits from several threads needs its own.
     /// <para>
     /// <b>macOS.</b> SkiaSharp's macOS native has no Vulkan, so on MoltenVK Skia draws with Metal instead, into the
-    /// <c>MTLTexture</c> behind each image, on the <c>MTLCommandQueue</c> behind <c>queue</c>. The app enables
-    /// <c>VK_EXT_metal_objects</c> on the device and chains <c>VkExportMetalObjectCreateInfoEXT</c> for the
-    /// MTLDevice and the MTLCommandQueue on the instance (see <c>docs/brutal/quickstart.md</c>). Ordering between
-    /// the app's Vulkan work and Skia's relies on MoltenVK committing each <c>vkQueueSubmit</c> on the calling
-    /// thread, its default; with <c>MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0</c> this constructor throws.
+    /// <c>MTLTexture</c> behind each image, on an <c>MTLCommandQueue</c> of its own. The app enables
+    /// <c>VK_EXT_metal_objects</c> and the <c>timelineSemaphore</c> feature on the device and chains
+    /// <c>VkExportMetalObjectCreateInfoEXT</c> for the MTLDevice on the instance (see <c>docs/brutal/quickstart.md</c>).
+    /// A timeline semaphore exported as an <c>MTLSharedEvent</c> orders the two queues: each pass's Metal work waits
+    /// for a value signaled behind the app's earlier submits on <c>queue</c>, and the app's later submits wait for a
+    /// value Metal signals after Skia's work. That holds with MoltenVK's synchronous or asynchronous queue submits.
     /// </para>
     /// </summary>
     public sealed class SkiaVulkanContext : IDisposable
@@ -30,6 +31,9 @@ namespace SkiaGameRendering
         readonly VkSkiaSurfaceFactory? _factory;
         readonly MetalSkiaSurfaceFactory? _metalFactory;
         readonly VkImageLayoutTransitioner _transitioner;
+        // macOS: Skia's own MTLCommandQueue (retained) and the semaphore that orders it against the app's queue.
+        readonly IntPtr _metalQueue;
+        readonly VkMetalSharedEventSemaphore? _metalOrder;
         bool _disposed;
 
         public SkiaVulkanContext(
@@ -42,10 +46,13 @@ namespace SkiaGameRendering
 
             if (OperatingSystem.IsMacOS())
             {
-                VkMetalObjectExport.ThrowIfAsynchronousQueueSubmits();
+                // Not the queue MoltenVK submits the app's work to: a Metal wait there would block the app's own submit
+                // that signals it whenever MoltenVK commits that submit later (its asynchronous submits).
+                var metalDevice = VkMetalObjectExport.ExportDevice(device);
+                _metalOrder = new VkMetalSharedEventSemaphore(instance, physicalDevice, device);
+                _metalQueue = MetalSkiaSurfaceFactory.NewCommandQueue(metalDevice);
                 _metalFactory = new MetalSkiaSurfaceFactory();
-                _metalFactory.InitializeFromNative(
-                    VkMetalObjectExport.ExportDevice(device), VkMetalObjectExport.ExportCommandQueue(device, queue));
+                _metalFactory.InitializeFromNative(metalDevice, _metalQueue);
             }
             else
             {
@@ -69,6 +76,28 @@ namespace SkiaGameRendering
         internal MetalSkiaSurfaceFactory? MetalFactory => _metalFactory;
         internal VkImageLayoutTransitioner Transitioner => _transitioner;
 
+        // macOS. The timeline semaphore Begin and End order Skia's Metal queue against the app's queue with.
+        internal ulong MetalOrderSemaphore => _metalOrder!.Semaphore;
+        internal ulong NextMetalOrderValue() => _metalOrder!.Next();
+        internal void CommitMetalWait(ulong value) => _metalFactory!.CommitWait(_metalOrder!.SharedEvent, value);
+        internal void CommitMetalSignal(ulong value) => _metalFactory!.CommitSignal(_metalOrder!.SharedEvent, value);
+
+        /// <summary>macOS, before Skia draws: its Metal work waits for everything submitted on the app's queue so far.</summary>
+        internal void OrderMetalAfterQueue()
+        {
+            var value = NextMetalOrderValue();
+            _transitioner.SubmitTimeline(MetalOrderSemaphore, waitValue: 0, signalValue: value);
+            CommitMetalWait(value);
+        }
+
+        /// <summary>macOS, after Skia's flush: everything submitted on the app's queue from now on waits for Skia's work.</summary>
+        internal void OrderQueueAfterMetal()
+        {
+            var value = NextMetalOrderValue();
+            CommitMetalSignal(value);
+            _transitioner.SubmitTimeline(MetalOrderSemaphore, waitValue: value, signalValue: 0);
+        }
+
         public void Dispose()
         {
             if (_disposed)
@@ -77,7 +106,14 @@ namespace SkiaGameRendering
             _transitioner.WaitForCompletion();
             _transitioner.Dispose();
             _factory?.Dispose();
-            _metalFactory?.Dispose();
+            if (_metalFactory != null)
+            {
+                // Every Metal wait's value was signaled by a submit the transitioner just waited for.
+                _metalFactory.WaitForQueue();
+                _metalFactory.Dispose();
+                MetalSkiaSurfaceFactory.ReleaseObject(_metalQueue);
+                _metalOrder!.Dispose();
+            }
         }
     }
 }
