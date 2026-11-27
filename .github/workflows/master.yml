@@ -260,12 +260,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.415
+          dotnet-version: |
+            8.0.415
+            10.0.x
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: tests/Tests.Kni.WebGL/package-lock.json
+      # ubuntu-latest can preinstall a newer SDK (11), which `dotnet workload install` would pick; pin the SDK 10 setup-dotnet installed.
+      - name: Pin the .NET 10 SDK
+        run: dotnet new globaljson --sdk-version "$(dotnet --list-sdks | grep -o '^10\.[0-9.]*' | sort -V | tail -n 1)" --roll-forward latestFeature
       - name: Install WASM toolchain
         run: dotnet workload install wasm-tools-net8
       - name: Build native WASM Release
@@ -315,7 +320,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.415
+          dotnet-version: |
+            8.0.415
+            10.0.x
+      # ubuntu-latest can preinstall a newer SDK (11), which `dotnet workload install` would pick; pin the SDK 10 setup-dotnet installed.
+      - name: Pin the .NET 10 SDK
+        run: dotnet new globaljson --sdk-version "$(dotnet --list-sdks | grep -o '^10\.[0-9.]*' | sort -V | tail -n 1)" --roll-forward latestFeature
       - name: Install WASM toolchain
         run: dotnet workload install wasm-tools-net8
       # No --no-restore: this job has no earlier build to restore for it.
