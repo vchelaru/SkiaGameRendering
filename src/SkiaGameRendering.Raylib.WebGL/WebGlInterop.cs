@@ -18,7 +18,7 @@ internal static partial class WebGlInterop
     [JSImport("globalThis.skiaRaylibWebGl.isContextLost")]
     internal static partial bool IsContextLost();
 
-    // [framebufferId, drawingBufferWidth, drawingBufferHeight, samples, stencilBits, attachmentKind]
+    // [framebufferId, drawingBufferWidth, drawingBufferHeight, samples, stencilBits, attachmentKind, colorId]
     [JSImport("globalThis.skiaRaylibWebGl.beginPass")]
     [return: JSMarshalAs<JSType.Array<JSType.Number>>]
     internal static partial int[] BeginPass();
@@ -30,6 +30,9 @@ internal static partial class WebGlInterop
     [JSImport("globalThis.skiaRaylibWebGl.createAttachmentFramebuffer")]
     [return: JSMarshalAs<JSType.Array<JSType.Number>>]
     internal static partial int[] CreateAttachmentFramebuffer(int width, int height);
+
+    [JSImport("globalThis.skiaRaylibWebGl.attachColor")]
+    internal static partial void AttachColor(int framebufferId);
 
     [JSImport("globalThis.skiaRaylibWebGl.createTextureFramebuffer")]
     [return: JSMarshalAs<JSType.Array<JSType.Number>>]

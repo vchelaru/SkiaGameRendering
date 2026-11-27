@@ -131,6 +131,25 @@ test("layers Skia between raylib's draws on a RenderTexture2D", async ({ page })
   expect(errors).toEqual([]);
 });
 
+// SkiaDirectCanvas keeps the render texture's Skia framebuffer across frames, and a new render texture (whose ids may be
+// the unloaded one's) still gets Skia's square.
+test("reuses the render texture's Skia framebuffer across frames and draws into a new render texture", async ({ page }) => {
+  const errors = await open(page, "direct");
+  const created = () => page.evaluate(() => globalThis.skiaRaylibWebGl.attachmentFramebuffersCreated());
+  const errorsAtStart = await glErrors(page);
+  const atStart = await created();
+  expect(atStart).toBe(1);
+  await waitForFrames(page, 30);
+  expect(await created(), "framebuffers made over 30 more frames").toBe(atStart);
+
+  await page.evaluate(() => DotNet.invokeMethod("Sample.Raylib.WebGL", "RecreateRenderTexture"));
+  await waitForFrames(page, 10);
+  await expectColors(page, renderTexture);
+  expect(await created(), "framebuffers made after a new render texture").toBeLessThanOrEqual(atStart + 1);
+  expect(await glErrors(page)).toBe(errorsAtStart);
+  expect(errors).toEqual([]);
+});
+
 for (const mode of ["target", "direct"]) {
   test(`keeps drawing correctly over many frames (${mode})`, async ({ page }) => {
     const errors = await open(page, mode);
