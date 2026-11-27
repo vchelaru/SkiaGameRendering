@@ -549,6 +549,26 @@ jobs:
           VK_LAYER_PATH: /opt/homebrew/share/vulkan/explicit_layer.d
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
           VK_LOADER_DEBUG: layer
+      # MoltenVK's async submits (#418): the smoke test under validation with them off by env var and by
+      # VK_EXT_layer_settings, then the race test (the app reads each frame on the GPU while Skia draws the next one) and
+      # its per-frame cost in all three modes.
+      - name: Smoke test and race test, sync and async submits
+        shell: bash -eo pipefail {0}
+        run: |
+          app=samples/Sample.Brutal/bin/Release/net10.0/Sample.Brutal.dll
+          for mode in env layer; do
+            echo "=== smoke test, async submits by $mode"
+            if [ $mode = env ]; then MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0 dotnet $app --smoke-test 2>&1 | tee smoke-$mode.txt
+            else dotnet $app --smoke-test --async-via-layer-settings 2>&1 | tee smoke-$mode.txt; fi
+            if grep -E "VUID-|SYNC-HAZARD" smoke-$mode.txt; then echo "Validation errors above"; exit 1; fi
+          done
+          echo "=== race test, sync submits"; dotnet $app --race-test
+          echo "=== race test, async submits by env"; MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0 dotnet $app --race-test
+          echo "=== race test, async submits by layer settings"; dotnet $app --race-test --async-via-layer-settings
+        env:
+          DYLD_FALLBACK_LIBRARY_PATH: /opt/homebrew/lib
+          VK_LAYER_PATH: /opt/homebrew/share/vulkan/explicit_layer.d
+          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
 
   # NativeAOT publish of the MonoGame DesktopGL sample, then a run of the native exe that checks the
   # back buffer for the scene. The build half is the trim/AOT analyzer (IsAotCompatible on the

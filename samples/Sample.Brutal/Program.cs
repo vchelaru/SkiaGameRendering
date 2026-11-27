@@ -4,6 +4,9 @@
 // --screenshot <path> instead draws the shared Scene on its background at 800x800 and saves the Skia target to a PNG.
 // BRUTAL has no engine frame, so the Skia target is the whole output.
 // --smoke-test --direct-screenshot <path> also saves the Scene SkiaDirectCanvas drew into an app-owned image.
+// --race-test draws the Scene for many frames while the app reads each frame on the GPU with no CPU wait, checks every
+// read saw its own frame, and prints the per-frame cost (see RaceTest.cs). --async-via-layer-settings turns MoltenVK's
+// synchronous submits off through VK_EXT_layer_settings (the env var route is MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0).
 // On macOS (MoltenVK) Skia draws through Metal, which needs VK_EXT_metal_objects on the device and the Metal export
 // structs on the instance (see docs/brutal/quickstart.md).
 using System.Runtime.InteropServices;
@@ -21,6 +24,9 @@ var extensions = new HashSet<string>();
 VulkanHelpers_AddPlatformExtensions(extensions);
 
 var isMac = OperatingSystem.IsMacOS();
+var asyncViaLayerSettings = args.Contains("--async-via-layer-settings");
+if (asyncViaLayerSettings)
+    extensions.Add(MoltenVkLayerSettings.ExtensionName);
 Instance instance;
 unsafe
 {
@@ -33,7 +39,7 @@ unsafe
         Flags = isMac ? VkInstanceCreateFlags.EnumeratePortabilityBitKHR : VkInstanceCreateFlags.None,
         EnabledExtensions = extensions,
         EnabledLayers = [],
-        Next = isMac ? &exportDevice : null,
+        Next = !isMac ? null : asyncViaLayerSettings ? MoltenVkLayerSettings.SynchronousQueueSubmitsOff(&exportDevice) : (void*)&exportDevice,
     });
 }
 using var instanceScope = instance;
@@ -61,6 +67,12 @@ unsafe
 
     using var context = new SkiaVulkanContext(
         instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily);
+    if (args.Contains("--race-test"))
+    {
+        exitCode = RaceTest.Run(physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily, context);
+        device.WaitIdle();
+        return exitCode;
+    }
     if (shotPath != null)
     {
         using var scene = new SkiaRenderTarget2D(context, Scene.Width, Scene.Height);
