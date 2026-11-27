@@ -61,9 +61,8 @@ namespace SkiaGameRendering
 
         private protected override RenderTarget2D? GetBoundRenderTarget() => _boundRenderTarget.Get(GraphicsDevice);
 
-        // Skia's context normally runs surfaceless, which has no default framebuffer, so drawing to the
-        // back buffer needs it current on MonoGame's window surface.
-        private protected override void MakeSkiaContextCurrentOnEngineWindow() => _egl.MakeSkiaContextCurrentOnHostSurface();
+        // Skia's context never goes current on the engine's window: see BackBufferThroughTexture.
+        private protected override bool BackBufferThroughTexture => true;
 
         private protected override void DestroySkiaContext() => _egl.Dispose();
     }

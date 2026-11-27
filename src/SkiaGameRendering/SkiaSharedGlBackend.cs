@@ -105,6 +105,10 @@ namespace SkiaGameRendering
 
         public sealed override void Dispose()
         {
+            _compositeBatch?.Dispose();
+            _compositeBatch = null;
+            _backBufferTexture?.Dispose();
+            _backBufferTexture = null;
             if (_grContext != null)
             {
                 var grContext = _grContext;
@@ -209,6 +213,9 @@ namespace SkiaGameRendering
                 throw new NotSupportedException(
                     $"SkiaDirectCanvas supports SurfaceFormat.Color render targets, not {renderTarget.Format}.");
 
+            if (renderTarget == null && BackBufferThroughTexture)
+                return BeginBackBufferTexturePass(out pass);
+
             // Still on the engine's context: what it is drawing into, as GL sees it.
             var glTarget = GlSkiaSurfaceFactory.QueryDrawTarget(_gl);
             if (renderTarget != null ? glTarget.IsDefaultFramebuffer
@@ -241,6 +248,12 @@ namespace SkiaGameRendering
 
         internal override void EndDirectDraw(object pass)
         {
+            if (pass is BackBufferTexturePass texturePass)
+            {
+                EndBackBufferTexturePass(texturePass);
+                return;
+            }
+
             var directPass = (DirectPass)pass;
             try
             {
@@ -259,6 +272,75 @@ namespace SkiaGameRendering
             // A multisampled target's renderbuffer is only read by the engine's resolve blit, never sampled.
             if (directPass.Gl.IsTexture)
                 GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, directPass.Gl.AttachmentName);
+        }
+
+        /// <summary>
+        /// Whether a back buffer pass draws into a Skia texture that the engine then composites, instead of
+        /// making Skia's context current on the engine's window. On the Android emulator two contexts current
+        /// on one window surface lose each other's finished writes now and then (#414), so the Android
+        /// backends keep Skia's context off the window.
+        /// </summary>
+        private protected virtual bool BackBufferThroughTexture => false;
+
+        private sealed class BackBufferTexturePass
+        {
+            internal SkiaTarget Target = null!;
+            internal SKCanvas Canvas = null!;
+            internal int SaveCount;
+        }
+
+        private SkiaTarget? _backBufferTexture;
+        private SpriteBatch? _compositeBatch;
+
+        private SKCanvas BeginBackBufferTexturePass(out object pass)
+        {
+            var parameters = GraphicsDevice.PresentationParameters;
+            if (_backBufferTexture is not { } target
+                || target.Texture.Width != parameters.BackBufferWidth || target.Texture.Height != parameters.BackBufferHeight)
+            {
+                _backBufferTexture?.Dispose();
+                _backBufferTexture = null;
+                target = _backBufferTexture = CreateTarget(parameters.BackBufferWidth, parameters.BackBufferHeight,
+                    SKColorType.Rgba8888, 0);
+            }
+
+            var canvas = BeginRender(target, clear: true);
+            pass = new BackBufferTexturePass { Target = target, Canvas = canvas, SaveCount = canvas.Save() };
+            return canvas;
+        }
+
+        private void EndBackBufferTexturePass(BackBufferTexturePass pass)
+        {
+            var target = pass.Target;
+            try
+            {
+                pass.Canvas.RestoreToCount(pass.SaveCount);
+            }
+            finally
+            {
+                EndRender(target);
+            }
+
+            // Composite over the whole back buffer, then put back the device state the SpriteBatch changed,
+            // so the pass leaves the engine as a direct pass does.
+            var device = GraphicsDevice;
+            var viewport = device.Viewport;
+            var blend = device.BlendState;
+            var depthStencil = device.DepthStencilState;
+            var rasterizer = device.RasterizerState;
+            var sampler = device.SamplerStates[0];
+            var parameters = device.PresentationParameters;
+            device.Viewport = new Viewport(0, 0, parameters.BackBufferWidth, parameters.BackBufferHeight);
+            _compositeBatch ??= new SpriteBatch(device);
+            _compositeBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp,
+                DepthStencilState.None, RasterizerState.CullNone);
+            _compositeBatch.Draw(target.Texture, Microsoft.Xna.Framework.Vector2.Zero, Microsoft.Xna.Framework.Color.White);
+            _compositeBatch.End();
+            device.Viewport = viewport;
+            device.BlendState = blend;
+            device.DepthStencilState = depthStencil;
+            device.RasterizerState = rasterizer;
+            device.SamplerStates[0] = sampler;
         }
 
         private DirectTarget GetBackBufferTarget(GlDrawTarget glTarget)
