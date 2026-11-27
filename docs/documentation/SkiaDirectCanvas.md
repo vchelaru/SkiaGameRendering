@@ -26,6 +26,11 @@ is false on every other platform, where the constructor throws `NotSupportedExce
 On KNI WebGL, Skia and KNI drive the one WebGL context, since WebGL cannot share objects between
 contexts, and each pass resets KNI's cached GL state afterward; see the [WebGL quick start](../webgl/quickstart.md).
 
+On MonoGame and KNI Android, a back buffer pass is the exception to "no intermediate texture": Skia draws into a
+back-buffer-sized texture of its own and `End()` composites it with a `SpriteBatch`, then restores the
+`Viewport`, blend, depth-stencil, rasterizer and first sampler state. Render target passes there are still direct. See the
+[Android quick start](../android/quickstart.md).
+
 raylib on Windows and Linux (package `SkiaGameRendering.Raylib.OGL`) has a `SkiaDirectCanvas` of the same name, constructed with no arguments after
 `Raylib.InitWindow`. Call `Begin`/`End` between `BeginDrawing` and `EndDrawing`, where it draws into the back
 buffer, or inside `BeginTextureMode`, where it draws into that `RenderTexture2D` the right way up for raylib's

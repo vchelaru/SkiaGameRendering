@@ -107,12 +107,16 @@ namespace SkiaGameRendering.Core.OGL
         internal RenderbufferStorageMultisampleDelegate? RenderbufferStorageMultisample { get; private init; }
         private GetStringDelegate GetStringPtr { get; init; } = null!;
 
+        /// <summary>The loader these were resolved with, for helpers that load entry points of their own.</summary>
+        internal IGlFunctionLoader Loader { get; private init; } = null!;
+
         private GlFunctions() { }
 
         public static GlFunctions Load(IGlFunctionLoader loader)
         {
             return new GlFunctions
             {
+                Loader = loader,
                 GenRenderbuffers = loader.Load<GenRenderbuffersDelegate>("glGenRenderbuffers"),
                 BindRenderbuffer = loader.Load<BindRenderbufferDelegate>("glBindRenderbuffer"),
                 DeleteRenderbuffers = loader.Load<DeleteRenderbuffersDelegate>("glDeleteRenderbuffers"),
