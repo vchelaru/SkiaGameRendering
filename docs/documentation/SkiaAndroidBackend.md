@@ -41,7 +41,10 @@ by themselves, so the explicit form is only for tests.
 
 ## Remarks
 
-- No reflection. `EglSharedContext` reads MonoGame's display, context and `EGLConfig` with the native
+- No reflection for render targets. A back buffer `SkiaDirectCanvas` pass draws on MonoGame's own
+  context and then resets `GraphicsDevice`'s private state cache by reflection, so a MonoGame bump can
+  break it at run time; CI's Android smoke test exercises it.
+- `EglSharedContext` reads MonoGame's display, context and `EGLConfig` with the native
   `eglGetCurrent*` calls, and the texture's GL name comes from `GL_TEXTURE_BINDING_2D` right after
   MonoGame creates it.
 - Surfaceless where the driver allows it (`EGL_KHR_surfaceless_context`), on the host's draw surface
@@ -58,7 +61,9 @@ The `SkiaGameRendering.Kni.Android` package (targets `net10.0-android36.0`, as K
 Assembly/package: `SkiaGameRendering.Kni.Android`
 
 
-- No reflection. KNI creates its context through Java's EGL10 but makes it current on the thread's
+- A back buffer `SkiaDirectCanvas` pass draws on KNI's own context and then resets KNI's internal
+  state cache by reflection, so a KNI bump can break it at run time; CI's Android smoke test exercises it.
+- KNI creates its context through Java's EGL10 but makes it current on the thread's
   native EGL state, so `EglSharedContext` reads the display, context and `EGLConfig` with the
   native `eglGetCurrent*` calls. The native texture handle comes from `GetSharedHandle()` on a
   `shared: true` `RenderTarget2D`, which is public KNI API.

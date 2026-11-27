@@ -34,6 +34,7 @@
     <Compile Include="..\SkiaGameRendering\SkiaRenderTarget2D.cs" Link="Core\SkiaRenderTarget2D.cs" />
     <Compile Include="..\SkiaGameRendering\SkiaDirectCanvas.cs" Link="Core\SkiaDirectCanvas.cs" />
     <Compile Include="..\SkiaGameRendering.Kni.DesktopGL\KniBoundRenderTarget.cs" Link="KniBoundRenderTarget.cs" />
+    <Compile Include="..\SkiaGameRendering.Android\GlesEngineStateReset.cs" Link="GlesEngineStateReset.cs" />
   </ItemGroup>
 
   <ItemGroup>

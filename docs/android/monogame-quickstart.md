@@ -39,7 +39,9 @@ sharing it. Skia draws into an FBO around the `RenderTarget2D`'s GL texture. The
 from `GL_TEXTURE_BINDING_2D` right after MonoGame creates it, as on DesktopGL, so there is no
 reflection. `SkiaAndroidBackend.Description` says whether the Skia context runs surfaceless.
 
-`SkiaDirectCanvas` works on the back buffer and on a plain render target. **A multisampled render
+`SkiaDirectCanvas` works on the back buffer and on a plain render target. As on KNI Android, a back
+buffer pass draws on MonoGame's own context and then makes MonoGame apply all of its cached GL state
+again, which reaches `GraphicsDevice` internals by reflection (`MonoGameStateInvalidation`). **A multisampled render
 target does not work on MonoGame Android at all:** unbinding one throws a `NullReferenceException`
 inside MonoGame's own resolve (`FramebufferHelper.BlitFramebuffer`), so the smoke test skips that case.
 

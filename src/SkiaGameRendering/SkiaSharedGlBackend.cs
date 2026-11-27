@@ -105,6 +105,7 @@ namespace SkiaGameRendering
 
         public sealed override void Dispose()
         {
+            DisposeEngineContextResources();
             if (_grContext != null)
             {
                 var grContext = _grContext;
@@ -190,6 +191,23 @@ namespace SkiaGameRendering
         /// </summary>
         private protected virtual void MakeSkiaContextCurrentOnEngineWindow() => MakeSkiaContextCurrent();
 
+        /// <summary>
+        /// Whether a back buffer pass draws with Skia on the engine's own context instead of making Skia's
+        /// context current on the engine's window. On Android's emulator two contexts current on one window
+        /// surface lose finished writes, so there only the engine's context ever touches it. A subclass that
+        /// says yes implements <see cref="RestoreEngineStateAfterSkia"/>.
+        /// </summary>
+        private protected virtual bool DrawsBackBufferOnEngineContext => false;
+
+        /// <summary>
+        /// Runs on the engine's context after Skia drew on it: puts back the GL state the engine assumes and
+        /// makes the engine apply all of its cached state again, since Skia changed GL state behind its back.
+        /// </summary>
+        private protected virtual void RestoreEngineStateAfterSkia() => throw new NotSupportedException();
+
+        // Skia's GRContext on the engine's own GL context, for DrawsBackBufferOnEngineContext.
+        private GRContext? _engineGrContext;
+
         internal override bool SupportsDirectCanvas => CanDrawDirect;
 
         private sealed class DirectPass
@@ -197,6 +215,7 @@ namespace SkiaGameRendering
             internal DirectTarget Target = null!;
             internal GlDrawTarget Gl;
             internal int SaveCount;
+            internal bool OnEngineContext;
         }
 
         internal override SKCanvas BeginDirectDraw(out object pass)
@@ -216,6 +235,9 @@ namespace SkiaGameRendering
                 throw new InvalidOperationException(
                     "The engine's bound GL framebuffer does not match its current render target.");
 
+            if (renderTarget == null && DrawsBackBufferOnEngineContext)
+                return BeginBackBufferDrawOnEngineContext(glTarget, out pass);
+
             // Submit the engine's draws so far, so Skia's land on top of them.
             GlSkiaSurfaceFactory.Flush(_gl);
 
@@ -224,7 +246,7 @@ namespace SkiaGameRendering
             try
             {
                 PruneDisposedRenderTargets();
-                var target = renderTarget == null ? GetBackBufferTarget(glTarget) : GetRenderTargetTarget(renderTarget, glTarget);
+                var target = renderTarget == null ? GetBackBufferTarget(glTarget, _grContext) : GetRenderTargetTarget(renderTarget, glTarget);
 
                 GlSkiaSurfaceFactory.BindForDrawing(_gl, target.Framebuffer);
                 var canvas = target.Surface.Canvas;
@@ -239,9 +261,44 @@ namespace SkiaGameRendering
             }
         }
 
+        // One context, so no flush and no context switch: Skia's draws queue after the engine's. Skia forgets
+        // what it believes GL's state is, and the engine is made to do the same afterwards.
+        private SKCanvas BeginBackBufferDrawOnEngineContext(GlDrawTarget glTarget, out object pass)
+        {
+            _engineGrContext ??= GlGrContextFactory.Create(_gl);
+            _engineGrContext.ResetContext();
+            try
+            {
+                var target = GetBackBufferTarget(glTarget, _engineGrContext);
+                GlSkiaSurfaceFactory.BindForDrawing(_gl, target.Framebuffer);
+                var canvas = target.Surface.Canvas;
+                pass = new DirectPass { Target = target, Gl = glTarget, SaveCount = canvas.Save(), OnEngineContext = true };
+                return canvas;
+            }
+            catch
+            {
+                RestoreEngineStateAfterSkia();
+                throw;
+            }
+        }
+
         internal override void EndDirectDraw(object pass)
         {
             var directPass = (DirectPass)pass;
+            if (directPass.OnEngineContext)
+            {
+                try
+                {
+                    directPass.Target.Surface.Canvas.RestoreToCount(directPass.SaveCount);
+                    directPass.Target.Surface.Flush();
+                }
+                finally
+                {
+                    RestoreEngineStateAfterSkia();
+                }
+                return;
+            }
+
             try
             {
                 directPass.Target.Surface.Canvas.RestoreToCount(directPass.SaveCount);
@@ -261,7 +318,7 @@ namespace SkiaGameRendering
                 GlSkiaSurfaceFactory.RefreshSharedTexture(_gl, directPass.Gl.AttachmentName);
         }
 
-        private DirectTarget GetBackBufferTarget(GlDrawTarget glTarget)
+        private DirectTarget GetBackBufferTarget(GlDrawTarget glTarget, GRContext grContext)
         {
             var parameters = GraphicsDevice.PresentationParameters;
             var width = parameters.BackBufferWidth;
@@ -282,8 +339,8 @@ namespace SkiaGameRendering
 
             var framebuffer = new GlFramebufferState();
             var (surface, backendRenderTarget) = glTarget.IsDefaultFramebuffer
-                ? GlSkiaSurfaceFactory.CreateDefaultFramebufferSurface(_grContext, _gl, width, height, SKColorType.Rgba8888)
-                : GlSkiaSurfaceFactory.CreateAttachmentSurface(_grContext, _gl, glTarget, width, height,
+                ? GlSkiaSurfaceFactory.CreateDefaultFramebufferSurface(grContext, _gl, width, height, SKColorType.Rgba8888)
+                : GlSkiaSurfaceFactory.CreateAttachmentSurface(grContext, _gl, glTarget, width, height,
                     SKColorType.Rgba8888, out framebuffer, GRSurfaceOrigin.BottomLeft);
             _backBufferTarget = new DirectTarget
             {
@@ -349,6 +406,28 @@ namespace SkiaGameRendering
             target.RenderTarget.Dispose();
             if (glUsable)
                 GlSkiaSurfaceFactory.DisposeRenderState(_gl, target.Framebuffer, keepColor: true);
+        }
+
+        /// <summary>
+        /// Frees the back buffer surface and the GRContext that live on the engine's context, while the engine's
+        /// context is current (Dispose runs on the engine's thread). Abandoned, with no GL calls, once the
+        /// engine's device is gone.
+        /// </summary>
+        private void DisposeEngineContextResources()
+        {
+            if (_engineGrContext == null)
+                return;
+
+            if (GraphicsDevice is not { IsDisposed: false })
+                _engineGrContext.AbandonContext();
+            if (_backBufferTarget != null)
+            {
+                _backBufferTarget.Surface.Dispose();
+                _backBufferTarget.RenderTarget.Dispose();
+                _backBufferTarget = null;
+            }
+            _engineGrContext.Dispose();
+            _engineGrContext = null;
         }
 
         /// <summary>Frees the surfaces and FBOs <see cref="SkiaDirectCanvas"/> cached. Runs inside <see cref="Dispose"/>'s <see cref="RunOnSkiaContext"/>.</summary>
