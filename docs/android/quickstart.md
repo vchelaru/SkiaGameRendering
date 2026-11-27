@@ -40,10 +40,12 @@ API, so no reflection). The Skia context runs surfaceless where the driver allow
 host's draw surface otherwise; `SkiaAndroidBackend.Description` says which.
 
 `SkiaDirectCanvas` works here too. On a bound `RenderTarget2D`, Skia draws straight into the target's
-texture or multisampled renderbuffer. On the back buffer, Skia draws into a back-buffer-sized texture of
-its own, which `End()` composites over the back buffer with a `SpriteBatch`. Making Skia's context current on the
-window surface as well, which is how the other GL platforms draw to the back buffer, lost a layer about once in 130 passes on
-the CI emulator ([#414](https://github.com/vchelaru/SkiaGameRendering/issues/414)). Drawing through a texture keeps Skia's context off the window, and the same check then passed 2000 times in a row.
+texture or multisampled renderbuffer. On the back buffer with GLES 3, Skia draws into a back-buffer-sized GL
+texture of its own, and `End()` blends it over the back buffer with one full-screen draw on the engine's
+context, putting back every GL state it changes. Making Skia's context current on the window surface as
+well, which is how the other GL platforms draw to the back buffer, lost a layer about once in 130 passes on
+the CI emulator ([#414](https://github.com/vchelaru/SkiaGameRendering/issues/414)). On GLES 2 the back
+buffer pass still does that.
 
 ## Verified
 
