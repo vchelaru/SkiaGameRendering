@@ -39,9 +39,13 @@ and Skia draws into an FBO around the `RenderTarget2D`'s GL texture (`GetSharedH
 API, so no reflection). The Skia context runs surfaceless where the driver allows it and on the
 host's draw surface otherwise; `SkiaAndroidBackend.Description` says which.
 
-`SkiaDirectCanvas` works here too. A surfaceless context has no default framebuffer, so for direct
-drawing the Skia context is made current on KNI's current window surface, read again on every
-`Begin()` because KNI recreates it when the app resumes.
+`SkiaDirectCanvas` works here too. On a bound `RenderTarget2D`, Skia's surfaceless context draws
+into an FBO around the target's texture or multisampled renderbuffer. On the back buffer, Skia draws
+on KNI's own context, with a second `GRContext` created there, and afterwards KNI is made to apply all
+of its cached GL state again (reflection on KNI internals, `KniAndroidStateInvalidation`). Making
+Skia's context current on KNI's window surface instead lost a finished layer about once in 130 passes
+on the CI emulator, since two contexts were current on one window surface
+([#414](https://github.com/vchelaru/SkiaGameRendering/issues/414)).
 
 ## Verified
 
@@ -56,7 +60,8 @@ Run with `Sample.Kni.Android`'s smoke test
 | Emulator, x86_64 image, `-gpu host` | 15 (API 35) | Host GPU through the emulator's GLES translator | 3.1 | Pass, surfaceless |
 | CI emulator, Pixel 6 x86_64 image, `-gpu swiftshader_indirect` | 15 (API 35) | SwiftShader (software) | 3 | Pass, surfaceless |
 
-The smoke test also checks `SkiaDirectCanvas` on the back buffer, a plain render target and a 4x MSAA
+The smoke test also checks `SkiaDirectCanvas` on the back buffer (500 times, which catches the
+#414 rate 98% of the time), a plain render target and a 4x MSAA
 one (`tests/Shared/DirectDrawLayering.cs`), logging each result under `SkiaSample`. Those checks
 came after the two phones above were tested, so only the emulators have run them. CI's `android` job
 runs the whole smoke test, 4x MSAA included, on the SwiftShader emulator on every PR.
