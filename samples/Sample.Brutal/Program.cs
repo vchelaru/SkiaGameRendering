@@ -30,9 +30,8 @@ if (asyncViaLayerSettings)
 Instance instance;
 unsafe
 {
-    // macOS: Skia exports the MTLDevice and the MTLCommandQueue, which the instance must be created for.
-    var exportQueue = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalCommandQueue);
-    var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice, (IntPtr)(&exportQueue));
+    // macOS: Skia exports the MTLDevice, which the instance must be created for.
+    var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice);
     instance = Vulkan.CreateInstance(new Instance.CreateInfo
     {
         AppInfo = new VkApplicationInfo { ApiVersion = 1 << 22 | 3 << 12 },
@@ -54,10 +53,13 @@ int exitCode = 0;
 unsafe
 {
     var priority = 1.0f;
+    // macOS: the timeline semaphore that orders Skia's Metal queue against this queue.
+    var features12 = new VkPhysicalDeviceVulkan12Features { TimelineSemaphore = true };
     using var device = physicalDevice.CreateDevice(new Device.CreateInfo
     {
         // MoltenVK is a portability driver, and Skia's Metal path exports objects through VK_EXT_metal_objects.
         Extensions = isMac ? ["VK_KHR_portability_subset", VkMetalObjectExport.ExtensionName] : [],
+        Next = isMac ? &features12 : null,
         QueueCreateInfos =
         [
             new VkDeviceQueueCreateInfo { QueueFamilyIndex = queueFamily, QueueCount = 1, QueuePriorities = &priority },

@@ -134,6 +134,21 @@ static class RaceTest
             $"Begin..End CPU ms/frame mean {skiaMs.Average():F3} (halves {skiaMs[..half].Average():F3} / {skiaMs[half..].Average():F3}), " +
             $"median {sorted[Frames / 2]:F3}; loop ms/frame incl. GPU {loopMs:F3} ({Frames} frames, {Scene.Width}x{Scene.Height} Scene)");
 
+        // The fixed cost of a pass on its own: empty Begin/End, nothing drawn (on macOS, the ordering's submits and command buffers).
+        var emptyMs = new double[Frames];
+        var wall = Stopwatch.StartNew();
+        for (var i = 0; i < Frames; i++)
+        {
+            var t0 = Stopwatch.GetTimestamp();
+            target.Begin(clear: false);
+            target.End();
+            emptyMs[i] = Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
+        }
+        Ok(vkDeviceWaitIdle(device), "vkDeviceWaitIdle");
+        var emptyWall = wall.Elapsed.TotalMilliseconds / Frames;
+        Array.Sort(emptyMs);
+        Console.WriteLine($"empty Begin/End: CPU ms/pass mean {emptyMs.Average():F4}, median {emptyMs[Frames / 2]:F4}; wall incl. GPU {emptyWall:F4} ({Frames} passes)");
+
         vkDestroyCommandPool(device, pool, IntPtr.Zero);
         vkFreeMemory(device, memory, IntPtr.Zero);
         vkDestroyBuffer(device, buffer, IntPtr.Zero);
