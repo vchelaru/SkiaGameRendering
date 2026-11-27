@@ -95,10 +95,6 @@ namespace SkiaGameRendering
         internal void DisposeRenderState(GlFramebufferState renderState) =>
             GlSkiaSurfaceFactory.DisposeRenderState(Gl, renderState);
 
-        /// <summary>Frees a direct-draw FBO while raylib keeps the texture it drew into.</summary>
-        internal void DisposeAttachmentRenderState(GlFramebufferState renderState) =>
-            GlSkiaSurfaceFactory.DisposeRenderState(Gl, renderState, keepColor: true);
-
         // --- SkiaDirectCanvas ---
 
         /// <summary>
@@ -118,15 +114,18 @@ namespace SkiaGameRendering
             GlSkiaSurfaceFactory.CreateDefaultFramebufferSurface(GrContext, Gl, width, height, SKColorType.Rgba8888);
 
         /// <summary>
-        /// Wraps the color attachment of raylib's bound framebuffer in an FBO on Skia's context. raylib draws
-        /// into a <c>RenderTexture2D</c> with the same top-down projection it uses for the window, which puts
-        /// its y = 0 in the last texel row, so the surface is <see cref="GRSurfaceOrigin.BottomLeft"/> like
-        /// the back buffer.
+        /// The cached surface over the color attachment of raylib's bound framebuffer, an FBO on Skia's context. Call it
+        /// on Skia's context. raylib draws into a <c>RenderTexture2D</c> with the same top-down projection it uses for
+        /// the window, which puts its y = 0 in the last texel row, so the surface is
+        /// <see cref="GRSurfaceOrigin.BottomLeft"/> like the back buffer.
         /// </summary>
-        internal (SKSurface surface, GRBackendRenderTarget renderTarget) CreateAttachmentSurface(
-            GlDrawTarget target, int width, int height, out GlFramebufferState renderState) =>
-            GlSkiaSurfaceFactory.CreateAttachmentSurface(GrContext, Gl, target, width, height, SKColorType.Rgba8888,
-                out renderState, GRSurfaceOrigin.BottomLeft);
+        internal SKSurface GetAttachmentSurface(GlAttachmentSurfaceCache cache, GlDrawTarget target, int width, int height,
+            out GlFramebufferState renderState) =>
+            cache.Get(GrContext, Gl, target, width, height, GRSurfaceOrigin.BottomLeft, out renderState);
+
+        /// <summary>Frees <paramref name="cache"/>'s surfaces; pass false once the window is closed. Call it on Skia's context.</summary>
+        internal void ClearAttachmentSurfaces(GlAttachmentSurfaceCache cache, bool contextAlive) =>
+            cache.Clear(contextAlive ? Gl : null);
 
         private GRContext GrContext => _grContext ?? throw new InvalidOperationException("SkiaRaylibContext.Initialize was not called.");
         private GlFunctions Gl => _gl ?? throw new InvalidOperationException("SkiaRaylibContext.Initialize was not called.");

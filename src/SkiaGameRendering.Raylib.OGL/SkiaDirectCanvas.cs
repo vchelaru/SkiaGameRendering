@@ -29,12 +29,13 @@ namespace SkiaGameRendering
         private readonly SkiaRaylibContext _context;
 
         // The window's back buffer surface, reused across passes until the window's size changes. A render
-        // texture's is built for each pass instead: raylib gives no notice when one is unloaded, and the next
-        // one it loads can get the same GL names, so a cached FBO could keep drawing into the unloaded texture.
+        // texture's is reused through _framebufferSurfaces. raylib gives no notice when one is unloaded and the next
+        // one can get the same GL names, so the cache attaches the texture again on every pass.
         private SKSurface? _backBufferSurface;
         private GRBackendRenderTarget? _backBufferRenderTarget;
         private int _backBufferWidth;
         private int _backBufferHeight;
+        private readonly GlAttachmentSurfaceCache _framebufferSurfaces = new();
 
         // The pass in progress, or null. It is always _passState, reused for every pass so that a game's
         // Begin/End each frame allocates nothing; _backBufferFramebuffer (FBO 0) is reused the same way.
@@ -48,17 +49,12 @@ namespace SkiaGameRendering
             internal SKSurface Surface = null!;
             internal int SaveCount;
             internal GlDrawTarget Gl;
-            // Only for a render texture: the per-pass objects End frees.
-            internal GRBackendRenderTarget? RenderTarget;
-            internal GlFramebufferState? Framebuffer;
 
             internal void Reset(GlDrawTarget gl)
             {
                 Surface = null!;
                 SaveCount = 0;
                 Gl = gl;
-                RenderTarget = null;
-                Framebuffer = null;
             }
         }
 
@@ -128,10 +124,7 @@ namespace SkiaGameRendering
                 }
                 else
                 {
-                    var (surface, renderTarget) = _context.CreateAttachmentSurface(glTarget, width, height, out framebuffer);
-                    pass.Surface = surface;
-                    pass.RenderTarget = renderTarget;
-                    pass.Framebuffer = framebuffer;
+                    pass.Surface = _context.GetAttachmentSurface(_framebufferSurfaces, glTarget, width, height, out framebuffer);
                 }
 
                 _context.BindForDrawing(framebuffer);
@@ -139,7 +132,6 @@ namespace SkiaGameRendering
             }
             catch
             {
-                DisposePassObjects(pass);
                 _context.UnbindAfterDrawing();
                 _context.EndDraw();
                 throw;
@@ -166,7 +158,6 @@ namespace SkiaGameRendering
             {
                 try
                 {
-                    DisposePassObjects(pass);
                     // Also a glFlush, so raylib's later draws land on top of Skia's.
                     _context.UnbindAfterDrawing();
                 }
@@ -193,18 +184,6 @@ namespace SkiaGameRendering
             return _backBufferSurface;
         }
 
-        /// <summary>Frees a render texture pass's surface and FBO. Skia's context must be current.</summary>
-        private void DisposePassObjects(Pass pass)
-        {
-            if (pass.RenderTarget == null)
-                return;
-
-            pass.Surface?.Dispose();
-            pass.RenderTarget.Dispose();
-            if (pass.Framebuffer != null)
-                _context.DisposeAttachmentRenderState(pass.Framebuffer);
-        }
-
         private void DisposeBackBufferSurface()
         {
             _backBufferSurface?.Dispose();
@@ -222,8 +201,12 @@ namespace SkiaGameRendering
                 throw new InvalidOperationException("Dispose cannot be called between Begin and End; call End first.");
 
             _isDisposed = true;
-            if (_backBufferSurface != null)
-                _context.RunOnSkiaContext(_ => DisposeBackBufferSurface());
+            if (_backBufferSurface != null || _framebufferSurfaces.Count > 0)
+                _context.RunOnSkiaContext(contextAlive =>
+                {
+                    DisposeBackBufferSurface();
+                    _context.ClearAttachmentSurfaces(_framebufferSurfaces, contextAlive);
+                });
         }
     }
 }

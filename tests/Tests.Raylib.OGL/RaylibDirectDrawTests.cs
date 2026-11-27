@@ -50,7 +50,7 @@ public sealed class RaylibDirectDrawTests
         {
             using var direct = new SkiaDirectCanvas();
             // Twice, each with a fresh render texture: the second one usually gets the first one's GL
-            // names, which a cached Skia FBO would mistake for the unloaded texture.
+            // names, so the cached Skia FBO must attach the new texture rather than keep the unloaded one.
             for (var i = 0; i < 2; i++)
             {
                 var renderTexture = RaylibApi.LoadRenderTexture(Size, Size);
