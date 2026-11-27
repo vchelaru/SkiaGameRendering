@@ -31,8 +31,11 @@ public sealed class SkiaDirectCanvas : IDisposable
     private readonly SkiaRaylibWebContext _context;
 
     // The canvas's surface, reused across passes until its size, sample count or stencil bits change. A render
-    // texture's is built for each pass instead: raylib gives no notice when one is unloaded, and the next
-    // one it loads can get the same GL names, so a cached FBO could keep drawing into the unloaded texture.
+    // texture's is kept in _framebufferSurfaces, keyed on raylib's framebuffer, its color attachment and the size.
+    // raylib gives no notice when one is unloaded and the next one could get the same ids, so each hit attaches the
+    // color again. At most MaxCachedSurfaces are kept; a new one past that frees them all first.
+    private const int MaxCachedSurfaces = 8;
+    private readonly Dictionary<(int framebuffer, int kind, int color, int width, int height), CachedSurface> _framebufferSurfaces = new();
     private SKSurface? _backBufferSurface;
     private GRBackendRenderTarget? _backBufferRenderTarget;
     private int _backBufferWidth;
@@ -40,16 +43,21 @@ public sealed class SkiaDirectCanvas : IDisposable
     private int _backBufferSamples;
     private int _backBufferStencil;
 
+    // The pass in progress, or null. It is always _passState, reused so a game's Begin/End each frame allocates nothing.
     private Pass? _pass;
+    private readonly Pass _passState = new();
     private bool _isDisposed;
 
     private sealed class Pass
     {
         internal SKSurface Surface = null!;
         internal int SaveCount;
-        internal bool OwnsSurface;
-        // Only for a render texture: the per-pass objects End frees.
-        internal GRBackendRenderTarget? RenderTarget;
+    }
+
+    private sealed class CachedSurface
+    {
+        internal SKSurface Surface = null!;
+        internal GRBackendRenderTarget RenderTarget = null!;
         internal int FramebufferId;
         internal int RenderbufferHandle;
     }
@@ -84,7 +92,8 @@ public sealed class SkiaDirectCanvas : IDisposable
         Rlgl.DrawRenderBatchActive();
 
         var info = _context.BeginPass();
-        var pass = new Pass();
+        var pass = _passState;
+        pass.SaveCount = 0;
         try
         {
             if (info[0] == 0)
@@ -99,22 +108,13 @@ public sealed class SkiaDirectCanvas : IDisposable
                 if (width <= 0 || height <= 0)
                     throw new InvalidOperationException($"raylib's current target is {width}x{height}.");
 
-                var framebuffer = WebGlInterop.CreateAttachmentFramebuffer(width, height);
-                pass.FramebufferId = framebuffer[0];
-                pass.RenderbufferHandle = framebuffer[1];
-                // raylib draws into a render texture with the same top-down projection it uses for the canvas,
-                // which puts its y = 0 in the last texel row, so the surface is BottomLeft like the back buffer.
-                pass.Surface = _context.WrapFramebuffer(pass.FramebufferId, width, height, 0, 8,
-                    GRSurfaceOrigin.BottomLeft, out var renderTarget);
-                pass.RenderTarget = renderTarget;
-                pass.OwnsSurface = true;
+                pass.Surface = GetFramebufferSurface((info[0], info[5], info[6], width, height));
             }
 
             pass.SaveCount = pass.Surface.Canvas.Save();
         }
         catch
         {
-            DisposePassObjects(pass);
             _context.EndPass();
             throw;
         }
@@ -138,14 +138,7 @@ public sealed class SkiaDirectCanvas : IDisposable
         }
         finally
         {
-            try
-            {
-                DisposePassObjects(pass);
-            }
-            finally
-            {
-                _context.EndPass();
-            }
+            _context.EndPass();
         }
     }
 
@@ -166,17 +159,45 @@ public sealed class SkiaDirectCanvas : IDisposable
         return _backBufferSurface;
     }
 
-    /// <summary>Frees a render texture pass's surface and framebuffer; raylib keeps the texture it drew into.</summary>
-    private static void DisposePassObjects(Pass pass)
+    private SKSurface GetFramebufferSurface((int framebuffer, int kind, int color, int width, int height) key)
     {
-        if (pass.OwnsSurface)
-            pass.Surface.Dispose();
-        pass.OwnsSurface = false;
-        pass.RenderTarget?.Dispose();
-        pass.RenderTarget = null;
-        if (pass.FramebufferId != 0)
-            WebGlInterop.DeleteFramebuffer(pass.FramebufferId, pass.RenderbufferHandle);
-        pass.FramebufferId = 0;
+        if (_framebufferSurfaces.TryGetValue(key, out var cached))
+        {
+            WebGlInterop.AttachColor(cached.FramebufferId);
+            return cached.Surface;
+        }
+
+        if (_framebufferSurfaces.Count >= MaxCachedSurfaces)
+            ReleaseFramebufferSurfaces();
+
+        var framebuffer = WebGlInterop.CreateAttachmentFramebuffer(key.width, key.height);
+        var entry = new CachedSurface { FramebufferId = framebuffer[0], RenderbufferHandle = framebuffer[1] };
+        try
+        {
+            // raylib draws into a render texture with the same top-down projection it uses for the canvas,
+            // which puts its y = 0 in the last texel row, so the surface is BottomLeft like the back buffer.
+            entry.Surface = _context.WrapFramebuffer(entry.FramebufferId, key.width, key.height, 0, 8,
+                GRSurfaceOrigin.BottomLeft, out entry.RenderTarget);
+        }
+        catch
+        {
+            WebGlInterop.DeleteFramebuffer(entry.FramebufferId, entry.RenderbufferHandle);
+            throw;
+        }
+        _framebufferSurfaces.Add(key, entry);
+        return entry.Surface;
+    }
+
+    /// <summary>Frees the cached render texture surfaces and their framebuffers; raylib keeps the textures.</summary>
+    private void ReleaseFramebufferSurfaces()
+    {
+        foreach (var entry in _framebufferSurfaces.Values)
+        {
+            entry.Surface.Dispose();
+            entry.RenderTarget.Dispose();
+            WebGlInterop.DeleteFramebuffer(entry.FramebufferId, entry.RenderbufferHandle);
+        }
+        _framebufferSurfaces.Clear();
     }
 
     private void DisposeBackBufferSurface()
@@ -196,5 +217,6 @@ public sealed class SkiaDirectCanvas : IDisposable
 
         _isDisposed = true;
         DisposeBackBufferSurface();
+        ReleaseFramebufferSurfaces();
     }
 }

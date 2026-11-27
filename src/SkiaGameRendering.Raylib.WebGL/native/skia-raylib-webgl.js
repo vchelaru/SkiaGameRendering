@@ -46,6 +46,7 @@ globalThis.skiaRaylibWebGl = (function () {
     let errors = 0;
     const errorLog = [];
     let passes = 0;
+    let attachmentFramebuffersCreated = 0;
 
     function context() {
         const current = GL.currentContext;
@@ -205,9 +206,9 @@ globalThis.skiaRaylibWebGl = (function () {
         },
 
         // Saves raylib's GL state. Returns [framebufferId, drawingBufferWidth, drawingBufferHeight, samples,
-        // stencilBits, attachmentKind] where framebufferId is the draw framebuffer raylib is rendering into
-        // (0 for the canvas) and attachmentKind is 0 for none, 1 texture, 2 renderbuffer. samples and stencilBits
-        // describe the canvas, and are 0 for a framebuffer object.
+        // stencilBits, attachmentKind, colorId] where framebufferId is the draw framebuffer raylib is rendering into
+        // (0 for the canvas), attachmentKind is 0 for none, 1 texture, 2 renderbuffer, and colorId is the color
+        // attachment's Emscripten id. samples and stencilBits describe the canvas, and are 0 for a framebuffer object.
         beginPass() {
             const gl = context().GLctx;
             if (saved)
@@ -218,12 +219,17 @@ globalThis.skiaRaylibWebGl = (function () {
             saved = save(gl);
             const id = framebufferId(saved.draw);
             let kind = 0;
+            saved.color = null;
             if (saved.draw) {
                 const type = gl.getFramebufferAttachmentParameter(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_OBJECT_TYPE);
                 kind = type === GL_TEXTURE ? 1 : (type === GL_RENDERBUFFER ? 2 : 0);
+                if (kind !== 0)
+                    saved.color = gl.getFramebufferAttachmentParameter(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_OBJECT_NAME);
             }
+            saved.colorKind = kind;
             return [id, gl.drawingBufferWidth, gl.drawingBufferHeight,
-                saved.draw ? 0 : (gl.getParameter(0x80A9) || 0), saved.draw ? 0 : (gl.getParameter(0x0D57) || 0), kind];
+                saved.draw ? 0 : (gl.getParameter(0x80A9) || 0), saved.draw ? 0 : (gl.getParameter(0x0D57) || 0), kind,
+                saved.color ? (saved.color.name || 0) : 0];
         },
 
         // Puts raylib's GL state back, whatever Skia changed.
@@ -242,12 +248,28 @@ globalThis.skiaRaylibWebGl = (function () {
         // between beginPass and endPass.
         createAttachmentFramebuffer(width, height) {
             const gl = context().GLctx;
-            if (!saved || !saved.draw)
-                throw new Error("raylib is not drawing into a framebuffer object.");
-            const type = gl.getFramebufferAttachmentParameter(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_OBJECT_TYPE);
-            const color = gl.getFramebufferAttachmentParameter(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_OBJECT_NAME);
-            return createFramebuffer(gl, type === GL_TEXTURE ? 0 : 1, color, width, height);
+            if (!saved || !saved.color)
+                throw new Error("raylib is not drawing into a framebuffer object with a texture or renderbuffer.");
+            const result = createFramebuffer(gl, saved.colorKind === 1 ? 0 : 1, saved.color, width, height);
+            attachmentFramebuffersCreated++;
+            return result;
         },
+
+        // Attaches the color of the framebuffer raylib is drawing into to framebuffer id, made above, again, so a
+        // cached one draws into whatever object holds that id now. Only valid between beginPass and endPass.
+        attachColor(id) {
+            const gl = context().GLctx;
+            if (!saved || !saved.color)
+                throw new Error("raylib is not drawing into a framebuffer object with a texture or renderbuffer.");
+            gl.bindFramebuffer(GL_FRAMEBUFFER, GL.framebuffers[id]);
+            if (saved.colorKind === 1)
+                gl.framebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, saved.color, 0);
+            else
+                gl.framebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, saved.color);
+        },
+
+        // How many framebuffers createAttachmentFramebuffer has made, for tests of SkiaDirectCanvas's cache.
+        attachmentFramebuffersCreated() { return attachmentFramebuffersCreated; },
 
         // A framebuffer around raylib's texture textureId, plus a depth/stencil renderbuffer for Skia. Saves and
         // restores the bindings it touches, so it is safe between passes.

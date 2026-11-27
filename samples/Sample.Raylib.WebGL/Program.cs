@@ -85,6 +85,15 @@ public static class Game
         return $"{(mode == "direct" ? "SkiaDirectCanvas" : mode == "raylib" ? "raylib only" : "SkiaRenderTarget2D")} frames {_frames} errors {(_error.Length == 0 ? "none" : _error)}";
     }
 
+    // Tests: unloads the direct-mode render texture and loads a new one, so SkiaDirectCanvas's cached
+    // framebuffer for the old one must not be drawn into.
+    [JSInvokable]
+    public static void RecreateRenderTexture()
+    {
+        Raylib.UnloadRenderTexture(_renderTexture);
+        _renderTexture = Raylib.LoadRenderTexture(160, 120);
+    }
+
     // Tests: what creating a SkiaRenderTarget2D with this SKColorType does.
     [JSInvokable]
     public static string TryColorType(int colorType)
