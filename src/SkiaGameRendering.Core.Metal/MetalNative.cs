@@ -29,6 +29,18 @@ namespace SkiaGameRendering.Core.Metal
         [DllImport(ObjC, EntryPoint = "objc_msgSend")]
         public static extern void SendVoid(IntPtr receiver, IntPtr selector);
 
+        [DllImport(ObjC, EntryPoint = "objc_msgSend")]
+        public static extern IntPtr SendPtr(IntPtr receiver, IntPtr selector);
+
+        [DllImport(ObjC, EntryPoint = "objc_msgSend")]
+        public static extern void SendVoidPtrULong(IntPtr receiver, IntPtr selector, IntPtr arg, ulong value);
+
+        [DllImport(ObjC, EntryPoint = "objc_autoreleasePoolPush")]
+        public static extern IntPtr AutoreleasePoolPush();
+
+        [DllImport(ObjC, EntryPoint = "objc_autoreleasePoolPop")]
+        public static extern void AutoreleasePoolPop(IntPtr pool);
+
         [DllImport(ObjC, EntryPoint = "objc_getProtocol")]
         public static extern IntPtr GetProtocol(string name);
 
@@ -51,6 +63,12 @@ namespace SkiaGameRendering.Core.Metal
         public static readonly IntPtr SelNewTextureView = Selector("newTextureViewWithPixelFormat:");
         public static readonly IntPtr SelRelease = Selector("release");
         public static readonly IntPtr SelConformsToProtocol = Selector("conformsToProtocol:");
+        public static readonly IntPtr SelNewCommandQueue = Selector("newCommandQueue");
+        public static readonly IntPtr SelCommandBuffer = Selector("commandBuffer");
+        public static readonly IntPtr SelCommit = Selector("commit");
+        public static readonly IntPtr SelWaitUntilCompleted = Selector("waitUntilCompleted");
+        public static readonly IntPtr SelEncodeWaitForEvent = Selector("encodeWaitForEvent:value:");
+        public static readonly IntPtr SelEncodeSignalEvent = Selector("encodeSignalEvent:value:");
 
         /// <summary>
         /// Whether <paramref name="obj"/> is an Objective-C object implementing <paramref name="protocol"/>.

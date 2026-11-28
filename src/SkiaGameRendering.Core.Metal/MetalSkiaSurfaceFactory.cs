@@ -94,6 +94,7 @@ namespace SkiaGameRendering.Core.Metal
         const ulong PixelFormatBgra8UnormSrgb = 81;
 
         GRContext _grContext = null!;
+        IntPtr _queue;
 
         public GRContext GRContext => _grContext;
 
@@ -120,6 +121,77 @@ namespace SkiaGameRendering.Core.Metal
 
             _grContext = GRContext.CreateMetal(backendContext)
                 ?? throw new InvalidOperationException("GRContext.CreateMetal failed.");
+            _queue = queue;
+        }
+
+        /// <summary>
+        /// A new <c>id&lt;MTLCommandQueue&gt;</c> on <paramref name="device"/>, retained: the caller sends it
+        /// <c>release</c> (<see cref="ReleaseObject"/>) once the factory using it is disposed.
+        /// </summary>
+        public static IntPtr NewCommandQueue(IntPtr device)
+        {
+            if (device == IntPtr.Zero)
+                throw new ArgumentException("MTLDevice native pointer is null.", nameof(device));
+            var queue = MetalNative.SendPtr(device, MetalNative.SelNewCommandQueue);
+            return queue != IntPtr.Zero ? queue : throw new InvalidOperationException("[MTLDevice newCommandQueue] returned nil.");
+        }
+
+        /// <summary>Sends <c>release</c> to an Objective-C object this caller owns.</summary>
+        public static void ReleaseObject(IntPtr obj)
+        {
+            if (obj != IntPtr.Zero)
+                MetalNative.SendVoid(obj, MetalNative.SelRelease);
+        }
+
+        /// <summary>
+        /// Commits a command buffer on Skia's queue that holds everything committed after it on that queue until
+        /// <paramref name="sharedEvent"/> (an <c>id&lt;MTLSharedEvent&gt;</c>) reaches <paramref name="value"/>.
+        /// Commit it before the Skia work it guards.
+        /// </summary>
+        public void CommitWait(IntPtr sharedEvent, ulong value) => CommitEvent(MetalNative.SelEncodeWaitForEvent, sharedEvent, value);
+
+        /// <summary>
+        /// Commits a command buffer on Skia's queue that sets <paramref name="sharedEvent"/> to <paramref name="value"/>
+        /// once everything committed before it on that queue has run.
+        /// </summary>
+        public void CommitSignal(IntPtr sharedEvent, ulong value) => CommitEvent(MetalNative.SelEncodeSignalEvent, sharedEvent, value);
+
+        /// <summary>Blocks until everything committed so far on Skia's queue has finished on the GPU.</summary>
+        public void WaitForQueue()
+        {
+            var pool = MetalNative.AutoreleasePoolPush();
+            try
+            {
+                var commandBuffer = NewCommandBuffer();
+                MetalNative.SendVoid(commandBuffer, MetalNative.SelCommit);
+                MetalNative.SendVoid(commandBuffer, MetalNative.SelWaitUntilCompleted);
+            }
+            finally
+            {
+                MetalNative.AutoreleasePoolPop(pool);
+            }
+        }
+
+        void CommitEvent(IntPtr selector, IntPtr sharedEvent, ulong value)
+        {
+            // [queue commandBuffer] is autoreleased, and a .NET thread has no pool that drains; the queue retains a committed buffer.
+            var pool = MetalNative.AutoreleasePoolPush();
+            try
+            {
+                var commandBuffer = NewCommandBuffer();
+                MetalNative.SendVoidPtrULong(commandBuffer, selector, sharedEvent, value);
+                MetalNative.SendVoid(commandBuffer, MetalNative.SelCommit);
+            }
+            finally
+            {
+                MetalNative.AutoreleasePoolPop(pool);
+            }
+        }
+
+        IntPtr NewCommandBuffer()
+        {
+            var commandBuffer = MetalNative.SendPtr(_queue, MetalNative.SelCommandBuffer);
+            return commandBuffer != IntPtr.Zero ? commandBuffer : throw new InvalidOperationException("[MTLCommandQueue commandBuffer] returned nil.");
         }
 
         /// <summary>

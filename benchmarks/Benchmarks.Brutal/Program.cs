@@ -49,7 +49,9 @@ Device device;
 unsafe
 {
     var priority = 1.0f;
-    var features13 = new VkPhysicalDeviceVulkan13Features { DynamicRendering = true }; // for --direct's sampling pass
+    // macOS with asynchronous submits: the timeline semaphore that orders Skia's Metal queue against this queue.
+    var features12 = new VkPhysicalDeviceVulkan12Features { TimelineSemaphore = true };
+    var features13 = new VkPhysicalDeviceVulkan13Features { DynamicRendering = true, Next = &features12 }; // for --direct's sampling pass
     device = physicalDevice.CreateDevice(new Device.CreateInfo
     {
         Extensions = isMac ? ["VK_KHR_portability_subset", VkMetalObjectExport.ExtensionName] : [],

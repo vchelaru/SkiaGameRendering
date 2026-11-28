@@ -32,10 +32,13 @@ namespace SkiaGameRendering
     /// moved to once at creation (COLOR_ATTACHMENT_OPTIMAL instead of SHADER_READ_ONLY_OPTIMAL), to match the app's barriers.
     /// </para>
     /// <para>
-    /// <b>macOS.</b> Skia draws with Metal into the image's exported <c>MTLTexture</c> on the queue's <c>MTLCommandQueue</c>
-    /// (see <see cref="SkiaVulkanContext"/>). The image moves from UNDEFINED to its contract layout once at creation and
-    /// never again: MoltenVK keeps layouts as bookkeeping only, and Metal's hazard tracking plus submit order on the shared
-    /// queue order Skia's writes against the app's reads. <c>multiSampleCount</c> above 0 throws <see cref="NotSupportedException"/> there.
+    /// <b>macOS.</b> Skia draws with Metal into the image's exported <c>MTLTexture</c> (see <see cref="SkiaVulkanContext"/>).
+    /// The image moves from UNDEFINED to its contract layout once at creation and never again, since MoltenVK keeps
+    /// layouts as bookkeeping only. With MoltenVK's synchronous submits, Metal's hazard tracking plus submit order on the
+    /// shared queue order Skia's writes against the app's reads. With asynchronous submits <see cref="Begin"/> and
+    /// <see cref="End"/> each queue an empty submit on the context's queue instead: Skia's writes wait for the app's
+    /// earlier submits, and the app's later submits wait for Skia's writes. <c>multiSampleCount</c> above 0 throws
+    /// <see cref="NotSupportedException"/> there.
     /// </para>
     /// <para>
     /// <b>multiSampleCount.</b> With 2, 4 or 8, Skia draws into a second, multisampled image this object owns, and
@@ -169,7 +172,11 @@ namespace SkiaGameRendering
                 throw new InvalidOperationException("Begin cannot be called again until End has been called.");
 
             if (_metal)
+            {
+                if (_context.OrdersMetalWithSemaphore)
+                    _context.OrderMetalAfterQueue();
                 _context.MetalFactory!.BeginDraw();
+            }
             else
             {
                 if (!_appManagesLayout && _multiSampled.Image == 0)
@@ -198,9 +205,15 @@ namespace SkiaGameRendering
                 }
                 finally
                 {
-                    _context.MetalFactory!.EndDraw(synchronous);
+                    var ordered = _context.OrdersMetalWithSemaphore;
+                    // With the semaphore, synchronous waits below, on the queue submit that runs after Skia's work.
+                    _context.MetalFactory!.EndDraw(synchronous && !ordered);
                     _hasBegun = false;
+                    if (ordered)
+                        _context.OrderQueueAfterMetal();
                 }
+                if (synchronous && _context.OrdersMetalWithSemaphore)
+                    _context.Transitioner.WaitForCompletion();
                 return;
             }
 

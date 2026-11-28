@@ -7,7 +7,7 @@ namespace Tests.CoreVK;
 /// <summary>
 /// <see cref="VkMetalObjectExport"/>, the MoltenVK path Skia uses on macOS. The export itself needs MoltenVK, so
 /// these cover what runs anywhere: the struct layouts against the Vulkan headers, the refusal on a device without
-/// <c>VK_EXT_metal_objects</c>, and the synchronous-submit check.
+/// <c>VK_EXT_metal_objects</c>, and the asynchronous-submit check.
 /// </summary>
 public sealed class VkMetalObjectExportTests
 {
@@ -23,6 +23,9 @@ public sealed class VkMetalObjectExportTests
         Assert.Equal(40, (int)Marshal.OffsetOf<VkMetalObjectExport.ExportMetalTextureInfo>("plane"));
         Assert.Equal(48, (int)Marshal.OffsetOf<VkMetalObjectExport.ExportMetalTextureInfo>("mtlTexture"));
         Assert.Equal(56, Marshal.SizeOf<VkMetalObjectExport.ExportMetalTextureInfo>());
+        Assert.Equal(16, (int)Marshal.OffsetOf<VkMetalObjectExport.ExportMetalSharedEventInfo>("semaphore"));
+        Assert.Equal(32, (int)Marshal.OffsetOf<VkMetalObjectExport.ExportMetalSharedEventInfo>("mtlSharedEvent"));
+        Assert.Equal(40, Marshal.SizeOf<VkMetalObjectExport.ExportMetalSharedEventInfo>());
     }
 
     [Fact]
@@ -38,15 +41,12 @@ public sealed class VkMetalObjectExportTests
     [InlineData("0")]
     [InlineData(" 0 ")]
     [InlineData("false")]
-    public void AsynchronousQueueSubmits_Throws(string value)
-    {
-        var error = Assert.Throws<NotSupportedException>(() => VkMetalObjectExport.ThrowIfAsynchronousQueueSubmits(value));
-        Assert.Contains(VkMetalObjectExport.SynchronousQueueSubmitsVariable, error.Message);
-    }
+    public void SynchronousSubmitsOff_IsAsynchronous(string value) =>
+        Assert.True(VkMetalObjectExport.AsynchronousQueueSubmits(value));
 
     [Theory]
     [InlineData(null)]
     [InlineData("1")]
-    public void SynchronousQueueSubmits_Passes(string? value) =>
-        VkMetalObjectExport.ThrowIfAsynchronousQueueSubmits(value);
+    public void SynchronousSubmitsOnOrUnset_IsNot(string? value) =>
+        Assert.False(VkMetalObjectExport.AsynchronousQueueSubmits(value));
 }

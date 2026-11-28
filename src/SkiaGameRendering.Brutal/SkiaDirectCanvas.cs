@@ -53,7 +53,9 @@ namespace SkiaGameRendering
     /// <b>macOS (MoltenVK).</b> Skia draws with Metal into the <c>MTLTexture</c> behind the image, exported with
     /// <c>VK_EXT_metal_objects</c> at every <see cref="Begin"/> (a swapchain image's texture is the current
     /// <c>CAMetalDrawable</c>'s, so call <see cref="Begin"/> after <c>vkAcquireNextImageKHR</c>). The layout moves and
-    /// submit order above still hold. Two extra rules. The swapchain needs <c>TRANSFER_SRC</c>, <c>SAMPLED</c> or
+    /// submit order above still hold; with MoltenVK's asynchronous submits Skia draws on its own <c>MTLCommandQueue</c>,
+    /// and the two layout moves also carry the timeline semaphore waits that order it against the context's queue
+    /// (see <see cref="SkiaVulkanContext"/>). Two extra rules. The swapchain needs <c>TRANSFER_SRC</c>, <c>SAMPLED</c> or
     /// <c>STORAGE</c> in its <c>imageUsage</c>, or MoltenVK makes its textures <c>framebufferOnly</c>, which Skia's
     /// Metal backend cannot draw every blend mode into, and <see cref="Begin"/> throws. And exporting a swapchain image's
     /// texture breaks the Vulkan spec: the image wasn't created with <c>VkExportMetalObjectCreateInfoEXT</c>, which a
@@ -149,16 +151,23 @@ namespace SkiaGameRendering
             };
 
             // Any earlier command on the queue may have written the image; the move makes those writes visible to Skia's.
+            // On macOS with asynchronous submits the same submit signals the value Skia's Metal work waits for.
+            var metalOrderValue = _context.OrdersMetalWithSemaphore ? _context.NextMetalOrderValue() : 0;
             var fromUndefined = currentLayout == VkConstants.ImageLayoutUndefined;
             _context.Transitioner.Transition(
                 vkImage, currentLayout, VkConstants.ImageLayoutColorAttachmentOptimal,
                 srcStageMask: fromUndefined ? VkConstants.PipelineStageTopOfPipe : PipelineStageAllCommands,
                 srcAccessMask: fromUndefined ? 0u : AccessMemoryWrite,
                 dstStageMask: VkConstants.PipelineStageColorAttachmentOutput,
-                dstAccessMask: AccessColorAttachmentRead | VkConstants.AccessColorAttachmentWrite);
+                dstAccessMask: AccessColorAttachmentRead | VkConstants.AccessColorAttachmentWrite,
+                timelineSemaphore: metalOrderValue != 0 ? _context.MetalOrderSemaphore : 0, signalValue: metalOrderValue);
 
             if (_context.MetalFactory is { } metal)
+            {
+                if (metalOrderValue != 0)
+                    _context.CommitMetalWait(metalOrderValue);
                 BeginMetal(metal, vkImage, width, height, currentLayout);
+            }
             else
             {
                 _context.Factory.BeginDraw();
@@ -249,8 +258,9 @@ namespace SkiaGameRendering
             {
                 try
                 {
+                    // macOS with the semaphore: synchronous waits on the move below, which runs after Skia's work.
                     if (_context.MetalFactory is { } metal)
-                        metal.EndDraw(synchronous);
+                        metal.EndDraw(synchronous && !_context.OrdersMetalWithSemaphore);
                     else
                         _context.Factory.EndDraw(synchronous);
                 }
@@ -269,13 +279,21 @@ namespace SkiaGameRendering
                     _hasBegun = false;
                 }
             }
-            MoveTo(_image, layout);
+            // On macOS with asynchronous submits the move waits for Skia's Metal work, and so does everything the app
+            // submits after it.
+            var metalOrderValue = 0ul;
+            if (_context.OrdersMetalWithSemaphore)
+            {
+                metalOrderValue = _context.NextMetalOrderValue();
+                _context.CommitMetalSignal(metalOrderValue);
+            }
+            MoveTo(_image, layout, metalOrderValue);
             if (synchronous)
                 _context.Transitioner.WaitForCompletion();
         }
 
         // COLOR_ATTACHMENT_OPTIMAL to the app's layout: Skia's color writes become visible to everything after.
-        void MoveTo(ulong image, uint layout)
+        void MoveTo(ulong image, uint layout, ulong metalOrderWait = 0)
         {
             var present = layout == ImageLayoutPresentSrcKhr;
             _context.Transitioner.Transition(
@@ -283,7 +301,8 @@ namespace SkiaGameRendering
                 srcStageMask: VkConstants.PipelineStageColorAttachmentOutput,
                 srcAccessMask: VkConstants.AccessColorAttachmentWrite,
                 dstStageMask: present ? VkConstants.PipelineStageBottomOfPipe : PipelineStageAllCommands,
-                dstAccessMask: present ? 0u : AccessMemoryRead | AccessMemoryWrite);
+                dstAccessMask: present ? 0u : AccessMemoryRead | AccessMemoryWrite,
+                timelineSemaphore: metalOrderWait != 0 ? _context.MetalOrderSemaphore : 0, waitValue: metalOrderWait);
         }
 
         /// <summary>

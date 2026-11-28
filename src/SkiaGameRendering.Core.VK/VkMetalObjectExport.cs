@@ -4,15 +4,17 @@ namespace SkiaGameRendering.Core.VK
 {
     /// <summary>
     /// <c>VK_EXT_metal_objects</c> on MoltenVK: exports the <c>id&lt;MTLDevice&gt;</c>, the
-    /// <c>id&lt;MTLCommandQueue&gt;</c> behind a <c>VkQueue</c>, and the <c>id&lt;MTLTexture&gt;</c> behind a
-    /// <c>VkImage</c>, so Skia's Metal backend can draw into a Vulkan app's image on the same queue. SkiaSharp's
-    /// macOS native has no Vulkan backend, so this is how a Vulkan host gets GPU Skia on macOS.
+    /// <c>id&lt;MTLCommandQueue&gt;</c> behind a <c>VkQueue</c>, the <c>id&lt;MTLTexture&gt;</c> behind a
+    /// <c>VkImage</c> and the <c>id&lt;MTLSharedEvent&gt;</c> behind a timeline <c>VkSemaphore</c>, so Skia's Metal
+    /// backend can draw into a Vulkan app's image. SkiaSharp's macOS native has no Vulkan backend, so this is how a
+    /// Vulkan host gets GPU Skia on macOS.
     /// <para>
     /// The app enables <see cref="ExtensionName"/> on its <c>VkDevice</c> and chains a
-    /// <see cref="ExportMetalObjectCreateInfo"/> for <see cref="ExportObjectTypeMetalDevice"/> and one for
-    /// <see cref="ExportObjectTypeMetalCommandQueue"/> on its <c>VkInstanceCreateInfo</c>. An image to export
-    /// is created with one for <see cref="ExportObjectTypeMetalTexture"/>
-    /// (<see cref="VkImageAllocator.Create"/>'s <c>pNext</c>).
+    /// <see cref="ExportMetalObjectCreateInfo"/> for <see cref="ExportObjectTypeMetalDevice"/> (and, to export the
+    /// queue, one for <see cref="ExportObjectTypeMetalCommandQueue"/>) on its <c>VkInstanceCreateInfo</c>. An image
+    /// to export is created with one for <see cref="ExportObjectTypeMetalTexture"/>
+    /// (<see cref="VkImageAllocator.Create"/>'s <c>pNext</c>), a semaphore with one for
+    /// <see cref="ExportObjectTypeMetalSharedEvent"/>.
     /// </para>
     /// <para>
     /// The exported objects are not retained; they live as long as the Vulkan object they came from.
@@ -27,10 +29,12 @@ namespace SkiaGameRendering.Core.VK
         public const uint StructureTypeExportMetalDeviceInfo = 1000311002;
         public const uint StructureTypeExportMetalCommandQueueInfo = 1000311003;
         public const uint StructureTypeExportMetalTextureInfo = 1000311006;
+        public const uint StructureTypeExportMetalSharedEventInfo = 1000311010;
 
         public const uint ExportObjectTypeMetalDevice = 0x1;
         public const uint ExportObjectTypeMetalCommandQueue = 0x2;
         public const uint ExportObjectTypeMetalTexture = 0x8;
+        public const uint ExportObjectTypeMetalSharedEvent = 0x20;
 
         const uint ImageAspectPlane0 = 0x10;
 
@@ -89,6 +93,16 @@ namespace SkiaGameRendering.Core.VK
             public IntPtr mtlTexture;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct ExportMetalSharedEventInfo
+        {
+            public uint sType;
+            public IntPtr pNext;
+            public ulong semaphore;
+            public ulong @event;
+            public IntPtr mtlSharedEvent;
+        }
+
         /// <summary>The <c>id&lt;MTLDevice&gt;</c> behind <paramref name="device"/>.</summary>
         public static IntPtr ExportDevice(IntPtr device)
         {
@@ -114,24 +128,32 @@ namespace SkiaGameRendering.Core.VK
         }
 
         /// <summary>
-        /// Throws unless MoltenVK commits each <c>vkQueueSubmit</c> on the calling thread (its default), which is
-        /// what orders the app's Vulkan submits and Skia's Metal command buffers on the shared queue. Only the
-        /// environment variable is visible here; a value set through <c>VK_EXT_layer_settings</c> is not.
+        /// The <c>id&lt;MTLSharedEvent&gt;</c> behind <paramref name="semaphore"/>, a timeline semaphore created with a
+        /// <see cref="ExportMetalObjectCreateInfo"/> for <see cref="ExportObjectTypeMetalSharedEvent"/>. Its
+        /// <c>signaledValue</c> is the semaphore's counter, so Metal command buffers can wait on and signal it.
         /// </summary>
-        public static void ThrowIfAsynchronousQueueSubmits() =>
-            ThrowIfAsynchronousQueueSubmits(Environment.GetEnvironmentVariable(SynchronousQueueSubmitsVariable));
+        public static IntPtr ExportSharedEvent(IntPtr device, ulong semaphore)
+        {
+            var info = new ExportMetalSharedEventInfo { sType = StructureTypeExportMetalSharedEventInfo, semaphore = semaphore };
+            Export(device, &info);
+            return Require(info.mtlSharedEvent, "MTLSharedEvent");
+        }
 
-        internal static void ThrowIfAsynchronousQueueSubmits(string? value)
+        /// <summary>
+        /// Whether <see cref="SynchronousQueueSubmitsVariable"/> turns MoltenVK's synchronous queue submits off, so
+        /// <c>vkQueueSubmit</c> may commit its Metal work after it returns. Only the environment variable is visible
+        /// here: MoltenVK reports its global settings, not an instance's <c>VK_EXT_layer_settings</c>.
+        /// </summary>
+        public static bool AsynchronousQueueSubmits() =>
+            AsynchronousQueueSubmits(Environment.GetEnvironmentVariable(SynchronousQueueSubmitsVariable));
+
+        internal static bool AsynchronousQueueSubmits(string? value)
         {
             if (value == null)
-                return;
+                return false;
             var trimmed = value.Trim();
-            var off = trimmed.Equals("false", StringComparison.OrdinalIgnoreCase)
+            return trimmed.Equals("false", StringComparison.OrdinalIgnoreCase)
                 || (long.TryParse(trimmed, out var number) && number == 0);
-            if (off)
-                throw new NotSupportedException(
-                    $"{SynchronousQueueSubmitsVariable}={value}: Skia on MoltenVK needs synchronous queue submits (MoltenVK's default, 1), " +
-                    "which keep the app's Vulkan submits and Skia's Metal command buffers in program order on the shared queue. Unset it or set it to 1.");
         }
 
         internal static IntPtr RequireExportProc(IntPtr proc) => proc != IntPtr.Zero
