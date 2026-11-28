@@ -26,8 +26,9 @@ var isMac = OperatingSystem.IsMacOS();
 Instance instance;
 unsafe
 {
-    // macOS: Skia draws through Metal, so the instance is created for MTLDevice export.
-    var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice);
+    // macOS: Skia draws through Metal, so the instance is created for MTLDevice and MTLCommandQueue export.
+    var exportQueue = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalCommandQueue);
+    var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice, (IntPtr)(&exportQueue));
     instance = Vulkan.CreateInstance(new Instance.CreateInfo
     {
         AppInfo = new VkApplicationInfo { ApiVersion = 1 << 22 | 3 << 12 },
@@ -48,7 +49,7 @@ Device device;
 unsafe
 {
     var priority = 1.0f;
-    // macOS: the timeline semaphore that orders Skia's Metal queue against this queue.
+    // macOS with asynchronous submits: the timeline semaphore that orders Skia's Metal queue against this queue.
     var features12 = new VkPhysicalDeviceVulkan12Features { TimelineSemaphore = true };
     var features13 = new VkPhysicalDeviceVulkan13Features { DynamicRendering = true, Next = &features12 }; // for --direct's sampling pass
     device = physicalDevice.CreateDevice(new Device.CreateInfo

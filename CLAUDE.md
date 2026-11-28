@@ -30,6 +30,8 @@ MonoGame-Gum, so changes that affect Gum's renderers matter more than they look.
 
 **The main branch is `master`, not `main`.** Base every branch and PR off it.
 
+**Extra per-pass work goes only on the users who need it.** Gate added submits, waits or copies on the condition that requires them, such as an opt-in mode, never on a whole platform. The target is under 1 ms per frame in total, so even 0.1 ms per pass is a large cost.
+
 ## Skills and Guidance Files
 
 Load any skill under `.claude/skills/` whose trigger matches the area you are working in, before

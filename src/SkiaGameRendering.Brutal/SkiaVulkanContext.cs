@@ -18,12 +18,16 @@ namespace SkiaGameRendering
     /// <c>Queue.Submit</c> lock is private, so an app that submits from several threads needs its own.
     /// <para>
     /// <b>macOS.</b> SkiaSharp's macOS native has no Vulkan, so on MoltenVK Skia draws with Metal instead, into the
-    /// <c>MTLTexture</c> behind each image, on an <c>MTLCommandQueue</c> of its own. The app enables
-    /// <c>VK_EXT_metal_objects</c> and the <c>timelineSemaphore</c> feature on the device and chains
-    /// <c>VkExportMetalObjectCreateInfoEXT</c> for the MTLDevice on the instance (see <c>docs/brutal/quickstart.md</c>).
-    /// A timeline semaphore exported as an <c>MTLSharedEvent</c> orders the two queues: each pass's Metal work waits
-    /// for a value signaled behind the app's earlier submits on <c>queue</c>, and the app's later submits wait for a
-    /// value Metal signals after Skia's work. That holds with MoltenVK's synchronous or asynchronous queue submits.
+    /// <c>MTLTexture</c> behind each image. The app enables <c>VK_EXT_metal_objects</c> on the device and chains
+    /// <c>VkExportMetalObjectCreateInfoEXT</c> for the MTLDevice and the MTLCommandQueue on the instance (see
+    /// <c>docs/brutal/quickstart.md</c>). With MoltenVK's synchronous queue submits, its default, Skia draws on the
+    /// <c>MTLCommandQueue</c> behind <c>queue</c>, and submit order on that shared queue orders its work against the
+    /// app's. With asynchronous submits MoltenVK may commit a submit after <c>vkQueueSubmit</c> returns, so Skia draws
+    /// on an <c>MTLCommandQueue</c> of its own instead, and each pass adds waits on a timeline semaphore exported as an
+    /// <c>MTLSharedEvent</c>; that needs the device's <c>timelineSemaphore</c> feature. <c>MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0</c>
+    /// turns that path on by itself. An app that turns synchronous submits off through <c>VK_EXT_layer_settings</c>
+    /// passes <c>asynchronousQueueSubmits: true</c>, since MoltenVK does not report an instance's layer settings;
+    /// without it Skia's work races the app's. The parameter does nothing off macOS.
     /// </para>
     /// </summary>
     public sealed class SkiaVulkanContext : IDisposable
@@ -31,14 +35,15 @@ namespace SkiaGameRendering
         readonly VkSkiaSurfaceFactory? _factory;
         readonly MetalSkiaSurfaceFactory? _metalFactory;
         readonly VkImageLayoutTransitioner _transitioner;
-        // macOS: Skia's own MTLCommandQueue (retained) and the semaphore that orders it against the app's queue.
+        // macOS with asynchronous submits: Skia's own MTLCommandQueue (retained) and the semaphore that orders it
+        // against the app's queue. Null with synchronous submits, where Skia shares the app's MTLCommandQueue.
         readonly IntPtr _metalQueue;
         readonly VkMetalSharedEventSemaphore? _metalOrder;
         bool _disposed;
 
         public SkiaVulkanContext(
             IntPtr instance, IntPtr physicalDevice, IntPtr device, IntPtr queue, uint queueFamilyIndex,
-            Func<IDisposable>? acquireQueueLock = null)
+            Func<IDisposable>? acquireQueueLock = null, bool asynchronousQueueSubmits = false)
         {
             Instance = instance;
             PhysicalDevice = physicalDevice;
@@ -46,13 +51,19 @@ namespace SkiaGameRendering
 
             if (OperatingSystem.IsMacOS())
             {
-                // Not the queue MoltenVK submits the app's work to: a Metal wait there would block the app's own submit
-                // that signals it whenever MoltenVK commits that submit later (its asynchronous submits).
                 var metalDevice = VkMetalObjectExport.ExportDevice(device);
-                _metalOrder = new VkMetalSharedEventSemaphore(instance, physicalDevice, device);
-                _metalQueue = MetalSkiaSurfaceFactory.NewCommandQueue(metalDevice);
+                IntPtr metalQueue;
+                if (asynchronousQueueSubmits || VkMetalObjectExport.AsynchronousQueueSubmits())
+                {
+                    // Not the queue MoltenVK submits the app's work to: a Metal wait there would block the app's own
+                    // submit that signals it, whenever MoltenVK commits that submit later.
+                    _metalOrder = new VkMetalSharedEventSemaphore(instance, physicalDevice, device);
+                    metalQueue = _metalQueue = MetalSkiaSurfaceFactory.NewCommandQueue(metalDevice);
+                }
+                else
+                    metalQueue = VkMetalObjectExport.ExportCommandQueue(device, queue);
                 _metalFactory = new MetalSkiaSurfaceFactory();
-                _metalFactory.InitializeFromNative(metalDevice, _metalQueue);
+                _metalFactory.InitializeFromNative(metalDevice, metalQueue);
             }
             else
             {
@@ -76,7 +87,9 @@ namespace SkiaGameRendering
         internal MetalSkiaSurfaceFactory? MetalFactory => _metalFactory;
         internal VkImageLayoutTransitioner Transitioner => _transitioner;
 
-        // macOS. The timeline semaphore Begin and End order Skia's Metal queue against the app's queue with.
+        // macOS with asynchronous submits: the timeline semaphore Begin and End order Skia's Metal queue against the
+        // app's queue with. With synchronous submits the shared queue's submit order does that at no extra cost.
+        internal bool OrdersMetalWithSemaphore => _metalOrder != null;
         internal ulong MetalOrderSemaphore => _metalOrder!.Semaphore;
         internal ulong NextMetalOrderValue() => _metalOrder!.Next();
         internal void CommitMetalWait(ulong value) => _metalFactory!.CommitWait(_metalOrder!.SharedEvent, value);
@@ -109,10 +122,14 @@ namespace SkiaGameRendering
             if (_metalFactory != null)
             {
                 // Every Metal wait's value was signaled by a submit the transitioner just waited for.
-                _metalFactory.WaitForQueue();
+                if (_metalOrder != null)
+                    _metalFactory.WaitForQueue();
                 _metalFactory.Dispose();
-                MetalSkiaSurfaceFactory.ReleaseObject(_metalQueue);
-                _metalOrder!.Dispose();
+                if (_metalOrder != null)
+                {
+                    MetalSkiaSurfaceFactory.ReleaseObject(_metalQueue);
+                    _metalOrder.Dispose();
+                }
             }
         }
     }

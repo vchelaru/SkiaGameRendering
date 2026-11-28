@@ -7,7 +7,7 @@ namespace Tests.CoreVK;
 /// <summary>
 /// <see cref="VkMetalObjectExport"/>, the MoltenVK path Skia uses on macOS. The export itself needs MoltenVK, so
 /// these cover what runs anywhere: the struct layouts against the Vulkan headers, the refusal on a device without
-/// <c>VK_EXT_metal_objects</c>.
+/// <c>VK_EXT_metal_objects</c>, and the asynchronous-submit check.
 /// </summary>
 public sealed class VkMetalObjectExportTests
 {
@@ -36,4 +36,17 @@ public sealed class VkMetalObjectExportTests
         var error = Assert.Throws<InvalidOperationException>(() => VkMetalObjectExport.ExportDevice(vk.Device));
         Assert.Contains(VkMetalObjectExport.ExtensionName, error.Message);
     }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData(" 0 ")]
+    [InlineData("false")]
+    public void SynchronousSubmitsOff_IsAsynchronous(string value) =>
+        Assert.True(VkMetalObjectExport.AsynchronousQueueSubmits(value));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("1")]
+    public void SynchronousSubmitsOnOrUnset_IsNot(string? value) =>
+        Assert.False(VkMetalObjectExport.AsynchronousQueueSubmits(value));
 }

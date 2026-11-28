@@ -38,6 +38,9 @@ namespace SkiaGameRendering.Core.VK
 
         const uint ImageAspectPlane0 = 0x10;
 
+        /// <summary>The environment variable MoltenVK reads for its <c>synchronousQueueSubmits</c> setting.</summary>
+        public const string SynchronousQueueSubmitsVariable = "MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS";
+
         /// <summary><c>VkExportMetalObjectCreateInfoEXT</c>.</summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct ExportMetalObjectCreateInfo
@@ -134,6 +137,23 @@ namespace SkiaGameRendering.Core.VK
             var info = new ExportMetalSharedEventInfo { sType = StructureTypeExportMetalSharedEventInfo, semaphore = semaphore };
             Export(device, &info);
             return Require(info.mtlSharedEvent, "MTLSharedEvent");
+        }
+
+        /// <summary>
+        /// Whether <see cref="SynchronousQueueSubmitsVariable"/> turns MoltenVK's synchronous queue submits off, so
+        /// <c>vkQueueSubmit</c> may commit its Metal work after it returns. Only the environment variable is visible
+        /// here: MoltenVK reports its global settings, not an instance's <c>VK_EXT_layer_settings</c>.
+        /// </summary>
+        public static bool AsynchronousQueueSubmits() =>
+            AsynchronousQueueSubmits(Environment.GetEnvironmentVariable(SynchronousQueueSubmitsVariable));
+
+        internal static bool AsynchronousQueueSubmits(string? value)
+        {
+            if (value == null)
+                return false;
+            var trimmed = value.Trim();
+            return trimmed.Equals("false", StringComparison.OrdinalIgnoreCase)
+                || (long.TryParse(trimmed, out var number) && number == 0);
         }
 
         internal static IntPtr RequireExportProc(IntPtr proc) => proc != IntPtr.Zero

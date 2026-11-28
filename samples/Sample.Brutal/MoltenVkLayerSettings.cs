@@ -2,7 +2,8 @@ using System.Runtime.InteropServices;
 
 /// <summary>
 /// --async-via-layer-settings: turns MoltenVK's synchronous queue submits off through <c>VK_EXT_layer_settings</c> on
-/// the instance instead of <c>MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0</c>, the route the library cannot see.
+/// the instance instead of <c>MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0</c>. The library cannot see this route, so the
+/// sample also passes <c>asynchronousQueueSubmits: true</c> to <c>SkiaVulkanContext</c>.
 /// </summary>
 static unsafe class MoltenVkLayerSettings
 {

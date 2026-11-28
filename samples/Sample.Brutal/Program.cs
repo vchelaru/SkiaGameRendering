@@ -6,7 +6,8 @@
 // --smoke-test --direct-screenshot <path> also saves the Scene SkiaDirectCanvas drew into an app-owned image.
 // --race-test draws the Scene for many frames while the app reads each frame on the GPU with no CPU wait, checks every
 // read saw its own frame, and prints the per-frame cost (see RaceTest.cs). --async-via-layer-settings turns MoltenVK's
-// synchronous submits off through VK_EXT_layer_settings (the env var route is MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0).
+// synchronous submits off through VK_EXT_layer_settings and passes asynchronousQueueSubmits: true (the env var route,
+// MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0, needs no flag).
 // On macOS (MoltenVK) Skia draws through Metal, which needs VK_EXT_metal_objects on the device and the Metal export
 // structs on the instance (see docs/brutal/quickstart.md).
 using System.Runtime.InteropServices;
@@ -30,8 +31,9 @@ if (asyncViaLayerSettings)
 Instance instance;
 unsafe
 {
-    // macOS: Skia exports the MTLDevice, which the instance must be created for.
-    var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice);
+    // macOS: Skia exports the MTLDevice and the MTLCommandQueue, which the instance must be created for.
+    var exportQueue = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalCommandQueue);
+    var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice, (IntPtr)(&exportQueue));
     instance = Vulkan.CreateInstance(new Instance.CreateInfo
     {
         AppInfo = new VkApplicationInfo { ApiVersion = 1 << 22 | 3 << 12 },
@@ -53,7 +55,7 @@ int exitCode = 0;
 unsafe
 {
     var priority = 1.0f;
-    // macOS: the timeline semaphore that orders Skia's Metal queue against this queue.
+    // macOS with asynchronous submits: the timeline semaphore that orders Skia's Metal queue against this queue.
     var features12 = new VkPhysicalDeviceVulkan12Features { TimelineSemaphore = true };
     using var device = physicalDevice.CreateDevice(new Device.CreateInfo
     {
@@ -67,8 +69,10 @@ unsafe
     });
     var queue = device.GetQueue(queueFamily, 0);
 
+    // MoltenVK reports only the env var, so an app that turns synchronous submits off through layer settings says so.
     using var context = new SkiaVulkanContext(
-        instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily);
+        instance.VkHandle, physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily,
+        asynchronousQueueSubmits: asyncViaLayerSettings);
     if (args.Contains("--race-test"))
     {
         exitCode = RaceTest.Run(physicalDevice.VkHandle, device.VkHandle, queue.VkHandle, (uint)queueFamily, context);

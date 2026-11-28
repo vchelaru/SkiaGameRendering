@@ -94,8 +94,7 @@ with the texture path. The `Tests.Brutal` layout tests check the layouts under t
 ## macOS
 
 BRUTAL's Vulkan runs on Apple silicon through MoltenVK. SkiaSharp's macOS native has no Vulkan, so there Skia draws with
-Metal into the `MTLTexture` behind each target's `VkImage`, on a `MTLCommandQueue` of its own. Everything still
-stays on the GPU, and the API is the same.
+Metal into the `MTLTexture` behind each target's `VkImage`. Everything still stays on the GPU, and the API is the same.
 
 Install the Vulkan loader and MoltenVK (BRUTAL ships neither for macOS; see the
 [BRUTAL macOS notes](https://brutally-honest.junk-tools.com/)):
@@ -105,21 +104,22 @@ brew install molten-vk vulkan-loader
 brew install vulkan-validationlayers vulkan-tools   # optional: validation, and vulkaninfo
 ```
 
-Your app adds three things: `VK_EXT_metal_objects` on the device, the `timelineSemaphore` feature on the device (Vulkan
-1.2 core), and a `VkExportMetalObjectCreateInfoEXT` for the MTLDevice on the instance. Without the extension or the
-instance struct `SkiaVulkanContext` throws, naming the extension. Vulkan has no way to ask a device which features it
-enabled, so a missing `timelineSemaphore` is reported only by the validation layer
-(`VUID-VkSemaphoreTypeCreateInfo-timelineSemaphore-03252`).
+Your app adds `VK_EXT_metal_objects` on the device, and a `VkExportMetalObjectCreateInfoEXT` for the MTLDevice and one
+for the MTLCommandQueue on the instance. Without them the export fails validation or `SkiaVulkanContext` throws, naming
+the extension. If you turn MoltenVK's synchronous queue submits off (below), also enable the `timelineSemaphore` feature
+on the device (Vulkan 1.2 core). Vulkan has no way to ask a device which features it enabled, so a missing
+`timelineSemaphore` is reported only by the validation layer (`VUID-VkSemaphoreTypeCreateInfo-timelineSemaphore-03252`).
 
 ```csharp
-var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice);
+var exportQueue = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalCommandQueue);
+var exportDevice = VkMetalObjectExport.ExportMetalObjectCreateInfo.For(VkMetalObjectExport.ExportObjectTypeMetalDevice, (IntPtr)(&exportQueue));
 var instance = Vulkan.CreateInstance(new Instance.CreateInfo
 {
     // ... as before, plus portability enumeration
     Flags = VkInstanceCreateFlags.EnumeratePortabilityBitKHR,
     Next = &exportDevice,
 });
-var features12 = new VkPhysicalDeviceVulkan12Features { TimelineSemaphore = true };
+var features12 = new VkPhysicalDeviceVulkan12Features { TimelineSemaphore = true }; // asynchronous submits only
 var device = physicalDevice.CreateDevice(new Device.CreateInfo
 {
     Extensions = ["VK_KHR_portability_subset", VkMetalObjectExport.ExtensionName],
@@ -130,12 +130,16 @@ var device = physicalDevice.CreateDevice(new Device.CreateInfo
 
 `VkMetalObjectExport` is in `SkiaGameRendering.Core.VK`, which the package brings in. `samples/Sample.Brutal` does this.
 
-- **Ordering.** Skia's Metal queue and your Vulkan queue are ordered by a timeline semaphore the context creates and
-  exports as an `MTLSharedEvent`. `Begin` queues an empty submit on your queue that signals it, and Skia's Metal work
-  waits for that value; `End` has Metal signal the next value after Skia's work, and queues an empty submit that waits for
-  it, so everything you submit afterwards sees Skia's writes. `SkiaDirectCanvas` puts the same signal and wait on its two
-  layout moves instead. This works with MoltenVK's synchronous or asynchronous queue submits
-  (`MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0`, or the same setting through `VK_EXT_layer_settings`).
+- **Ordering.** With MoltenVK's synchronous queue submits, its default, Skia draws on the `MTLCommandQueue` behind your
+  `VkQueue`, and the order work reaches that shared queue orders Skia's writes against your reads. That costs nothing
+  extra.
+- **Asynchronous submits.** With `MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0`, MoltenVK may commit a submit after
+  `vkQueueSubmit` returns, so the shared queue's order no longer matches yours. The context sees the variable and
+  switches to its own `MTLCommandQueue`, ordered against yours by a timeline semaphore exported as an `MTLSharedEvent`:
+  `Begin` and `End` each add an empty submit on your queue and a wait or signal on Skia's. If you turn synchronous submits
+  off through `VK_EXT_layer_settings` instead, pass `asynchronousQueueSubmits: true` to `SkiaVulkanContext`, since
+  MoltenVK doesn't report an instance's layer settings. Without it Skia's work races yours. On an M5 Pro the ordering
+  added about 0.28 ms to a Scene pass (0.32 ms against 0.04 ms with synchronous submits).
 - **Layout.** A `SkiaRenderTarget2D` image moves to `SHADER_READ_ONLY_OPTIMAL` once at creation and never again, since Skia's writes go
   through Metal, which has no layouts. The contract you see is unchanged. With `appManagesLayout: true` it is moved to
   `COLOR_ATTACHMENT_OPTIMAL` once instead, so your barriers stay valid; they are bookkeeping for MoltenVK.
